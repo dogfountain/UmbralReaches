@@ -149,6 +149,8 @@ static func build(L: RefCounted, site_name: String, c: Vector2, w: float, d: flo
 	# hearth on the east gable inside (seen through ruined walls or the door)
 	k.box(stone, xf * Vector3(hw - T - 0.3, 0.5, hd * 0.25), Vector3(0.6, 1.0, 1.3), bas, true, 0.8 * shade)
 	k.box("dark", xf * Vector3(hw - T - 0.58, 0.35, hd * 0.25), Vector3(0.04, 0.55, 0.8), bas, false, 0.2)
+	if not ruined:
+		preload("res://core/world/realm/lore/cottage_detail.gd").dress(L, xf, w, d, bas, rng, state)      # sills, shutters, lanterns, a ridge cap, a garden fence
 	# lived-in traces: a doorstep, a water butt at the corner, logs along the gable
 	var ds := xf * Vector3(-hw + w * 0.36, -0.08, -hd - 0.35)
 	k.box(stone, ds, Vector3(1.4, 0.3, 0.6), bas, true, 0.78 * shade)

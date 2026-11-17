@@ -4,7 +4,8 @@ shader_type spatial;
 // so meshes without colours are fine):
 //   COLOR.r  cavity / contact AO (1 open, 0 deep crevice or buried foot)
 //   COLOR.g  1 - extra moss (RockKit grows moss caps on up faces; the shader also adds world-up moss)
-//   COLOR.b  1 - ember region (ash style: where the crack texture may glow)
+//   COLOR.b  1 - ember region (ash style: where the crack texture may glow); granite and mossy (vcol_lichen = 1): 1 - painted lichen
+//   COLOR.a  strata tone (1 neutral; each layer its own shade, a shadow line under each ledge)
 // Night palette: cold blue-grey stone under moonlight. Emission is capped (glow budget: HDR
 // threshold 1.15, so an ember crack peaks just over it and nothing else glows).
 render_mode blend_mix, depth_draw_opaque, cull_back, diffuse_burley, specular_schlick_ggx;
@@ -29,6 +30,7 @@ uniform float specular_amt : hint_range(0.0, 1.0) = 0.38;
 uniform float cavity_strength : hint_range(0.0, 1.0) = 0.75;
 
 uniform float lichen : hint_range(0.0, 1.0) = 0.3;
+uniform float vcol_lichen : hint_range(0.0, 1.0) = 0.0;   // 1: the mesh's COLOR.b paints lichen patches
 uniform vec3 lichen_tint : source_color = vec3(0.5, 0.56, 0.5);
 uniform float moss_amount : hint_range(0.0, 1.5) = 0.0;   // world-up moss
 uniform float moss_bias = 0.0;                            // + = moss reaches further down the sides
@@ -86,7 +88,8 @@ void fragment() {
 	float macro = TRI(mask_tex, wpos * tex_scale * 0.13, w).b;
 
 	vec3 col = alb * mix(tint_alt, tint, smoothstep(0.3, 0.7, macro)) * 1.6;
-	col = mix(col, lichen_tint * (0.55 + alb.g * 0.6), smoothstep(0.55, 0.85, msk.g) * lichen);
+	col = mix(col, lichen_tint * (0.55 + alb.g * 0.6), clamp(smoothstep(0.55, 0.85, msk.g) * lichen + (1.0 - COLOR.b) * vcol_lichen * 0.85, 0.0, 1.0));
+	col *= COLOR.a;                                       // strata bands baked by RockKit (1 on meshes without them)
 
 	vec3 nw = tri_normal(normal_tex, p, n, w, normal_strength);
 	nw = tri_normal(detail_normal, wpos * detail_scale, nw, w, detail_strength);

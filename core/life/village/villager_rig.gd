@@ -287,6 +287,7 @@ func _body_v(mb: Variant) -> void:
 		_shawl(mb, cloth2)
 	_tool(mb, 0, String(cfg.get("r", "")), skin)
 	_tool(mb, 1, String(cfg.get("l", "")), skin)
+	preload("res://core/life/village/villager_wear.gd").wear(self, mb, cloth, cloth2, leather, f, girth, garment)
 
 
 var _prof: Array = []

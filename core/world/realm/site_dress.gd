@@ -568,9 +568,11 @@ static func _emit(host: Node3D, id: String, c: Vector2) -> void:
 		var groups: Array = []
 		if d.has("variants"):
 			var vs: Array = d.variants
+			var win := mini(vs.size(), Props.window(kind)) if Props.window(kind) > 0 else vs.size()
+			var off := absi(hash(id)) % vs.size() if win < vs.size() else 0       # this zone's window into the variant pool
 			var by_v := {}
 			for i in list.size():
-				var v := Props.variant(kind, i, vs.size())
+				var v := (off + Props.variant(kind, i, win)) % vs.size()
 				if not by_v.has(v):
 					by_v[v] = []
 				(by_v[v] as Array).append(i)

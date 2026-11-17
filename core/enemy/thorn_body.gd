@@ -104,6 +104,37 @@ func _body_v(mb: Variant) -> void:
 			var side := 1.0 if (i + j) % 2 == 0 else -1.0
 			mb.tube(PackedVector3Array([p, p + Vector3(side * 0.07, 0.06, 0.03)]), _pf([0.018, 0.002]), 5, THORN, WOOD, {"lumps": 0.0})
 
+	_ornament(mb)
+
+
+## Tertiary forms: ridged bark plates down the flanks, moss strands hanging from the belly, bracket fungus on the haunch,
+## root tendrils wrapped on the legs and a band of small thorns at each knee.
+func _ornament(mb: Variant) -> void:
+	for i in 7:
+		var z := 0.62 - 0.17 * float(i)
+		var bone := B_HIPS if z > 0.3 else (B_SPINE if z > -0.05 else B_CHEST)
+		mb.bind(bone)
+		for s: float in [-1.0, 1.0]:
+			mb.blob(Vector3(s * 0.27, 0.86 + 0.02 * sin(float(i)), z), Vector3(0.06, 0.045, 0.09), Basis(Vector3.BACK, s * 0.5), BARK_L, WOOD, {"lumps": 0.3, "rings": 4, "segs": 8})
+			var bx := Vector3(s * (0.1 + 0.02 * float(i % 3)), 0.74, z)
+			mb.tube(PackedVector3Array([bx, bx + Vector3(0.0, -0.1, 0.0), bx + Vector3(s * 0.01, -0.2 - 0.03 * float(i % 2), 0.02)]), _pf([0.012, 0.009, 0.003]), 4, MOSS, DMesh.MAT_FUR, {"lumps": 0.2})
+	mb.bind(B_HIPS)
+	for j in 3:
+		mb.blob(Vector3(0.24, 0.98 - 0.07 * float(j), 0.46 - 0.06 * float(j)), Vector3(0.08 - 0.015 * float(j), 0.016, 0.06 - 0.01 * float(j)), Basis(Vector3.BACK, -0.4), Color(0.7, 0.62, 0.5), WOOD, {"lumps": 0.25, "rings": 4, "segs": 8})
+	for i in 4:
+		var bu := B_LEG + 2 * i
+		var up: Vector3 = rests[bu]
+		var kn: Vector3 = rests[bu + 1]
+		mb.bind(bu)
+		var loop := PackedVector3Array()
+		for j in 9:
+			var u := TAU * float(j) / 8.0 * 1.5
+			loop.append(up.lerp(kn, 0.2 + 0.6 * float(j) / 8.0) + Vector3(cos(u) * 0.105, 0.0, sin(u) * 0.105))
+		mb.tube(loop, _pf(_rep(0.012, 9)), 5, BARK_L, WOOD, {"lumps": 0.2, "caps": false})
+		for j in 6:
+			var a := TAU * float(j) / 6.0
+			mb.tube(PackedVector3Array([kn + Vector3(cos(a) * 0.07, 0.0, sin(a) * 0.07), kn + Vector3(cos(a) * 0.1, 0.035, sin(a) * 0.1)]), _pf([0.01, 0.001]), 4, THORN, WOOD, {"lumps": 0.0})
+
 
 ## A briar antler: a beam up, back and out from the brow, tines off it, thorns all along: a tall spread crown.
 func _antler(mb: Variant, s: float) -> void:

@@ -12,6 +12,8 @@ const Beast := preload("res://core/life/wildlife/life_beast_mesh.gd")
 const GenCache := preload("res://core/world/realm/gen_cache.gd")
 const SELF := "res://core/life/wildlife/life_kit.gd"
 const BEAST_SRC := "res://core/life/wildlife/life_beast_mesh.gd"
+const PET_SRC := "res://core/life/wildlife/life_pet_mesh.gd"
+const Pet := preload("res://core/life/wildlife/life_pet_mesh.gd")
 const CREATURE_SH := preload("res://core/life/wildlife/creature.gdshader")
 const ORBIT_SH := preload("res://core/life/wildlife/orbit.gdshader")
 const FIREFLY_SH := preload("res://core/life/wildlife/firefly.gdshader")
@@ -48,6 +50,10 @@ const RIG := {
 		"knee_front": Vector2(0.47, -0.365) * ELK_S, "knee_back": Vector2(0.47, 0.52) * ELK_S, "knee_flex": 0.7},
 	"fox": {"head_pivot": Vector3(0, 0.36, -0.2), "hip_front": Vector2(0.3, -0.18), "hip_back": Vector2(0.32, 0.17), "leg_amp": 0.6, "tail_sway": 0.18,
 		"knee_front": Vector2(0.15, -0.185), "knee_back": Vector2(0.15, 0.2), "knee_flex": 0.7},
+	"dog": {"head_pivot": Vector3(0, 0.36, -0.2), "hip_front": Vector2(0.3, -0.18), "hip_back": Vector2(0.32, 0.17), "leg_amp": 0.6, "tail_sway": 0.3,
+		"knee_front": Vector2(0.15, -0.185), "knee_back": Vector2(0.15, 0.2), "knee_flex": 0.7},
+	"cat": {"head_pivot": Vector3(0, 0.36, -0.2), "hip_front": Vector2(0.3, -0.18), "hip_back": Vector2(0.32, 0.17), "leg_amp": 0.55, "tail_sway": 0.25,
+		"knee_front": Vector2(0.15, -0.185), "knee_back": Vector2(0.15, 0.2), "knee_flex": 0.7},
 	"rat": {"head_pivot": Vector3(0, 0.05, -0.05), "hip_front": Vector2(0.03, -0.045), "hip_back": Vector2(0.03, 0.045), "leg_amp": 0.8, "tail_sway": 0.3},
 	"mouse": {"head_pivot": Vector3(0, 0.03, -0.03), "hip_front": Vector2(0.018, -0.027), "hip_back": Vector2(0.018, 0.027), "leg_amp": 0.9, "tail_sway": 0.35},
 	"hare": {"head_pivot": Vector3(0, 0.25, -0.15), "hip_front": Vector2(0.17, -0.1), "hip_back": Vector2(0.2, 0.13), "leg_amp": 0.85, "tail_sway": 0.1,
@@ -72,6 +78,10 @@ const LOOK := {
 	"elk": {"detail": 0.75, "detail_scale": 6.0, "streak": 3.2, "roughness": 0.92, "eye_col": Color(0.8, 0.75, 0.55), "eye_energy": 0.14, "rim_amount": 0.28, "rim_col": Color(0.55, 0.62, 0.9),
 		"body_tone": Vector4(0.74, 0.93, 1.05, 1.2) * ELK_S, "tone_amt": Vector2(0.4, 0.32), "mottle": 0.5, "vary": 0.25, "fur_bump": 0.6, "rim_lit": 0.22},
 	"fox": {"detail": 0.5, "detail_scale": 6.5, "streak": 3.4, "roughness": 0.84, "eye_col": Color(1.0, 0.8, 0.4), "eye_energy": 0.35, "rim_amount": 0.3, "rim_col": Color(0.55, 0.62, 0.9),
+		"body_tone": Vector4(0.2, 0.3, 0.36, 0.46), "tone_amt": Vector2(0.4, 0.28), "mottle": 0.4, "vary": 0.25, "fur_bump": 0.55, "rim_lit": 0.25},
+	"dog": {"detail": 0.5, "detail_scale": 6.5, "streak": 3.4, "roughness": 0.84, "eye_col": Color(1.0, 0.8, 0.4), "eye_energy": 0.22, "rim_amount": 0.3, "rim_col": Color(0.55, 0.62, 0.9),
+		"body_tone": Vector4(0.2, 0.3, 0.36, 0.46), "tone_amt": Vector2(0.4, 0.28), "mottle": 0.4, "vary": 0.25, "fur_bump": 0.55, "rim_lit": 0.25},
+	"cat": {"detail": 0.5, "detail_scale": 6.5, "streak": 3.4, "roughness": 0.84, "eye_col": Color(1.0, 0.8, 0.4), "eye_energy": 0.5, "rim_amount": 0.3, "rim_col": Color(0.55, 0.62, 0.9),
 		"body_tone": Vector4(0.2, 0.3, 0.36, 0.46), "tone_amt": Vector2(0.4, 0.28), "mottle": 0.4, "vary": 0.25, "fur_bump": 0.55, "rim_lit": 0.25},
 	"rat": {"detail": 0.55, "streak": 2.4, "roughness": 0.78, "eye_col": Color(1.0, 0.3, 0.2), "eye_energy": 1.1, "detail_scale": 24.0},
 	"branch": {"detail": 0.8, "streak": 4.0, "roughness": 0.95, "detail_scale": 3.0},
@@ -106,7 +116,7 @@ static func mesh(kind: String) -> Mesh:
 		_:
 			var key := "life_%s_v%d" % [kind, VERSION]
 			# the four-legged kinds are built in life_beast_mesh.gd (and creature_mesh.gd): their cache follows that source
-			var gen := BEAST_SRC if kind in ["deer", "stag", "elk", "fox", "hare", "boar"] else SELF
+			var gen := BEAST_SRC if kind in ["deer", "stag", "elk", "fox", "hare", "boar"] else (PET_SRC if kind in ["dog", "cat"] else SELF)
 			m = GenCache.load_mesh(key, gen)
 			if m == null:
 				m = _build(kind)
@@ -246,6 +256,8 @@ static func _build(kind: String) -> ArrayMesh:
 		"stag": Beast.deer(cm, 1.0, 1)
 		"elk": Beast.deer(cm, ELK_S, 2)
 		"fox": Beast.fox(cm)
+		"dog": Pet.dog(cm)
+		"cat": Pet.cat(cm)
 		"rat": _rat(cm)
 		"mouse": _mouse(cm)
 		"plover": _plover(cm)

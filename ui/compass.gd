@@ -1,10 +1,10 @@
 extends Control
 ## The compass strip (ENS art pass, docs/enshrouded/art.md): a thin engraved band at the top centre
 ## of the HUD. 180 degrees of heading across it, ticks every 15, the four winds in Cinzel (north in
-## lantern gold), and markers for what the night asks of you:
-##   - landmark beacons (group "landmark_beacon", realm_wayfinding.gd beacon(), with an `anchor`), as a
-##     diamond in the beacon's own colour with the distance under it;
-##   - the nearest braziers (Groups.BRAZIER): a hollow ember diamond while cold, a small gold dot lit.
+## lantern gold), and the few marks worth a glance NOW. What is shown is decided by ui/compass_feed.gd (relevance by
+## kind, range and the wanderer's need; Settings > Display > Compass Detail: Minimal / Standard / Full), see
+## the compass doc (docs, compass.md): the followed step always; danger near; the nearest fire only when one is wanted (Gloom or wounds);
+## quest givers near; far beacons as faint ticks. Marks fade with distance and merge when they overlap.
 ## Added by ui/hud.gd (one line). Reads the tree twice a second, draws every frame; no signals needed.
 ## Hidden while the tree is paused (menus, dialogue) and under the loading screen.
 
@@ -18,14 +18,14 @@ const STRIP_Y := 4.0                     ## the strip's top in the control
 const STRIP_H := 38.0
 const Forge := preload("res://ui/hud_forge.gd")
 const QuestTrack := preload("res://core/story/quest_track.gd")
-const BRAZIER_R := 110.0                 ## braziers farther than this are not shown
-const MAX_BRAZIERS := 4
+const Feed := preload("res://ui/compass_feed.gd")
+const HudPrefs := preload("res://ui/hud_prefs.gd")
 const DIST_PT := 19
 const OUTLINE_TRI := Color(0.02, 0.012, 0.006)
 
 var _font: Font
 var _scan := 0.0
-var _marks: Array[Dictionary] = []       ## {pos: Vector3, col: Color, kind: "beacon"|"cold"|"lit"}
+var _marks: Array[Dictionary] = []       ## CompassFeed.gather(): {pos, kind, col, d, range, ...}
 var _alpha := 0.0
 var _sig: Array = []
 var _dirty := true
@@ -69,36 +69,16 @@ func _rescan() -> void:
 	var cam := get_viewport().get_camera_3d()
 	if cam == null:
 		return
-	var eye := cam.global_position
-	for b in get_tree().get_nodes_in_group(&"landmark_beacon"):     # core/world/realm/landmark_beacon.gd
-		if not is_instance_valid(b) or b.is_queued_for_deletion() or not ("anchor" in b):
-			continue
-		_marks.append({"pos": b.get("anchor"), "col": _beacon_col(b), "kind": "beacon"})
-	# the tracked task's step (core/story/quest_track.gd): its own painted mark, first on the strip, its distance always shown
+	HudPrefs.ensure()
 	var tr := get_tree().get_first_node_in_group("quest_track") as QuestTrack
 	var st: Dictionary = tr.current() if tr != null else {}
-	if st.get("target", Vector3.INF) != Vector3.INF:
-		var pl := get_tree().get_first_node_in_group(Groups.PLAYER) as Node3D
-		var tg: Vector3 = st.target
-		var flat := Vector2(tg.x - pl.global_position.x, tg.z - pl.global_position.z).length() if pl else -1.0
-		_marks.append({"pos": tg, "col": LANTERN, "kind": "goal", "art": String(st.get("art", "followed")), "flat": flat})
-	var braz: Array = []
-	for n in get_tree().get_nodes_in_group(Groups.BRAZIER):
-		var b3 := n as Node3D
-		if b3 == null or not b3.is_inside_tree():
-			continue
-		var d := b3.global_position.distance_to(eye)
-		if d <= BRAZIER_R:
-			braz.append([d, b3])
-	braz.sort_custom(func(a: Array, b: Array) -> bool: return a[0] < b[0])
-	for i in mini(braz.size(), MAX_BRAZIERS):
-		var b3: Node3D = braz[i][1]
-		var lit := bool(b3.get("lit")) if "lit" in b3 else false
-		_marks.append({"pos": b3.global_position, "col": LANTERN if lit else EMBER, "kind": "lit" if lit else "cold"})
+	var pl := get_tree().get_first_node_in_group(Groups.PLAYER) as Node3D
+	var you := pl.global_position if pl != null else cam.global_position
+	_marks = Feed.gather(get_tree(), cam.global_position, HudPrefs.compass_density, st, pl, you)
 
 
-func _beacon_col(b: Node) -> Color:
-	return b.get("tint") as Color if "tint" in b else LANTERN
+func _rank(kind: String) -> int:
+	return {"goal": 0, "mark": 1, "danger": 2, "fire": 3, "tasker": 4}.get(kind, 5)
 
 
 func _draw() -> void:
@@ -127,7 +107,7 @@ func _draw() -> void:
 	var tip := Vector2(cx, sr.position.y + 12.0)
 	draw_colored_polygon(PackedVector2Array([Vector2(cx - 7.0, sr.position.y - 1.0), Vector2(cx + 7.0, sr.position.y - 1.0), tip]), Color(OUTLINE_TRI, _alpha))
 	draw_colored_polygon(PackedVector2Array([Vector2(cx - 5.0, sr.position.y + 0.5), Vector2(cx + 5.0, sr.position.y + 0.5), tip + Vector2(0, -2.0)]), Color(LANTERN, 0.95 * _alpha))
-	# markers: nearest beacons first; one that would sit on a placed marker gives way (a beacon behind you pins to the end, so the rest of them are the same spot)
+	# markers: the feed's few, by strength then distance; overlapping ones fold into one (a count), the strong win
 	var eye := cam.global_position
 	var shown: Array[Dictionary] = []
 	for m: Dictionary in _marks:
@@ -135,48 +115,66 @@ func _draw() -> void:
 		var rel := p - eye
 		if Vector2(rel.x, rel.z).length() < 0.5:
 			continue
-		var x := _x_for(atan2(rel.x, -rel.z), yaw, true)
 		var kind := String(m.kind)
-		var a := maxf(_edge(x / WIDTH), (0.85 if kind == "goal" else 0.5) if kind in ["beacon", "goal"] else 0.0) * _alpha
-		var dist: float = float(m.flat) if float(m.get("flat", -1.0)) >= 0.0 else rel.length()     # the goal reads as the waypoint does: flat, from the wanderer
-		shown.append({"x": clampf(x, 14.0, WIDTH - 14.0), "a": a, "kind": kind, "col": m.col, "d": dist, "art": String(m.get("art", ""))})
+		var x := _x_for(atan2(rel.x, -rel.z), yaw, true)
+		var fd := Feed.fade(m)
+		var a := maxf(_edge(x / WIDTH), 0.85 if kind == "goal" else 0.0) * fd * _alpha
+		if a <= 0.02:
+			continue
+		var e := m.duplicate()
+		e["x"] = clampf(x, 14.0, WIDTH - 14.0)
+		e["a"] = a
+		shown.append(e)
 	shown.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
-		var ka := -1 if a.kind == "goal" else (0 if a.kind == "beacon" else 1)
-		var kb := -1 if b.kind == "goal" else (0 if b.kind == "beacon" else 1)
-		return ka < kb or (ka == kb and float(a.d) < float(b.d)))
+		var ra := _rank(String(a.kind))
+		var rb := _rank(String(b.kind))
+		return ra < rb or (ra == rb and float(a.d) < float(b.d)))
+	shown = Feed.fold(shown, 17.0)
 	var taken: Array[Vector2] = []                  # x spans already holding a marker
 	var labels: Array = []                          # [distance, x, text, alpha]
+	var dens: int = HudPrefs.compass_density
 	for m: Dictionary in shown:
 		var x: float = m.x
 		var a: float = m.a
-		var half := 15.0 if m.kind == "goal" else (13.0 if m.kind == "beacon" else 8.0)
-		var clash := false
-		for t: Vector2 in taken:
-			if x - half < t.y and t.x < x + half:
-				clash = true
-				break
-		if clash:
-			continue
+		var kind := String(m.kind)
+		var half := 15.0 if kind == "goal" else (9.0 if kind != "beacon" else (11.0 if dens == Feed.FULL else 3.0))
 		taken.append(Vector2(x - half, x + half))
 		var col: Color = m.col
 		col.a = a
 		var y := band_y + 1.0
-		match String(m.kind):
+		match kind:
 			"goal":
 				if not IconArt.draw_mark(self, "mark", String(m.art), Vector2(x, y), 30.0, Color(1, 1, 1, a)):
 					_diamond(Vector2(x, y), 8.0, col, true)
 				labels.append([float(m.d), x, "%d m" % int(round(float(m.d))), a, true])
-			"beacon":
-				if not IconArt.draw_mark(self, "mark", "beacon", Vector2(x, y), 26.0, Color(1, 1, 1, a)):
-					_diamond(Vector2(x, y), 7.0, col, true)
-					_diamond(Vector2(x, y), 9.5, Color(0.02, 0.02, 0.04, a * 0.6), false)
+			"mark":
+				if not IconArt.draw_mark(self, "mark", "beacon", Vector2(x, y), 22.0, Color(0.8, 0.9, 1.0, a)):
+					_diamond(Vector2(x, y), 6.5, col, false)
+					_diamond(Vector2(x, y), 3.0, col, true)
 				labels.append([float(m.d), x, "%d m" % int(round(float(m.d))), a])
-			"cold":
-				if not IconArt.draw_mark(self, "mark", "cold", Vector2(x, y), 16.0, Color(1, 1, 1, a)):
-					_diamond(Vector2(x, y), 4.5, col, false)
+			"danger":
+				var tri := PackedVector2Array([Vector2(x, y - 8.0), Vector2(x + 7.0, y + 6.0), Vector2(x - 7.0, y + 6.0)])
+				draw_colored_polygon(tri, Color(0.05, 0.02, 0.02, a * 0.8))
+				draw_colored_polygon(PackedVector2Array([Vector2(x, y - 5.5), Vector2(x + 4.6, y + 4.2), Vector2(x - 4.6, y + 4.2)]), col)
+				labels.append([float(m.d), x, "%d m" % int(round(float(m.d))), a])
+			"fire":
+				var lit := bool(m.get("lit", false))
+				var sz := 19.0 if bool(m.get("need", false)) else 14.0
+				if not IconArt.draw_mark(self, "mark", "lamp" if lit else "cold", Vector2(x, y), sz, Color(1, 1, 1, a)):
+					draw_circle(Vector2(x, y), 3.0, col)
+				if bool(m.get("need", false)):
+					labels.append([float(m.d), x, "%d m" % int(round(float(m.d))), a])
+			"tasker":
+				_diamond(Vector2(x, y), 4.5, col, bool(m.get("turnin", false)))
 			_:
-				if not IconArt.draw_mark(self, "mark", "lamp", Vector2(x, y), 15.0, Color(1, 1, 1, a)):
-					draw_circle(Vector2(x, y), 2.6, col)
+				if dens == Feed.FULL:
+					if not IconArt.draw_mark(self, "mark", "beacon", Vector2(x, y), 20.0, Color(1, 1, 1, a * 0.9)):
+						_diamond(Vector2(x, y), 5.5, col, true)
+					labels.append([float(m.d), x, "%d m" % int(round(float(m.d))), a])
+				else:
+					draw_line(Vector2(x, y - 6.0), Vector2(x, y + 6.0), Color(col.r, col.g, col.b, a * 0.55), 2.0)
+		if int(m.get("count", 1)) > 1 and kind != "beacon":
+			Forge.label(self, _font, Vector2(x + 7.0, y - 12.0), "x%d" % int(m.count), 12, Color(INK.r, INK.g, INK.b, a), HORIZONTAL_ALIGNMENT_LEFT, -1.0, 2)
 	# the winds go over the strip last, and give way (fade) to a marker standing on them
 	for deg: int in winds:
 		var x := _x_for(deg_to_rad(float(deg)), yaw)

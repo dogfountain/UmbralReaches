@@ -49,10 +49,10 @@ const C_HANG := 15
 
 ## species -> variant count
 const VARIANTS := {
-	"oak": 4, "pine": 3, "birch": 3, "willow": 3, "snag": 3, "sapling": 3,
-	"shrub": 2, "bramble": 2, "fern": 2, "grass": 2, "tallgrass": 1, "flowers": 2, "heather": 1,
-	"reeds": 1, "cattail": 1, "litter": 1, "moss": 1, "mushroom": 2, "glowcap": 1,
-	"log": 2, "stump": 2, "roots": 1,
+	"oak": 6, "pine": 5, "birch": 4, "willow": 3, "snag": 6, "sapling": 3,
+	"shrub": 3, "bramble": 3, "fern": 3, "grass": 4, "tallgrass": 2, "flowers": 4, "heather": 2,
+	"reeds": 1, "cattail": 1, "litter": 1, "moss": 1, "mushroom": 3, "glowcap": 1,
+	"log": 3, "stump": 3, "roots": 1,
 	# r34 flora: the new regions' own plants (realm_flora.gd LOOKS)
 	"fruit": 3, "cypress": 2, "yew": 2, "windtree": 2,
 	"gorse": 2, "deadbush": 1, "ashdrift": 1, "cinders": 1, "lily": 1, "scaffold": 2,
@@ -82,6 +82,8 @@ static func kind(id: String) -> Dictionary:
 	var sp := base.substr(0, cut)
 	var v := int(base.substr(cut + 1))
 	var g := Gen.new(sp.hash() % 100000 + v * 7919)
+	g.species = sp
+	g.variant = v
 	g.far = id.ends_with("@far")
 	var d: Dictionary = g.call("make_" + sp, v)
 	_cache[id] = d
@@ -113,43 +115,8 @@ static func ids(species: String) -> Array[String]:
 	return out
 
 
-class Surf:
-	var v := PackedVector3Array()
-	var n := PackedVector3Array()
-	var t := PackedFloat32Array()
-	var uv := PackedVector2Array()
-	var uv2 := PackedVector2Array()
-	var c := PackedColorArray()
-	var i := PackedInt32Array()
-	var mat: Material
-
-	func add(p: Vector3, nn: Vector3, u: Vector2, col: Color, u2 := Vector2.ZERO, tg := Vector3.RIGHT) -> int:
-		v.append(p)
-		n.append(nn)
-		uv.append(u)
-		uv2.append(u2)
-		c.append(col)
-		t.append_array(PackedFloat32Array([tg.x, tg.y, tg.z, 1.0]))
-		return v.size() - 1
-
-	func tri(a: int, b: int, cc: int) -> void:
-		i.append_array(PackedInt32Array([a, b, cc]))
-
-	func commit_to(m: ArrayMesh, tangents: bool) -> void:
-		if i.is_empty():
-			return
-		var arr := []
-		arr.resize(Mesh.ARRAY_MAX)
-		arr[Mesh.ARRAY_VERTEX] = v
-		arr[Mesh.ARRAY_NORMAL] = n
-		if tangents:
-			arr[Mesh.ARRAY_TANGENT] = t
-		arr[Mesh.ARRAY_TEX_UV] = uv
-		arr[Mesh.ARRAY_TEX_UV2] = uv2
-		arr[Mesh.ARRAY_COLOR] = c
-		arr[Mesh.ARRAY_INDEX] = i
-		m.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arr)
-		m.surface_set_material(m.get_surface_count() - 1, mat)
+const Surf := preload("res://core/world/realm/tree_surf.gd")
+const TreeBark := preload("res://core/world/realm/tree_bark.gd")     # baked bark detail (bark rev 1: bump this number when tree_bark.gd changes, it re-keys the cache)
 
 
 class Gen:
@@ -165,6 +132,8 @@ class Gen:
 	var h := 0.0
 	var trunk_r := 0.0
 	var far := false
+	var species := ""
+	var variant := 0
 	var glow_mat := GLOW_MAT
 	var _seed := 0.0
 
@@ -209,6 +178,8 @@ class Gen:
 		var along := 0.0
 		var y0 := pts[0].y
 		var fphase := rng.randf() * TAU
+		var bk := bool(opts.get("bark", false)) and not far and radii[0] >= 0.15
+		var bst := TreeBark.style_of(species, variant)
 		if far:
 			if int(opts.get("depth", 0)) >= 3 or radii[0] < 0.035:
 				return
@@ -243,8 +214,12 @@ class Gen:
 					var fl := exp(-maxf(hb, 0.0) / flute_h)
 					r *= 1.0 + flute * fl * (pow(maxf(sin(a * flute_n + fphase), 0.0), 2.0) - 0.25)
 				r *= 1.0 + lumps * (noise(pts[k] * 2.3 + d * 1.3) - 0.5) * 2.0
+				var q := Vector4(1.0, 0.0, 1.0, 0.0)
+				if bk:
+					q = TreeBark.detail(bst, a, along, fphase, noise(pts[k] * 0.9 + d * 0.5 + Vector3(7, 3, 1)), noise(Vector3(cos(a) * 1.3 + fphase, sin(a) * 1.3, along * 0.35)))
+					r *= q.x
 				var p := pts[k] + d * r
-				var col := base_col
+				var col := Color(base_col.r * q.z, base_col.g * q.z, base_col.b * q.z)
 				# occlusion near the ground and in crotches, moss on the up side and the base
 				var ao := clampf(0.55 + p.y * 0.25, 0.55, 1.0)
 				var m := clampf(moss * (smoothstep(0.1, 0.7, d.y) * 0.8 + exp(-maxf(p.y, 0.0) / 1.4)), 0.0, 1.0)
@@ -252,8 +227,10 @@ class Gen:
 				col = Color(col.r * ao, col.g * ao, col.b * ao).lerp(Color(col.r * 0.42, col.g * 0.78, col.b * 0.5), m)
 				if char_amt > 0.0:
 					col = col.lerp(Color(0.12, 0.11, 0.11), char_amt * (0.6 + 0.4 * noise(p * 3.0)))
+				if q.w > 0.0:
+					col = col.lerp(TreeBark.tint(bst), q.w)
 				var tg := (-nrm * sin(a) + bin * cos(a)).normalized()
-				s.add(p, d, Vector2(float(j) / float(sides) * circ, along / tile), col, Vector2.ZERO, tg)
+				s.add(p, (d - tg * q.y).normalized() if bk else d, Vector2(float(j) / float(sides) * circ, along / tile), col, Vector2.ZERO, tg)
 		for k in np - 1:
 			for j in sides:
 				var a0 := start + k * (sides + 1) + j
@@ -332,6 +309,9 @@ class Gen:
 			opts["flute"] = P.get("flute", 0.0)
 			opts["flute_n"] = P.get("flute_n", 7)
 			opts["flute_h"] = P.get("flute_h", 1.6)
+			if not far:
+				opts["bark"] = true
+				sides = maxi(sides, TreeBark.trunk_sides(radii[0]))
 		if P.get("broken", false) and depth == 0:
 			opts["cap"] = true
 		tube(pts, radii, sides, opts)
@@ -383,6 +363,28 @@ class Gen:
 				pts.append(d * (r * 0.3 + len_k * t) + Vector3(0, y, 0) + d.cross(Vector3.UP) * sin(t * 4.0 + az) * 0.25 * t)
 				radii.append(lerpf(r * 0.55, r * 0.1, t))
 			tube(pts, radii, 7, {"lumps": 0.15})
+			# a rootlet forks off every other root (a thin one that dives; the rng draws are the same far and near)
+			var fk := (d + d.cross(Vector3.UP) * (1.0 if k % 4 == 0 else -1.0) * 0.9 + Vector3.DOWN * 0.1).normalized()
+			if k % 2 == 0 and not far:
+				var f0: Vector3 = pts[3]
+				tube(PackedVector3Array([f0, f0 + fk * len_k * 0.3 + Vector3(0, -0.1, 0), f0 + fk * len_k * 0.55 + Vector3(0, -0.45, 0)]), PackedFloat32Array([radii[3] * 0.8, radii[3] * 0.5, radii[3] * 0.2]), 5, {"lumps": 0.2})
+			elif k % 2 == 0:
+				rng.randf()
+
+	## Burls: rounded swellings stuck on a trunk (baked into the cached mesh; the draws match far and near).
+	func burls(pts: PackedVector3Array, radii: PackedFloat32Array, n: int) -> void:
+		for k in n:
+			var t := rng.randf_range(0.08, 0.5)
+			var a := rng.randf() * TAU
+			var sz := rng.randf_range(0.2, 0.32)
+			if far:
+				rng.randf()
+				continue
+			var q: Array = at(pts, t)
+			var c: Vector3 = q[0]
+			var rad: float = radii[int(t * float(radii.size() - 1))]
+			var d := Vector3(cos(a), 0, sin(a))
+			tube(PackedVector3Array([c + d * rad * 0.5, c + d * rad * 0.95 + Vector3(0, sz * rad * 0.2, 0), c + d * (rad + rad * sz * 0.5) + Vector3(0, sz * rad * 0.3, 0)]), PackedFloat32Array([rad * sz * 0.9, rad * sz, rad * sz * 0.55]), 7, {"cap": true, "lumps": 0.25})
 
 	# --- cards -------------------------------------------------------------------------------
 	func cell_uv(cell: int) -> Rect2:
@@ -433,8 +435,10 @@ class Gen:
 			var q := ((p - c) / rad).length()
 			var occ := clampf(0.38 + 0.62 * pow(clampf(q, 0.0, 1.0), 0.8), 0.3, 1.0)
 			occ *= clampf(0.82 + 0.18 * (p.y - c.y) / rad.y, 0.6, 1.1)
+			occ *= 0.86 + 0.28 * noise(p * 0.3 + Vector3(5, 1, 3))      # lit clumps and shaded hollows: value structure inside the crown
 			var j := 0.9 + 0.2 * noise(p * 0.7)
-			return Color(tint.r * occ * j, tint.g * occ * j, tint.b * occ * (2.0 - j))
+			var top := clampf((p.y - c.y) / rad.y, 0.0, 1.0)      # the sunlit tops lean yellow-green, the core cool blue-green
+			return Color(tint.r * occ * j * (1.0 + 0.16 * top), tint.g * occ * j * (1.0 + 0.05 * top), tint.b * occ * (2.0 - j) * (1.0 - 0.14 * top))
 		var ai := -1
 		for a: Array in anchors:
 			ai += 1
@@ -480,7 +484,7 @@ class Gen:
 			cards = ArrayMesh.new()
 			leaf.commit_to(cards, false)
 		return {"solid": solid, "cards": cards, "h": h, "r": trunk_r, "spread": spread, "tall": tall,
-			"tris": (wood.i.size() + glow.i.size() + leaf.i.size()) / 3, "card_tris": leaf.i.size() / 3}
+			"fade_end": clampf(26.0 + spread * 1.2, 30.0, 38.0), "tris": (wood.i.size() + glow.i.size() + leaf.i.size()) / 3, "card_tris": leaf.i.size() / 3}
 
 	# --- species -----------------------------------------------------------------------------
 	func make_oak(v: int) -> Dictionary:
@@ -500,6 +504,7 @@ class Gen:
 			"max_depth": 3, "leaf_from": 2, "leaf_per": 0.75, "flute": 0.32, "flute_n": 6 + v % 3, "flute_h": 1.7,
 		}
 		grow(pts, radii, 0, P)
+		burls(pts, radii, 1 + v % 3)
 		roots(6 + v % 3, trunk_r, trunk_r * 3.2)
 		var cr := crown_cards(C_OAK, Vector2(2.5, 3.5), 2, Color(0.9, 0.95, 0.88))
 		return done(true, cr, "oak")
@@ -535,7 +540,7 @@ class Gen:
 		trunk_r = rng.randf_range(0.3, 0.45) * h / 15.0
 		var pts := path(Vector3(0, -0.6, 0), Vector3(rng.randf_range(-0.04, 0.04), 1, rng.randf_range(-0.04, 0.04)), h, 1.4, 0.0, 0.05)
 		var radii := radii_for(pts, trunk_r, 0.03)
-		tube(pts, radii, mini(sides_for(trunk_r), 10), {"flute": 0.18, "flute_n": 5, "flute_h": 0.8})
+		tube(pts, radii, maxi(mini(sides_for(trunk_r), 10), TreeBark.trunk_sides(trunk_r)), {"flute": 0.18, "flute_n": 5, "flute_h": 0.8, "bark": true})
 		roots(5, trunk_r, 1.4)
 		var crown_w := h * rng.randf_range(0.26, 0.34)
 		var whorls := int(h / 0.7)
@@ -607,7 +612,9 @@ class Gen:
 			"max_depth": 3 if not dead else 2, "leaf_from": 2, "leaf_per": 0.9 if not dead else 0.5,
 			"flute": 0.4, "flute_n": 5, "flute_h": 1.0,
 		}
-		grow(pts, radii_for(pts, trunk_r * 1.2, trunk_r * 0.8), 0, P)
+		var wr := radii_for(pts, trunk_r * 1.2, trunk_r * 0.8)
+		grow(pts, wr, 0, P)
+		burls(pts, wr, 2)
 		roots(5, trunk_r, 2.0)
 		var cr: float
 		if dead:
@@ -619,6 +626,8 @@ class Gen:
 		return done(true, cr, "oak" if not dead else "dead")
 
 	func make_snag(v: int) -> Dictionary:
+		if v >= 3:
+			return _snag_variant(v)
 		tile = 1.4
 		moss = 0.3 if v < 2 else 0.0
 		char_amt = 0.85 if v == 2 else 0.0
@@ -638,6 +647,37 @@ class Gen:
 		var cr := crown_cards(C_TWIGS, Vector2(1.2, 1.9), 1, Color(0.7, 0.68, 0.66) if v < 2 else Color(0.25, 0.22, 0.22))
 		return done(true, maxf(cr, 2.0), "dead")
 
+	## Deadwood by seed: v3 a lightning-split trunk (two jagged halves, one taller), v4 a tall bare spike
+	## leaning hard with stubs where its limbs broke, v5 a squat rotten stump-tree with shelf fungi.
+	func _snag_variant(v: int) -> Dictionary:
+		tile = 1.4
+		moss = 0.25 if v != 4 else 0.0
+		trunk_r = rng.randf_range(0.4, 0.62) if v != 4 else rng.randf_range(0.24, 0.36)
+		h = (8.0 if v == 3 else 13.0 if v == 4 else 4.5) * rng.randf_range(0.85, 1.15)
+		var P := {"n": [0, 3, 2], "angle": [0, 0.9, 0.7], "len": [0, 0.3, 0.45], "start": [0, 0.4, 0.3], "up": [0, 0.08, 0.1], "r": [0, 0.45, 0.55],
+			"seg": [0, 0.7, 0.5], "wig": [0, 0.55, 0.6], "max_depth": 2, "leaf_from": 9, "leaf_per": 0.0, "broken": true, "flute": 0.35, "flute_n": 6, "flute_h": 1.4}
+		if v == 4:
+			P.n = [0, 10, 0]
+			P.len = [0, 0.16, 0.0]
+			P.max_depth = 1
+			P.angle = [0, 1.25, 0.0]
+		var lean := Vector3(rng.randf_range(-0.12, 0.12), 1, rng.randf_range(-0.12, 0.12))
+		if v == 4:
+			lean = Vector3(0.3, 1, 0.12)
+		var halves := 2 if v == 3 else 1
+		for k in halves:
+			var off := Vector3(0.18, 0, 0.05) * (1.0 if k == 0 else -1.0) * trunk_r * (1.0 if halves == 2 else 0.0)
+			var pts := path(Vector3(0, -0.6, 0) + off, lean + off * 1.1, h * (1.0 if k == 0 else 0.6), 0.8, 0.0, 0.2)
+			var rr := radii_for(pts, trunk_r * (1.15 if halves == 1 else 0.85), trunk_r * (0.45 if v != 5 else 0.8))
+			grow(pts, rr, 0, P)
+			if v == 5:
+				for f in 5:
+					var a := rng.randf() * TAU
+					var wr: float = rr[1]
+					mushroom(Vector3(cos(a) * wr * 0.92, rng.randf_range(0.4, 2.2), sin(a) * wr * 0.92), rng.randf_range(0.18, 0.32), Color(0.62, 0.48, 0.3) * rng.randf_range(0.8, 1.1), false)
+		roots(5, trunk_r, 2.0)
+		return done(true, 2.0, "dead")
+
 	func make_sapling(v: int) -> Dictionary:
 		tile = 0.8
 		moss = 0.2
@@ -646,18 +686,6 @@ class Gen:
 		var pts := path(Vector3(0, -0.3, 0), Vector3(rng.randf_range(-0.2, 0.2), 1, rng.randf_range(-0.2, 0.2)), h, 0.6, 0.0, 0.25)
 		if v == 2:
 			return make_pine(-1)
-		if false:
-			tube(pts, radii_for(pts, trunk_r, 0.01), 5)
-			var nfn := func(p: Vector3) -> Vector3: return (Vector3(p.x, 0.3, p.z).normalized() + Vector3.UP * 0.5).normalized()
-			var cfn := func(p: Vector3) -> Color: return Color(0.85, 0.95, 0.9)
-			for wh in 5:
-				var y := lerpf(0.4, h - 0.6, wh / 4.0)
-				for k in 4:
-					var a := TAU * k / 4.0 + wh
-					var d := Vector3(cos(a), -0.15, sin(a)).normalized()
-					var s := (1.0 - wh / 5.0) * 1.3 + 0.4
-					card(leaf, Vector3(0, y, 0), d.cross(Vector3.UP) * s * 0.4, d * s, C_PINE, nfn, cfn, 0.3, 1.0)
-			return done(false, 1.2, "pine")
 		var P := {
 			"n": [0, 6, 3], "angle": [0, 0.8, 0.7], "len": [0, 0.4, 0.5],
 			"start": [0, 0.3, 0.3], "up": [0, 0.1, 0.0], "r": [0, 0.5, 0.6],
@@ -695,7 +723,7 @@ class Gen:
 			var d := Vector3(rng.randf_range(-0.5, 0.5), 1, rng.randf_range(-0.5, 0.5))
 			var pts := path(Vector3(0, -0.2, 0), d, h * 0.7, 0.4, 0.0, 0.3)
 			tube(pts, radii_for(pts, 0.04, 0.01), 4)
-		dome(C_SHRUB if v == 0 else C_OAK, 16, Vector3(h * 0.9, h, h * 0.9), Vector2(1.0, 1.4), Color(0.9, 0.95, 0.9))
+		dome([C_SHRUB, C_OAK, C_BIRCH][v], 16, Vector3(h * 0.9, h, h * 0.9), Vector2(1.0, 1.4), Color(0.9, 0.95, 0.9))
 		return done(false, h, "oak")
 
 	func make_bramble(v: int) -> Dictionary:
@@ -767,14 +795,14 @@ class Gen:
 	func make_grass(v: int) -> Dictionary:
 		for k in 3:
 			var p := Vector3(rng.randf_range(-0.45, 0.45), 0, rng.randf_range(-0.45, 0.45))
-			tuft(p, C_GRASS, 3, Vector2(0.28, 0.62) * (1.0 + v * 0.2), 1.0, Color(0.95, 1.0, 0.95))
+			tuft(p, C_GRASS, 3 + v % 2, Vector2(0.28, 0.62) * (1.0 + v * 0.2), 1.0 + 0.2 * (v % 2), Color(0.95, 1.0, 0.95) if v < 2 else Color(1.0, 0.96, 0.8))
 		h = 0.6
 		return done(false, 0.9, "oak", true)
 
-	func make_tallgrass(_v: int) -> Dictionary:
+	func make_tallgrass(v: int) -> Dictionary:
 		for k in 5:
 			var p := Vector3(rng.randf_range(-0.8, 0.8), 0, rng.randf_range(-0.8, 0.8))
-			tuft(p, C_GRASS, 3, Vector2(0.8, 1.2), 0.9, Color(0.95, 0.98, 0.85))
+			tuft(p, C_GRASS, 3, Vector2(0.8, 1.2) * (1.0 + 0.25 * v), 0.9 + 0.2 * v, Color(0.95, 0.98, 0.85) if v == 0 else Color(1.0, 0.94, 0.78))
 		h = 1.2
 		return done(false, 0.9, "oak", true)
 
@@ -788,10 +816,10 @@ class Gen:
 		h = 0.6
 		return done(false, 0.8, "oak", true)
 
-	func make_heather(_v: int) -> Dictionary:
+	func make_heather(v: int) -> Dictionary:
 		for k in 4:
 			var p := Vector3(rng.randf_range(-0.5, 0.5), 0, rng.randf_range(-0.5, 0.5))
-			tuft(p, C_HEATHER, 3, Vector2(0.35, 0.55), 1.3, Color(0.95, 0.95, 1.0))
+			tuft(p, C_HEATHER, 3 + v, Vector2(0.35, 0.55) * (1.0 + 0.3 * v), 1.3, Color(0.95, 0.95, 1.0) if v == 0 else Color(1.0, 0.9, 0.98))
 		h = 0.5
 		return done(false, 0.7, "oak", true)
 
@@ -886,7 +914,7 @@ class Gen:
 			var t := j / 8.0
 			pts.append(Vector3(lerpf(-length * 0.5, length * 0.5, t), r * 0.55 + sin(t * PI) * 0.06, sin(t * 3.0 + v) * 0.15))
 			rr.append(r * lerpf(1.0, 0.75, t))
-		tube(pts, rr, 12, {"cap": true, "cap0": true, "lumps": 0.12})
+		tube(pts, rr, 14, {"cap": true, "cap0": true, "lumps": 0.12, "bark": true})
 		for k in 3:
 			var t := rng.randf_range(0.2, 0.85)
 			var q: Array = at(pts, t)
@@ -904,7 +932,7 @@ class Gen:
 		var r := rng.randf_range(0.35, 0.6)
 		var hh := rng.randf_range(0.5, 1.1)
 		var pts := PackedVector3Array([Vector3(0, -0.5, 0), Vector3(0, 0.1, 0), Vector3(0, hh * 0.5, 0), Vector3(0.02, hh, 0)])
-		tube(pts, PackedFloat32Array([r * 1.35, r * 1.15, r, r * 0.95]), 14, {"cap": true, "flute": 0.35, "flute_n": 6, "flute_h": 0.5})
+		tube(pts, PackedFloat32Array([r * 1.35, r * 1.15, r, r * 0.95]), 16, {"cap": true, "flute": 0.35, "flute_n": 6, "flute_h": 0.5, "bark": true})
 		roots(4 + v, r, r * 2.4)
 		trunk_r = r
 		h = hh
