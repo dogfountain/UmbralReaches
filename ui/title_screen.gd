@@ -422,6 +422,8 @@ func _rebuild_slots(keep := 0) -> void:
 		var occupied := bool(info.exists)
 		var slot := n
 		var text := "Slot %d   ·   %s" % [n, String(info.text) if occupied else "empty"]
+		if occupied and String(info.get("last", "")) != "":
+			text += "\n        " + String(info.last)
 		if _mode == "new" and occupied and _armed == n:
 			text = "Slot %d   ·   erase it and begin anew?" % n
 		var b := _button(_slots, text, func() -> void: _slot_pressed(slot), 22)

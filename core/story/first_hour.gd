@@ -18,6 +18,9 @@ func _ready() -> void:
 	name = "FirstHour"
 	Events.brazier_kindled.connect(func(_b: Node3D) -> void:
 		_say("fire", "A kindled fire is the night's one safe place: its light lifts the Gloom, closes your wounds and remembers you. {interact} at the seat beside it to make camp."))
+	Events.region_discovered.connect(func(_id: String, kind: String) -> void:
+		if kind == "region" and Tally.total() >= 3:
+			_say("photo", "A place worth keeping. {photo} Photo mode: the night holds still and the lens is yours."))
 	Events.gloom_changed.connect(func(v: float, m: float) -> void:
 		if m > 0.0 and v / m >= 0.3 and not _gloom_seen:
 			_gloom_seen = true
