@@ -91,6 +91,7 @@ func _ready() -> void:
 	add_child(MapSketch.new())
 	add_child(Courier.new())
 	add_child(HorseRace.new())
+	add_child(LongLedger.new())
 	add_child(EmberTrace.new())
 	add_child(Vows.new())
 	add_child(NightPanel.new())

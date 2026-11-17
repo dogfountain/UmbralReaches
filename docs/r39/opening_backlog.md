@@ -6,7 +6,7 @@ Tick as done. Branch r39-opening. Rules: no Godot, lint clean, small commits, no
 - [x] 2 Horses (whistle, care, tack, bags, courier, race all done): run-to-you whistle, saddlebags + stash UI, courier runs + best-time board, race at Hearthward, stable upgrades, mounted interact/kindle, horse care tied to bond
 - [x] 3 Map (filters + trail + marks + folding + charcoal sketch + inked landmarks + landmark names through the placer done): charcoal reveal, landmarks inked when seen, discovery banners, legend + filters, label de-collision, controller cursor
 - [x] 4 Death and return: embers to recover, toll at the fire, return sequence
-- [~] 5 Progression (vows done; curve review + endgame loop NOT done): level-up choices (perks per path), skill/gear vs danger review, recommended levels everywhere, endgame loop (Deeper Night)
+- [~] 5 Progression (vows, curve review, endgame Long Ledger done; gear-gap hint NOT done): level-up choices (perks per path), skill/gear vs danger review, recommended levels everywhere, endgame loop (Deeper Night)
 - [x] 6 Night summary screen + ending credits reading the Chronicle
 - [x] 7 Fast-travel network UI + bell/peal tracking in the journal
 - [~] 8 Accessibility (shake/flash/subtitles/palette done; presets exist; remap parity not changed) and settings
@@ -18,6 +18,6 @@ Tick as done. Branch r39-opening. Rules: no Godot, lint clean, small commits, no
 (see opening_systems.md; add here as found)
 
 ## Not done / next
-- endgame loop after the Warden; gear-gap hint on the plate
+- gear-gap hint on the plate
 - controller remapping parity; full audit of older menus
 - Cross-team: enemy/VFX seat route telegraph colours through Access.telegraph and flashes through Access.flash; story seat may add lines to chronicle/ember_trace pools
