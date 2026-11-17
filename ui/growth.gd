@@ -696,14 +696,14 @@ func _page_loadout() -> void:
 			c.glyph = ""
 			c.tint = Color(0.32, 0.3, 0.38)
 			c.title = "Empty"
-			c.line = "[%s]  not yet taught" % DB.SLOT_KEYS[i + 1]
+			c.line = "[%s]  not yet taught" % DB.slot_key(i + 1)
 			c.look = "lost"
 			row.add_child(c)
 			continue
 		c.glyph = String(sp.glyph)
 		c.tint = sp.color
 		c.title = String(sp.name)
-		c.line = "[%s]" % DB.SLOT_KEYS[i + 1]
+		c.line = "[%s]" % DB.slot_key(i + 1)
 		c.look = "owned" if i + 1 == _slot_pick else "open"
 		row.add_child(c)
 	_heading("Known spells", "Rift Bolt always holds [%s]" % InputSetup.live_label("skill_bolt", Settings.using_pad, "LMB"))
@@ -723,7 +723,7 @@ func _page_loadout() -> void:
 		c.tint = sp.color
 		c.title = String(sp.name)
 		var at := lo.find(id)
-		c.line = ("On [%s]" % DB.SLOT_KEYS[at + 1]) if at >= 0 else ("Rank %s" % ROMAN[DB.rank(st, id)] if DB.rank(st, id) > 0 else ("Known" if known else ("Not yet taught" if DB.TAUGHT_LATER.has(id) else "Learn in Spells")))
+		c.line = ("On [%s]" % DB.slot_key(at + 1)) if at >= 0 else ("Rank %s" % ROMAN[DB.rank(st, id)] if DB.rank(st, id) > 0 else ("Known" if known else ("Not yet taught" if DB.TAUGHT_LATER.has(id) else "Learn in Spells")))
 		c.look = "owned" if at >= 0 else ("open" if known else "lost")
 		grid.add_child(c)
 	_heading("Combos", "spells that feed each other")
@@ -1182,7 +1182,7 @@ func _show() -> void:
 			_slot_pick = c.sub
 			if sp.is_empty():
 				# r35: a slot the story has not filled yet
-				_d_name.text = "[%s]  Empty" % DB.SLOT_KEYS[c.sub]
+				_d_name.text = "[%s]  Empty" % DB.slot_key(c.sub)
 				_d_kind.text = "HOTBAR SLOT %d" % (c.sub + 1)
 				_d_text.text = "Nothing is taught for this slot yet. The Keep, your first kill, your first seal and your first great one each teach a spell."
 				_d_now.text = ""
@@ -1190,7 +1190,7 @@ func _show() -> void:
 				why = "" if at_fire() else "Only at a kindled fire."
 				verb = "NEXT SPELL"
 			else:
-				_d_name.text = "[%s]  %s" % [DB.SLOT_KEYS[c.sub], sp.name]
+				_d_name.text = "[%s]  %s" % [DB.slot_key(c.sub), sp.name]
 				_d_kind.text = "HOTBAR SLOT %d" % (c.sub + 1)
 				_d_text.text = String(sp.get("text", _stock_text(c.id)))
 				_d_now.text = "Now: %s" % _stats(c.id, DB.rank(st, c.id))
@@ -1202,17 +1202,17 @@ func _show() -> void:
 			var sp := DB.spell(c.id)
 			var lo := DB.loadout(st)
 			_d_name.text = String(sp.name)
-			_d_kind.text = "SPELL  ·  %s" % (("ON [%s]" % DB.SLOT_KEYS[lo.find(c.id) + 1]) if lo.has(c.id) else ("KNOWN" if DB.knows(st, c.id) else ("NOT YET TAUGHT" if DB.TAUGHT_LATER.has(c.id) else "NOT YET LEARNED")))
+			_d_kind.text = "SPELL  ·  %s" % (("ON [%s]" % DB.slot_key(lo.find(c.id) + 1)) if lo.has(c.id) else ("KNOWN" if DB.knows(st, c.id) else ("NOT YET TAUGHT" if DB.TAUGHT_LATER.has(c.id) else "NOT YET LEARNED")))
 			_d_text.text = String(sp.get("text", _stock_text(c.id)))
 			_d_now.text = "Now: %s" % _stats(c.id, DB.rank(st, c.id))
 			_d_extra.text = _spell_extra(c.id)
 			if not DB.knows(st, c.id):
 				why = "Not yet taught." if DB.TAUGHT_LATER.has(c.id) else "Learn it first (Spells)."
 			elif lo.find(c.id) == _slot_pick - 1:
-				why = "Already on [%s]." % DB.SLOT_KEYS[_slot_pick]
+				why = "Already on [%s]." % DB.slot_key(_slot_pick)
 			else:
 				why = "" if at_fire() else "Only at a kindled fire."
-				verb = "PUT ON [%s]%s" % [DB.SLOT_KEYS[_slot_pick], ("  (TRADES WITH %s)" % String(DB.spell(String(lo[_slot_pick - 1])).name).to_upper()) if lo.has(c.id) else ""]
+				verb = "PUT ON [%s]%s" % [DB.slot_key(_slot_pick), ("  (TRADES WITH %s)" % String(DB.spell(String(lo[_slot_pick - 1])).name).to_upper()) if lo.has(c.id) else ""]
 		"oath":
 			var o := DB.oath_tier(c.sub)
 			var od: Dictionary = o[c.pick]

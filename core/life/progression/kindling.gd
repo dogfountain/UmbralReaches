@@ -639,7 +639,7 @@ func teach(id: String) -> bool:
 	refresh()
 	Travel.save_soon()
 	var slot := DB.loadout(st).find(id) + 1
-	var key := String(DB.SLOT_KEYS[slot]) if slot >= 1 and slot < DB.SLOT_KEYS.size() else "the Loadout"
+	var key := DB.slot_key(slot) if slot >= 1 and slot < DB.SLOT_KEYS.size() else "the Loadout"
 	var line := String(TEACH_LINES.get(id, "%s")) % key
 	if Guide.on() and slot >= 1 and slot < DB.SLOT_ACTIONS.size():
 		Hints.once(StringName("tip_spell_" + id), "{%s} %s" % [String(DB.SLOT_ACTIONS[slot]), String(TEACH_TIPS.get(id, id))])
