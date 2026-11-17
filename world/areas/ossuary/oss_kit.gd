@@ -65,6 +65,14 @@ static func mat(key: String) -> Material:
 		"iron":       _tri(m, "tavern_iron", 0.6, Color(0.5, 0.48, 0.5))
 		"wood":       _tri(m, "tavern_wood", 0.5, Color(0.7, 0.57, 0.46))
 		"slate":      _tri(m, "oss_slate", 0.45, Color(0.9, 0.9, 0.95))
+		# r39 masonry scale tiers: a colossal work's courses are 2-3 times a house's, so its blocks read as the size they are
+		# (the world-triplanar texture scale is per metre: half the scale, twice the stone)
+		"stone_big":  _tri(m, "oss_ashlar", 0.14, Color(0.9, 0.9, 0.92))
+		"ruin_big":   _tri(m, "oss_ruin", 0.17, Color(0.92, 0.91, 0.9))
+		"brick_big":  _tri(m, "oss_brick", 0.22, Color(0.95, 0.92, 0.9))
+		"wood_big":   _tri(m, "tavern_wood", 0.24, Color(0.52, 0.47, 0.42))
+		"bark":       _tri(m, "bark", 0.2, Color(0.62, 0.56, 0.5))
+		"chalk":      _tri(m, "oss_ashlar", 0.2, Color(1.1, 1.1, 1.18))
 		"bone", "bone_cm":
 			_tri(m, "oss_bone", 1.6, Color(1.0, 0.97, 0.92))
 			m.vertex_color_use_as_albedo = true
