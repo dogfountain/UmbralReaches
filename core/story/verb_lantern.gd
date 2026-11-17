@@ -16,6 +16,7 @@ extends Node
 const Book := preload("res://core/story/quest_book.gd")
 const Chains := preload("res://core/story/quest_chains.gd")
 const QProps := preload("res://core/story/quest_props.gd")
+const RealmLand := preload("res://core/world/realm/realm_land.gd")
 
 const WADE := 0.55             ## water over the feet deeper than this puts the flame out (m)
 const GRACE := 0.6             ## a step's grace after the lamp is taken: no blow or roll in the first moments counts
