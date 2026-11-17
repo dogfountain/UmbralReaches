@@ -157,7 +157,7 @@ const QUESTS := {
 			{"kind": "talk", "who": "keep", "text": "Tell the keep what you found"},
 		],
 		"alt": {"rats": {3: "Tell the keep it was rats"}, "covered": {3: "Square Nan's debt with the keep (10 ash)"}},
-		"reward": {"ash": 10, "items": {"ember_shard": 2, "grave_iron": 1}},
+		"reward": {"items": {"ember_shard": 2, "grave_iron": 1}},     # (no ash: covering Nan costs 10, and a refund would undo the choice)
 		"outcome": {"told": "The keep knows it was Nan. He leaves a mug by the green's fire himself now.",
 			"covered": "You paid for Nan's mugs. The keep is watching you; Nan drew you a circle.",
 			"rats": "The keep blames rats. Nan keeps her secret, and her mug by the fire."}},
