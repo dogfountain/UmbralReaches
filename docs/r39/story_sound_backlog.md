@@ -4,13 +4,13 @@ Tick as done. Each item: committed, lint clean, doc entry in docs/r39/sound.md o
 
 ## Sound (the rework)
 - [x] synth kit, cue bank (~70 cues), score stems + director, mix director, occlusion, acoustic zones, cue router, hours, landmark voices
-- [ ] S1 variants: several takes per cue (pitch / timing / seed jitter), round-robin without repeats
-- [ ] S2 ambient details by hour and region (dawn chorus, shutters, chimes, rockfall, bones settling, owls)
-- [ ] S3 combat depth: hurt by tier, dodge / roll / land cloth and gear, parry variants, spell-school variants, death flourishes by family
-- [ ] S4 creature signatures: per-family idle / alert murmurs layered under the bank takes (distance-aware)
-- [ ] S5 score depth: motifs per act and region, more stems (dusk, night, dawn), the ending's score, stingers
-- [ ] S6 reverb zones: registered halls for each new landmark interior; moor / cave presets tuned
-- [ ] S7 docs/r39/sound.md (every change, where to hear it, what the lead must check)
+- [x] S1 variants: several takes per cue (pitch / timing / seed jitter), round-robin without repeats
+- [x] S2 ambient details by hour and region (dawn chorus, shutters, chimes, rockfall, bones settling, owls)
+- [x] S3 combat depth: hurt by tier, dodge / roll / land cloth and gear, parry variants, spell-school variants, death flourishes by family
+- [x] S4 creature signatures: per-family idle / alert murmurs layered under the bank takes (distance-aware)
+- [x] S5 score depth: motifs per act and region, more stems (dusk, night, dawn), the ending's score, stingers
+- [x] S6 reverb zones: registered halls for each new landmark interior; moor / cave presets tuned
+- [x] S7 docs/r39/sound.md (every change, where to hear it, what the lead must check)
 
 ## Story backlog
 - [ ] B1 a long questline for each region that lacks one (6-12 stages, world consequences)
