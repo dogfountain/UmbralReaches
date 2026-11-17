@@ -14,7 +14,7 @@ const T := 0.8                          ## wall thickness
 const DOOR_W := 2.6
 const DOOR_H := 3.4
 
-var k
+var k: WK
 var o := Vector3.ZERO                   ## the stair's top: on the surface
 var fwd := Vector3.FORWARD
 var side := Vector3.RIGHT

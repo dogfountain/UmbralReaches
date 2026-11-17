@@ -23,7 +23,7 @@ const DOOR := 0.0                       ## the doorway's bearing (+x)
 ## the trunk's profile: [height, radius]
 const PROFILE := [[0.0, 8.2], [3.0, 7.0], [10.0, 5.9], [20.0, 5.1], [30.0, 4.5], [38.0, 4.0], [44.0, 3.2]]
 
-var k
+var k: WK
 var c := Vector2.ZERO
 var gy := 0.0
 

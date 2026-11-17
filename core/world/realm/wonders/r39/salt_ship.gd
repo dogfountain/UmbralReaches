@@ -23,7 +23,7 @@ const LEVELS := 4
 const ROLL := 0.16
 const PITCH := -0.05
 
-var k
+var k: WK
 var base := Vector3.ZERO
 var rot := Basis.IDENTITY
 var _drop := {}

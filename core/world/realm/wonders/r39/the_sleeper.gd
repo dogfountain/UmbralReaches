@@ -18,7 +18,7 @@ const HALF := Vector2(37.0, 49.0)               ## the footprint's half extents 
 const CEN := Vector2(18.0, 5.0)                 ## where that footprint's middle lies in the body's frame
 const W := 11.0                                 ## the torso's half width
 
-var k
+var k: WK
 var o := Vector2.ZERO                           ## the body frame's origin (world xz)
 var yaw := 0.0
 var y0 := 0.0                                   ## the floor datum: above every bit of ground under the body

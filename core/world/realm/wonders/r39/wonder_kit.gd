@@ -1,5 +1,5 @@
 extends RefCounted
-## The shared hand of the world-pass landmarks (docs/r39/world_landmarks.md). Every big set piece of the world pass (the
+## The shared hand of the world-pass landmarks (the world-pass landmarks doc). Every big set piece of the world pass (the
 ## Sleeper, the Hollow King, the Salt Ship, the Wardens' Line, the Chain Span, the Titan Gates, the Hermit Caches)
 ## builds through one of these: an OssKit (one mesh per material, collision from the same faces, occluders) plus the
 ## things a landmark needs that the kit does not give: a free-ground finder, tubes and beams at any angle, fire (a
@@ -24,6 +24,11 @@ var chests := 0
 var _fire_mesh: QuadMesh
 var _fl: Array[Transform3D] = []        ## flame cards of this kit (one MultiMesh at commit: a fire costs no node and no draw of its own)
 var _hl := {}                           ## halo size (x10) -> Array[Transform3D]
+var _lrec: Array = []                   ## recorded lights [pos, colour, energy, range, attenuation, fade begin, fade length]: made at commit
+var _crec: Array = []                   ## recorded chests [id, tier, at, yaw, loot]
+var _wrec: Array = []                   ## recorded water planes [centre, yaw, size, visibility]
+var _key := ""                          ## the GenCache key of this kit's geometry (cached())
+var _loaded := false
 static var light_used := 0              ## every light the wonders add counts here; past LIGHT_CAP only the glow cards and glass remain (the light budget)
 const LIGHT_CAP := 72
 
@@ -32,8 +37,7 @@ func setup(root: Node, nm: String, seed_n: int) -> void:
 	rng.seed = seed_n
 	kit.keep_lanes = false
 	kit.candle_lights = false
-	kit.relief = true
-	kit.debris_max = 36
+	kit.relief = false                    # ashlar relief and wall-foot debris cost build time (GDScript boxes): off unless a builder asks
 	host = Node3D.new()
 	host.name = nm
 	host.set_meta("wonder", nm)
@@ -86,9 +90,8 @@ static func taken(c: Vector2, half: Vector2, yaw: float, allow: Array, margin: f
 				return true
 		elif reg.has("rect") and (reg.rect as Rect2).grow(-4.0).intersects(box):
 			return true
-	for st: Dictionary in WorldLanes.sites:
-		if WorldLanes.site_hits_rect(st, box, margin):
-			return true
+	if site_hit(box, margin):
+		return true
 	var ex := Vector2(cos(yaw), sin(yaw))
 	var ez := Vector2(-sin(yaw), cos(yaw))
 	for i in range(-2, 3):
@@ -97,6 +100,77 @@ static func taken(c: Vector2, half: Vector2, yaw: float, allow: Array, margin: f
 			if RealmLayout.path_dist(p) < margin * 0.5 + 3.0:
 				return true
 	return false
+
+
+static var _sidx := {}                  ## 32 m cell -> the registered sites touching it (built once per change of the site list)
+static var _sidx_n := -1
+
+
+static func _reindex() -> void:
+	_sidx.clear()
+	for st: Dictionary in WorldLanes.sites:
+		var r: Rect2 = st.rect
+		for cx in range(floori(r.position.x / 32.0), floori(r.end.x / 32.0) + 1):
+			for cz in range(floori(r.position.y / 32.0), floori(r.end.y / 32.0) + 1):
+				var key := Vector2i(cx, cz)
+				if not _sidx.has(key):
+					_sidx[key] = []
+				(_sidx[key] as Array).append(st)
+	_sidx_n = WorldLanes.sites.size()
+
+
+## Does any registered site touch `box` (grown by `margin`)? Looks only at the sites near it (the index), not at every site.
+static func site_hit(box: Rect2, margin: float) -> bool:
+	if _sidx_n != WorldLanes.sites.size():
+		_reindex()
+	var g := box.grow(margin)
+	for cx in range(floori(g.position.x / 32.0), floori(g.end.x / 32.0) + 1):
+		for cz in range(floori(g.position.y / 32.0), floori(g.end.y / 32.0) + 1):
+			var list: Variant = _sidx.get(Vector2i(cx, cz))
+			if list == null:
+				continue
+			for st: Dictionary in (list as Array):
+				if WorldLanes.site_hits_rect(st, box, margin):
+					return true
+	return false
+
+
+## BOUNDED placement: the first of at most `cands.size() x yaws.size()` spots (25 height samples each) that is dry, within
+## `rel` metres of relief, off the ways and clear of every registered site; else the least bad of them. Never searches, never
+## returns empty: {pos: Vector2, yaw: float, lo: float, hi: float, bad: int} (bad = 0 for a clean spot).
+static func place(cands: Array, half: Vector2, yaws: Array, rel := 6.0) -> Dictionary:
+	var best := {}
+	var best_s := INF
+	for cv: Variant in cands:
+		var c: Vector2 = cv
+		for yv: Variant in yaws:
+			var yaw := float(yv)
+			var ex := Vector2(cos(yaw), sin(yaw))
+			var ez := Vector2(-sin(yaw), cos(yaw))
+			var lo := INF
+			var hi := -INF
+			var wetn := 0
+			var pathn := 0
+			for i in range(-2, 3):
+				for j in range(-2, 3):
+					var p := c + ex * (half.x * float(i) / 2.0) + ez * (half.y * float(j) / 2.0)
+					var y := h(p.x, p.y)
+					lo = minf(lo, y)
+					hi = maxf(hi, y)
+					if wet(p.x, p.y) or not RealmLayout.BOUNDS.grow(-8.0).has_point(p):
+						wetn += 1
+					if RealmLayout.path_dist(p) < 4.0:
+						pathn += 1
+			var r := maxf(half.x, half.y)
+			var sitebad := 1 if site_hit(Rect2(c - Vector2(r, r), Vector2(r, r) * 2.0), 2.0) else 0
+			var bad := wetn * 4 + pathn * 3 + sitebad * 6 + (1 if hi - lo > rel else 0)
+			var sc := float(bad) * 100.0 + (hi - lo)
+			if sc < best_s:
+				best_s = sc
+				best = {"pos": c, "yaw": yaw, "lo": lo, "hi": hi, "bad": bad}
+			if bad == 0:
+				return best
+	return best
 
 
 ## The best open spot for a yawed rectangle near one of `cands`: searched in rings round each, the flattest wins
@@ -277,66 +351,59 @@ func fire(at: Vector3, s := 1.0, energy := 2.2, light := true, own := false) -> 
 			_hl[key] = []
 		(_hl[key] as Array).append(Transform3D(Basis.IDENTITY, hp))
 	fires += 1
-	if not light or light_used >= LIGHT_CAP:
+	if not light:
 		return made
-	light_used += 1
-	var l := OmniLight3D.new()
-	l.name = "FireLight"
-	l.light_color = FIRE_COL
-	l.light_energy = energy
-	l.omni_range = 9.0 + 5.0 * s
-	l.omni_attenuation = 1.3
-	l.light_specular = 0.3
-	l.light_volumetric_fog_energy = 0.0
-	l.shadow_enabled = false
-	l.distance_fade_enabled = true
-	l.distance_fade_begin = 70.0
-	l.distance_fade_length = 24.0
-	l.set_meta(&"light_class", &"lamp")
-	l.set_meta(&"base", {"e": energy, "r": l.omni_range, "a": 1.3})
-	host.add_child(l)
-	made.append(l)
-	l.position = at + Vector3.UP * (1.2 * s)
-	lights += 1
+	var lp := at + Vector3.UP * (1.2 * s)
+	if own:
+		var l := _light(lp, FIRE_COL, energy, 9.0 + 5.0 * s, 1.3, 70.0, 24.0)
+		if l != null:
+			made.append(l)
+	else:
+		_lrec.append([lp, FIRE_COL, energy, 9.0 + 5.0 * s, 1.3, 70.0, 24.0])
 	return made
 
 
-## A small lantern light with no flame card (a lit window's spill, a hung lamp). Fades out past 45 m.
-func lamp(at: Vector3, col := Color(1.0, 0.7, 0.4), energy := 1.0, rng_m := 6.0) -> OmniLight3D:
+## One unshadowed light under the host, within the wonders' light cap (null past it). Tagged for the light policy.
+func _light(pos: Vector3, col: Color, energy: float, rng_m: float, att: float, fade_b: float, fade_l: float) -> OmniLight3D:
 	if light_used >= LIGHT_CAP:
-		return null                       # over the light budget: no light (the glass and the flame cards still glow)
+		return null
 	light_used += 1
 	var l := OmniLight3D.new()
-	l.name = "LampLight"
+	l.name = "WonderLight"
 	l.light_color = col
 	l.light_energy = energy
 	l.omni_range = rng_m
-	l.omni_attenuation = 1.4
-	l.light_specular = 0.2
+	l.omni_attenuation = att
+	l.light_specular = 0.25
 	l.light_volumetric_fog_energy = 0.0
 	l.shadow_enabled = false
 	l.distance_fade_enabled = true
-	l.distance_fade_begin = 38.0
-	l.distance_fade_length = 14.0
+	l.distance_fade_begin = fade_b
+	l.distance_fade_length = fade_l
 	l.set_meta(&"light_class", &"lamp")
-	l.set_meta(&"base", {"e": energy, "r": rng_m, "a": 1.4})
+	l.set_meta(&"base", {"e": energy, "r": rng_m, "a": att})
 	host.add_child(l)
-	l.position = at
+	l.position = pos
 	lights += 1
 	return l
 
 
+## A small lantern light with no flame card (a lit window's spill, a hung lamp). Fades out past 45 m.
+func lamp(at: Vector3, col := Color(1.0, 0.7, 0.4), energy := 1.0, rng_m := 6.0, own := false) -> OmniLight3D:
+	if own:
+		return _light(at, col, energy, rng_m, 1.4, 38.0, 14.0)
+	_lrec.append([at, col, energy, rng_m, 1.4, 38.0, 14.0])
+	return null
+
+
 ## A chest that opens once per save (loot_chest.gd): `id` is its save key, `tier` wood / iron / reliquary.
-func chest(id: String, tier: String, at: Vector3, yaw: float, loot: Dictionary) -> Node3D:
-	var c: Node3D = Chest.new()
-	c.name = "Chest_" + id
-	c.set("chest_id", id)
-	c.set("tier", tier)
-	c.set("loot", loot.duplicate())
-	host.add_child(c)
-	c.global_transform = Transform3D(Basis(Vector3.UP, yaw), at)
-	chests += 1
-	return c
+func chest(id: String, tier: String, at: Vector3, yaw: float, loot: Dictionary) -> void:
+	_crec.append([id, tier, at, yaw, loot])
+
+
+## A flat translucent water plane (a cistern, a pool): recorded, made at commit.
+func water_plane(c: Vector3, yaw: float, size: Vector2, vis := 120.0) -> void:
+	_wrec.append([c, yaw, size, vis])
 
 
 ## A far beacon over the landmark (the generic system: a pale shaft and a glow; `reach` 0 = the system's own).
@@ -371,6 +438,8 @@ func far(near_end := 150.0, taper := 0.0, col := Color(0.16, 0.17, 0.2)) -> void
 
 
 func commit(range_end := 0.0) -> int:
+	if _key != "" and not _loaded:
+		_save()
 	var n := kit.commit(host, host.name + "Body")
 	# flames and halos: one MultiMesh each (per halo size) for the whole kit
 	if not _fl.is_empty():
@@ -385,16 +454,28 @@ func commit(range_end := 0.0) -> int:
 		hm.name = "FireHalos"
 		host.add_child(hm)
 		n += 1
-	# a big mesh gets LODs (cached, build time): its relief and ornament cost less the farther it is
-	for ch in host.get_children():
-		var mi := ch as MeshInstance3D
-		if mi != null and mi.mesh is ArrayMesh and String(mi.name).begins_with("Mesh_"):
-			var am := mi.mesh as ArrayMesh
-			var verts := 0
-			for sidx in am.get_surface_count():
-				verts += (am.surface_get_arrays(sidx)[Mesh.ARRAY_VERTEX] as PackedVector3Array).size()
-			if verts > 18000:
-				mi.mesh = MeshChunks.with_lods(am)
+	for lr: Array in _lrec:
+		_light(lr[0] as Vector3, lr[1] as Color, float(lr[2]), float(lr[3]), float(lr[4]), float(lr[5]), float(lr[6]))
+	for cr: Array in _crec:
+		var c: Node3D = Chest.new()
+		c.name = "Chest_" + String(cr[0])
+		c.set("chest_id", String(cr[0]))
+		c.set("tier", String(cr[1]))
+		c.set("loot", (cr[4] as Dictionary).duplicate())
+		host.add_child(c)
+		c.global_transform = Transform3D(Basis(Vector3.UP, float(cr[3])), cr[2] as Vector3)
+		chests += 1
+	for wr: Array in _wrec:
+		var pm := PlaneMesh.new()
+		pm.size = wr[2] as Vector2
+		var wi := MeshInstance3D.new()
+		wi.name = "Water"
+		wi.mesh = pm
+		wi.material_override = _water_mat()
+		wi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		host.add_child(wi)
+		wi.global_transform = Transform3D(Basis(Vector3.UP, float(wr[1])), wr[0] as Vector3)
+		wi.visibility_range_end = float(wr[3])
 	if host.is_in_group("world_poi") and not host.has_meta("centre"):
 		# a discovery: the systems that read `world_poi` (world events, the far light signatures) want a centre and a radius
 		var bb := AABB()
@@ -415,3 +496,71 @@ func commit(range_end := 0.0) -> int:
 				gi.visibility_range_end_margin = range_end * 0.1
 				gi.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
 	return n
+
+
+static var _wmat: StandardMaterial3D
+
+
+static func _water_mat() -> StandardMaterial3D:
+	if _wmat == null:
+		_wmat = StandardMaterial3D.new()
+		_wmat.albedo_color = Color(0.05, 0.13, 0.17, 0.72)
+		_wmat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		_wmat.roughness = 0.04
+		_wmat.metallic = 0.2
+		_wmat.emission_enabled = true
+		_wmat.emission = Color(0.02, 0.06, 0.08)
+		_wmat.cull_mode = BaseMaterial3D.CULL_DISABLED
+	return _wmat
+
+
+# --- the geometry cache ---------------------------------------------------------------------------------
+# A landmark's boxes are pure GDScript (about 70 microseconds each) and deterministic for a place and a seed, so the finished
+# kit is saved once (GenCache, under the generator's own salt) and restored on every later build: the builder skips its
+# geometry (`if not k.cached(key): ...`) and the kit, its recorded flames, lights, chests and water planes come back in
+# milliseconds. The key names the builder's own source (so an edit rebuilds), the shared builders' sources and the placement.
+
+const KIT_PATH := "res://core/world/realm/wonders/r39/wonder_kit.gd"
+const GenCache := preload("res://core/world/realm/gen_cache.gd")
+
+
+## The cache key for a builder: its script path, the placement it was given (anything that changes the picture) and the sources.
+static func fp(builder: String, params: Variant) -> String:
+	var sal := "%d_%d_%d_%d" % [GenCache.salt(builder), GenCache.salt(KIT_PATH), GenCache.salt("res://world/areas/ossuary/oss_kit.gd"), GenCache.salt("res://core/world/realm/wonders/r39/wonder_dress.gd")]
+	return "wk|%s|%s|%s" % [builder.get_file().get_basename(), sal, str(params).md5_text()]
+
+
+## True when the kit's geometry (and its recorded flames, lights, chests, water) came back from the cache: the builder then
+## skips building it. When false the kit is saved at commit under `key`.
+func cached(key: String) -> bool:
+	_key = key
+	var v: Variant = GenCache.load_var(key, KIT_PATH)
+	if not (v is Dictionary):
+		return false
+	var d: Dictionary = v
+	for k2: String in (d.st as Dictionary):
+		var st := SurfaceTool.new()
+		st.create_from_arrays((d.st as Dictionary)[k2] as Array, Mesh.PRIMITIVE_TRIANGLES)
+		kit._st[k2] = st
+	kit.col_faces = d.col
+	kit.solids = d.solids
+	kit.candles = d.candles
+	kit.skulls = d.skulls
+	kit.bones = d.bones
+	kit.puddles.assign(d.puddles)
+	_fl.assign(d.fl)
+	_hl = d.hl
+	_lrec = d.lrec
+	_crec = d.crec
+	_wrec = d.wrec
+	fires = int(d.fires)
+	_loaded = true
+	return true
+
+
+func _save() -> void:
+	var st := {}
+	for k2: String in kit._st:
+		st[k2] = (kit._st[k2] as SurfaceTool).commit_to_arrays()
+	GenCache.save_var(_key, KIT_PATH, {"st": st, "col": kit.col_faces, "solids": kit.solids, "candles": kit.candles, "skulls": kit.skulls,
+		"bones": kit.bones, "puddles": kit.puddles, "fl": _fl, "hl": _hl, "lrec": _lrec, "crec": _crec, "wrec": _wrec, "fires": fires})

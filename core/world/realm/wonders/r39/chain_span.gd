@@ -18,7 +18,7 @@ const ALLOW := ["greyfell", "lanternwood", "kingsbarrows", "reedmere", "fallow",
 const LEN := 56.0
 const SAG := 2.4
 
-var k
+var k: WK
 var a := Vector3.ZERO                    ## the deck's west end (world, y = deck level)
 var d := Vector3.RIGHT                   ## along the span
 var sd := Vector3.FORWARD                ## across

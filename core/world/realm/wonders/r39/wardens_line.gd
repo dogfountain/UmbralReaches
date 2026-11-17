@@ -20,7 +20,7 @@ const ALLOW := ["lanternwood", "kingsbarrows", "greyfell", "lastlight", "nave", 
 const HI := 4.3                      ## the hall's half width
 const WALL := 0.9
 
-var k
+var k: WK
 var mid := Vector3.ZERO
 var rot := Basis.IDENTITY
 var y0 := 0.0

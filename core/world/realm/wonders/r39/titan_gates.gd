@@ -29,7 +29,7 @@ func _gate(root: Node, r: Dictionary) -> void:
 	var side := Vector2(-dir.y, dir.x)
 	var k := WK.new()
 	k.setup(root, "TitanGate_" + String(r.id), 8100 + int(absf(c.x)))
-	var title := {"henge": "The Thorn Wardens", "hierarch": "The Siege Wardens", "anchorhold": "The Anchor Wardens"}.get(String(r.id), "The Wardens")
+	var title: String = {"henge": "The Thorn Wardens", "hierarch": "The Siege Wardens", "anchorhold": "The Anchor Wardens"}.get(String(r.id), "The Wardens")
 	k.poi("titan_gate_" + String(r.id), title, "two wardens of stone, and what they were set to keep out", WK.region_at(gate))
 	var base := gate + dir * 13.0
 	var yaw := atan2(dir.x, dir.y)
