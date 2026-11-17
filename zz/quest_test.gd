@@ -322,8 +322,10 @@ func _names() -> void:
 	ok(Book.step("names_yard") == 1, "three names found: back to Abel")
 	var line := Chains.step_text("names_yard", 0, {"f": {"a": true}})
 	ok(line.contains("(1/3)"), "gather count in the line: %s" % line)
-	await converse(abel, ["Cut them deep", "Goodbye"])
-	ok(Book.done("names_yard"), "Names for the Yard done")
+	await converse(abel, [])
+	ok(Book.step("names_yard") == 2, "Abel sends you to the Yard's wall")
+	Book.run("qp:names_yard:deep,qa:names_yard")        # the wall's conversation (dialogue_db.gd yard_cut)
+	ok(Book.done("names_yard") and Book.pick("names_yard") == "deep", "Names for the Yard done")
 	await _frames(2)
 	ok((quests.get("props") as Dictionary).has("names"), "the names stand in the Yard")
 
@@ -337,14 +339,18 @@ func _keg_thief() -> void:
 	var verbs: Node = quests.get_node("Verbs")
 	ok(Book.step("keg_thief") == 0 and (verbs.call("info") as Dictionary).nodes.size() == 4, "four signs stand behind the Keg")
 	ok(bool(verbs.call("examine", "keg_thief", "circle")) and Book.step("keg_thief") == 0, "the dropped mug: one of two read")
-	ok(bool(verbs.call("examine", "keg_thief", "prints")) and Book.step("keg_thief") == 1, "the spilled ale: two read, on to the circles")
+	ok(bool(verbs.call("examine", "keg_thief", "prints")) and Book.step("keg_thief") == 1, "the spilled ale: two read, on to the ale's way")
 	ok(Book.found("keg_thief").has("c:prints") and QuestDB.test("qc:keg_thief:prints,!qc:keg_thief:gnaw", {}), "what was read is remembered (qc:)")
 	await _frames(2)
+	for i in 4:
+		verbs.call("_reveal", "keg_thief", i)
+	ok(Book.step("keg_thief") == 2, "four ale-drops followed: the last circle")
+	await _frames(2)
 	ok(await _take("mug_fire"), "the full mug by the green's fire")
-	ok(Book.step("keg_thief") == 2, "step: ask Nan")
+	ok(Book.step("keg_thief") == 3, "step: ask Nan")
 	var nan := _v("nan")
 	await converse(nan, ["chalk circles", "Bare feet", "secret's safe"])
-	ok(Book.step("keg_thief") == 3 and Book.pick("keg_thief") == "covered", "Nan's secret kept")
+	ok(Book.step("keg_thief") == 4 and Book.pick("keg_thief") == "covered", "Nan's secret kept")
 	ok(Book.att("nan") >= 2, "Nan likes that (%d)" % Book.att("nan"))
 	Travel.items["grave_ash"] = 4
 	var seen := await converse(keep, ["my slate"])
@@ -386,6 +392,11 @@ func _slow_way() -> void:
 	await _frames(3)
 	ok(Book.step("slow_way") == 2, "put to rest: take the lantern")
 	ok(await _take("lantern"), "take the lantern")
+	ok(Book.step("slow_way") == 3, "the lantern is dry: light it at the fen's fire")
+	ok(await _take("harrow_flame"), "light it at the fen's fire")
+	ok(Book.step("slow_way") == 4, "carry it home lit (lantern_walk)")
+	Book.advance("slow_way")                                 # (the walk itself: quest_verbs_test)
+	ok(Book.step("slow_way") == 5, "home: tell Ostrin")
 	player.global_position = home
 	player.process_mode = Node.PROCESS_MODE_INHERIT
 	await converse(ostrin, ["It was him", "lamp-glass"])
@@ -430,6 +441,8 @@ func _forty_first() -> void:
 	ok(bool(oswin.get("pinned")) and String(oswin.get("act")) == "kneel", "he kneels at it")
 	oswin.set("follow", null)
 	await converse(oswin, ["Wait here"])
+	ok(Book.pick("forty_first") == "faith" and Book.step("forty_first") == 2, "faith: the lamp for his stone is next")
+	Book.advance("forty_first", 4)                           # (the lamp and its walk: quest_verbs_test)
 	ok(Book.done("forty_first") and Book.pick("forty_first") == "faith", "faith: he keeps his vigil")
 	await _frames(3)
 	ok(String(oswin.get("routine")) == "vigil" and (oswin.global_position - QWorld.spots.stair).length() < 1.0, "vigil at the waystone (%s)" % oswin.get("routine"))
@@ -444,6 +457,7 @@ func _forty_first() -> void:
 	ok(Book.step("forty_first") == 1, "(again) at the stone")
 	await converse(oswin, ["The Stair is broken"])
 	ok(Book.pick("forty_first") == "truth", "truth: he goes home")
+	Book.advance("forty_first", 4)                           # the lamp walked: done, and he leaves
 	var gone := false
 	village.set("time_scale", 1.0)
 	var t0 := Time.get_ticks_msec()

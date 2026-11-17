@@ -288,6 +288,7 @@ func _slay_region() -> void:
 	ok(int(Book.q("road_clear").get("n", 0)) == 1, "a kill on the Pilgrims' Road counts, one on the summit does not")
 	Book.drop("road_clear")
 	Book.accept("unpaid_toll")
+	Book.advance("unpaid_toll", 2)             # past the trail and the bell-post's signs: the tollmen
 	runner.call("note_kill", "wretch", Vector2(-92, -30))
 	runner.call("note_kill", "tollman", Vector2(-92, -30))    # sheet 193: tollmen count where they stand (thornwood, henge)
 	ok(int(Book.q("unpaid_toll").get("n", 0)) == 1, "only tollmen count for the toll")
@@ -324,7 +325,7 @@ func _visit() -> void:
 	var keep := player.global_position
 	player.global_position = Vector3(-52.0, keep.y, -100.0)
 	await _frames(4)
-	ok(Book.ready("spire_lamps"), "the lamp reaches the Watchers' Spire")
+	ok(Book.step("spire_lamps") == 2, "the lamp reaches the Watchers' Spire: the vigil over it begins")
 	player.global_position = keep
 	Book.drop("spire_lamps")
 	VState.kindled_override = 0

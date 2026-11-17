@@ -45,6 +45,7 @@ func _ready() -> void:
 	await _clues()
 	await _tracks()
 	await _order()
+	await _deepen_a()
 	_lantern()
 	await _vigil()
 	Book.quiet = false
@@ -132,7 +133,7 @@ func _tracks() -> void:
 
 func _order() -> void:
 	Book.start("drowned_bell")
-	Book.advance("drowned_bell")
+	Book.advance("drowned_bell", 2)             # past the lamp and its walk to the belfry
 	await get_tree().process_frame
 	await get_tree().process_frame
 	ok(Chains.step("drowned_bell", Book.step("drowned_bell")).kind == "order", "on the order step")
@@ -143,11 +144,60 @@ func _order() -> void:
 	ok(not bool(verbs.call("touch", "drowned_bell", "ferryman")) and Book.noted("drowned_bell", "o") == 0, "a wrong one in the middle starts it again")
 	for k: String in ["ferryman", "choir", "child"]:
 		verbs.call("touch", "drowned_bell", k)
-	ok(Book.step("drowned_bell") == 2, "all three in order: on to the tongue")
+	ok(Book.step("drowned_bell") == 3, "all three in order: on to the tongue")
 	await get_tree().process_frame
 	await get_tree().process_frame
 	ok(int((verbs.call("info") as Dictionary).foes) == 0, "the foes it woke are cleared when the step is over")
 	Book.drop("drowned_bell")
+
+
+## Writer A's deepened tasks and the two new ones (docs/QUEST_DEPTH.md): each verb beat, the choice, what it leaves.
+func _deepen_a() -> void:
+	Book.start("three_knocks")
+	await get_tree().process_frame
+	for k: String in ["sill", "gate", "block"]:
+		verbs.call("examine", "three_knocks", k)
+	ok(Book.step("three_knocks") == 1 and String(Chains.step("three_knocks", 1).kind) == "vigil", "Three Knocks: the three letters read, then the vigil at the door")
+	Book.advance("three_knocks")
+	Book.run("qp:three_knocks:answer,qa:three_knocks")
+	ok(Book.step("three_knocks") == 3 and QuestDB.test("qp:three_knocks:answer", {}), "Three Knocks: answered in her voice (the pick stands)")
+	ok(Chains.step_text("three_knocks", 3, Book.q("three_knocks")).contains("answered"), "Three Knocks: the hand-in says what was done")
+	Book.drop("three_knocks")
+	Book.start("forty_days")
+	await get_tree().process_frame
+	for i in 4:
+		verbs.call("_reveal", "forty_days", i)
+	ok(Book.step("forty_days") == 1, "Forty Days Late: four notched stakes lead to the camp")
+	for k: String in ["seren", "aldo", "whole"]:
+		verbs.call("examine", "forty_days", k)
+	ok(Book.step("forty_days") == 2 and QuestDB.test("qc:forty_days:whole,!qc:forty_days:child", {}), "Forty Days Late: three tokens read, the whole one among them")
+	Book.run("qp:forty_days:carried,qa:forty_days")
+	ok(Book.step("forty_days") == 3 and QuestDB.test("qp:forty_days:carried", {}), "Forty Days Late: carried, not buried")
+	Book.drop("forty_days")
+	Book.start("ring_heart")
+	await get_tree().process_frame
+	for k: String in ["i", "ii", "iii", "iv"]:
+		verbs.call("examine", "ring_heart", k)
+	ok(Book.step("ring_heart") == 1 and String(Chains.step("ring_heart", 1).kind) == "order", "What the Oaks Keep: the four verses read, then touched in order")
+	ok(not bool(verbs.call("touch", "ring_heart", "ii")), "the second verse first is wrong")
+	for k: String in ["i", "ii", "iii", "iv"]:
+		verbs.call("touch", "ring_heart", k)
+	ok(Book.step("ring_heart") == 2, "the song in order: on to the Heart")
+	Book.drop("ring_heart")
+	Book.start("bead_count")
+	Book.advance("bead_count")
+	await get_tree().process_frame
+	verbs.call("examine", "bead_count", "p4")
+	verbs.call("examine", "bead_count", "board")
+	ok(Book.step("bead_count") == 2 and QuestDB.test("qc:bead_count:p4,qc:bead_count:board", {}), "The Lay Brothers' Beads: the posts read against the beads")
+	Book.drop("bead_count")
+	Book.start("unpaid_toll")
+	await get_tree().process_frame
+	for i in 4:
+		verbs.call("_reveal", "unpaid_toll", i)
+	ok(Book.step("unpaid_toll") == 1 and String(Chains.step("unpaid_toll", 1).kind) == "clues", "The Toll Unpaid: the drag leads to the bell-post's signs")
+	Book.drop("unpaid_toll")
+	await get_tree().process_frame
 
 
 func _lantern() -> void:
