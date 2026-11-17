@@ -134,7 +134,7 @@ const PICKUPS := {
 }
 
 const CONVS := {
-	"ds_nail_door": {"name": "The Hollow-Witch's Door", "start": [["qat:ds_unmade:3", "coat"], ["qat:fm_tithe:3", "roll"], ["qat:ds_charcoal:2", "coals"], ["!qat:ds_witchs_price:3", "gone"], ["", "at"]], "nodes": {
+	"ds_nail_door": {"name": "The Hollow-Witch's Door", "start": [["qat:ds_unmade:3", "coat"], ["qat:fm_tithe:3", "roll"], ["qat:ds_charcoal:2,qp:ds_charcoal:spare", "coals_spared"], ["qat:ds_charcoal:2,qp:ds_charcoal:take", "coals_drawn"], ["qat:ds_charcoal:2", "coals"], ["!qat:ds_witchs_price:3", "gone"], ["", "at"]], "nodes": {
 		"coat": {"say": "The scarecrow nobody made stands in its strip in the reeve's coat, HALE worked in red thread inside the collar. The pole is a grave-marker. The face is Dilly's. There is a good deal of coat, and it was somebody's.", "who": "", "choices": [
 			{"text": "Turn the pole to face the road, coat and all.", "to": "turn"},
 			{"text": "Take the coat off and burn it in the furrow.", "to": "burn"},
@@ -155,6 +155,9 @@ const CONVS := {
 			{"text": "Not yet.", "to": ""},
 		]},
 		"spare": {"say": "You say it out loud, and wait. He does not look up. He turns the rake over once on his knees, which is leave, and you lift one coal from the seam in the horn cup. The clamp stays red behind you. He keeps the beacons, Penn said. He will keep this.", "who": "", "do": "qp:ds_charcoal:spare,qa:ds_charcoal", "next": ""},
+		# the coal went out on the way: a second one, and the night's choice stands
+		"coals_spared": {"say": "He has not moved. You lift another coal from the seam into the horn cup. The rake stays across his knees.", "who": "", "do": "qa:ds_charcoal", "next": ""},
+		"coals_drawn": {"say": "The heap you raked out is still red at its heart. You take a coal from it. Nobody keeps the stack now.", "who": "", "do": "qa:ds_charcoal", "next": ""},
 		"take": {"say": "You rake the turf back and draw the clamp, and the coals roll out red onto the grey ground, a night's work gone to a heap in a breath. The man in the soot-black coat stands up. He looks at the heap, not at you, and walks into the smoke, and the stack goes on smoking without him.", "who": "", "do": "qp:ds_charcoal:take,qa:ds_charcoal", "next": ""},
 		"at": {"say_if": [["qc:ds_witchs_price:mother", "The witch's door is a slab of root-plate with a standing stone set against it, bristling with nails driven through scraps of cloth. A Lark's apron-linen is among the oldest. A window in the trunk's hollow is lit with wax. Nobody answers. The price is to drive the nail yourself, and to ask."], ["qc:ds_witchs_price:coat", "The witch's door is a slab of root-plate with a standing stone set against it, bristling with nails. One of them goes through a reeve's button. A window in the trunk's hollow is lit with wax. Nobody answers. The price is to drive the nail yourself, and to ask."], ["", "The witch's door is a slab of root-plate with a standing stone set against it, bristling with nails driven through scraps of cloth: the oldest rusted to nothing, the newest bright. A window in the trunk's hollow is lit with wax. Nobody answers. The price is to drive the nail yourself, and to ask."]], "who": "", "choices": [
 			{"text": "Ask that the bread rise.", "to": "bread"},
