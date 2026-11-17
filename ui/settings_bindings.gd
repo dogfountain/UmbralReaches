@@ -74,7 +74,7 @@ func refresh() -> void:
 		if ev != null:
 			b.text = InputSetup.event_name(ev)
 		else:
-			b.text = _pad_text([parts[0]], "") if parts[1] == "pad" else "-"
+			b.text = pad_text([parts[0]], "") if parts[1] == "pad" else "-"
 
 
 func begin(action: String, slot: String) -> void:
@@ -144,7 +144,7 @@ func input(event: InputEvent) -> void:
 	refresh()
 
 
-func _pad_text(actions: Array, fallback: String) -> String:
+func pad_text(actions: Array, fallback: String) -> String:
 	if fallback != "":
 		return fallback
 	var parts := PackedStringArray()
