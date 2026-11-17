@@ -57,7 +57,7 @@ func _process(delta: float) -> void:
 		var goal := 0.0
 		if r >= 0 and on:
 			var k := int(Reg.kind[r])
-			goal = _energy(k) * Reg.gain[r] * Reg.shimmer(r, _t) * boost
+			goal = _energy(k) * Reg.gain[r] * Reg.shimmer(r, _t) * boost * (1.0 - Reg.indoor)
 		l.light_energy = move_toward(l.light_energy, goal, delta * 5.0)
 		l.visible = l.light_energy > 0.02
 		if r >= 0 and l.visible:

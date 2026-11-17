@@ -111,12 +111,12 @@ func _process(delta: float) -> void:
 	_drip_t -= delta
 	if _drip_t <= 0.0:
 		_drip_t = 0.5
-		if rain > 0.3:
+		if rain > 0.3 and Reg.indoor < 0.4:
 			_drip()
 	_hiss_t -= delta
 	if _hiss_t <= 0.0:
 		_hiss_t = randf_range(2.5, 5.0)
-		if rain > 0.4:
+		if rain > 0.4 and Reg.indoor < 0.4:
 			_hiss()
 
 
@@ -197,7 +197,7 @@ func _glints() -> void:
 					col = Reg.colour(int(Reg.kind[i]))
 					streak = 1.0 - sqrt(dd) / 8.0
 			var shimmer := 0.65 + 0.35 * sin(t * 1.3 + h * 40.0)
-			var a := _wet * fade * (0.1 + 0.28 * streak) * shimmer
+			var a := _wet * fade * (0.1 + 0.28 * streak) * shimmer * (1.0 - Reg.indoor)
 			var yaw := atan2(cp.x - px, cp.z - pz)
 			var sx := size * (1.0 + 0.9 * streak)
 			var sz := size * (1.0 - 0.25 * streak)

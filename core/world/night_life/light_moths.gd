@@ -94,7 +94,7 @@ func _process(delta: float) -> void:
 			var h := 0.15 * float(m % 5) - 0.2 + 0.22 * sin(_t * 1.6 + ph * 3.0) + _scatter[s] * 2.0
 			var q := p + Vector3(cos(a) * rad, h, sin(a) * rad)
 			var size := (0.09 if cold else 0.07) * (0.7 + 0.5 * absf(sin(_t * 17.0 + ph * 5.0)))   # the wings flapping, edge-on and flat
-			var glow := (0.45 + 0.55 * absf(sin(_t * 11.0 + ph * 4.0))) * vis * (1.0 - 0.5 * _scatter[s])
+			var glow := (0.45 + 0.55 * absf(sin(_t * 11.0 + ph * 4.0))) * vis * (1.0 - 0.5 * _scatter[s]) * (1.0 - 0.7 * Reg.indoor)
 			mm.set_instance_transform(n, Transform3D(Basis.IDENTITY.scaled(Vector3(size, size, size)), q))
 			mm.set_instance_color(n, Color(col.r, col.g, col.b, glow))
 			n += 1

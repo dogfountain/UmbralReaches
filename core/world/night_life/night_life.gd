@@ -37,6 +37,7 @@ const Sky := preload("res://core/world/night_life/sky_life.gd")
 const Wx := preload("res://core/world/night_life/weather_life.gd")
 const Vfxl := preload("res://core/world/night_life/vfx_library.gd")
 const Arena := preload("res://core/world/night_life/arena_light.gd")
+const Rooms := preload("res://core/world/night_life/interior_light.gd")
 
 var _poll := 0.0
 
@@ -75,6 +76,7 @@ func _ready() -> void:
 	var al := Arena.new()
 	al.env = course.env
 	_add(al, "ArenaLight")
+	_add(Rooms.new(), "InteriorLight")
 	_add(Surge.new(), "KindlingSurge")
 	_add(Moths.new(), "LightMoths")
 	_add(Banks.new(), "FogBanks")

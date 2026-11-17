@@ -237,7 +237,7 @@ func _draw() -> void:
 				cmm.set_instance_color(nc, Color(col.r, col.g, col.b, minf(a, 1.0)))
 				nc += 1
 		if d < POOL_FADE_B and Reg.real[i] == 0 and k != Reg.Kind.COLD and np < MAX_POOLS:
-			var pa := (1.0 - smoothstep(POOL_FADE_A, POOL_FADE_B, d)) * g * sh * 0.26
+			var pa := (1.0 - smoothstep(POOL_FADE_A, POOL_FADE_B, d)) * g * sh * 0.26 * (1.0 - Reg.indoor)
 			if pa > 0.01:
 				var r := 4.6 if k == Reg.Kind.FIRE else (2.4 if k == Reg.Kind.WINDOW else 3.4)
 				var gy: float = Reg.ground[i]
