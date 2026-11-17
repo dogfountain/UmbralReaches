@@ -198,7 +198,9 @@ func _marks_and_accept() -> void:
 	await _frames(2)
 	ok(Book.active("thorn_door") and not bool(offer.call("is_open")), "Accept starts it")
 	_refresh()
-	ok(markers.call("mark_of", wyck) == "progress", "Wyck's mark goes grey while it is under way (%s)" % markers.call("mark_of", wyck))
+	# (or stays gold: Forty Days Late is his too, offered once he has been met)
+	var wm := String(markers.call("mark_of", wyck))
+	ok(wm == "progress" or (wm == "available" and Giver.available("forty_days", get_tree())), "Wyck's mark goes grey while it is under way, unless he has another task (%s)" % wm)
 	var tg := false
 	for n: Node in get_tree().get_nodes_in_group("map_marker"):
 		if String(n.get_meta("map_kind", "")) == "quest_target" and String(n.get_meta("quest", "")) == "thorn_door":

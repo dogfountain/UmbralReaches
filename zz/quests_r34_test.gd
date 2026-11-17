@@ -257,6 +257,13 @@ func _chain(rid: String) -> void:
 		if String(qd.get("zone", "")) != rid or id in ACT3:
 			continue
 		if not Book.active(id):
+			# a task whose avail waits on another region's task (Cadoc's crossing on the Well's answer): that one is
+			# taken as done, the way a player who went there would have it
+			for cond: String in String(qd.get("avail", "")).split(","):
+				var dep := cond.trim_prefix("qd:")
+				if cond.begins_with("qd:") and Chains.QUESTS.has(dep) and not Book.done(dep) and String(Chains.QUESTS[dep].get("zone", "")) != rid:
+					Book.start(dep)
+					Book.complete(dep)
 			ok(Giver.available(id, get_tree()), "%s is offered" % id)
 			ok(Book.accept(id), "%s taken" % id)
 		var guard := 0
