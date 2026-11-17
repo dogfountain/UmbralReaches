@@ -139,6 +139,17 @@ static func reserve(nm: String, c: Vector2, half: Vector2, yaw: float, lo: float
 	WorldLanes.register_site(nm, Rect2(c - ext, ext * 2.0), lo, hi + 40.0)
 
 
+## The id of the region whose ground holds `p` ("" if none): the discovery banner names it.
+static func region_at(p: Vector2) -> String:
+	var best := ""
+	for reg: Dictionary in RealmLayout.REGIONS:
+		if reg.has("rect") and (reg.rect as Rect2).has_point(p):
+			best = String(reg.id)
+		elif reg.has("c") and not reg.has("rect") and (reg.c as Vector2).distance_to(p) < float(reg.r):
+			best = String(reg.id)
+	return best
+
+
 ## The discovery banner and the world-event hook: the host becomes a `world_poi`.
 func poi(id: String, title: String, line: String, region: String) -> void:
 	host.add_to_group("world_poi")
@@ -222,7 +233,8 @@ func window(base: Vector3, along: Vector3, out: Vector3, w: float, ht: float) ->
 
 ## A fire: two flame cards, a halo and one small unshadowed light (it fades out past ~90 m so far fires cost nothing
 ## but the two cards and a halo). `s` scales it (1 = a brazier, 3 = a tower's cresset).
-func fire(at: Vector3, s := 1.0, energy := 2.2, light := true) -> void:
+func fire(at: Vector3, s := 1.0, energy := 2.2, light := true) -> Array[Node3D]:
+	var made: Array[Node3D] = []
 	if _fire_mesh == null:
 		_fire_mesh = QuadMesh.new()
 		_fire_mesh.size = Vector2(0.075, 0.17)
@@ -233,6 +245,7 @@ func fire(at: Vector3, s := 1.0, energy := 2.2, light := true) -> void:
 		mi.material_override = OssKit.mat("flame")
 		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		host.add_child(mi)
+		made.append(mi)
 		mi.position = at + Vector3(0.18 * s * (float(i) - 0.5), 0.5 * s, 0.12 * s * (0.5 - float(i)))
 		mi.scale = Vector3(7.0, 6.0 + float(i), 7.0) * s
 	var hm := MeshInstance3D.new()
@@ -243,10 +256,11 @@ func fire(at: Vector3, s := 1.0, energy := 2.2, light := true) -> void:
 	hm.material_override = OssKit.mat("halo")
 	hm.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	host.add_child(hm)
+	made.append(hm)
 	hm.position = at + Vector3.UP * (0.55 * s)
 	fires += 1
 	if not light:
-		return
+		return made
 	var l := OmniLight3D.new()
 	l.name = "FireLight"
 	l.light_color = FIRE_COL
@@ -262,12 +276,14 @@ func fire(at: Vector3, s := 1.0, energy := 2.2, light := true) -> void:
 	l.set_meta(&"light_class", &"lamp")
 	l.set_meta(&"base", {"e": energy, "r": l.omni_range, "a": 1.3})
 	host.add_child(l)
+	made.append(l)
 	l.position = at + Vector3.UP * (1.2 * s)
 	lights += 1
+	return made
 
 
 ## A small lantern light with no flame card (a lit window's spill, a hung lamp). Fades out past 45 m.
-func lamp(at: Vector3, col := Color(1.0, 0.7, 0.4), energy := 1.0, rng_m := 6.0) -> void:
+func lamp(at: Vector3, col := Color(1.0, 0.7, 0.4), energy := 1.0, rng_m := 6.0) -> OmniLight3D:
 	var l := OmniLight3D.new()
 	l.name = "LampLight"
 	l.light_color = col
@@ -285,6 +301,7 @@ func lamp(at: Vector3, col := Color(1.0, 0.7, 0.4), energy := 1.0, rng_m := 6.0)
 	host.add_child(l)
 	l.position = at
 	lights += 1
+	return l
 
 
 ## A chest that opens once per save (loot_chest.gd): `id` is its save key, `tier` wood / iron / reliquary.
@@ -301,8 +318,8 @@ func chest(id: String, tier: String, at: Vector3, yaw: float, loot: Dictionary) 
 
 
 ## A far beacon over the landmark (the generic system: a pale shaft and a glow; `reach` 0 = the system's own).
-func beacon(at: Vector3, col: Color, radius := 1.0, ceiling := 9.0, reach := 0.0) -> void:
-	Wayfinding.beacon(host, at, "", col, 0.0, radius, ceiling, true, reach)
+func beacon(at: Vector3, col: Color, radius := 1.0, ceiling := 9.0, reach := 0.0) -> Node3D:
+	return Wayfinding.beacon(host, at, "", col, 0.0, radius, ceiling, true, reach)
 
 
 func commit() -> int:
