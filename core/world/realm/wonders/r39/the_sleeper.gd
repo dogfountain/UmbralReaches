@@ -1,5 +1,5 @@
 extends RefCounted
-## THE SLEEPER (r39): a colossus of the Order, 80 m long, lying on its back on the heather of the Far Reaches.
+## THE SLEEPER (the world pass): a colossus of the Order, 80 m long, lying on its back on the heather of the Far Reaches.
 ## Lore: the Order raised a warden of stone to stand over the road. When the sky began to turn it lay down to sleep
 ## and did not stand again; its furnace-heart still burns, and it holds a fire in its open hand for whoever
 ## is still walking. From afar: a crown of stone spikes, a bonfire cupped in a hand and a beacon over the face.

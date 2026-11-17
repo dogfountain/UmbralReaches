@@ -1,5 +1,5 @@
 extends RefCounted
-## The shared hand of the r39 landmarks (docs/r39/world_landmarks.md). Every big set piece of the world pass (the
+## The shared hand of the the world pass landmarks (docs/the world pass/world_landmarks.md). Every big set piece of the world pass (the
 ## Sleeper, the Hollow King, the Salt Ship, the Wardens' Line, the Chain Span, the Titan Gates, the Hermit Caches)
 ## builds through one of these: an OssKit (one mesh per material, collision from the same faces, occluders) plus the
 ## things a landmark needs that the kit does not give: a free-ground finder, tubes and beams at any angle, fire (a
@@ -7,7 +7,7 @@ extends RefCounted
 ## discovery banner. Everything is built once, at Realm build time (the wonders stage runs before the terrain stamp,
 ## the flora, the dress and the nav bake, so the flora keeps off every site reserved here, the ground settles to the
 ## floors and the nav meshes include them). Nothing runs per frame. No class_name: load by path.
-##   const WK := preload("res://core/world/realm/wonders/r39/wonder_kit.gd")
+##   const WK := preload("res://core/world/realm/wonders/the world pass/wonder_kit.gd")
 
 const Chest := preload("res://core/world/realm/loot_chest.gd")
 const Land := preload("res://core/world/realm/realm_land.gd")

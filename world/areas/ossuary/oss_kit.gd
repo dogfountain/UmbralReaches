@@ -65,7 +65,7 @@ static func mat(key: String) -> Material:
 		"iron":       _tri(m, "tavern_iron", 0.6, Color(0.5, 0.48, 0.5))
 		"wood":       _tri(m, "tavern_wood", 0.5, Color(0.7, 0.57, 0.46))
 		"slate":      _tri(m, "oss_slate", 0.45, Color(0.9, 0.9, 0.95))
-		# r39 masonry scale tiers: a colossal work's courses are 2-3 times a house's, so its blocks read as the size they are
+		# the world pass masonry scale tiers: a colossal work's courses are 2-3 times a house's, so its blocks read as the size they are
 		# (the world-triplanar texture scale is per metre: half the scale, twice the stone)
 		"stone_big":  _tri(m, "oss_ashlar", 0.14, Color(0.9, 0.9, 0.92))
 		"ruin_big":   _tri(m, "oss_ruin", 0.17, Color(0.92, 0.91, 0.9))

@@ -1,5 +1,5 @@
 extends RefCounted
-## THE HOLLOW KING (r39): a dead oak 44 m tall in the Southwood, older than the Order, taller than anything the
+## THE HOLLOW KING (the world pass): a dead oak 44 m tall in the Southwood, older than the Order, taller than anything the
 ## wood has grown since, its crown a black antler against the stars and a fire burning in the fork.
 ## Lore: the charcoal burners' camps stand round it because they believe nothing that cuts it down lives. It died
 ## standing. The root-folk (nobody knows who) took the hollow for a hall, hung lamps in its limbs and built their

@@ -1,5 +1,5 @@
 extends RefCounted
-## THE WARDENS' LINE (r39): six beacon towers a hundred metres apart along the Pilgrims' Road, west to east. Lore:
+## THE WARDENS' LINE (the world pass): six beacon towers a hundred metres apart along the Pilgrims' Road, west to east. Lore:
 ## the Order's wardens kept the road lit tower to tower, so no pilgrim walked a night in the dark; when the wardens
 ## were gone the fires went out one by one and the line went dark from the west. The wanderer can light it again.
 ## Each tower is a stout 10 m keep, 12 m to the roof, built of the Order's big masonry:

@@ -1,5 +1,5 @@
 extends RefCounted
-## THE SALT SHIP (r39): a two-masted merchantman of the Order's salt fleet, 44 m long, stranded on the White Pans
+## THE SALT SHIP (the world pass): a two-masted merchantman of the Order's salt fleet, 44 m long, stranded on the White Pans
 ## far from any water, heeled 9 degrees on the salt it sailed in on. Lore: the pans were a bay once; the
 ## Order's salt fleet was loading the night the sky began to turn, and the tide went out for good. The salt crept
 ## up the hull and the crew's lamps are still lit.

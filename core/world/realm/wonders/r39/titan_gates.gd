@@ -1,5 +1,5 @@
 extends RefCounted
-## THE TITAN GATES (r39: boss-scale architecture): before each of the Realm's raid floors (RealmLayout.RAIDS: the
+## THE TITAN GATES (the world pass: boss-scale architecture): before each of the Realm's raid floors (RealmLayout.RAIDS: the
 ## Thornwarden's henge, the Hierarch's statue ring, the Anchoress's terrace) two wardens of the Order's stone stand
 ## 13 m outside the arena's gate, 14 m apart, 20 m tall to the spear tip, each with a fire in a bowl on its helm and eyes
 ## lit towards the approach: the player walks between two figures three times the size of the thing they came to fight,

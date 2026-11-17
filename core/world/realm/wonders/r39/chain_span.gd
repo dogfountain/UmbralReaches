@@ -1,5 +1,5 @@
 extends RefCounted
-## THE CHAIN SPAN (r39): the Order's chain-way over a gulf of the Far Reaches, 56 m between two gate pylons, its
+## THE CHAIN SPAN (the world pass): the Order's chain-way over a gulf of the Far Reaches, 56 m between two gate pylons, its
 ## deck slung on four iron cables from piers 10 m above the road. Lore: a keeper was posted at the midspan to light
 ## the lamps for travellers; the keeper's brazier is still lit and the keeper is not accounted for.
 ##   - found by scanning the Far Reaches (outside the old Marches) for the deepest dry-ended gulf 56 m across that

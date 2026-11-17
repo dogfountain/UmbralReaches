@@ -1,5 +1,5 @@
 extends RefCounted
-## THE HERMIT CACHES (r39: reasons to leave the road): sixteen small places, 45-130 m off every way, each marked
+## THE HERMIT CACHES (the world pass: reasons to leave the road): sixteen small places, 45-130 m off every way, each marked
 ## by a pole 7 m tall with a lit lantern at its head (a warm star over the heath that nobody put on a map) and
 ## holding a chest. Three kinds, rotated round the Realm:
 ##   - the lean-to camp: a plank shelter against a stone, a bedroll, a cold hearth ring with a small fire, a chest
