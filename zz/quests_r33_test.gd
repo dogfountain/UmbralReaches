@@ -297,14 +297,34 @@ func _slay_region() -> void:
 # --- visit and carry ----------------------------------------------------------------------------------
 
 func _visit() -> void:
-	print("visit")
+	print("visit, and a lit lamp carried (lantern_walk)")
 	VState.kindled_override = 1
 	ok(Giver.available("spire_lamps", get_tree()), "the Spire's lamp is offered once a brazier burns")
 	Book.accept("spire_lamps")
+	var quests: Node = village.get("quests")
+	await _frames(3)
+	var lamp: Node = (quests.get("pickups") as Dictionary).get("spire_flame")
+	ok(lamp != null, "a lamp waits to be lit at the green's fire")
+	if lamp == null:
+		Book.drop("spire_lamps")
+		VState.kindled_override = 0
+		return
+	lamp.call("interact", player)
+	await _frames(3)
+	ok(Book.step("spire_lamps") == 1, "the lit lamp is taken: carrying it")
+	await get_tree().create_timer(0.8).timeout
+	Events.player_hurt.emit(1.0, Vector3.INF)
+	await _frames(3)
+	ok(Book.step("spire_lamps") == 0, "a blow puts the flame out: back to the green's fire")
+	await _frames(3)
+	lamp = (quests.get("pickups") as Dictionary).get("spire_flame")
+	if lamp:
+		lamp.call("interact", player)
+		await _frames(3)
 	var keep := player.global_position
 	player.global_position = Vector3(-52.0, keep.y, -100.0)
-	runner.call("check")
-	ok(Book.ready("spire_lamps"), "standing at the Watchers' Spire moves it on")
+	await _frames(4)
+	ok(Book.ready("spire_lamps"), "the lamp reaches the Watchers' Spire")
 	player.global_position = keep
 	Book.drop("spire_lamps")
 	VState.kindled_override = 0
