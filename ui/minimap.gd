@@ -360,8 +360,8 @@ func _draw() -> void:
 		var col: Color = m.col
 		var ring := float(m.get("radius", 0.0)) * (DIAM * 0.5) / float(RANGES[_range_i])    # a search area (clues, a trail): its circle, when it fits the dial
 		if ring > 3.0 and q.z == 0.0 and Vector2(q.x, q.y).length() + ring < r - 4.0:
-			draw_circle(p, ring, Color(col, 0.1))
-			draw_arc(p, ring, 0.0, TAU, 40, Color(col, 0.7), 1.5, true)
+			draw_circle(p, ring, Color(col, 0.2))                # (0.1 and a 1.5 px rim were lost among Hearthward's task coins)
+			draw_arc(p, ring, 0.0, TAU, 48, Color(col, 0.95), 2.5, true)
 		var a := 0.55 if q.z > 0.0 else 1.0
 		if kind in ["fire", "ash", "beacon", "seal", "boss", "chest"] and IconArt.draw_mark(self, "mark", kind, p, 17.0 if kind != "chest" else 12.0, Color(1, 1, 1, a)):
 			continue

@@ -1,8 +1,8 @@
 extends Node
 ## A task step that carries a light (story; no class_name): kind "lantern_walk", from the pickup of the step before
 ## (`from`, a lit lamp taken at A) to `to` within `r`. The quest runner (quest_runner.gd) adds one while the step is
-## current and frees it when the step moves on, as it does for a coal (`carry`). The light is a small lamp at the
-## wanderer's hip. It goes out when the wanderer
+## current and frees it when the step moves on, as it does for a coal (`carry`). The light is a warm flame in the
+## wanderer's own lantern (a second light on it). It goes out when the wanderer
 ##   - sprints (Player.is_sprinting),
 ##   - rolls or dodges (Player.is_evading, which a parry also counts as),
 ##   - is hurt (Events.player_hurt) or hollowed (Events.hollowed),
@@ -51,9 +51,22 @@ func _attach() -> void:
 	_pl = get_tree().get_first_node_in_group(Groups.PLAYER) as Player
 	if _pl == null or is_instance_valid(_lamp):
 		return
-	_lamp = QProps.make(_pl, "CarriedLamp", "lantern_lit", Transform3D.IDENTITY)
-	_lamp.position = Vector3(0.36, 0.95, -0.12)
-	_lamp.scale = Vector3.ONE * 0.85
+	# the flame rides in the wanderer's own lantern (a lamp pinned at the hip was hidden by the body and the
+	# staff, and stiff when seen): the lantern burns warmer and brighter while it carries, and goes back when it is lost
+	var ll := _pl.find_child("LanternLight", true, false) as OmniLight3D
+	if ll != null:
+		var glow := OmniLight3D.new()
+		glow.name = "CarriedFlame"
+		glow.light_color = Color(1.0, 0.6, 0.26)
+		glow.light_energy = 1.7
+		glow.omni_range = 5.0
+		glow.shadow_enabled = false
+		ll.get_parent().add_child(glow)
+		_lamp = glow
+	else:
+		_lamp = QProps.make(_pl, "CarriedLamp", "lantern_lit", Transform3D.IDENTITY)
+		_lamp.position = Vector3(0.36, 0.95, -0.12)
+		_lamp.scale = Vector3.ONE * 0.85
 
 
 func _process(delta: float) -> void:
