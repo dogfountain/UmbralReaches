@@ -101,11 +101,11 @@ func _quests() -> void:
 	ws.kindled = 4
 	ok(not "kindle" in _ids(ws), "all four braziers: kindling done")
 	ws.bosses["bone_abbot"] = true
-	ok(_ids(ws) == ["peal"], "both shards -> the Founder's peal (four bells) first  %s" % [_ids(ws)])
-	for b: String in Chains.BELLS.slice(0, Chains.BELLS_NEEDED):   # four bells answered, as play records them
+	ok(_ids(ws) == ["peal"], "both shards -> the Founder's peal (one bell) first  %s" % [_ids(ws)])
+	for b: String in Chains.BELLS.slice(0, Chains.BELLS_NEEDED):   # the bell(s) answered, as play records them
 		Book.start(b)
 		Book.choose(b, "rung")
-	ok(_ids(ws) == ["summit_seal"], "four bells -> the summit ward  %s" % [_ids(ws)])
+	ok(_ids(ws) == ["summit_seal"], "a bell -> the summit ward  %s" % [_ids(ws)])
 	ws.seals["summit"] = true
 	ok(_ids(ws) == ["warden"], "summit ward open  %s" % [_ids(ws)])
 	ws.bosses["ascended_warden"] = true

@@ -469,6 +469,8 @@ const CONV := {
 		"meet": {"say": "Who are you, then. Say it. Out loud, so the lamp hears it.", "next": "meet2"},
 		"meet2": {"say": "Isolde. I keep the last lamp. Sixty years. My mother kept it before me. It's been out once. That was the Night. It came back on its own, the next dark, and I've never asked it why.", "do": "met:isolde", "next": "hub"},
 		"hub": {"say_if": [
+			["qd:lamp_road", "Odile Frane's road. You can see it from the tower now, a long string of small lamps down the whole heath. Her Ned would be insufferable."],
+			["qat:lamp_road:6", "A coal, in a lantern, the whole way from the Chapel? And not out? Come up. Tell me where the nearest post is. I will tell you what the tower sees."],
 			["qp:ll_oil:lit,qd:ll_oil", "Three wicks, all burning, the east one leaning at the gate. Fenn says it's looked back at. Let it. A lamp's for whoever's on the other side too. I'm too old to choose."],
 			["qp:ll_oil:dark,qd:ll_oil", "Two wicks and a dark one. The gate gets nothing from me. The road gets all I have. It's a hard thing, a lamp. It's only ever for some of them."],
 			["qd:ll_oil", "Full reservoir, first time since the carters stopped. She's burning white. You can read by her from the Bellfall's lip, they say."],

@@ -66,6 +66,8 @@ const FRS := preload("res://core/story/quest_chains_far_reaches_south.gd")
 const FRE := preload("res://core/story/quest_chains_far_reaches_east.gd")
 const VQ := preload("res://core/story/quest_chains_verbs.gd")   ## Hearthward's five tasks deepened with the task verbs (docs/QUEST_VERBS.md)
 const VerbKit := preload("res://core/story/verb_kit.gd")
+const StoryQ := preload("res://core/story/quest_chains_story.gd")   ## the five long tasks: The Third Edict, The Lamp-Road, The Name on the Roll, What the Horn Was For, The Vow's Cell
+const DoorsQ := preload("res://core/story/quest_chains_doors.gd")   ## the four doors the Far Reaches' threads stopped at, closed as stories
 const DC := preload("res://core/story/quest_chains_deepen_c.gd")   ## the Far Reaches' signature tasks (Relief, A Night of Charcoal, The Rope Rung Right)
 const DeepB := preload("res://core/story/quest_chains_deepen_b.gd")   ## the deepened tasks (docs/QUEST_DEPTH.md)
 const DA := preload("res://core/story/quest_chains_deepen_a.gd")   ## writer A: the deepened Hearthward / Thornwood / fen tasks and the two new ones (three_knocks, forty_days)
@@ -99,6 +101,8 @@ const ORDER := ["edda_tongs", "forty_first", "names_yard", "keg_thief", "slow_wa
 	"wr_stand_down", "wr_kings_lamp", "wr_cold_light", "wr_fourth_stone", "wr_tansys_boat", "ds_water_road", "ds_unmade", "ds_witchs_price", "ds_clapper",
 	"er_ringers_candle", "er_nave_fire", "er_halter_bell", "er_inn_slate",          # --- the reaches ---
 	"wr_relief", "ds_charcoal", "er_rope",          # --- deepen C ---
+	"aurel_edicts", "lamp_road", "name_on_roll", "horn_end", "vow_cell",          # --- the story's long tasks ---
+	"wr_door_kings", "ds_door_castellum", "ds_door_witch", "er_door_nave",
 	# --- deepen B ---
 	"seventh_day",
 	# --- deepen A ---
@@ -115,7 +119,8 @@ const GIVER_NAMES := {"hild": "Hild", "fennick": "Old Fennick", "oswin": "Oswin"
 	"marl": "Marl Pannick", "teasel": "Teasel Dray", "orrin": "Orrin Vail", "ardel": "Ardel Wick", "pip": "Pip", "nella": "Nella Crake",
 	"corle": "Aud Corle", "penn": "Reeve Penn", "coyle": "Serjeant Coyle", "isolde": "Old Isolde",      # --- the towns ---
 	"siany": Towns.GIVER_NAMES["siany"], "ebba": Towns.GIVER_NAMES["ebba"], "hobb": Towns.GIVER_NAMES["hobb"], "dilly": Towns.GIVER_NAMES["dilly"], "hesper": Towns.GIVER_NAMES["hesper"],
-	"cobb": Towns.GIVER_NAMES["cobb"], "maudlin": Towns.GIVER_NAMES["maudlin"], "wat": Towns.GIVER_NAMES["wat"], "vell": Towns.GIVER_NAMES["vell"], "fenn": Towns.GIVER_NAMES["fenn"]}      # --- the reaches ---
+	"cobb": Towns.GIVER_NAMES["cobb"], "maudlin": Towns.GIVER_NAMES["maudlin"], "wat": Towns.GIVER_NAMES["wat"], "vell": Towns.GIVER_NAMES["vell"], "fenn": Towns.GIVER_NAMES["fenn"],      # --- the reaches ---
+	"perrin": StoryQ.GIVER_NAMES["perrin"], "odile": StoryQ.GIVER_NAMES["odile"], "ione": StoryQ.GIVER_NAMES["ione"], "lowe": StoryQ.GIVER_NAMES["lowe"], "tamsin": StoryQ.GIVER_NAMES["tamsin"]}      # --- the story's five ---
 
 ## r34: the raids' attunements (WoW's attunement chains, adapted): the last task of each pre-raid
 ## chain, once handed in, loosens the boss's hold (QuestBook.attuned(boss); Travel.story flag
@@ -509,14 +514,14 @@ const QUESTS := {
 		"reward": {"ash": 10, "items": {"ember_shard": 1}},
 		"outcome": {"": "Corvin's lamps burn on the mere another night."}},
 	# --- r36 Act II: the Founder's peal. The summit ward knows heart and crown, but the door was hung
-	# to a bell: it opens to a peal (BELLS_NEEDED of the eight, the Marches' among them). Each far country's last giver has its
+	# to a bell: it opens to a peal (BELLS_NEEDED of the eight: one answered bell wakes it, and every further bell weakens the one who holds it). Each far country's last giver has its
 	# bell; a named keeper holds it; at the bell the wanderer rings it there (the country quiets) or
 	# lifts the tongue out for Hearthward (the Keg rings it when the Warden is faced: he holds less).
 	"founders_peal": {"name": "The Founder's Peal", "giver": "brannoc", "where": "Brannoc Bellwright, at the Keg", "zone": "summit",
 		"offer": true, "avail": "boss:thornwarden,boss:bone_abbot",
-		"text": "Mother cast seven for the road up, and an eighth for the ones outside it. One for each country the pilgrims crossed, and one for the country they were shut out of. When the sky opened they went quiet, top first. The door at the summit hangs from a bell; it won't open to a heart and a crown alone. It opens to a peal. Find me four, and make the Marches one of them: she hung that one for the ones the door was built to keep out. Eight, if you've the legs.",
+		"text": "Mother cast seven for the road up, and an eighth for the ones outside it. One for each country the pilgrims crossed, and one for the country they were shut out of. When the sky opened they went quiet, top first. The door at the summit hangs from a bell; it won't open to a heart and a crown alone. It opens to a peal. Find me one. Any one of the eight will do for the door, and I'd start with the nearest. Every bell after that is a thing the one up there will feel: the ones you ring where they hang, a little; the ones you carry down to my chimney, a good deal more. Eight, if you've the legs.",
 		"steps": [
-			{"kind": "cond", "cond": "peal:4", "past": "Four of the Founder's bells are already answered, the Marches' among them.", "text": "Answer for the Founder's bells ({bells} of 8; four wake the door, and one must be the Marches' at the Lamplighters' Spire: Marl at Saltmarket opens the way)"},
+			{"kind": "cond", "cond": "peal:1", "past": "A bell of the Founder's is already answered.", "text": "Answer for a Founder's bell ({bells} of 8: one wakes the door; each more weakens the one who holds it. The nearest hangs at the Rooted Holds, Gammer Ruan's fire)"},
 			{"kind": "turnin", "who": "brannoc", "text": "Tell Brannoc the door will hear a peal"},
 		],
 		"start_spell": "peal",          # Brannoc teaches it on the taking up (quest_book.gd start): the bells are answered with it
@@ -629,6 +634,10 @@ const QUESTS := {
 	"er_inn_slate": FRE.QUESTS["er_inn_slate"],
 	# --- deepen C ---
 	"wr_relief": DC.WR_RELIEF, "ds_charcoal": DC.DS_CHARCOAL, "er_rope": DC.ER_ROPE,
+	# --- the story's long tasks ---
+	"aurel_edicts": StoryQ.QUESTS["aurel_edicts"], "lamp_road": StoryQ.QUESTS["lamp_road"], "name_on_roll": StoryQ.QUESTS["name_on_roll"],
+	"horn_end": StoryQ.QUESTS["horn_end"], "vow_cell": StoryQ.QUESTS["vow_cell"],
+	"wr_door_kings": DoorsQ.QUESTS["wr_door_kings"], "ds_door_castellum": DoorsQ.QUESTS["ds_door_castellum"], "ds_door_witch": DoorsQ.QUESTS["ds_door_witch"], "er_door_nave": DoorsQ.QUESTS["er_door_nave"],
 	# --- deepen B ---
 	"seventh_day": DeepB.SEVENTH_DAY,
 	# --- deepen A ---
@@ -637,8 +646,8 @@ const QUESTS := {
 
 ## r36: the bell quests (Act II), in no order; BELLS_NEEDED of them wake the summit door.
 const BELLS := ["bell_spire", "bell_holds", "bell_quarry", "bell_moor", "bell_foundry", "bell_orchard", "bell_necropolis", "bell_mere"]
-const BELLS_NEEDED := 4
-## the bell the door insists on among its four: cast for the country the Order shut out, it hangs in the Marches
+const BELLS_NEEDED := 1
+## the bell the Marches wait for: cast for the country the Order shut out, it hangs in the Marches (no longer the door's own price)
 const BELL_SHUT_OUT := "bell_spire"
 ## r36: the bells' keepers (rares.gd RARES keys; a bell quest's slay step wants its own).
 const BELL_KEEPERS := ["lamp_shutter", "kin_caller", "bell_hewer", "fog_shepherd", "slag_born", "ash_sower", "passing_ringer", "fare_caller"]
@@ -765,6 +774,12 @@ const PICKUPS := {
 	# --- deepen C ---
 	"fm_roll": Towns.PICKUPS["fm_roll"], "ll_bar": Towns.PICKUPS["ll_bar"], "ll_nave_flame": Towns.PICKUPS["ll_nave_flame"], "ll_wick": Towns.PICKUPS["ll_wick"],
 	"wr_relief_post": DC.PICKUPS["wr_relief_post"], "ds_clamp_coals": DC.PICKUPS["ds_clamp_coals"], "er_rope": DC.PICKUPS["er_rope"],
+	# --- the story's long tasks ---
+	"ae_book": StoryQ.PICKUPS["ae_book"], "ae_stele": StoryQ.PICKUPS["ae_stele"], "lr_oil_1": StoryQ.PICKUPS["lr_oil_1"], "lr_oil_2": StoryQ.PICKUPS["lr_oil_2"],
+	"lr_oil_3": StoryQ.PICKUPS["lr_oil_3"], "lr_coal": StoryQ.PICKUPS["lr_coal"], "lr_coal2": StoryQ.PICKUPS["lr_coal2"], "lr_coal3": StoryQ.PICKUPS["lr_coal3"],
+	"lr_last": StoryQ.PICKUPS["lr_last"], "nr_page": StoryQ.PICKUPS["nr_page"], "nr_roll": StoryQ.PICKUPS["nr_roll"], "he_horn": StoryQ.PICKUPS["he_horn"],
+	"vc_bread": StoryQ.PICKUPS["vc_bread"], "vc_wall": StoryQ.PICKUPS["vc_wall"],
+	"wd_kings": DoorsQ.PICKUPS["wd_kings"], "dc_sluice": DoorsQ.PICKUPS["dc_sluice"], "dw_door": DoorsQ.PICKUPS["dw_door"], "en_step": DoorsQ.PICKUPS["en_step"],
 	# --- deepen B ---
 	"turf_roof": DeepB.PICKUPS["turf_roof"], "wards_set": DeepB.PICKUPS["wards_set"], "ward_holds": DeepB.PICKUPS["ward_holds"],
 	"ward_wood": DeepB.PICKUPS["ward_wood"], "ward_glade": DeepB.PICKUPS["ward_glade"], "last_step": DeepB.PICKUPS["last_step"],

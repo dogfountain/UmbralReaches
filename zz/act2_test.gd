@@ -86,11 +86,11 @@ func _eighth() -> void:
 	ok(String(RealmLayout.region_at(at.x, at.y).get("id", "")) == "stillwater", "in Stillwater")
 	ok(String(LootDB.RARE_OWN.get("lamp_shutter", "")) == "shutter_hasp" and GearDB.NAMED.has("shutter_hasp"), "the keeper has its own piece")
 	var main_steps: Array = Chains.QUESTS["founders_peal"].steps
-	ok(String((main_steps[0] as Dictionary).cond).begins_with("peal:") and String(Chains.QUESTS["full_peal"].steps[0].cond) == "bells:8", "the peal asks for the Marches' bell; the full peal for all eight")
+	ok(String((main_steps[0] as Dictionary).cond).begins_with("peal:") and String(Chains.QUESTS["full_peal"].steps[0].cond) == "bells:8", "the peal asks for one bell; the full peal for all eight")
 	ok(Chains.audit().is_empty(), "the audit passes with the eighth")
 	Travel.story = {}
-	ok(QuestDB.audit_cond("peal:4") == "", "peal:n is a condition term")
-	ok(not String(QuestDB.objective("peal").text).is_empty() and String(QuestDB.objective("summit_seal").when).contains("peal:4"), "the main objective asks for the peal, not just four bells")
+	ok(QuestDB.audit_cond("peal:1") == "", "peal:n is a condition term")
+	ok(not String(QuestDB.objective("peal").text).is_empty() and String(QuestDB.objective("summit_seal").when).contains("peal:1"), "the main objective asks for the peal, not just a count of bells")
 
 
 func _counting() -> void:
@@ -107,11 +107,10 @@ func _counting() -> void:
 		Book.start(id)
 		Book.choose(id, "carried")
 	ok(QuestDB.test("bells:4", {}), "four bells are four bells")
-	ok(not QuestDB.test("peal:4", {}) and not Book.peal_open(4), "but a peal wants the Marches' bell among them")
+	ok(QuestDB.test("peal:1", {}) and Book.peal_open(1), "r39: one answered bell, any of them, is a peal for the door")
 	Book.start("bell_spire")
 	Book.choose("bell_spire", "rung")
-	ok(QuestDB.test("peal:4", {}) and Book.peal_open(4), "with the Spire's bell, the door hears it")
-	ok(Book.bells_carried() == 3, "three tongues at the Keg")
+	ok(Book.bells() == 5 and Book.bells_carried() == 3, "five bells answered, three tongues at the Keg")
 
 
 func _gates() -> void:
@@ -121,10 +120,10 @@ func _gates() -> void:
 	ward.requires_bosses = ["thornwarden", "bone_abbot"]
 	Travel.bosses_slain["thornwarden"] = true
 	Travel.bosses_slain["bone_abbot"] = true
-	ok(ward.bosses_ok(), "heart, crown and four bells, the Marches' among them: the ward will open")
+	ok(ward.bosses_ok(), "heart, crown and one bell: the ward will open")
 	Book.drop("bell_spire")
 	Book.start("bell_spire")
-	ok(not ward.bosses_ok(), "four bells that leave out the Marches' do not open it")
+	ok(ward.bosses_ok(), "any bell opens it: the Marches' is not the door's own price now")
 	Book.choose("bell_spire", "carried")
 	ok(ward.bosses_ok(), "the tongue carried home counts as much as the bell rung")
 	Travel.story = {}
@@ -132,7 +131,6 @@ func _gates() -> void:
 	ward.free()
 	ok(BossArena.no_peal(0, 4).begins_with("Nothing answers."), "the dais says why: %s" % BossArena.no_peal(0, 4))
 	ok(BossArena.no_peal(2, 4).contains("2") and BossArena.no_peal(2, 4).contains("4"), "and how far: %s" % BossArena.no_peal(2, 4))
-	ok(BossArena.no_peal(4, 4).contains("shut out"), "four bells without the Marches' says which is missing: %s" % BossArena.no_peal(4, 4))
 	# the Crossing's task waits for the peal
 	var avail := String(Chains.QUESTS["crossing_ward"].avail)
 	var ws := {"bosses": Travel.bosses_slain}

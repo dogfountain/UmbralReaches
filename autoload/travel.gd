@@ -577,6 +577,12 @@ func slot_summary(n: int) -> Dictionary:
 		var hv: Variant = cfg.get_value("progress", "hollows", 0)
 		var hollows := int(hv) if (hv is int or hv is float) else 0
 		var when := Time.get_datetime_string_from_unix_time(FileAccess.get_modified_time(p)).substr(0, 10)
+		var sv: Variant = cfg.get_value("story", "state", {})
+		var cl: Variant = (sv as Dictionary).get("chronicle", []) if sv is Dictionary else []
+		out["last"] = ""
+		if cl is Array and not (cl as Array).is_empty() and (cl as Array).back() is Dictionary:
+			var ce: Dictionary = (cl as Array).back()
+			out["last"] = "Night %d: %s" % [int(ce.get("n", 1)), String(ce.get("t", ""))]
 		out.exists = true
 		out.fires = fires
 		out.bosses = bosses

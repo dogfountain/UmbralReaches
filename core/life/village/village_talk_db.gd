@@ -11,6 +11,7 @@ extends RefCounted
 ## House style (docs/LORE.md): terse, concrete, dark. Load by path.
 
 const WestTalk := preload("res://core/life/village/village_talk_west_marches.gd")    # --- west marches --- Weirford's conversations
+const StoryCast := preload("res://core/life/village/village_cast_story.gd")      # the story's five
 const Travellers := preload("res://core/life/village/village_cast_travellers.gd")    # the road's walkers
 const EastVillage := preload("res://core/life/village/village_east_marches.gd")   ## the east marches: Saltmarket's talk
 const Towns := preload("res://core/life/village/village_reach_towns.gd")   ## the towns: Reedholm, Fallowmere, Lastlight
@@ -429,6 +430,8 @@ const CONV := {
 		"meet": {"say": "Hush. They're waiting. They've been waiting since before you were born, and they've been very good about it.", "next": "meet2"},
 		"meet2": {"say": "Agathe. I was a sister of the Order. I kept this field. I still turn the stones to face the mountain, when they move. My back is not what it was.", "do": "met:agathe", "next": "hub"},
 		"hub": {"say_if": [
+			["qd:name_on_roll", "Ione Marsh's mother is in the Tally now, or a line is, or a name. I have not looked. It is hers to look at, not mine. The Ninth came late, and I have left a page for them all the same."],
+			["qat:name_on_roll:1", "The Ninth Company? Thirty-three, late, and no stone for any of them. I have the page. It is yours to carry to a child who has been waiting for it. Take it gently. It is the only one."],
 			["qp:bell_necropolis:rung", "The ranks lay down after the one stroke. All of them. I walk the field now and nobody turns to look at the mountain."],
 			["qp:bell_necropolis:carried", "The Passing Bell's tongue is at the Keg. Let it pass him by. He's earned that much from it."],
 			["qp:field_ranks:gate,qd:still_climbing", "The ones who came down stand with their backs to the mountain now, and their faces to the gate. I counted forty-one. They are waiting to be let in, not up. I've told them they may."],
@@ -510,4 +513,6 @@ const CONV := {
 	"penn": Towns.CONV["penn"], "hesper": Towns.CONV["hesper"], "cobb": Towns.CONV["cobb"], "dilly": Towns.CONV["dilly"], "wystan": Towns.CONV["wystan"],
 	"vell": Towns.CONV["vell"], "isolde": Towns.CONV["isolde"], "coyle": Towns.CONV["coyle"], "fenn": Towns.CONV["fenn"], "wat": Towns.CONV["wat"],
 	"maudlin": Towns.CONV["maudlin"],
+	# --- the story's five ---
+	"perrin": StoryCast.CONV["perrin"], "odile": StoryCast.CONV["odile"], "ione": StoryCast.CONV["ione"], "lowe": StoryCast.CONV["lowe"], "tamsin": StoryCast.CONV["tamsin"],
 }
