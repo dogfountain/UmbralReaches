@@ -33,6 +33,7 @@ extends Ossuant
 
 const ClipRig := preload("res://core/enemy/clip_rig.gd")
 const VillagerBossRig := preload("res://core/enemy/villager_boss_rig.gd")
+const AbbotBody := preload("res://core/enemy/abbot_body.gd")
 const ChanterScript := preload("res://core/enemy/chanter.gd")
 const TallyScript := preload("res://core/enemy/tally_reliquary.gd")
 const Kit := preload("res://core/life/secrets/kit.gd")
@@ -144,14 +145,16 @@ func _absorb(dmg: float, from: Node) -> float:
 
 func _build() -> void:
 	name = "BoneAbbot"
-	# (17 Nov, Luke: "reduce boss to simple model like villager, these models suck") built the way Hearthward's people
-	# are: an old robed villager in a deep hood, a crook in the right hand and a lantern (the reliquary) in the left, the
-	# size of a house, posed by formula (core/enemy/villager_boss_rig.gd). The Blender model and its clips
-	# (boss_bone_abbot.py, boss_humanoid_anim.py, ClipRig) are kept for the record.
+	# (17 Nov, Luke: "reduce boss to simple model like villager, these models suck"; "the style, not the exact look")
+	# built in the villagers' style: their procedural robe, hood, arms and crook (core/life/village/villager_rig.gd),
+	# with his own skull, ember eyes, crown of bone tines, stole and shoulder candles (core/enemy/abbot_body.gd), the
+	# lantern in his left hand his reliquary; posed by formula (core/enemy/villager_boss_rig.gd). The Blender model and
+	# its clips (boss_bone_abbot.py, boss_humanoid_anim.py, ClipRig) are kept for the record.
 	var rig: CharacterRig = VillagerBossRig.new()
+	rig.set("body_script", AbbotBody)
 	rig.set("opts", {"seed": 6101, "sex": "m", "age": "old", "garment": "robe", "hood": true, "r": "crook", "l": "lantern",
-		"hair": "short", "beard": "long", "pale": true, "girth": 0.9, "cloth": Color(0.13, 0.11, 0.11), "cloth2": Color(0.36, 0.08, 0.09),
-		"hair_c": Color(0.62, 0.6, 0.56), "skin": Color(0.66, 0.62, 0.55), "leather": Color(0.2, 0.15, 0.11), "barefoot": true})
+		"hair": "bald", "girth": 0.86, "cloth": Color(0.16, 0.13, 0.14), "cloth2": Color(0.34, 0.06, 0.07),
+		"skin": Color(0.72, 0.67, 0.56), "leather": Color(0.2, 0.15, 0.11), "barefoot": true})
 	attach_rig(rig)
 	_rig.scale = Vector3.ONE * 1.22          # an old villager is 1.63 m; at SCALE 2.6 and this, about 5 m like the Blender Abbot
 	_rig_xf = _rig.transform

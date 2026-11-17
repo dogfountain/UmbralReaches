@@ -51,6 +51,10 @@ void fragment() {
 
 ## VillagerRig build options (villager_rig.gd KEYS): set before the rig is added.
 var opts := {}
+## A script extending VillagerRig with `made(opts)` (the boss's own head and trimmings in the
+## villagers' style, core/enemy/abbot_body.gd), or null for a plain villager. Its `glints` ([bone, rest point, radius,
+## colour]: eyes, candle flames) are lit here as small glow parts carried with their bones.
+var body_script: GDScript
 ## How far forward the body is bent at rest (the old stoop).
 var stoop := 0.14
 
@@ -68,12 +72,14 @@ var _fx: ShaderMaterial
 var _k := 1.0
 ## The lantern's glass (the villager's glow part, carried with its hand), or null: a boss hangs its light on it.
 var lantern_node: Node3D
+var _glints: Array = []                           ## [MeshInstance3D, bone, rest point]
 
 
 func _build() -> void:
 	_sockets.clear()
 	_equipped.clear()
-	_v = VRig.create(opts)
+	var body: Variant = body_script.new() if body_script != null else null
+	_v = body.made(opts) if body != null else VRig.create(opts)
 	_v.name = "Villager"
 	add_child(_v)
 	_k = float(_v.get("k"))
@@ -84,6 +90,24 @@ func _build() -> void:
 		_sockets[n] = s
 		_sock_nodes[n] = s
 	lantern_node = _v.get("glow") as Node3D
+	for gl: Array in (_v.get("glints") if _v.get("glints") != null else []):
+		var mi := MeshInstance3D.new()
+		var sm := SphereMesh.new()
+		sm.radius = float(gl[2])
+		sm.height = float(gl[2]) * 2.2
+		sm.radial_segments = 8
+		sm.rings = 4
+		mi.mesh = sm
+		var m := StandardMaterial3D.new()
+		m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		m.albedo_color = gl[3]
+		m.emission_enabled = true
+		m.emission = gl[3]
+		m.emission_energy_multiplier = 2.2
+		mi.material_override = m
+		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		_v.add_child(mi)
+		_glints.append([mi, int(gl[0]), gl[1]])
 	_pelvis = _sockets["pelvis"]
 	_chest = _sockets["chest"]
 	_head = _sockets["head"]
@@ -174,6 +198,8 @@ func _process(_delta: float) -> void:
 	var g := _v.get("glow") as MeshInstance3D
 	if g:
 		g.transparency = mi.transparency
+	for gl: Array in _glints:
+		(gl[0] as GeometryInstance3D).transparency = mi.transparency
 
 
 ## The top of the staff (spells leave from it), else the head.
@@ -303,6 +329,10 @@ func _pose(dt: float, vel: Vector3) -> void:
 	_v.position = Vector3(shift.x, off, shift.z) if not _dead else Vector3(0, off * cos(_v.rotation.x), 0) + shift
 	r.apply()
 	r.update_glow()
+	if not _glints.is_empty():
+		r.fk_all()
+		for gl: Array in _glints:
+			(gl[0] as Node3D).position = r.carry(int(gl[1]), gl[2])
 	_place_sockets()
 
 
