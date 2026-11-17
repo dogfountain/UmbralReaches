@@ -7,7 +7,7 @@ extends Node3D
 ## are gone until it returns. The cats sit on cottage roofs: watching the wanderer with the head turning to follow
 ## him, grooming, stretching, and leaping to another roof when he runs close. All rates are formulas of dt, the body
 ## turns and speeds ease with `1 - exp(-k dt)`; nothing runs beyond SLEEP_R metres from the camera. (The body is the
-## wildlife's fox, scaled: a dog and a cat mesh of their own are listed in docs/r39/light_backlog.md.)
+## wildlife's fox, scaled: a dog and a cat mesh of their own are listed in the light backlog doc.)
 
 const Kit := preload("res://core/life/wildlife/life_kit.gd")
 const Group := preload("res://core/life/wildlife/life_group.gd")
