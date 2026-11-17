@@ -44,6 +44,8 @@ func _ready() -> void:
 
 
 func _player() -> Node3D:
+	if not is_inside_tree():
+		return null
 	return get_tree().get_first_node_in_group(Groups.PLAYER) as Node3D
 
 
@@ -158,14 +160,16 @@ func _process(delta: float) -> void:
 	_slot = (_slot + 1) % keys.size()
 	var key: int = keys[_slot]
 	var rec: Dictionary = _carriers[key]
+	var o: Variant = rec.n
+	if not is_instance_valid(o) or not (o as Node).is_inside_tree():
+		_carriers.erase(key)
+		_wounded.erase(key)
+		return
 	if _wounded.has(key) and Time.get_ticks_msec() > int(_wounded[key]):
 		_wounded.erase(key)
-		_on_status(rec.n as Node, &"wounded", 0, 0.0)
+		_on_status(o as Node, &"wounded", 0, 0.0)
 		return
-	var n := rec.n as Node3D
-	if not is_instance_valid(n) or not n.is_inside_tree():
-		_carriers.erase(key)
-		return
+	var n := o as Node3D
 	var cam := get_viewport().get_camera_3d()
 	if cam == null or cam.global_position.distance_to(n.global_position) > 38.0:
 		return

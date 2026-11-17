@@ -55,4 +55,11 @@ func _audit() -> void:
 			continue
 		_filled[id] = true
 		var centre := inv.affine_inverse().origin
-		Interiors.light(root as Node3D, "RoomFill_" + id, centre + Vector3(0.0, half.y * 0.5, 0.0), Interiors.FIRE.lerp(Interiors.CANDLE, 0.4), 1.5, maxf(half.x, half.z) * 1.7, false, 0.07)
+		var host := root as Node3D              # the night's own scene; under a test harness, the nearest 3D ancestor
+		var up: Node = get_parent()
+		while host == null and up != null:
+			host = up as Node3D
+			up = up.get_parent()
+		if host == null:
+			return
+		Interiors.light(host, "RoomFill_" + id, centre + Vector3(0.0, half.y * 0.5, 0.0), Interiors.FIRE.lerp(Interiors.CANDLE, 0.4), 1.5, maxf(half.x, half.z) * 1.7, false, 0.07)
