@@ -143,6 +143,9 @@ func _toll(falls: int) -> void:
 	if falls <= 2:
 		Events.toast.emit(NEW)
 		return
+	if Vows.has("waiver"):
+		Events.toast.emit("The fire asks no toll of you. Your step is light.")
+		return
 	var have := Travel.count("grave_ash")
 	var n := clampi(have / 12, 2, 40)
 	if have < n:

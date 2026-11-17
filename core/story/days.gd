@@ -24,7 +24,7 @@ static func age() -> float:
 
 ## Has enough of the night gone for a camp to begin the next one?
 static func due() -> bool:
-	return age() >= MIN_NIGHT_S
+	return age() >= (300.0 if Vows.has("longnight") else MIN_NIGHT_S)
 
 
 ## Begin the next night. True when one passed (it needed MIN_NIGHT_S of play since the last).

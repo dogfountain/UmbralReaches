@@ -61,11 +61,11 @@ func _build() -> void:
 	var panel := PanelContainer.new()
 	panel.add_theme_stylebox_override("panel", Med.panel("leather", 40))
 	panel.set_anchors_preset(Control.PRESET_CENTER)
-	panel.custom_minimum_size = Vector2(920, 660)
+	panel.custom_minimum_size = Vector2(920, 700)
 	panel.offset_left = -460.0
 	panel.offset_right = 460.0
-	panel.offset_top = -330.0
-	panel.offset_bottom = 330.0
+	panel.offset_top = -350.0
+	panel.offset_bottom = 350.0
 	_root.add_child(panel)
 	var col := VBoxContainer.new()
 	col.add_theme_constant_override("separation", 6)
@@ -171,13 +171,22 @@ func _fill() -> void:
 	if ride != "":
 		_row(_right, "%s, your horse" % HorseBond.name_of(ride), "%s, %d km" % [HorseBond.title(ride), roundi(HorseBond.metres(ride) / 1000.0)])
 	_right.add_child(Control.new())
+	_head(_right, "YOUR VOWS")
+	var sworn := Vows.chosen()
+	for v in sworn:
+		_row(_right, String((Vows.DEFS[v] as Array)[2]), String((Vows.DEFS[v] as Array)[1]))
+	if Vows.pending() >= 0:
+		_row(_right, "A vow waits (Remembrance %d)" % int(Vows.TIERS[Vows.pending()]), "")
+	elif sworn.is_empty():
+		_row(_right, "None sworn. The first is at Remembrance 5.", "")
+	_right.add_child(Control.new())
 	_head(_right, "WHO KNOWS YOU")
 	for f: String in ReachState.FACTIONS:
 		var t := ReachState.tier(f)
 		_row(_right, String(ReachState.FACTIONS[f].name).capitalize(), ["known", "friend", "kin"][t] if Slice.full() else "")
 	_right.add_child(Control.new())
 	_head(_right, "THE FIRE REMEMBERS")
-	var names := Tally.latest(5)
+	var names := Tally.latest(4)
 	for n in names:
 		_row(_right, String(n), "")
 	if names.is_empty():

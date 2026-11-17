@@ -182,8 +182,8 @@ static func name_of(breed: String) -> String:
 static func add(breed: String, m: float) -> int:
 	var b: Dictionary = _st().bond
 	var before := level(breed)
-	b[breed] = metres(breed) + m * (1.5 if spirit(breed) >= 60.0 else 1.0)
-	set_spirit(breed, spirit(breed) - m / (300.0 if has_tack(breed, "barding") else 150.0))
+	b[breed] = metres(breed) + m * (1.5 if spirit(breed) >= 60.0 else 1.0) * (1.5 if Vows.has("horse") else 1.0)
+	set_spirit(breed, spirit(breed) - m / ((300.0 if has_tack(breed, "barding") else 150.0) * (3.0 if Vows.has("horse") else 1.0)))
 	var after := level(breed)
 	return after if after > before else -1
 

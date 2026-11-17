@@ -69,7 +69,7 @@ static func distance(tree: SceneTree, id: String) -> float:
 
 ## Gold, silver and bronze limits in seconds.
 static func limits(dist: float) -> Array[float]:
-	var par := dist * 1.25 / SPEED
+	var par := dist * 1.25 / SPEED * (1.15 if Vows.has("luck") else 1.0)
 	return [par, par * 1.35, par * 1.9]
 
 
@@ -223,6 +223,9 @@ func _deliver(id: String) -> void:
 		"late":
 			ash = ash / 2
 			shard = 0
+	if Vows.has("luck"):
+		ash = roundi(ash * 1.4)
+		shard = roundi(shard * 1.4)
 	Profile.ensure()
 	var old := float(Profile.best.get(id, 0.0))
 	var record := old <= 0.0 or secs < old

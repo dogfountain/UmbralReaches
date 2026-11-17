@@ -90,6 +90,8 @@ func _ready() -> void:
 	add_child(Wayfarer.new())
 	add_child(Courier.new())
 	add_child(EmberTrace.new())
+	add_child(Vows.new())
+	add_child(VowPanel.new())
 	add_child(HorsePanel.new())
 	add_child(PhotoMode.new())
 	track = QuestTrack.new()
