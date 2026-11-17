@@ -16,6 +16,7 @@ extends CanvasLayer
 ## "character_screen"; built by world/main.gd. Load by path (no class_name).
 
 const UIType := preload("res://ui/type.gd")
+const MenuGate := preload("res://ui/menu_gate.gd")
 const UiSound := preload("res://ui/ui_sound.gd")
 const W := preload("res://ui/gear_widgets.gd")
 
@@ -109,6 +110,8 @@ func _hint_refresh() -> void:
 ## Open at `top` (a tab id) and `page` (a page id). A page you were not sent to is the tab's first, not a stale
 ## page left from an hour ago (switching tabs while it is open keeps each tab's page).
 func open_at(top: String, page := "", from_fire := false) -> void:
+	if MenuGate.blocked(self):
+		return                                   # hollowing: the respawn does not wait for a window
 	_hint_refresh()
 	var ti := _tab_index(top)
 	if ti < 0:

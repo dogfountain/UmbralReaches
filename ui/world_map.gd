@@ -26,6 +26,7 @@ const CodexStore := preload("res://core/world/realm/lore/codex_store.gd")
 const Land := preload("res://core/world/realm/realm_land.gd")
 const Rift := preload("res://core/world/realm/realm_rift.gd")
 const UiSound := preload("res://ui/ui_sound.gd")
+const MenuGate := preload("res://ui/menu_gate.gd")
 const Frame := preload("res://ui/world_map_frame.gd")
 const Inker := preload("res://ui/world_map_ink.gd")
 const Shaders := preload("res://ui/world_map_shaders.gd")
@@ -159,7 +160,7 @@ func is_baked() -> bool:
 ## The map can be read when the Realm stands, nothing else holds the night, and no loading card is up.
 func can_open(warming := false) -> bool:
 	var zone := get_parent()
-	if zone == null or not zone.has_meta("realm_done") or get_tree().paused:
+	if zone == null or not zone.has_meta("realm_done") or get_tree().paused or MenuGate.blocked(self):
 		return false
 	return (warming or zone.get_node_or_null("LoadingScreen") == null) and get_tree().get_first_node_in_group(Groups.PLAYER) != null
 

@@ -728,6 +728,12 @@ func move_intent() -> float:
 	return _wish_len
 
 
+## True from the moment the wanderer is hollowed until the fade to the fire is over (player_vitals.hollow()):
+## no menu may open then (a pause would hold the respawn's teleport mid-air of a window the player is reading).
+func is_hollowing() -> bool:
+	return _hollowing
+
+
 func skills_locked() -> bool:
 	return _hollowing or _step_t > 0.0 or _mantle_t >= 0.0 or traversal._trav_busy() \
 			or (_arts != null and (_arts.busy() or _arts.guarding())) or (_grapple != null and _grapple.pulling())

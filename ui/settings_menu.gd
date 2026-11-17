@@ -12,6 +12,7 @@ const TABS := ["Display", "Graphics", "Audio", "Controls"]
 const UIType := preload("res://ui/type.gd")
 const UiSound := preload("res://ui/ui_sound.gd")
 const HudPrefs := preload("res://ui/hud_prefs.gd")
+const MenuGate := preload("res://ui/menu_gate.gd")
 
 var _font: Font
 var _root: Control
@@ -586,7 +587,12 @@ func _footer() -> HBoxContainer:
 	var fill := Control.new()
 	fill.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	f.add_child(fill)
-	var close_btn := _foot_btn("Close  (Esc)", true)
+	var close_btn := _foot_btn("", true)
+	var name_close := func() -> void: close_btn.text = "Close  (%s)" % ("B" if Settings.using_pad else "Esc")
+	name_close.call()
+	Settings.input_device_changed.connect(func(_pad: bool) -> void:
+		if is_instance_valid(close_btn):
+			name_close.call())
 	close_btn.pressed.connect(close)
 	f.add_child(close_btn)
 	return f
@@ -898,6 +904,8 @@ func _input(event: InputEvent) -> void:
 
 
 func open() -> void:
+	if not on_title and MenuGate.blocked(self):
+		return                                   # hollowing: the respawn does not wait for a window
 	_refresh()
 	_root.visible = true
 	_was_captured = Input.mouse_mode == Input.MOUSE_MODE_CAPTURED
