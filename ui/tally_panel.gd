@@ -218,6 +218,14 @@ func _fill_bells() -> void:
 
 func _fill_chronicle() -> void:
 	_head(_left, "NIGHT %d" % (Days.current() + 1))
+	if bool((Travel.story.get("flags", {}) as Dictionary).get("ending_card", false)):
+		var cr := Button.new()
+		cr.text = "Read the credits"
+		Med.style_button(cr, 17, 12, 5)
+		cr.pressed.connect(func() -> void:
+			close()
+			NightPanel.panel(get_tree()).show_credits.call_deferred())
+		_left.add_child(cr)
 	var list := Chronicle.entries()
 	if list.is_empty():
 		_row(_left, "Nothing is written yet.", "")

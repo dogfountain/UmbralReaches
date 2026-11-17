@@ -255,6 +255,9 @@ func _rest() -> void:
 	var turned := Days.advance()
 	if turned:
 		Events.toast.emit("Night %d. The ledger's daily work is open again." % (Days.current() + 1))
+		var np := NightPanel.panel(get_tree())
+		if np != null:
+			np.show_summary.call_deferred()
 	Events.toast.emit("Rested. Press [%s] to read the Count." % InputSetup.live_label("interact", false, "E"))
 	TallyPanel.arm_after_camp(get_tree())
 	Travel.save_soon()

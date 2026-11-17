@@ -91,6 +91,7 @@ func _ready() -> void:
 	add_child(Courier.new())
 	add_child(EmberTrace.new())
 	add_child(Vows.new())
+	add_child(NightPanel.new())
 	add_child(VowPanel.new())
 	add_child(HorsePanel.new())
 	add_child(PhotoMode.new())
@@ -356,6 +357,12 @@ func _end() -> void:
 	if was == "keep" and flag("ending_told") and not flag("ending_card"):
 		set_flag("ending_card")
 		Events.zone_entered.emit("THE DOOR IS SHUT", "Hearthward keeps its fire")
+		if not flag("credits_seen"):
+			set_flag("credits_seen")
+			get_tree().create_timer(9.0).timeout.connect(func() -> void:
+				var np := NightPanel.panel(get_tree())
+				if np != null:
+					np.show_credits())
 	# r36 Act III: the epilogue's card, by what was done with the latch
 	elif was == "keep" and flag("epilogue_told") and not flag("epilogue_card"):
 		set_flag("epilogue_card")
