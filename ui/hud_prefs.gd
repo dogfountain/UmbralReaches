@@ -28,6 +28,7 @@ static var unit_frames := true
 static var enemy_plates := false       ## world health bars over every foe, and the target frame on foes you only struck (off: the locked-on target only)
 static var guide := true               ## the new player's guide (core/story/guide.gd): waypoint, pinned objective, prompts
 static var opening := true             ## a new game plays the opening shot (core/story/opening_shot.gd)
+static var compass_density := 1        ## the compass strip: 0 minimal (the objective and danger), 1 standard, 2 full (ui/compass_feed.gd)
 static var immersion := false          ## the HUD rests while the wanderer is simply walking (ui/hud_rest.gd)
 static var card_request := 0           ## bumped by the settings menu: the HUD shows the controls card again
 static var _loaded := false
@@ -44,6 +45,7 @@ static func reset() -> void:
 	guide = true
 	opening = true
 	immersion = false
+	compass_density = 1
 	save()
 
 
@@ -67,6 +69,7 @@ static func ensure() -> void:
 	guide = bool(cfg.get_value("hud", "guide", true))
 	opening = bool(cfg.get_value("hud", "opening", true))
 	immersion = bool(cfg.get_value("hud", "immersion", false))
+	compass_density = clampi(int(cfg.get_value("hud", "compass_density", 1)), 0, 2)
 
 
 static func save() -> void:
@@ -79,6 +82,7 @@ static func save() -> void:
 	cfg.set_value("hud", "guide", guide)
 	cfg.set_value("hud", "opening", opening)
 	cfg.set_value("hud", "immersion", immersion)
+	cfg.set_value("hud", "compass_density", compass_density)
 	SaveDir.save_atomic(cfg, SaveDir.path(FILE))
 
 

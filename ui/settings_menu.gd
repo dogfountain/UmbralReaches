@@ -324,6 +324,10 @@ func _build_hud_look(p: VBoxContainer) -> void:
 		HudPrefs.save())
 	plates.set_pressed_no_signal(HudPrefs.enemy_plates)
 	_hud_checks[plates] = "enemy_plates"
+	var cd := _option(p, "Compass Detail", "Minimal: your objective and danger only. Standard: also the nearest fire when you need one, near places and landmarks as faint ticks. Full: more of each, further out.", ["Minimal", "Standard", "Full"], func(i: int) -> void:
+		HudPrefs.compass_density = i
+		HudPrefs.save())
+	cd.select(HudPrefs.compass_density)
 	var trow := _row(p, "Text Scale", "The size of the objective, toasts, lessons and subtitles")
 	_tscale_slider = _slider(trow, 0.85, 1.5, 0.05)
 	_tscale_label = _value_label(trow)
