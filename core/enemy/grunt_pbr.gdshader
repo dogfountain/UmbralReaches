@@ -1,6 +1,6 @@
 shader_type spatial;
 render_mode diffuse_burley, specular_schlick_ggx, depth_draw_opaque;
-#define CL_LIFT 1.4
+#define CL_LIFT 1.15
 #include "res://core/vfx/char_look.gdshaderinc"
 // Modelled grunts (r30, tools/blender/grunt_*.py; a copy of boss_pbr.gdshader, which stays the
 // bosses'). One baked atlas per kind -- albedo, tangent-space
@@ -82,10 +82,16 @@ void fragment() {
 	}
 	float edge = (1.0 - smoothstep(0.0, 0.06, d - dissolve * 1.08)) * step(0.001, dissolve);
 
+	// (17 Nov, Luke: "the enemies have this grey shine on them, is the lighting system not working with them?")
+	// the warm and the moonlit rims were EMISSION, lit whether or not any light touched the body: grey-blue edges
+	// glowed in deep shadow. They are Godot's lit rim now (only where the moon or a fire reaches the edge), the
+	// kind's accent fresnel is a third of what it was, and the body's lift is 1.15 (was 1.4)
+	RIM = 0.45 * rim_scale;
+	RIM_TINT = 0.55;
 	float breathe = 1.0 + emit_pulse * sin(TIME * pulse_rate + pulse_phase + opos.y * 3.0);
 	float skin_t = mix(1.0, 0.35 + 0.9 * pow(1.0 - ndv, 1.5), membrane);
 	EMISSION = texture(emit_tex, UV).rgb * emit_energy * breathe * (1.0 + heat * (cl_noise(opos * 7.0 + vec3(0.0, TIME * 0.8, 0.0)) - 0.5)) * skin_t * (1.0 + glint * 2.5)
-		+ cl_accent(NORMAL, VIEW, rim_col, rim_amount) * (1.0 - glint * 0.6) + (cl_rim(NORMAL, VIEW, VIEW_MATRIX) + cl_moon_rim(NORMAL, VIEW, VIEW_MATRIX)) * rim_scale
+		+ cl_accent(NORMAL, VIEW, rim_col, rim_amount) * (1.0 - glint * 0.6) * 0.35
 		+ vec3(1.4, 1.25, 1.2) * hit_flash * (0.35 + 0.65 * pow(1.0 - ndv, 1.5))
 		+ burn_col * edge * 3.0;
 }
