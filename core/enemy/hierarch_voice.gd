@@ -23,6 +23,7 @@ extends Husk
 ##   everything comes quicker; the stone falls more often.
 ## Save state: Travel.bosses_slain "r37_hierarch" (the arena). Loot: the fallback table + the trophy.
 
+const QuestBook := preload("res://core/story/quest_book.gd")
 const VillagerBossRig := preload("res://core/enemy/villager_boss_rig.gd")
 const CrownBody := preload("res://core/enemy/crown_body.gd")
 const SCALE := 3.4
@@ -85,7 +86,18 @@ func on_engaged(arena: Node) -> void:
 	if arena is Node3D:
 		_arena_c = (arena as Node3D).global_position
 		_arena_r = (arena as BossArena).radius if arena is BossArena else 20.0
-	BossKit.emote(self, "The skull rings. Something in the horn draws breath.")
+	# Lowe's task (horn_end): what was done about the note changes how it begins
+	var line := "The skull rings. Something in the horn draws breath, and it is small."
+	match QuestBook.pick("horn_end"):
+		"sung":
+			max_hp = roundi(float(max_hp) * 0.85)
+			line = "The skull rings, and falters. The note has been sung to, and does not know what to do with its own last line."
+		"broke":
+			line = "The skull rings through a chipped lip. The note is thin and cracked, and furious, and still a boy's."
+		"left":
+			line = "The skull rings, steady as ever. The boy in the horn is keeping his word."
+	hp = float(max_hp)
+	BossKit.emote(self, line)
 
 
 func _absorb(dmg: float, from: Node) -> float:
@@ -176,7 +188,7 @@ func _physics_process(delta: float) -> void:
 	elif phase >= 2 and _choir_t <= 0.0:
 		_choir_t = CHOIR_EVERY
 		BossKit.cast(self, "Call the Choir", 1.6, false, _choir)
-		BossKit.emote(self, "Cantors answer from the cracks. Its voice is thick: your blows are cut by a third.")
+		BossKit.emote(self, "Cantors answer out of the cracks. While they sing, the stone takes a third less from you.")
 		_howl(1.4)
 	elif _edict_t <= 0.0 and _dist < 24.0:
 		_edict_t = EDICT_EVERY * quick - (1.5 if phase == 2 else 0.0)
@@ -203,7 +215,7 @@ func _edict(n: int) -> void:
 	_howl(EDICT_TIME)
 	var label := "Edict of Silence" if n == 1 else "Double Edict"
 	BossKit.cast(self, label, EDICT_TIME, true, _edict_lands)
-	BossKit.emote(self, "The horn opens on you. A blow into its mouth breaks the edict.", Color(1.0, 0.82, 0.45))
+	BossKit.emote(self, "The horn opens toward you. The mouth of it is the one soft place in the stone.", Color(1.0, 0.82, 0.45))
 	var yaw0 := atan2(-_edict_dir.x, -_edict_dir.z)
 	for k in n:
 		var yaw := yaw0 + (0.0 if n == 1 else deg_to_rad(26.0) * (float(k) - 0.5) * 2.0)
@@ -297,7 +309,7 @@ func _toll() -> void:
 	_glint = 1.0
 	_howl(2.4)
 	BossKit.cast(self, "Toll of the Crown", 2.4)
-	BossKit.emote(self, "The crown's tines fall in order. Go with the gap.", Color(1.0, 0.6, 0.35))
+	BossKit.emote(self, "The crown sheds its tines one after another, round the floor, like the hand of a clock.", Color(1.0, 0.6, 0.35))
 	var c: Vector3 = _arena_c if _arena_c != Vector3.INF else global_position
 	var from := atan2(_p.global_position.z - c.z, _p.global_position.x - c.x)
 	var dirn := -1.0 if randf() < 0.5 else 1.0
@@ -317,7 +329,7 @@ func _verdict() -> void:
 	_glint = 1.0
 	_howl(1.4)
 	BossKit.cast(self, "Verdict", 1.5)
-	BossKit.emote(self, "The Verdict: three voices. Stand between them.", Color(1.0, 0.45, 0.3))
+	BossKit.emote(self, "Three voices go out from the horn, one after another. The quiet is between them.", Color(1.0, 0.45, 0.3))
 	var c := global_position
 	for rg: Array in [[1.4, 2.6, 5.4], [2.3, 9.0, 12.0], [3.2, 15.5, 18.5]]:
 		BossKit.zone(get_parent(), c, float(rg[0]), 26.0, {"by": self, "radius": float(rg[2]), "holes": [[c, float(rg[1])]], "color": Color(2.4, 0.9, 0.35), "h": 3.0})
@@ -330,3 +342,9 @@ func voice_family() -> String:
 
 func _hit_sound() -> String:
 	return "stone"
+
+
+## His last note. The boy who held it nine winters (docs/STORY.md) is let go with it.
+func _die() -> void:
+	BossKit.emote(self, "The note stops. In the throat of the skull a child's stool, and nothing on it. The quiet is enormous.", Color(0.9, 0.85, 0.7))
+	super._die()

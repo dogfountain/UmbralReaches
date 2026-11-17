@@ -125,6 +125,11 @@ func on_engaged(arena: Node) -> void:
 	_attuned = QuestBook.attuned("bone_abbot")
 	var line := "\"...one thousand and ninety... and...\" His count comes up short." if _attuned \
 		else "\"One thousand and ninety.\" Abbot Osric turns from his dead to count you."
+	match QuestBook.pick("bead_count"):                   # the Tally post's pick: what the Abbot says of the man who went down to count
+		"add":
+			line = "\"One thousand and ninety. Brother Lisle is among them, and glad.\" Osric turns from his dead to count you."
+		"strike":
+			line = "\"One thousand and eighty-nine.\" His hand goes to a place in the count where one was struck. He turns to count you."
 	get_tree().create_timer(0.25, false).timeout.connect(func() -> void:
 		if is_instance_valid(self) and is_alive():
 			BossKit.emote(self, line))
@@ -711,7 +716,7 @@ func _reckoning(n: int) -> void:
 		Vfx.ring(at + Vector3.UP * 0.08, PLATE_R, BossKit.HOLY, RECKON_TIME, 0.12, Vector3.UP, 1.3)
 		Vfx.light(at + Vector3.UP * 1.2, Color(0.9, 0.6, 0.25), 1.6, PLATE_R * 2.0, RECKON_TIME)
 		SpellFx.column(at, PLATE_R * 0.55, 3.0, RECKON_TIME)
-	BossKit.emote(self, "The Reckoning. He counts the living.")
+	BossKit.emote(self, "The Abbot lifts his crozier and counts the living, one plate at a time.")
 
 
 func _reckon_label() -> String:

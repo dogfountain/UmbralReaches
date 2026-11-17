@@ -83,6 +83,12 @@ const SCAPES := {
 	"siege": {"night": 0.7, "high_wind": 0.4, "meadow": 0.2, "crickets": 0.15},
 	"stillwater": {"night": 0.7, "fen": 0.85, "crickets": 0.2, "high_wind": 0.1},
 	"anchorholds": {"night": 0.6, "high_wind": 0.75, "chasm": 0.1},
+	# the three places the story names (docs/STORY.md): each is heard before it is seen. The Chapel: the First Hearth's steady
+	# crackle under the village's quiet. The Ring: the stones' low hum (the chasm bed, far down) under the oaks. The Tally: the
+	# Barrow Field's drip, a count that never gets to its end.
+	"chapel": {"night": 0.7, "crickets": 0.25, "meadow": 0.3, "hearth": 0.55},
+	"ring": {"night": 0.75, "leaves": 1.0, "chasm": 0.2, "crickets": 0.3},
+	"tally": {"night": 0.8, "fen": 0.55, "crickets": 0.1, "chasm": 0.08},
 	"salt": {"night": 0.55, "high_wind": 0.7, "crickets": 0.05},
 	"downs": {"night": 0.85, "meadow": 0.6, "high_wind": 0.3, "crickets": 0.2},
 	"well": {"night": 0.5, "chasm": 0.7, "high_wind": 0.2},
@@ -102,8 +108,8 @@ const SCAPES := {
 }
 
 ## RealmLayout region id -> soundscape
-const REGION_SCAPE := {"hearth": "village", "chapel": "village", "road": "heath", "thornwood": "wood", "henge": "wood",
-	"glade": "wood", "fen": "fen", "barrows": "fen", "rift": "crossing", "ossuary": "charnel", "summit": "summit", "crags": "summit",
+const REGION_SCAPE := {"hearth": "village", "chapel": "chapel", "road": "heath", "thornwood": "wood", "henge": "ring",
+	"glade": "wood", "fen": "fen", "barrows": "tally", "rift": "crossing", "ossuary": "charnel", "summit": "summit", "crags": "summit",
 	# r34 flora: the new ground, each its own scape (SCAPES / SPOTS)
 	"quarry": "quarry", "holds": "holds", "foundry": "foundry", "moor": "moor", "orchard": "orchard", "necropolis": "necropolis", "mere": "mere",
 	# the Marches
@@ -138,6 +144,9 @@ const SPOTS := {
 	"siege": [7.0, 16.0, 14.0, 42.0, [["creak", 0.35, 2.0], ["pebbles", 0.2, 0.0], ["life:crow", 0.25, 6.0], ["howl", 0.1, 20.0], ["bell_far", 0.1, 6.0]]],
 	"stillwater": [6.0, 13.0, 12.0, 40.0, [["life:plop", 0.35, 0.0], ["life:heron", 0.2, 1.0], ["bittern", 0.2, 0.3], ["life:owl2", 0.15, 5.0], ["bell_far", 0.1, 8.0]]],
 	"anchorholds": [8.0, 18.0, 14.0, 44.0, [["howl", 0.25, 25.0], ["pebbles", 0.3, 0.0], ["bell_far", 0.25, 12.0], ["life:crow", 0.2, 8.0]]],
+	"chapel": [9.0, 20.0, 14.0, 34.0, [["bell_far", 0.2, 6.0], ["creak", 0.3, 2.0], ["twig", 0.2, 0.2], ["whisper", 0.1, 1.5], ["life:owl2", 0.2, 5.0]]],
+	"ring": [6.0, 14.0, 10.0, 34.0, [["creak", 0.35, 3.0], ["twig", 0.25, 0.2], ["life:owl", 0.15, 6.0], ["whisper", 0.1, 1.2], ["pebbles", 0.15, 0.0]]],
+	"tally": [5.0, 11.0, 8.0, 30.0, [["drip", 0.5, 0.4], ["bones", 0.1, 0.2], ["bittern", 0.2, 0.3], ["bell_far", 0.1, 8.0], ["life:plop", 0.1, 0.0]]],
 	"salt": [9.0, 20.0, 18.0, 50.0, [["howl", 0.3, 20.0], ["pebbles", 0.3, 0.0], ["creak", 0.3, 3.0], ["whisper", 0.1, 1.0]]],
 	"downs": [8.0, 18.0, 18.0, 50.0, [["peewit", 0.3, 3.0], ["nightjar", 0.25, 1.0], ["life:owl2", 0.2, 5.0], ["vixen", 0.15, 0.3], ["howl", 0.1, 20.0]]],
 	"well": [6.0, 13.0, 10.0, 30.0, [["drip", 0.4, 2.0], ["pebbles", 0.3, 0.0], ["howl", 0.15, 15.0], ["whisper", 0.1, 1.5]]],
@@ -170,7 +179,7 @@ const PLACES := {
 	"cliff": {"room_size": 0.82, "damping": 0.4, "wet": 0.12, "spread": 1.0, "predelay_msec": 120.0, "hipass": 0.25},
 	"well": {"room_size": 0.92, "damping": 0.35, "wet": 0.22, "spread": 1.0, "predelay_msec": 70.0, "hipass": 0.15},
 }
-const SCAPE_PLACE := {"village": "open", "heath": "open", "wood": "wood", "fen": "open", "crossing": "cliff", "summit": "cliff",
+const SCAPE_PLACE := {"chapel": "open", "ring": "wood", "tally": "open", "village": "open", "heath": "open", "wood": "wood", "fen": "open", "crossing": "cliff", "summit": "cliff",
 	"quarry": "cliff", "holds": "wood", "foundry": "cliff", "moor": "open", "orchard": "wood", "necropolis": "open", "mere": "open",
 	"sorrow": "wood", "plinth": "open", "siege": "open", "stillwater": "open", "anchorholds": "cliff", "salt": "open", "downs": "open",
 	"well": "well",

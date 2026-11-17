@@ -39,12 +39,15 @@ the road to the three who hold the valley, and the ending after the Ascended War
    **Brannoc Bellwright** (the bells his mother the Founder cast, the summit ward; "Who's up
    there?" opens after one boss). Each says something different once his boss is dead, and again
    in the Deeper Night. Eleven villagers talk as well (`core/life/village/village_talk_db.gd`).
-4b. **Act II: the Founder's peal** (r36). Once heart and crown are taken, the keep sends you to
-   Brannoc: the summit door was hung to a bell, and it opens only to a peal. The Founder cast seven
-   bells, one for each far country. Each country's giver offers its bell after their own chain. You
-   put down its keeper (a named rare), then at the bell you **ring it there** or **lift the tongue
-   out for Hearthward**. Four bells open the ward and the dais. Every carried tongue rings at the Keg
-   when the Warden wakes, and he holds the door with 5% less.
+4b. **Act II: the Founder's peal** (r36, r39). Once heart and crown are taken, the keep sends you to Brannoc: the summit door was
+   hung to a bell, and it opens to one. The Founder cast **eight** bells for the roads: seven for the far countries and an eighth, at
+   the Marches' Spire, for the country the Order shut out. Each country's giver offers its bell after their own chain. You put down its
+   keeper (a named rare), then at the bell you **ring it there** or **lift the tongue out for Hearthward**. **One answered bell opens
+   the ward and the dais**; every bell past it is a hand off the Warden (a carried tongue 5% of his life, a rung bell 3%, floored at
+   60%), and each rings in, one by one, from the bottom up, as he wakes (`warden_peal.gd`).
+4c-bis. **Aurel's voice** (r39, `aurel_voice.gd`, `aurel_lines.gd`): the Hierarch speaks through the night as a subtitle, a low bell
+   stroke and a few syllables of babble, and in the arena as quoted emotes; his phase III and last words follow the third edict's
+   pick (quest `aurel_edicts`). The fires ring a rising phrase (`kindle_bells.gd`); the opening shows the drain (`drain_beat.gd`).
 4c. **The Far Reaches' tasks** (optional; docs/QUESTS_far_reaches.md). Each Reach has a main
    thread and side tasks, given and closed by the towns' people, and none is on the road to the summit: the West Reach's
    *Stand Down* (Reedholm; a courier's order for a garrison that never stood down, and what it said: come east and be counted),
@@ -54,6 +57,9 @@ the road to the three who hold the valley, and the ending after the Ascended War
    never told stood longest, a debt is a way of being remembered. Several are choices (the order, the witch's nail, the inn's
    slate), and several leave a lit thing standing. Where a thread leads to a boss dungeon (the King's Barrow, the
    castellum or the witch's hollow, the Drowned Nave) it ends a step at the entrance, with a hook for that lane.
+4d. **The story's long tasks** (r39; docs/r39/story_quests_npcs.md): The Third Edict (Perrin), The Lamp-Road (Odile), The Name on the Roll
+   (Ione), What the Horn Was For (Lowe), The Vow's Cell (Tamsin), each with a choice made at a place and read by the ending; and four
+   tasks (`quest_chains_doors.gd`) that close the dungeon hooks of the Reaches at their thresholds.
 5. **Ending**, one beat (`story.gd` `_ending` / `_ending_tick`). The Warden's fall raises no toasts
    (boss_arena skips "falls.", summit_dress and reactivity say nothing for him). 1.5 s after the
    bar drops: *The sky stops turning.*, while the vortex's spin eases to **zero** over ~9 s
@@ -158,7 +164,7 @@ the room (`speaking`), who turns to face the wanderer (`attend`).
 
 ## Known gaps
 
-- No voice or sound for talk; no lip shapes beyond the jaw.
+- No lip shapes beyond the jaw (talk has babble voices; Aurel's is the same babble pitched down).
 - At the Keg only the keep and three patrons talk; the other five keep to themselves.
 - r30 storyteller items left for other lanes: the opening still spawns on the green, not on the
   road at waystone III; the summit ward has no sockets (it still checks `bosses_slain`); the

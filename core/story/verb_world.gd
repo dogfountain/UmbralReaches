@@ -128,6 +128,9 @@ func sync() -> void:
 			if lv.has(pick) or lv.has(""):
 				var k := pick if lv.has(pick) else ""
 				want["leave:%s:%s" % [id, k]] = ["leave", lv[k], false]
+				for extra: String in lv:             # "<pick>+1", "<pick>+2" ...: a pick may leave a string of lights (the Lamp-Road's posts)
+					if extra.begins_with(k + "+"):
+						want["leave:%s:%s" % [id, extra]] = ["leave", lv[extra], false]
 	if not order_live:
 		Kit.clear_foes(_foes)
 	for k: String in _nodes.keys():
