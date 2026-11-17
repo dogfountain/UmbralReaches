@@ -117,9 +117,14 @@ const CONV := {
 				{"text": "It was me. Put it on my slate. (10 ash)", "to": "rep_covered", "if": "qp:keg_thief:covered", "do": "pay:10,qc:keg_thief,att:keep:1,att:nan:1"},
 				{"text": "Rats.", "to": "rep_rats", "if": "qp:keg_thief:rats", "do": "qc:keg_thief,att:keep:-1"},
 				{"text": "...It's Nan. She does it for Pell.", "to": "rep_told", "if": "!qp:keg_thief:told", "do": "qp:keg_thief:told,qc:keg_thief,att:keep:2,att:nan:-3,give:grave_ash:8"},
+				{"text": "Rats. Gnawing all down the chimney wall, a crust chewed to the rind.", "to": "rep_wrong", "if": "qp:keg_thief:wrong", "do": "qc:keg_thief,att:keep:-1"},
 			]},
 			"rep_told": {"say": "Nan. ...For Pell. Well. I'm not taking a mug off a child for that. I'll put one out myself, from now on. Here, for your trouble. Don't tell her I went soft.", "next": "hub"},
 			"rep_covered": {"say": "You. A mug a night, quiet, by the back door. ...Right. Ten ash, and I'm watching you.", "next": "hub"},
+			"rep_wrong": {"say_if": [
+				["qc:keg_thief:latch", "Rats. Then I'll trap them. ...Odd rats, that put the bung back. Never mind. I'll set the trap."],
+				["", "Rats. Then I'll trap them. A big one. Something small has been at my stores all winter."],
+			], "next": "hub"},
 			"rep_rats": {"say": "Rats. That drink ale, and draw circles. ...I'll set a trap, then. A big one.", "next": "hub"},
 			"three_again": {"say_if": [
 				["boss:ascended_warden", "Were three. The Thornwarden in the Ring, Osric under the abbey, Aurel at the top. Now there's a story, and a Keg to tell it in."],
