@@ -596,6 +596,15 @@ static func piece_xf(town: String, kind: String) -> Transform3D:
 	for p: Dictionary in placed:
 		if String(p.town) == town and String(p.kind) == kind:
 			return p.xf
+	# a small piece stands only once the Realm is done (_props_later): the dressing asks before that (Lastlight's
+	# shrine tablet was never placed), so its planned spot, on the ground the reservation measured
+	for pc: Array in Plan.PIECES:
+		if String(pc[0]) == town and String(pc[1]) == kind:
+			var at := Vector2(float(pc[2]), float(pc[3]))
+			var y := float(ground_y.get(_key(kind, at.x, at.y), NAN))
+			if is_nan(y):
+				y = RealmLayout.macro_height(at.x, at.y)
+			return Transform3D(Basis(Vector3.UP, float(pc[4])), Vector3(at.x, y, at.y))
 	return Transform3D(Basis.IDENTITY, Vector3.INF)
 
 
