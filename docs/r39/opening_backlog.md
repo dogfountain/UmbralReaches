@@ -12,7 +12,7 @@ Tick as done. Branch r39-opening. Rules: no Godot, lint clean, small commits, no
 - [x] 8 Accessibility (shake/flash/subtitles/palette, presets, remap parity: triggers + protected menu buttons) and settings
 - [x] 9 UX pass across menus/HUD (Count pad paging, Gear pad shortcuts, device-aware footers, remap parity)
 - [x] 10 Save migrations + corrupted-save fallback
-- [ ] 11+ remaining critique items (docs/r39 critique)
+- [x] 11+ remaining critique items (section 34 of opening_systems.md: done, answered, or routed)
 
 ## Cross-team data needs
 (see opening_systems.md; add here as found)

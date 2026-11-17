@@ -172,6 +172,12 @@ func _fill() -> void:
 			first = _courier()
 		3:
 			first = _race()
+	if first == null or first.focus_mode == Control.FOCUS_NONE or (first is BaseButton and (first as BaseButton).disabled):
+		first = null                                    # a disabled first choice cannot take focus: the first page tab that can, so a pad always has a place to start
+		for t: Node in _tabs.get_children():
+			if t is BaseButton and not (t as BaseButton).disabled:
+				first = t as Control
+				break
 	if first != null:
 		first.grab_focus.call_deferred()
 
