@@ -78,10 +78,10 @@ func _trunk() -> void:
 		var r0 := _r(maxf(y0, 0.0))
 		var r1 := _r(y1)
 		var low := y1 <= 5.4
-		k.tube("bark", _p(0.0, 0.0, y0), _p(0.0, 0.0, y1), r0, r1, 12, true, 0.85 + 0.1 * float(i % 3), gap if low and y0 >= 0.0 else Vector2(1.0, -1.0), i == ys.size() - 2, -PI / 12.0)
+		k.tube("bark", _p(0.0, 0.0, y0), _p(0.0, 0.0, y1), r0, r1, 12, not low, 0.85 + 0.1 * float(i % 3), gap if low and y0 >= 0.0 else Vector2(1.0, -1.0), i == ys.size() - 2, -PI / 12.0)
 	# the hollow: an inner shell, a floor, a ceiling; the doorway's frame
-	k.tube("bark", _p(0.0, 0.0, 0.0), _p(0.0, 0.0, 5.4), 6.1, 5.6, 12, false, 0.55, gap, false, -PI / 12.0, true)
-	k.disc("wood_big", _p(0.0, 0.0, 0.3), 5.9, 12, true, true, 0.8)
+	k.tube("bark", _p(0.0, 0.0, 0.0), _p(0.0, 0.0, 5.4), 6.1, 5.6, 12, true, 0.55, gap, false, -PI / 12.0, true)
+	k.disc("wood_big", _p(0.0, 0.0, 0.3), 6.2, 12, true, true, 0.8)
 	k.disc("bark", _p(0.0, 0.0, 5.4), 5.6, 12, false, true, 0.5)
 	for s: float in [-1.0, 1.0]:
 		var ja := DOOR + s * 0.27

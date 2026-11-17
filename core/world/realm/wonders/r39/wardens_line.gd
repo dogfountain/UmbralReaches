@@ -91,9 +91,9 @@ func _tower(no: int, c: Vector2, glo: float, ghi: float) -> void:
 	_blk("stone_big", 2.5, HI, -HI, -2.5, fl, fl + rise, 0.95)
 	_flight(Vector3(3.4, fl + rise, -2.5), Vector3(3.4, fl + 2.0 * rise, 2.5), 1.8)
 	_blk("stone_big", 2.5, HI, 2.5, HI, fl, fl + 2.0 * rise, 0.95)
-	_flight(Vector3(2.5, fl + 2.0 * rise, 3.4), Vector3(-2.5, fl + 3.0 * rise, 3.4), 1.8)
+	_flight(Vector3(2.5, fl + 2.0 * rise, 3.4), Vector3(-2.5, fl + 3.0 * rise, 3.4), 1.8, fl + 2.0 * rise - 0.6)
 	_blk("stone_big", -HI, -2.5, 2.5, HI, fl, fl + 3.0 * rise, 0.95)
-	_flight(Vector3(-3.4, fl + 3.0 * rise, 2.5), Vector3(-3.4, fl + 4.0 * rise, -2.5), 1.8)
+	_flight(Vector3(-3.4, fl + 3.0 * rise, 2.5), Vector3(-3.4, fl + 4.0 * rise, -2.5), 1.8, fl + 3.0 * rise - 0.6)     # (open beneath: the door is under it)
 	var dk := fl + 4.0 * rise
 	_blk("stone_big", -2.5, HI, -HI, HI, dk - 0.7, dk, 0.94)
 	_blk("stone_big", -HI, -2.5, -HI, -2.5, dk - 0.7, dk, 0.94)
@@ -175,8 +175,8 @@ func _tower(no: int, c: Vector2, glo: float, ghi: float) -> void:
 	cr.position = cc + Vector3.UP * 1.0
 
 
-func _flight(lo: Vector3, hi: Vector3, width: float) -> void:
+func _flight(lo: Vector3, hi: Vector3, width: float, base_rel := 0.3) -> void:
 	var a := _w(lo.x, lo.y, lo.z)
 	var b := _w(hi.x, hi.y, hi.z)
 	var steps := maxi(3, int(ceilf(absf(hi.y - lo.y) / 0.36)))
-	k.kit.stairs("stone_big", a, b, width, steps, y0 + 0.3)
+	k.kit.stairs("stone_big", a, b, width, steps, y0 + base_rel)

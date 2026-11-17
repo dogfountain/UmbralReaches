@@ -170,8 +170,10 @@ func _torso() -> void:
 	k.fire(_p(8.0, 0.3, 8.5), 0.6, 1.3)
 	for zi in 4:
 		var wz := 3.0 + 6.5 * float(zi)
-		if absf(wz - 8.5) > 3.0:
-			k.window(_p(-8.95, 5.2, wz), rot * Vector3(0.0, 0.0, 1.0), rot * Vector3(1.0, 0.0, 0.0), 1.3, 3.0)
+		k.window(_p(-8.95, 5.2, wz), rot * Vector3(0.0, 0.0, 1.0), rot * Vector3(1.0, 0.0, 0.0), 1.3, 3.0)
+		k.window(_p(-11.05, 5.2, wz), rot * Vector3(0.0, 0.0, 1.0), rot * Vector3(-1.0, 0.0, 0.0), 1.3, 3.0)     # the lit slit seen from outside
+		if absf(wz - 8.5) > 3.6:
+			k.window(_p(11.05, 5.2, wz), rot * Vector3(0.0, 0.0, 1.0), rot * Vector3(1.0, 0.0, 0.0), 1.3, 3.0)
 	# the wound's sill, and the stair up to it from the ground east of the flank
 	_seg("floor", 9.0, 11.0, 6.0, 11.0, fl, 0.9)
 	var g0 := WK.h(_p(20.0, 0.0, 8.5).x, _p(20.0, 0.0, 8.5).z)
@@ -222,23 +224,25 @@ func _head() -> void:
 	_seg("stone_big", -5.0, 5.0, 28.0, 36.0, 11.0, 0.96)                  # the neck
 	_flight("stone_big", _p(0.0, 11.0, 28.5), _p(0.0, 14.2, 35.0), 3.0, 10.6)
 	_seg("stone_big", -8.0, 8.0, 36.0, 52.0, 14.2, 1.0)                    # the head (the face looks up)
-	_slab("ruin_big", -8.4, 8.4, 36.0, 52.0, 13.8, 14.8, 0.84)           # the brow rim
+	_slab("ruin_big", -8.4, 8.4, 51.4, 52.0, 14.2, 14.9, 0.84)          # the brow rim: the back and the sides, the front (the stair's side) open
+	_slab("ruin_big", -8.4, -7.8, 36.6, 52.0, 14.2, 14.9, 0.84)
+	_slab("ruin_big", 7.8, 8.4, 36.6, 52.0, 14.2, 14.9, 0.84)
 	# the face: a nose ridge, two lit eyes, a mouth line
-	_slab("stone_big", -0.9, 0.9, 40.0, 46.0, 14.8, 16.2, 0.9)
+	_slab("stone_big", -0.9, 0.9, 40.0, 46.0, 14.2, 15.6, 0.9)
 	for s: float in [-1.0, 1.0]:
-		var e := _p(s * 3.6, 14.85, 44.0)
+		var e := _p(s * 3.6, 14.25, 44.0)
 		var ex := rot * Vector3(1.5, 0.0, 0.0)
 		var ez := rot * Vector3(0.0, 0.0, 0.7)
 		k.kit.quad("glow", e - ex - ez, e + ex - ez, e + ex + ez, e - ex + ez, Vector3.UP, false, 1.0)
-		k.lamp(e + Vector3.UP * 1.6, Color(1.0, 0.62, 0.3), 1.2, 8.0)
-	_slab("dark", -3.5, 3.5, 37.2, 38.0, 14.8, 15.1, 0.5)
+		k.lamp(e + Vector3.UP * 2.2, Color(1.0, 0.62, 0.3), 1.2, 8.0)
+	_slab("dark", -3.5, 3.5, 37.2, 38.0, 14.2, 14.45, 0.5)
 	# the crown: a ring of stone spikes rising from the head's far end, and two great horns
 	for i in 9:
 		var a := PI * (0.12 + 0.76 * float(i) / 8.0)
-		var base := _p(cos(a) * 7.2, 14.8, 50.0 - sin(a) * 3.0)
+		var base := _p(cos(a) * 6.6, 14.2, 50.0 - sin(a) * 3.0)
 		var tip := base + Vector3(0.0, 5.0 + 3.0 * absf(sin(float(i) * 1.7)) + (3.0 if i % 2 == 0 else 0.0), 0.0) + rot * Vector3(cos(a) * 1.2, 0.0, 0.0)
 		k.tube("stone_big", base, tip, 0.9, 0.12, 5, false, 0.95)
 	for s: float in [-1.0, 1.0]:
 		var hb := _p(s * 8.4, 13.0, 41.0)
 		k.tube("ruin_big", hb, hb + rot * Vector3(s * 6.5, 0.0, 3.0) + Vector3(0.0, 9.0, 0.0), 1.6, 0.2, 6, false, 0.9)
-	k.fire(_p(0.0, 14.8, 49.0), 1.4, 2.0)                                 # a small fire on the crown: the sleeper's brow lit
+	k.fire(_p(0.0, 14.2, 49.0), 1.4, 2.0)                                 # a small fire on the crown: the sleeper's brow lit
