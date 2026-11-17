@@ -12,6 +12,7 @@ const START_T := 0.1
 
 static var enabled := true                ## Settings.night_life, mirrored once a second by NightLife
 static var clock := START_T               ## 0 .. 1
+static var moon_gain := 1.0               ## the moon's phase: its light scales by this (0.6 at a new moon, 1 at full; sky_life.gd)
 static var gain_mul := 1.0                ## the whole landmark set's brightness: an eclipse raises it, the dark makes them shine
 static var pos := PackedVector3Array()    ## where the light is (a metre or so above the ground)
 static var ground := PackedFloat32Array() ## the ground's y under it (the pool)

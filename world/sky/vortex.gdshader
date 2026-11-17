@@ -21,6 +21,16 @@ uniform float spin_speed = 0.015;   // revolutions per second
 uniform float spin_phase = 0.0;     // revolutions; keeps the angle continuous when spin_speed changes (reactivity.gd)
 uniform float intensity = 1.1;      // halved (Luke, 7 Nov: the vortex washed the night); was 2.2, above 1.0 so glow caught the arms
 uniform float vortex_size = 0.6;    // the vortex's extent on the sky, against its first size (1.0)
+// The living sky (core/world/night_life/sky_life.gd): the moon's phase and its eclipse, constellations, aurora
+// nights, a cloud deck lit from below by the fires on the ground. All default to the old sky.
+uniform float moon_phase = 0.5;     // 0 new .. 0.5 full .. 1 new (waxing = lit on the right); tied to the night count
+uniform float moon_glow = 1.0;      // the disc, corona and streaks: an eclipse takes them to a tenth
+uniform vec3 moon_tint = vec3(1.0); // and turns what is left of it copper
+uniform sampler2D constellations : source_color, hint_default_black, filter_linear, repeat_disable;
+uniform float const_vis = 1.0;
+uniform float aurora = 1.0;         // the veils' strength tonight (0.4 faint .. 1.8 a great night)
+uniform float cloud_cover = 0.0;    // 0 clear .. 1 a deck of cloud (the weather's fronts raise it)
+uniform vec4 fire_glow[6];          // xyz: the direction to a fire on the ground, w: how strongly it lights the cloud above it
 uniform float vistas = 1.0;         // the far ranges and the drain veils (sky_vistas.gdshaderinc); 0 with -- --no-vista-sky (A/B)
 
 float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
@@ -58,6 +68,24 @@ vec3 vortex(vec3 d) {
     return col * core * intensity;
 }
 
+// A deck of cloud on a plane overhead: dark, edged with moonlight, lit warm from below over the fires on the ground.
+vec4 cloud_layer(vec3 d, vec3 col) {
+    if (cloud_cover < 0.01 || d.y < 0.02) {
+        return vec4(col, 1.0);
+    }
+    vec2 p = d.xz / (d.y + 0.3) * 1.5 + vec2(sky_time * 0.004, sky_time * 0.0017);
+    float c = fbm(p * 1.4) * 0.7 + fbm(p * 3.1 + 7.0) * 0.3;
+    float edge = 1.0 - cloud_cover * 0.85;
+    float m = smoothstep(edge, edge + 0.22, c) * smoothstep(0.02, 0.22, d.y);
+    vec3 lit = vec3(0.0);
+    for (int i = 0; i < 6; i++) {
+        float s = fire_glow[i].w;
+        lit += vec3(1.0, 0.52, 0.22) * s * pow(max(dot(d, fire_glow[i].xyz), 0.0), 5.0);
+    }
+    vec3 cc = col_deep * 0.7 + vec3(0.035, 0.05, 0.1) * (0.4 + c) + lit * (0.25 + 0.75 * m);
+    return vec4(mix(col, cc, m * 0.85), 1.0 - m * 0.9);   // the alpha carries the cloud: the stars are drawn behind it
+}
+
 void sky() {
     if (AT_CUBEMAP_PASS) {
         float facing = dot(EYEDIR, normalize(vortex_dir));
@@ -87,13 +115,14 @@ void sky() {
         float burst = sky_bursts(EYEDIR, 220.0);
         col += burst * vec3(0.86, 0.93, 1.2) * 0.7;
         if (vistas > 0.5) {
-            col += vs_veils(EYEDIR, vortex_dir, sky_time);
+            col += vs_veils(EYEDIR, vortex_dir, sky_time) * aurora;
         }
-        COLOR = col;
-        ALPHA = 1.0;
+        vec4 cl = cloud_layer(EYEDIR, col);
+        COLOR = cl.rgb;
+        ALPHA = cl.a;
     } else {
         vec3 col = HALF_RES_COLOR.rgb;
-        float star = sky_stars(EYEDIR, 400.0, 0.022);
+        float star = sky_stars(EYEDIR, 400.0, 0.022) * HALF_RES_COLOR.a;
         col += star * vec3(0.82, 0.88, 1.12) * 0.75;
         float dust = noise(EYEDIR.xy * 6.0 + EYEDIR.z * 3.0) * noise(EYEDIR.xz * 3.5);
         col += col_rift * dust * 0.12;
@@ -105,6 +134,13 @@ void sky() {
         float hx = dot(off, right);
         float hy = dot(off, bitan);
         float disc = smoothstep(0.9985, 0.9997, mu);
+        // the phase: the lit part of a sphere seen from the front, the light coming round it by `moon_phase`
+        float ph = moon_phase * TAU;
+        vec2 pd = vec2(hx, hy) / 0.0424;
+        vec3 sph = vec3(pd, sqrt(max(1.0 - dot(pd, pd), 0.0)));
+        float lit_part = mix(0.06, 1.0, smoothstep(-0.05, 0.05, dot(sph, vec3(sin(ph), 0.0, -cos(ph)))));
+        float bright = 0.35 + 0.65 * (0.5 - 0.5 * cos(ph));
+        disc *= lit_part;
         float corona = pow(mu, 180.0);
         float streak = exp(-abs(hx) * 48.0) * exp(-abs(hy) * 5.5) * pow(mu, 10.0);
         float cross = exp(-abs(hx) * 6.0) * exp(-abs(hy) * 48.0) * pow(mu, 10.0);
@@ -115,9 +151,12 @@ void sky() {
         float ghosts = exp(-dm * dm * 720.0) * 0.6;
         // the moon and its flare toned down about 30 % (Luke, 7 Nov: the moon read too bright), with its light
         // and halved twice more (the moon's glow washed the sky pale and the land with it)
-        col += vec3(0.72, 0.82, 1.02) * (disc * 0.45 + corona * 0.075);
-        col += vec3(0.52, 0.68, 1.05) * (streak * 0.14 + cross * 0.06);
-        col += vec3(0.42, 0.52, 0.92) * ghosts * 0.05;
+        col += vec3(0.72, 0.82, 1.02) * moon_tint * (disc * 0.45 + corona * 0.075 * bright) * moon_glow;
+        col += vec3(0.52, 0.68, 1.05) * moon_tint * (streak * 0.14 + cross * 0.06) * bright * moon_glow;
+        col += vec3(0.42, 0.52, 0.92) * ghosts * 0.05 * bright * moon_glow;
+        // the constellations: baked once into an equirect texture (a texture fetch per sky pixel, nothing computed)
+        vec2 cuv = vec2(atan(EYEDIR.x, -EYEDIR.z) / TAU + 0.5, acos(clamp(EYEDIR.y, -1.0, 1.0)) / PI);
+        col += texture(constellations, cuv).rgb * const_vis * HALF_RES_COLOR.a * smoothstep(0.03, 0.2, EYEDIR.y);
         col = mix(col_deep * 0.5, col, smoothstep(-0.05, 0.12, EYEDIR.y)); // horizon falloff
         // moon-silvered haze low on the sky: ridges and towers separate from it
         col += vec3(0.11, 0.17, 0.29) * exp(-abs(EYEDIR.y) * 9.0);   // a thinner, brighter band: the ridges read dark against it

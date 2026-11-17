@@ -33,6 +33,7 @@ const Hits := preload("res://core/world/night_life/hit_reads.gd")
 const Tells := preload("res://core/world/night_life/telegraph_glow.gd")
 const Wanderer := preload("res://core/world/night_life/wanderer_life.gd")
 const Folk := preload("res://core/life/folk/folk_stage.gd")
+const Sky := preload("res://core/world/night_life/sky_life.gd")
 
 var _poll := 0.0
 
@@ -61,6 +62,9 @@ func _ready() -> void:
 	course.env = we.environment if we != null else null
 	course.fill = moon.get_parent().get_node_or_null("NightFill") as DirectionalLight3D if moon != null else null
 	_add(course, "MoonCourse")
+	var sky := Sky.new()
+	sky.env = course.env
+	_add(sky, "SkyLife")
 	_add(Surge.new(), "KindlingSurge")
 	_add(Moths.new(), "LightMoths")
 	_add(Banks.new(), "FogBanks")
