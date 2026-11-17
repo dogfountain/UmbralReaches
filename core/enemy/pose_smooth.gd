@@ -91,12 +91,10 @@ func sample_v(j: int, f: float) -> Vector3:
 	return prev_v[j].lerp(cur_v[j], f)
 
 
-## A spring that settles with no overshoot (critically damped), advanced by dt in two substeps at most:
-## `x` and `v` in, [x, v] out via the two refs. omega ~ 14 settles in about a third of a second.
+## A spring that settles with no overshoot (critically damped), solved exactly (the closed form, so the step size does not change the motion:
+## a semi-implicit step at 60 Hz lost more than a third of an impulse to numerical damping). Returns Vector2(x, v); omega ~ 14 settles in about a third of a second.
 static func spring(x: float, v: float, target: float, omega: float, dt: float) -> Vector2:
-	var steps := 2 if dt > 0.025 else 1
-	var h := dt / float(steps)
-	for _s in steps:
-		v += (-omega * omega * (x - target) - 2.0 * omega * v) * h
-		x += v * h
-	return Vector2(x, v)
+	var d := x - target
+	var e := exp(-omega * dt)
+	var j := v + omega * d
+	return Vector2(target + (d + j * dt) * e, (v - omega * j * dt) * e)

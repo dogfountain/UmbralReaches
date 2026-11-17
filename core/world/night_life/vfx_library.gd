@@ -244,7 +244,10 @@ func _build_column() -> void:
 ## The Hearth (progression) is built after this node: looked for by name every two seconds until it exists (then its
 ## level-up is listened to, and the looking stops).
 func _look_for_hearth() -> void:
-	var h := get_tree().current_scene.find_child("Hearth", true, false)
+	var scene := get_tree().current_scene
+	if scene == null:
+		return
+	var h := scene.find_child("Hearth", true, false)
 	if h != null and h.has_signal("leveled_up"):
 		_hearth = h
 		h.connect("leveled_up", _on_level)
