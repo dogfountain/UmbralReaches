@@ -17,6 +17,7 @@ const WK := preload("res://core/world/realm/wonders/r39/wonder_kit.gd")
 const Dress := preload("res://core/world/realm/wonders/r39/wonder_dress.gd")
 const Land := preload("res://core/world/realm/realm_land.gd")
 const COUNT := 32
+const SELF := "res://core/world/realm/wonders/r39/hidden_finds.gd"
 const TIERS := ["wood", "wood", "iron", "iron", "iron", "wood", "iron", "reliquary"]
 
 var _ids: Array = []
@@ -36,7 +37,7 @@ func _run(root: Node) -> void:
 	var n := 0
 	var tries := 0
 	var paths: Array = RealmLayout.PATHS
-	while n < COUNT and tries < 4000:
+	while n < COUNT and tries < 700:
 		tries += 1
 		var path: Dictionary = paths[rng.randi() % paths.size()]
 		var pts: Array = path.pts
@@ -91,10 +92,6 @@ func _build(root: Node, i: int, c: Array[Vector2], rng: RandomNumberGenerator) -
 	var reg := WK.region_at(c[3])
 	k.poi("hidden_find_%d" % i, "A Hidden Cache", "the trail ended here", reg if reg != "" else "road")
 	k.host.add_to_group("hidden_find")
-	for j in 3:
-		var to := (c[j + 1] - c[j]).normalized()
-		_clue(k, (i + j) % 5, _g(c[j]), Vector3(to.x, 0.0, to.y), rng)
-		WK.reserve("hidden_clue_%d_%d" % [i, j], c[j], Vector2(2.0, 2.0), 0.0, WK.h(c[j].x, c[j].y) - 1.0, WK.h(c[j].x, c[j].y) + 4.0)
 	var o := _g(c[3])
 	var back := (c[2] - c[3]).normalized()
 	var yaw := atan2(back.x, back.y)
@@ -106,34 +103,40 @@ func _build(root: Node, i: int, c: Array[Vector2], rng: RandomNumberGenerator) -
 		loot["relic_fragment"] = 1
 	var kind := i % 5
 	var at := o
+	var cached := k.cached(WK.fp(SELF, [c, i, WK.tsig(c[3], 4.0)]))
 	match kind:
-		0:
-			k.kit.box("dark", o + Vector3.UP * 0.12, Vector3(2.4, 0.3, 1.6), b, false, 0.55)
-			k.kit.box("cave_moss", o + Vector3(0.0, 0.3, 0.0), Vector3(1.8, 0.3, 1.2), b, false, 0.6)
-			k.tube("wood_big", o + b * Vector3(1.4, 0.0, 0.0), o + b * Vector3(1.0, 1.3, 0.3), 0.04, 0.04, 4, false, 0.7)
-			k.kit.box("iron", o + b * Vector3(1.0, 1.35, 0.3), Vector3(0.3, 0.28, 0.05), b, false, 0.55)
-			at = o + Vector3.UP * 0.25
-		1:
-			k.tube("bark", o + Vector3.DOWN * 0.2, o + Vector3.UP * 0.9, 0.55, 0.5, 8, true, 0.75, Vector2(1.0, -1.0), true)
-			k.tube("dark", o + Vector3.UP * 0.9, o + Vector3.UP * 0.95, 0.38, 0.38, 8, false, 0.4)
-			Dress.rubble(k, o + b * Vector3(0.9, 0.0, 0.3), 0.9, 4, "cave_moss")
-			at = o + Vector3.UP * 0.95
-		2:
-			k.kit.box("stone_big", o + b * Vector3(0.0, 0.9, -0.6), Vector3(1.8, 1.8, 0.4), b * Basis(Vector3.RIGHT, 0.45), true, 0.85)
-			Dress.rubble(k, o + b * Vector3(0.0, 0.0, 0.5), 1.0, 6, "stone_big")
-			at = o + b * Vector3(0.0, 0.1, 0.35)
-		3:
-			k.kit.box("cave", o + Vector3.UP * 0.1, Vector3(2.0, 0.3, 1.6), b, false, 0.8)
-			k.tube("wood_big", o + b * Vector3(1.3, 0.0, 0.0), o + b * Vector3(1.3, 1.1, 0.0), 0.05, 0.05, 4, false, 0.7)
-			Dress.rope(k, o + b * Vector3(1.3, 1.0, 0.0), o + b * Vector3(0.2, 0.3, 0.2), 0.2, 0.03)
-			at = o + Vector3.UP * 0.25
-		_:
-			for s in 4:
-				k.kit.box("stone_big", o + Vector3.UP * (0.18 + 0.32 * float(s)), Vector3(2.4 - 0.3 * float(s), 0.32, 1.8 - 0.2 * float(s)), Basis(Vector3.UP, yaw + 0.2 * float(s)), true, 0.82)
-			Dress.banner(k, o + b * Vector3(-0.9, 2.4, 0.0), b * Vector3(1.0, 0.0, 0.0), 1.4, 1.8, b * Vector3(0.0, 0.0, 1.0))
-			k.tube("wood_big", o + b * Vector3(-0.95, 1.3, 0.0), o + b * Vector3(-0.95, 2.5, 0.0), 0.05, 0.05, 4, false, 0.7)
-			at = o + Vector3.UP * 1.32
-	k.chest("hidden_find_%d" % i, tier, at, yaw, loot)
+		0: at = o + Vector3.UP * 0.25
+		1: at = o + Vector3.UP * 0.95
+		2: at = o + b * Vector3(0.0, 0.1, 0.35)
+		3: at = o + Vector3.UP * 0.25
+		_: at = o + Vector3.UP * 1.32
+	if not cached:
+		for j in 3:
+			var to := (c[j + 1] - c[j]).normalized()
+			_clue(k, (i + j) % 5, _g(c[j]), Vector3(to.x, 0.0, to.y), rng)
+		match kind:
+			0:
+				k.kit.box("dark", o + Vector3.UP * 0.12, Vector3(2.4, 0.3, 1.6), b, false, 0.55)
+				k.kit.box("cave_moss", o + Vector3(0.0, 0.3, 0.0), Vector3(1.8, 0.3, 1.2), b, false, 0.6)
+				k.tube("wood_big", o + b * Vector3(1.4, 0.0, 0.0), o + b * Vector3(1.0, 1.3, 0.3), 0.04, 0.04, 4, false, 0.7)
+				k.kit.box("iron", o + b * Vector3(1.0, 1.35, 0.3), Vector3(0.3, 0.28, 0.05), b, false, 0.55)
+			1:
+				k.tube("bark", o + Vector3.DOWN * 0.2, o + Vector3.UP * 0.9, 0.55, 0.5, 8, true, 0.75, Vector2(1.0, -1.0), true)
+				k.tube("dark", o + Vector3.UP * 0.9, o + Vector3.UP * 0.95, 0.38, 0.38, 8, false, 0.4)
+				Dress.rubble(k, o + b * Vector3(0.9, 0.0, 0.3), 0.9, 4, "cave_moss")
+			2:
+				k.kit.box("stone_big", o + b * Vector3(0.0, 0.9, -0.6), Vector3(1.8, 1.8, 0.4), b * Basis(Vector3.RIGHT, 0.45), true, 0.85)
+				Dress.rubble(k, o + b * Vector3(0.0, 0.0, 0.5), 1.0, 6, "stone_big")
+			3:
+				k.kit.box("cave", o + Vector3.UP * 0.1, Vector3(2.0, 0.3, 1.6), b, false, 0.8)
+				k.tube("wood_big", o + b * Vector3(1.3, 0.0, 0.0), o + b * Vector3(1.3, 1.1, 0.0), 0.05, 0.05, 4, false, 0.7)
+				Dress.rope(k, o + b * Vector3(1.3, 1.0, 0.0), o + b * Vector3(0.2, 0.3, 0.2), 0.2, 0.03)
+			_:
+				for s in 4:
+					k.kit.box("stone_big", o + Vector3.UP * (0.18 + 0.32 * float(s)), Vector3(2.4 - 0.3 * float(s), 0.32, 1.8 - 0.2 * float(s)), Basis(Vector3.UP, yaw + 0.2 * float(s)), true, 0.82)
+				Dress.banner(k, o + b * Vector3(-0.9, 2.4, 0.0), b * Vector3(1.0, 0.0, 0.0), 1.4, 1.8, b * Vector3(0.0, 0.0, 1.0))
+				k.tube("wood_big", o + b * Vector3(-0.95, 1.3, 0.0), o + b * Vector3(-0.95, 2.5, 0.0), 0.05, 0.05, 4, false, 0.7)
+		k.chest("hidden_find_%d" % i, tier, at, yaw, loot)
 	k.host.set_meta("find_at", at)
 	k.commit(130.0)
 	k.host.set_meta("centre", at)

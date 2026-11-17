@@ -10,6 +10,7 @@ extends RefCounted
 const WK := preload("res://core/world/realm/wonders/r39/wonder_kit.gd")
 const Dress := preload("res://core/world/realm/wonders/r39/wonder_dress.gd")
 const COUNT := 30
+const SELF := "res://core/world/realm/wonders/r39/roadside_tableaux.gd"
 
 var _placed: Array[Vector2] = []
 
@@ -66,14 +67,15 @@ func _try(root: Node, c: Vector2, t: Vector2, n: int, ids: Array, rng: RandomNum
 	var o := Vector3(c.x, g, c.y)
 	var b := Basis(Vector3.UP, yaw)
 	var kind := int(absi(hash(Vector2i(roundi(c.x), roundi(c.y)))) % 6)
-	k.kit.box("stone", o + Vector3.DOWN * 0.3, Vector3(10.0, 0.7, 10.0), b, false, 0.82)       # a trodden pad under the scene
-	match kind:
-		0: _cart(k, o, b, yaw, n)
-		1: _shrine(k, o, b, yaw)
-		2: _gibbet(k, o, b, yaw)
-		3: _toll(k, o, b, yaw, n)
-		4: _camp(k, o, b, yaw, n)
-		_: _cairn(k, o, b, yaw)
+	if not k.cached(WK.fp(SELF, [o, yaw, kind, n, WK.tsig(c, 6.0)])):
+		k.kit.box("stone", o + Vector3.DOWN * 0.3, Vector3(10.0, 0.7, 10.0), b, false, 0.82)       # a trodden pad under the scene
+		match kind:
+			0: _cart(k, o, b, yaw, n)
+			1: _shrine(k, o, b, yaw)
+			2: _gibbet(k, o, b, yaw)
+			3: _toll(k, o, b, yaw, n)
+			4: _camp(k, o, b, yaw, n)
+			_: _cairn(k, o, b, yaw)
 	k.commit(140.0)
 	return true
 
