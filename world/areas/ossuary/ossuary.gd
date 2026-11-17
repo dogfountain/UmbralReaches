@@ -356,6 +356,10 @@ func _landing(k: OssKit) -> void:
 	var z := -34.0
 	k.block("floor", Vector3(-12.0, y - 0.7, z - 3.4), Vector3(BRIDGE_X0 + 0.4, y, z + 3.4))
 	k.block("stone", Vector3(-12.4, y - 0.7, z - 3.8), Vector3(BRIDGE_X0 + 0.5, y - 0.1, z + 3.8), true, 0.85)       # a kerb of dressed stone round the apron
+	# steps up from the lane: the field falls away north of the apron (world -z), and the lane met the kerb at a ~1 m
+	# ledge nobody could climb (realm_walks' crypt route, 17 Nov). The foot is sunk into the slope; the ramp under the
+	# treads carries the walk.
+	k.stairs("stone", Vector3(-16.8, y - 2.0, z + 0.5), Vector3(-12.4, y, z + 0.5), 5.2, 7)
 	for s: float in [-1.0, 1.0]:
 		var pz := z + s * 2.7
 		k.block("stone", Vector3(-6.3, y, pz - 0.65), Vector3(-4.9, y + 6.0, pz + 0.65))

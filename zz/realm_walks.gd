@@ -5,8 +5,9 @@ extends Node
 ##   henge   spawn -> west_way -> the henge stair foot -> up the pilgrim stair -> through the gate
 ##   henge_stair  the same stair alone, from just below its foot
 ##   barrows spawn -> east_way -> the Barrow Field -> fen_descent -> the fen fire
-##   crypt   spawn -> necropolis_way -> south_track -> oss_lane -> the Pilgrims' Landing -> the bone bridge -> the gate hall
-## Prints "LEG ..." per waypoint, "STUCK route leg ..." on a failure, and "REALMWALK ok" / "REALMWALK FAIL n".
+##   crypt   spawn -> the square's gate -> necropolis_way -> south_track -> oss_lane -> the Pilgrims' Landing -> the bone bridge -> the gate hall
+## Prints "LEG ..." per waypoint, "STUCK route leg ..." and the colliders it is pressed against ("BLOCKER") on a failure,
+## and "REALMWALK ok" / "REALMWALK FAIL n". --route=crypt walks one route alone.
 var p: Player
 var main: Node
 var t := 0
@@ -21,6 +22,7 @@ var started := false
 ## The routes start at the Hearthward green, where they were laid out (a new game now wakes on the Pilgrims' Road,
 ## RealmLayout.PLAYER_START, and the first leg crossed the whole village through its people).
 const SPAWN_WALK := Vector3(0.0, 0.15, 26.5)
+const HearthSquare := preload("res://core/world/realm/lore/hearthward_square.gd")
 
 
 func _ready() -> void:
@@ -62,7 +64,9 @@ func _build_routes() -> void:
 	var barrows: Array[Vector3] = [Vector3(12.0, 0, 18.0)]      # round the tavern porch
 	barrows.append_array(_pts(_path("east_way")))
 	barrows.append_array(_pts(_path("fen_descent").slice(1)))
-	var crypt: Array[Vector3] = _pts(_path("necropolis_way"))
+	# out through the square's gate, its only mouth to the south (the straight run from the green met the wall west of it)
+	var crypt: Array[Vector3] = [Vector3(HearthSquare.GATE.x, 0, HearthSquare.GATE.y - 3.0), Vector3(HearthSquare.GATE.x, 0, HearthSquare.GATE.y + 3.0)]
+	crypt.append_array(_pts(_path("necropolis_way")))
 	for v: Vector2 in [Vector2(-8.0, 130.0), Vector2(-24.0, 133.0), Vector2(-40.0, 134.0)]:
 		crypt.append(Vector3(v.x, 0, v.y))
 	crypt.append_array(_pts(_path("oss_lane").slice(1)))
@@ -106,6 +110,35 @@ func _next_route(ok: bool) -> void:
 	_start_route()
 
 
+## What a stuck walker is pressed against: every collider within 1.2 m of its body, by path, with the shape hit
+## (a merged body holds many: its kind and centre say which prop it is). The ground itself is left out.
+func _print_blockers(goal: Vector3) -> void:
+	var q := PhysicsShapeQueryParameters3D.new()
+	var s := SphereShape3D.new()
+	s.radius = 1.2
+	q.shape = s
+	q.transform = Transform3D(Basis.IDENTITY, p.global_position + Vector3.UP * 0.9)
+	q.exclude = [p.get_rid()]
+	for hit: Dictionary in p.get_world_3d().direct_space_state.intersect_shape(q, 16):
+		var c := hit.get("collider") as CollisionObject3D
+		if c == null or c.name == "TerrainBody":
+			continue
+		var owner_id := c.shape_find_owner(int(hit.get("shape", 0)))
+		var sh := c.shape_owner_get_shape(owner_id, 0)
+		var at := (c.global_transform * c.shape_owner_get_transform(owner_id)).origin
+		var size: Variant = sh.get("size") if sh is BoxShape3D else (sh.get("radius") if sh is CylinderShape3D or sh is CapsuleShape3D else "")
+		print("  BLOCKER %s %s at %s %s" % [c.get_path(), sh.get_class(), at.snapped(Vector3.ONE * 0.01), size])
+	# and what stands in the way toward the goal: rays at the knee, the waist and the head
+	var to := Vector3(goal.x - p.global_position.x, 0.0, goal.z - p.global_position.z).normalized()
+	for h: float in [0.3, 0.9, 1.6]:
+		var o := p.global_position + Vector3.UP * h
+		var rq := PhysicsRayQueryParameters3D.create(o, o + to * 3.0)
+		rq.exclude = [p.get_rid()]
+		var hit := p.get_world_3d().direct_space_state.intersect_ray(rq)
+		if not hit.is_empty():
+			print("  AHEAD %.1f m up: %s at %s normal %s" % [h, (hit.collider as Node).name, (hit.position as Vector3).snapped(Vector3.ONE * 0.01), (hit.normal as Vector3).snapped(Vector3.ONE * 0.01)])
+
+
 func _physics_process(delta: float) -> void:
 	t += 1
 	if p == null:
@@ -121,12 +154,18 @@ func _physics_process(delta: float) -> void:
 				get_tree().quit()
 			return
 		started = true
+		var wayfarers := main.find_child("Wayfarers", true, false)
+		if wayfarers:
+			wayfarers.queue_free()                   # the road's travelling parties stood on the crypt's way once (the walk is about the ground)
 		# the walk is about the ground: open the ward seals, so it passes on any save (a fresh save
 		# has the henge sealed and the walker stopped at its gate)
 		for w in main.find_children("*", "", true, false):
 			if w is WardSeal:
 				(w as WardSeal).release()
 		_build_routes()
+		for a in OS.get_cmdline_user_args():           # --route=crypt walks that route alone
+			if a.begins_with("--route="):
+				routes = routes.filter(func(x: Dictionary) -> bool: return x.name == a.trim_prefix("--route="))
 		_start_route()
 		return
 	var r: Dictionary = routes[ri]
@@ -145,6 +184,7 @@ func _physics_process(delta: float) -> void:
 	var prev: Vector3 = pts[leg - 1] if leg > 0 else (r.from as Vector3)
 	if leg_t > 6.0 + Vector2(goal.x - prev.x, goal.z - prev.z).length() / 2.0:
 		print("STUCK %s leg %d goal=%s at %s" % [r.name, leg, Vector2(goal.x, goal.z), p.global_position.snapped(Vector3.ONE * 0.01)])
+		_print_blockers(goal)
 		_next_route(false)
 		return
 	p.debug_drive(Vector3(d.x, 0, d.y).normalized(), true)

@@ -15,7 +15,7 @@ const SELF := "res://core/world/realm/land_cache.gd"
 const KEY := "land|heights|v1"
 const MESH_KEY := "land|meshes|v1"
 const ROOTS := ["res://core/world/realm/"]
-const EXTRA := ["res://core/world/world_lanes.gd"]
+const EXTRA := ["res://core/world/world_lanes.gd", "res://world/areas/ossuary/oss_frame.gd"]   # the quarry and the landing shape the ground (an edit there did not rebuild it)
 
 static var _sources: Array = []
 
