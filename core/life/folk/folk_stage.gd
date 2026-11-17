@@ -137,6 +137,7 @@ func _build_step(delta: float) -> void:
 		if get_tree().get_nodes_in_group(&"world_poi").is_empty():
 			return
 		_ready_world = true
+		_defs.append_array(_town_defs())
 	var d: Dictionary = _defs[_built]
 	_built += 1
 	var a := Actor.new()
@@ -148,6 +149,7 @@ func _build_step(delta: float) -> void:
 	a.rotation.y = float(d.face)
 	a.face = float(d.face)
 	a.data["home"] = at
+	a.data["group"] = String(d.get("group", "h"))
 	a.data["face"] = float(d.face)
 	if d.has("other"):
 		a.data["other"] = d.other
@@ -160,6 +162,74 @@ func _build_step(delta: float) -> void:
 		_log(at)
 	if String(d.role) == "netmender":
 		_net(at, float(d.face))
+
+
+## The towns of the reaches (the world_poi hosts named Town_*) each get a few of the same people in their own streets: a sweeper, a fiddler, two talking on logs
+## (and a net-mender in some): the same bodies as Hearthward's (the same options, so the same cached meshes; three variants of seed by town). Their spots are free
+## ground near the town's centre: a capsule that touches nothing solid, found by a spiral search now, once.
+func _town_defs() -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
+	var base := {}
+	for d: Dictionary in _defs:
+		base[String(d.role)] = d
+	for h: Node in get_tree().get_nodes_in_group(&"world_poi"):
+		var h3 := h as Node3D
+		if h3 == null or not String(h3.name).begins_with("Town_"):
+			continue
+		var cm: Variant = h3.get_meta("centre", null)
+		var c3: Vector3 = cm if cm is Vector3 else h3.global_position
+		var c := Vector2(c3.x, c3.z)
+		var tid := String(h3.name).substr(5)
+		var variant := absi(hash(tid)) % 3
+		var roles := ["sweeper", "fiddler", "talk_a", "netmender"] if variant != 1 else ["sweeper", "fiddler", "talk_a"]
+		var r_i := 0
+		for role: String in roles:
+			var want := 2.4 if role == "talk_a" else 0.0
+			var spot := _free_spot(c, 3.0 + 2.5 * float(r_i), want)
+			r_i += 1
+			if spot == Vector2.INF:
+				continue
+			var proto: Dictionary = base[role]
+			var look: Dictionary = (proto.look as Dictionary).duplicate()
+			look["seed"] = int(look.get("seed", 1)) + 1000 * variant
+			var d2 := {"id": "%s_%s" % [tid, role], "role": role, "at": spot, "face": float(proto.face), "look": look, "group": tid, "log": role == "talk_a"}
+			out.append(d2)
+			if role == "talk_a":
+				var pb: Dictionary = base["talk_b"]
+				var look_b: Dictionary = (pb.look as Dictionary).duplicate()
+				look_b["seed"] = int(look_b.get("seed", 1)) + 1000 * variant
+				out.append({"id": "%s_talk_b" % tid, "role": "talk_b", "at": spot + Vector2(0.0, want), "face": 0.0, "look": look_b, "group": tid, "log": true})
+	return out
+
+
+## A free standing place near `c`: spiralling out from `start` metres, the first spot where a 0.5 m, 1.8 m capsule touches nothing solid (and, for a pair, so does
+## the spot `pair` metres along +z). Vector2.INF if none within 18 m.
+func _free_spot(c: Vector2, start: float, pair: float) -> Vector2:
+	var world := get_world_3d()
+	if world == null:
+		return Vector2.INF
+	var space := world.direct_space_state
+	var shape := CapsuleShape3D.new()
+	shape.radius = 0.5
+	shape.height = 1.8
+	var q := PhysicsShapeQueryParameters3D.new()
+	q.shape = shape
+	q.collision_mask = Layers.WORLD | Layers.PROPS
+	var r := start
+	while r < 18.0:
+		for k in 12:
+			var a := TAU * float(k) / 12.0 + r
+			var p := c + Vector2(cos(a), sin(a)) * r
+			if _clear(space, q, p) and (pair <= 0.0 or _clear(space, q, p + Vector2(0.0, pair))):
+				return p
+		r += 1.5
+	return Vector2.INF
+
+
+func _clear(space: PhysicsDirectSpaceState3D, q: PhysicsShapeQueryParameters3D, p: Vector2) -> bool:
+	var gy := _ground(p)
+	q.transform = Transform3D(Basis.IDENTITY, Vector3(p.x, gy + 1.0, p.y))
+	return space.intersect_shape(q, 1).is_empty()
 
 
 func _ground(at: Vector2) -> float:

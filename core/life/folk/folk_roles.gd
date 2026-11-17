@@ -178,14 +178,14 @@ static func _fiddler(a: Variant, dt: float) -> void:
 	var c := fposmod(float(a._t), 54.0)
 	var playing := c < 42.0
 	a.phase = move_toward(float(a.phase), 1.0 if playing else 0.0, dt * 0.9)
-	a.ctx["music"] = float(a.phase)
+	a.ctx["music_" + String(a.data.get("group", "h"))] = float(a.phase)
 	a.face = float(a.data.get("face", 0.0))
 
 
 static func _dancer(a: Variant, dt: float) -> void:
 	var d: Dictionary = a.data
 	var home: Vector2 = d.get("home", Vector2.ZERO)
-	var music: float = float(a.ctx.get("music", 0.0))
+	var music: float = float(a.ctx.get("music_" + String(d.get("group", "h")), 0.0))
 	if music > 0.5:
 		var ang: float = float(d.get("ang", 0.0)) + dt * 0.8
 		d["ang"] = ang
@@ -223,8 +223,8 @@ static func _talker(a: Variant, dt: float) -> void:
 			left = randf_range(3.5, 7.0)
 			d["a_speaks"] = a_speaks
 		d["turn"] = left
-		a.ctx["talk_a"] = a_speaks
-	var speaks: bool = bool(a.ctx.get("talk_a", true)) == (String(a.role) == "talk_a")
+		a.ctx["talk_" + String(d.get("group", "h"))] = a_speaks
+	var speaks: bool = bool(a.ctx.get("talk_" + String(d.get("group", "h")), true)) == (String(a.role) == "talk_a")
 	var tgt := 1.0 if speaks else 0.0
 	d["talk"] = lerpf(float(d.get("talk", 0.0)), tgt, 1.0 - exp(-4.0 * dt))
 

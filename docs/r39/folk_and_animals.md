@@ -27,6 +27,10 @@ and waves at the wanderer by the same regard rule; walking speed varies by 8 per
   Check no pops at act changes (the sweeper's rest, the fiddler's pause, the dancer standing) at 60 and 144 Hz, and no stepping at 15 to 30 m.
 - **Cost.** Awake only within 80 m: at most a handful of people near any viewer, posed at 30/20/12 Hz with distance, no allocation per frame; the children's game is one small script.
 
+**The towns.** Once the Realm is up, every `Town_*` place (the reach towns) gets its own sweeper, fiddler, a pair talking on logs and in some a net-mender, the same bodies as Hearthward's
+(the same options, so the same cached meshes; three variants of seed by town), at free ground found by a capsule spiral search from the town's centre (one actor and a few physics queries a frame, at start-up only).
+Each town's music and talk state is its own (`ctx["music_<town>"]`). They sleep and wake by distance like the rest. Film one: any reach town at night (Reedholm, Fallowmere, Lastlight).
+
 ## The animals (core/life/folk/pets.gd, core/world/mount/horse_paddock.gd)
 - **Dogs (three).** One MultiMesh with the wildlife's creature shader (so the gait, head and tail are drawn by the GPU): each follows its person (the watchman, the porter, one of the talkers) at a trot, a run when far behind; sits or sniffs when they stop; the second
   comes to the wanderer when he is within 12 m, circles and sits; all bark at any foe within 28 m (the body turned to it, the head thrown up with the bark); during the eclipse they run for the Keg's door and are gone until the moon returns.
