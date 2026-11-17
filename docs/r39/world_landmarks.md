@@ -101,3 +101,37 @@ for coordinates and capture:
 
 Not done here (other seats): lore texts for the new places (the story agent), global lighting and the beacon system (the
 light agent), the dither on far leaf cards (shader work in `realm_foliage.gdshader`, not touched).
+
+# Second pass (branch r39-world2)
+
+## The compass
+Rebuilt as a relevance filter (`ui/compass_feed.gd`, `ui/compass.gd`, setting in `ui/hud_prefs.gd` and the Display page):
+see `docs/r39/compass.md`.
+
+## Deeper models: what was reworked
+Secondary and tertiary forms, all build-time geometry (no runtime cost beyond triangles, nothing per frame):
+- **Landmarks** (Sleeper, Hollow King, Salt Ship, Wardens' towers, Chain Span, Titan Gates, hermit caches): `wonders/r39/wonder_dress.gd`
+  adds rubble heaps, sagging ropes and chains (catenaries in short prisms), hung linen banners with bands and torn hems,
+  hanging root-and-ivy strands, barrels and crates, looters' camps, carved bands, cracks. Wonder kits also set `OssKit.relief`:
+  every face over 1.2 m both ways is cut into ~1.6 m ashlar cells proud of a darker recessed base (0-5 cm, own tone), so the
+  colossal masonry reads as cut stone. Collision is unchanged (the plain boxes).
+- **Roadside stories** (`wonders/r39/roadside_tableaux.gd`): 30 scenes beside the ways (overturned cart with an ox's ribs, shrine
+  with candles and offerings, gibbet with a caged lantern, toll post, abandoned camp, pilgrim cairn hung with lanterns).
+- **Bosses** (`core/enemy/warden_body.gd`, `crown_body.gd`, `thorn_body.gd`, `anchoress_body.gd`): tassels, shoulder plates, robe
+  embroidery bands, hem bells and mandorla beads (Warden); bronze bands, studs, bells, lichen, a chipped hem and prayer cords
+  (Crown); ridged bark plates, moss strands, bracket fungus, root wraps and knee thorns (Thornwarden); padlocks, prayer
+  ribbons and a rosary on the chain windings (Anchoress). Rigs, bones and gameplay sockets are untouched: only primitives bound
+  to existing bones were added.
+- **All kit masonry in the game** (towns, ruins, the Ossuary): the macro tone and moss patchwork in `OssKit._grime`.
+- **All modelled props** (Hearthward's gate, forge, shrine, well, market, carts): contact dirt, dark undersides and moss tops
+  in `prop_weather.gd` via `StoneProps.info`.
+- **Trees**: sunlit crown tops.
+Reviewed and left as they are: the enemies' procedural bodies (`enemy_body.gd` already carries ribs, tatters, girdles, beads,
+wraps per kind) and the villagers' and dwarves' mesh builders (the animation agent is in `villager_rig.gd`; no posing or
+mesh code was touched there). The Bone Abbot already carries a rosary, tally bones, candles and a crozier of vertebrae.
+
+## World
+Roadside stories (above). Check in the engine (the log prints `WONDER roadside_tableaux: N scenes`, expect about 30): walk the
+Pilgrims' Road from Hearthward west to (-300, 56) and east to (300, 70), the fell track, the barrow track, the Brine Road;
+look for scenes 8-13 m off the way, none on a road or inside a town, each with its light visible at night; the chests (every
+third scene) open once; scenes fade at 200 m.

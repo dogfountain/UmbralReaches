@@ -71,7 +71,7 @@ func _try(root: Node, c: Vector2, t: Vector2, n: int, ids: Array, rng: RandomNum
 		0: _cart(k, o, b, yaw, n)
 		1: _shrine(k, o, b, yaw)
 		2: _gibbet(k, o, b, yaw)
-		3: _toll(k, o, b, yaw)
+		3: _toll(k, o, b, yaw, n)
 		4: _camp(k, o, b, yaw, n)
 		_: _cairn(k, o, b, yaw)
 	k.commit(200.0)
@@ -140,7 +140,7 @@ func _gibbet(k, o: Vector3, b: Basis, yaw: float) -> void:
 	Dress.rubble(k, o + b * Vector3(1.0, 0.0, 1.6), 1.8, 8, "stone")
 
 
-func _toll(k, o: Vector3, b: Basis, yaw: float) -> void:
+func _toll(k, o: Vector3, b: Basis, yaw: float, n: int) -> void:
 	k.kit.box("wood_big", o + b * Vector3(-3.0, 1.4, 0.0), Vector3(2.6, 2.8, 2.6), b, true, 0.9)
 	k.kit.box("slate", o + b * Vector3(-3.0, 3.0, 0.0), Vector3(3.3, 0.3, 3.3), b, true, 0.85)
 	k.window(o + b * Vector3(-1.69, 1.1, 0.0), b * Vector3(0.0, 0.0, 1.0), b * Vector3(1.0, 0.0, 0.0), 0.8, 0.8)
@@ -152,14 +152,14 @@ func _toll(k, o: Vector3, b: Basis, yaw: float) -> void:
 	k.tube("wood_big", o + b * Vector3(1.5, 0.0, -2.2), o + b * Vector3(1.5, 1.8, -2.2), 0.06, 0.06, 4, false, 0.7)
 	k.tube("wood_big", o + b * Vector3(2.5, 0.0, -2.2), o + b * Vector3(2.5, 1.8, -2.2), 0.06, 0.06, 4, false, 0.7)
 	Dress.barrel(k, o + b * Vector3(-4.8, 0.0, 1.0), yaw)
-	_chest(k, "toll", o + b * Vector3(-3.0, 0.3, 0.4), yaw + PI, 3)
+	_chest(k, "toll", o + b * Vector3(-3.0, 0.3, 0.4), yaw + PI, n)
 
 
 func _camp(k, o: Vector3, b: Basis, yaw: float, n: int) -> void:
 	Dress.camp(k, o, yaw)
 	for s: float in [-1.0, 1.0]:                                                                  # a lean-to of two poles and a hide
 		k.beam("wood_big", o + b * Vector3(s * 1.6 - 3.5, 0.0, -2.0), o + b * Vector3(-3.5, 1.8, -1.0), 0.1, 0.1, false, 0.7)
-	k.kit.quad("chalk", o + b * Vector3(-5.1, 0.0, -2.0), o + b * Vector3(-1.9, 0.0, -2.0), o + b * Vector3(-3.5, 1.8, -1.0), o + b * Vector3(-3.5, 1.8, -1.0) + b * Vector3(0.001, 0.0, 0.0), b * Vector3(0.0, 0.7, -1.0), false, 0.7)
+	k.kit.quad("chalk", o + b * Vector3(-5.1, 0.0, -2.0), o + b * Vector3(-1.9, 0.0, -2.0), o + b * Vector3(-2.6, 1.8, -1.0), o + b * Vector3(-4.4, 1.8, -1.0), b * Vector3(0.0, 0.7, -1.0), false, 0.7)
 	k.beam("iron", o + b * Vector3(-0.9, 1.5, 0.0), o + b * Vector3(0.9, 1.5, 0.0), 0.05, 0.05, false, 0.6)           # a spit over the fire
 	k.tube("iron", o + b * Vector3(-0.9, 0.0, 0.0), o + b * Vector3(-0.9, 1.5, 0.0), 0.04, 0.04, 4, false, 0.6)
 	k.tube("iron", o + b * Vector3(0.9, 0.0, 0.0), o + b * Vector3(0.9, 1.5, 0.0), 0.04, 0.04, 4, false, 0.6)
