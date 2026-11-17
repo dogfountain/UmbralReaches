@@ -89,22 +89,16 @@ func _screen() -> String:
 	var st := get_tree().root.find_child("Story", true, false)
 	var tr: Variant = st.get("trail") if st else null
 	if tr is Node:
-		var shown := 0
+		# the one waypoint: where it hangs (a bend of the way, or the place itself), its distance and whether it is on screen
+		var wp := get_tree().root.find_child("Waypoint", true, false)
 		var cam := get_viewport().get_camera_3d()
-		var at: Array[String] = []
-		var slots: PackedInt32Array = tr.get("_slot")
-		var alphas: PackedFloat32Array = tr.get("_alpha")
-		var pos: Array = tr.get("_pos")
-		for i in slots.size():
-			if slots[i] >= 0 and alphas[i] > 0.05:
-				shown += 1
-				var w: Vector3 = pos[i]
-				var front := cam != null and not cam.is_position_behind(w)
-				var dist := cam.global_position.distance_to(w) if cam else -1.0
-				at.append("%s %.0fm %s" % [w.round(), dist, "in-view" if front and cam.is_position_in_frustum(w) else "off-view"])
-		if not at.is_empty():
-			bits.append("marks=%s" % ", ".join(at))
-		bits.append("trail=hidden:%s route:%d shown:%d" % [str(tr.get("_hidden")), (tr.get("_rp") as PackedVector2Array).size(), shown])
+		if wp and float(wp.get("_alpha")) > 0.05:
+			var w: Vector3 = wp.get("_pt")
+			var front := cam != null and not cam.is_position_behind(w) and cam.is_position_in_frustum(w)
+			bits.append("mark=%s %s %.0fm %s at %s" % ["bend" if tr.get("guide") != Vector3.INF else "place", w.round(), float(wp.get("_dist")), "in-view" if front else "off-view", (wp.get("_at") as Vector2).round()])
+		else:
+			bits.append("mark=none")
+		bits.append("trail=quiet:%s route:%d left:%.0f" % [str(tr.get("quiet")), (tr.get("_rp") as PackedVector2Array).size(), float(tr.get("left"))])
 	else:
 		bits.append("trail=none")
 	if hud:

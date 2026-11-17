@@ -38,7 +38,7 @@ var runner: Node                  ## r33: counts kills, seals, places for the ta
 var markers: Node3D               ## r33: the marks over the givers' heads, the map pins (quest_markers.gd)
 var guide: Guide                  ## a new player's way through the first act (guide.gd): the lessons, the next step's banner and place
 var track: Node                   ## the tracked task and where its step is (quest_track.gd): what the waypoint, compass, objective line and trail follow
-var trail: Node3D                 ## the marks on the way to it (quest_trail.gd)
+var trail: Node                   ## where the one waypoint hangs on the way to it (quest_trail.gd)
 var _quest_after := ""            ## "offer:id" / "turnin:id" chosen in a conversation
 var _conv := ""
 var _node := ""
