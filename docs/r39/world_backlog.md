@@ -1,29 +1,31 @@
 # World backlog (r39-world2): resume from here
 
-Luke: this is a 10-hour job; depth bar = real volume and variety, polish, collision/footing/nav, LOD/visibility, perf within
-budget (build-time cost, no hitches), a doc entry with coordinates. Tick as done; commit after each item.
+Spec: docs/r39/briefs/world_models.md (the brief; supersedes shorter messages). Hard rule: NO PERFORMANCE COST (bake at build, LODs
+and visibility ranges, merged meshes and MultiMesh, no new shadowed lights, light cap, net draws and primitives per region do not rise).
 
-## Model pass (game-wide)
-- [x] Landmarks: dress helpers, ashlar relief, debris at wall feet (OssKit.debris_max)
-- [x] Four bosses' ornament; [ ] Bone Abbot ornament
-- [x] Villagers: belt, buckle, pouch, patches, yoke (villager_wear.gd); [ ] hair/hands/tools variants
-- [ ] Tavern dwarves (dwarf_rig.gd) secondary forms
-- [x] Hearthward code-built cottages: sills, shutters, lantern, ridge cap, garden fence (cottage_detail.gd); [ ] modelled cottages' surroundings
-- [ ] Market stalls, fences, wells, carts (props)
-- [ ] OssKit/ruins: debris + carved detail enabled for ruin kits
-- [ ] Common enemies (enemy_body.gd / creature_mesh.gd) secondary forms
-- [ ] Water edges (shore rocks, reeds, wet bands)
-- [ ] Far-view silhouettes
+## Part A
+- [x] A1 Compass: relevance filter (ui/compass_feed.gd), the wanderer's own marks (Wayfarer WayMark) as a kind, Minimal/Standard/Full,
+      docs/r39/compass.md. [ ] settings row resync after Reset to Defaults (the option is built once; `_hud_checks` covers checks only)
+- A2 Game-wide model pass
+  - [x] landmarks: dress helpers, ashlar relief with LODs, wall-foot debris
+  - [x] bosses: Warden, Crown, Thornwarden, Anchoress, Bone Abbot ornaments
+  - [x] villagers: belt, buckle, pouch, patches, yoke (villager_wear.gd); [ ] hair/hands/tool variants
+  - [ ] tavern dwarves secondary forms
+  - [x] code-built cottages: sills, shutters, lanterns, ridge cap, garden fence (cottage_detail.gd); [ ] stalls, fences, wells, carts
+  - [ ] OssKit/ruins: enable debris and carved bands for ruin kits game-wide
+  - [ ] common enemies (enemy_body.gd / creature_mesh.gd)
+  - [ ] trees and flora (bark, roots, deadwood), [ ] rocks and cliffs (facets, strata, lichen)
+  - [x] water edges: docks, shore stones, bridges, fords (waterworks.gd); [x] far views: far hulls for the towers and the ship
 
-## World
-1. [ ] Four dungeon doors as interiors (King's Barrow, castellum, witch's door, Drowned Nave)
-2. [ ] Caves and grottos (6+)
-3. [ ] Region signature set-pieces and dressing
-4. [ ] Settlements lived-in (Hearthward, Reach towns)
-5. [ ] Water: rivers, bridges, fords, waterfalls, mills, docks
-6. [ ] Verticality: climbable ruins, towers, cliffs
-7. [ ] Far views and horizon
-8. [ ] Ground: litter layer, worn paths, puddles
-9. [ ] 30+ hidden finds with clues
-10. [ ] Boss-scale architecture at each arena approach (Titan Gates done for 3 raids)
-11. [ ] Continue the critique (dither on far leaves, region palettes...)
+## Part B (world)
+- [x] B1 four deep halls (deep_halls.gd, dungeon_kit.gd)
+- [x] B2 seven caves (caves.gd)
+- [x] B3 region signature props (region_dressing.gd)
+- [x] B4 lived-in settlements (settlement_yards.gd, module "yards")
+- [x] B5 water (waterworks.gd)
+- [x] B6 verticality (climbs.gd)
+- [~] B7 far views: far hulls done for towers and the ship; [ ] horizon cards / mountains
+- [x] B8 ground marks: ruts and puddles (ground_marks.gd); [ ] litter layer (flora `litter` exists; the ground shader fetch is a cost, left)
+- [x] B9 thirty-two hidden finds (hidden_finds.gd)
+- [x] B10 boss-scale avenues (titan_gates.gd: five obelisk pairs per approach)
+- [ ] B11+ continue the critique (docs/r39/3_world_models_textures.md): dither on far leaves (light seat), per-region palettes, etc.
