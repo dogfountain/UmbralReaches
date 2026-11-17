@@ -27,6 +27,7 @@ const TICK := 0.06
 
 const MYSTERY_WORDS := ["barrow", "crypt", "henge", "stones", "circle", "grave", "cairn", "well", "spring", "altar", "falls", "fall", "crater",
 	"chain", "oak", "hollow", "rune", "sigil", "cist", "tomb", "sunk", "mere", "ring", "wisp", "star", "ossuary", "vault", "pit_gate"]
+const FIRE_WORDS := ["furnace", "forge", "kiln", "camp", "fire", "hearth", "bonfire", "smithy", "smelter", "lava", "cinder", "pyre"]
 const TOWER_WORDS := ["tower", "spire", "watch", "belfry", "bell", "lighthouse", "crane", "keep", "gate"]
 const WINDOW_WORDS := ["chapel", "nave", "shrine", "almonry", "hall", "inn", "tavern", "mill", "cottage", "house", "lodge", "hermit", "manor",
 	"abbey", "cloister", "town", "kiln", "forge", "smithy", "foundry", "press", "stable", "weir", "ford", "market"]
@@ -172,6 +173,9 @@ func _discover() -> void:
 
 
 static func _classify(s: String) -> int:
+	for w: String in FIRE_WORDS:
+		if s.contains(w):
+			return Reg.Kind.FIRE
 	for w: String in TOWER_WORDS:
 		if s.contains(w):
 			return Reg.Kind.TOWER
