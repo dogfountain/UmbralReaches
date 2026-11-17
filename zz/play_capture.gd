@@ -1566,64 +1566,175 @@ func _view_still(file: String, desc: String, cam_pos: Vector3, target: Vector3) 
 	await _still(file, desc, 4)
 
 
-## The two clearest night views of a region: eye height, from a ring around its centre looking in.
-func _region_views(r: Dictionary) -> Array:
-	var c: Vector2
-	var rad: float
-	if r.has("rect"):
-		var rc: Rect2 = r.rect
-		c = rc.get_center()
-		rad = clampf(maxf(rc.size.x, rc.size.y) * 0.22, 14.0, 42.0)
-	else:
-		c = r.c
-		rad = clampf(float(r.r) * 0.8, 12.0, 34.0)
-	var tg := _gp(c.x, c.y, 3.0)
+## Establishing-shot overrides per region id (everything else: the first "poi" slot, else the centre, from the walked
+## ways and a ring of open ground). at: the landmark xz; min/max: metres from it; ty: the target's height over the
+## ground there (tgy: an absolute y instead); los: false when the target sits in a pit the near lip hides; ring: false
+## to stand on the ways only; eyes: [Vector3 eye with its own y] tried (and jittered a few metres) before the rest, for
+## decks and bridges the terrain ray cannot see; eye_ring: [centre, radius, y] the same, round a point.
+const VIEW_OPTS := {
+	"henge": {"min": 24.0},
+	"crags": {"at": Vector2(-150.0, -128.0), "min": 45.0, "max": 85.0, "ty": 14.0},
+	"ossuary": {"at": Vector2(-8.0, 170.0), "min": 15.0, "max": 60.0, "tgy": -8.0, "los": false, "ring": false,
+		"eyes": [Vector3(-40.0, 7.4, 140.0)]},
+	"quarry": {"min": 14.0, "max": 45.0, "ty": 5.0},
+	"rift": {"at": Vector2(310.0, -65.0), "min": 30.0, "max": 80.0, "tgy": -4.0, "los": false},
+	"summit": {"at": Vector2(310.0, -103.9), "tgy": 30.5, "ring": false,
+		"eyes": [Vector3(310.0, 27.4, -70.0)], "eye_ring": [Vector3(310.0, 29.4, -103.9), 24.0, 29.4]},
+	"thornwood": {"max": 70.0},
+	"well": {"at": Vector2(72.0, 204.0), "min": 24.0, "max": 60.0, "tgy": 0.0, "los": false},
+	"oak": {"min": 28.0, "max": 60.0, "ty": 9.0},
+	"cairns": {"ty": 8.0},
+	"plinth": {"min": 16.0, "ty": 5.0},
+}
+
+
+## The landmark xz and options of a region's establishing shot (VIEW_OPTS over the first poi slot over the centre).
+func _view_spec(r: Dictionary) -> Dictionary:
+	var o: Dictionary = (VIEW_OPTS.get(String(r.id), {}) as Dictionary).duplicate()
+	if not o.has("at"):
+		var at := Vector2.ZERO
+		var found := false
+		for s: Dictionary in RealmLayout.SLOTS.get(String(r.id), []):
+			if String(s.kind).begins_with("poi"):
+				at = s.at
+				found = true
+				break
+		if not found:
+			at = (r.rect as Rect2).get_center() if r.has("rect") else (r.c as Vector2)
+		o["at"] = at
+	return o
+
+
+## Camera spots for an establishing shot of `at` (xz): [[eye, target], ...] best first, up to `count`, apart in bearing.
+## Candidates: the walked ways (flora is kept off them) and a ring of open ground, every one 15-60 m (opts min/max) out,
+## eye `h` over the ground. Hard rejects: out of the Realm, in water off a way, steep ground, the eye inside anything,
+## any wall, rock or slope within 4 m round it, a roof or branch within 6 m overhead. Then by how much of the way to the
+## target is clear (the target seen from the eye) and how near the middle of the distance band it stands.
+func _stand_views(at: Vector2, opts: Dictionary, count := 2, h := 2.0) -> Array:
+	var dmin: float = opts.get("min", 15.0)
+	var dmax: float = opts.get("max", 60.0)
+	var los_on: bool = opts.get("los", true)
+	var tg := _gp(at.x, at.y, float(opts.get("ty", 3.0)))
+	if opts.has("tgy"):
+		tg = Vector3(at.x, float(opts.tgy), at.y)
+	var pts: Array = []        # [Vector3 eye (its own y, or -999 = over the ground), bool pinned, bool on_way]
+	for e: Vector3 in opts.get("eyes", []):
+		for off: Vector2 in [Vector2.ZERO, Vector2(3, 0), Vector2(-3, 0), Vector2(0, 3), Vector2(0, -3), Vector2(6, 0), Vector2(-6, 0), Vector2(0, 6), Vector2(0, -6)]:
+			pts.append([Vector3(e.x + off.x, e.y, e.z + off.y), true, true])
+	if opts.has("eye_ring"):
+		var er: Array = opts.eye_ring
+		var ec: Vector3 = er[0]
+		for k in 12:
+			var ea := TAU * float(k) / 12.0
+			pts.append([Vector3(ec.x + cos(ea) * float(er[1]), float(er[2]), ec.z + sin(ea) * float(er[1])), true, true])
+	for w: Dictionary in RealmLayout.PATHS:
+		var wp: Array = w.pts
+		for i in range(wp.size() - 1):
+			var a: Vector2 = wp[i]
+			var b: Vector2 = wp[i + 1]
+			var n := maxi(int(a.distance_to(b) / 5.0), 1)
+			var side := (b - a).normalized().orthogonal() * 2.2
+			for j in n + 1:
+				var q := a.lerp(b, float(j) / float(n))
+				var d := q.distance_to(at)
+				if d < dmin or d > dmax:
+					continue
+				pts.append([Vector3(q.x, -999.0, q.y), false, true])
+				pts.append([Vector3(q.x + side.x, -999.0, q.y + side.y), false, true])
+				pts.append([Vector3(q.x - side.x, -999.0, q.y - side.y), false, true])
+	if bool(opts.get("ring", true)):
+		for k in 24:
+			var ra := TAU * float(k) / 24.0
+			for f in [0.0, 0.5, 1.0]:
+				var rd := lerpf(dmin, dmax, f)
+				pts.append([Vector3(at.x + cos(ra) * rd, -999.0, at.y + sin(ra) * rd), false, false])
+	var ball := SphereShape3D.new()
+	ball.radius = 0.7
+	var bq := PhysicsShapeQueryParameters3D.new()
+	bq.shape = ball
+	bq.collision_mask = Layers.WORLD | Layers.PROPS
 	var cand: Array = []
-	for k in 12:
-		var a := TAU * float(k) / 12.0
-		for mult in [1.0, 1.5]:
-			var q := c + Vector2(cos(a), sin(a)) * rad * float(mult)
-			if not RealmLayout.BOUNDS.grow(-6.0).has_point(q):
+	for c: Array in pts:
+		var e: Vector3 = c[0]
+		var pinned: bool = c[1]
+		if not RealmLayout.BOUNDS.grow(-6.0).has_point(Vector2(e.x, e.z)):
+			continue
+		if not pinned:
+			e = _gp(e.x, e.z, h)
+			if RealmLand.in_water(e.x, e.z) and not bool(c[2]):
 				continue
-			var pos := _gp(q.x, q.y, 2.6)
-			if _eye_buried(pos):
+			# walkable ground: no cliff face or ledge within 3 m
+			var g := e.y - h
+			var steep := false
+			for dd: Vector2 in [Vector2(3, 0), Vector2(-3, 0), Vector2(0, 3), Vector2(0, -3)]:
+				if absf(_gy(e.x + dd.x, e.z + dd.y) - g) > 1.6:
+					steep = true
+			if steep:
 				continue
-			var hit := _space().intersect_ray(PhysicsRayQueryParameters3D.create(pos, tg, Layers.WORLD))
-			var clear := 1.0
-			if not hit.is_empty():
-				clear = pos.distance_to(hit.position) / maxf(pos.distance_to(tg), 0.1)
-			var sc := clear - absf(pos.y - tg.y) * 0.02 - (0.3 if RealmLand.in_water(q.x, q.y) else 0.0)
-			cand.append([sc, pos, a])
+		var flat := Vector2(e.x - at.x, e.z - at.y)
+		if not pinned and (flat.length() < dmin or flat.length() > dmax):
+			continue
+		bq.transform = Transform3D(Basis.IDENTITY, e)
+		var buried := false
+		for hh in _space().intersect_shape(bq, 6):
+			var cn := hh.collider as Node
+			if cn != null and not String(cn.name).begins_with("Terrain"):
+				buried = true
+		if buried:
+			continue
+		var tight := false
+		for k in 8:
+			var dir := Vector3(cos(TAU * float(k) / 8.0), 0.0, sin(TAU * float(k) / 8.0))
+			if not _space().intersect_ray(PhysicsRayQueryParameters3D.create(e, e + dir * 4.0, Layers.WORLD | Layers.PROPS)).is_empty():
+				tight = true
+				break
+		if tight:
+			continue
+		if not _space().intersect_ray(PhysicsRayQueryParameters3D.create(e, e + Vector3(0, 6.0, 0), Layers.WORLD | Layers.PROPS)).is_empty():
+			continue
+		var sc := 0.0
+		if los_on:
+			# four rays at the target (its mark, a little up, a little to each side): the ones that arrive count
+			var seen := 0
+			for tp: Vector3 in [tg, tg + Vector3(0, 3.0, 0), tg + Vector3(3.0, 0, 0), tg + Vector3(-3.0, 0, 0)]:
+				var hit := _space().intersect_ray(PhysicsRayQueryParameters3D.create(e, tp, Layers.WORLD | Layers.PROPS))
+				if hit.is_empty() or (hit.position as Vector3).distance_to(tp) < 6.0:
+					seen += 1
+			if seen == 0:
+				continue
+			sc += float(seen) * 1.5
+		else:
+			var hit0 := _space().intersect_ray(PhysicsRayQueryParameters3D.create(e, e + (tg - e).normalized() * 8.0, Layers.WORLD | Layers.PROPS))
+			if not hit0.is_empty():
+				continue                # the first 8 m of the way to the target is open
+		sc -= absf(flat.length() - (dmin + dmax) * 0.5) * 0.02
+		sc += 0.6 if bool(c[2]) else 0.0
+		sc += 8.0 if pinned else 0.0
+		if not pinned and not is_nan(RealmLayout.water_level_at(e.x, e.z)):
+			sc -= 1.0
+		cand.append([sc, e, atan2(flat.y, flat.x)])
 	cand.sort_custom(func(x: Array, y: Array) -> bool: return float(x[0]) > float(y[0]))
 	var out: Array = []
-	for cd: Array in cand:
-		var ok := true
-		for o: Array in out:
-			if absf(angle_difference(float(cd[2]), float(o[2]))) < deg_to_rad(80.0):
-				ok = false
-		if ok:
-			out.append(cd)
-		if out.size() == 2:
-			break
+	for sep in [60.0, 30.0, 10.0]:
+		for cd: Array in cand:
+			if out.size() >= count:
+				break
+			var ok := true
+			for o: Array in out:
+				if absf(angle_difference(float(cd[2]), float(o[2]))) < deg_to_rad(sep) or (cd[1] as Vector3).distance_to(o[1]) < 8.0:
+					ok = false
+			if ok:
+				out.append(cd)
 	var res: Array = []
 	for o2: Array in out:
 		res.append([o2[1], tg])
 	return res
 
 
-## True when a camera at `pos` would sit inside a wall, a rail, a roof or a trunk (anything but the terrain).
-func _eye_buried(pos: Vector3) -> bool:
-	var ball := SphereShape3D.new()
-	ball.radius = 0.7
-	var bq := PhysicsShapeQueryParameters3D.new()
-	bq.shape = ball
-	bq.collision_mask = Layers.WORLD | Layers.PROPS
-	bq.transform = Transform3D(Basis.IDENTITY, pos)
-	for h in _space().intersect_shape(bq, 6):
-		var cn := h.collider as Node
-		if cn != null and not String(cn.name).begins_with("Terrain"):
-			return true
-	return false
+## The two clearest night views of a region (_stand_views round its landmark).
+func _region_views(r: Dictionary) -> Array:
+	var spec := _view_spec(r)
+	return _stand_views(spec.at, spec)
 
 
 func _s_regions(from: int, to: int) -> void:
@@ -1769,37 +1880,23 @@ func _s_places() -> void:
 	for sp: Array in spots:
 		var c2: Vector2 = sp[1]
 		var tg := _gp(c2.x, c2.y, 2.0)
-		var best_pos := Vector3.ZERO
-		var best_clear := -1.0
-		var ball := SphereShape3D.new()
-		ball.radius = 0.7
-		var bq := PhysicsShapeQueryParameters3D.new()
-		bq.shape = ball
-		bq.collision_mask = Layers.WORLD | Layers.PROPS
-		for k in 16:
-			var a := TAU * float(k) / 16.0 + 0.3
-			var dist := 11.0 if k % 2 == 0 else 15.0
-			var pos2 := _gp(c2.x + cos(a) * dist, c2.y + sin(a) * dist, 2.0)
-			bq.transform = Transform3D(Basis.IDENTITY, pos2)
-			var inside := false
-			for h2 in _space().intersect_shape(bq, 6):
-				var cn := h2.collider as Node
-				if cn != null and not String(cn.name).begins_with("Terrain"):
-					inside = true          # the eye would sit in a wall, a rail or a roof
-			if inside:
-				continue
-			var hit := _space().intersect_ray(PhysicsRayQueryParameters3D.create(pos2, tg, Layers.WORLD))
-			var cl := 1.0 if hit.is_empty() else pos2.distance_to(hit.position) / maxf(pos2.distance_to(tg), 0.1)
-			if cl > best_clear:
-				best_clear = cl
-				best_pos = pos2
+		# the settlement from the ways and open ground 9-26 m out, at eye height (_stand_views: clear of walls, rock, roofs and branches)
+		var pv := _stand_views(c2, {"min": 9.0, "max": 26.0, "ty": 2.0}, 1, 1.8)
+		if pv.is_empty():
+			_fail("no usable camera spot for place " + String(sp[0]))
+			continue
+		var best_pos: Vector3 = pv[0][0]
 		_perf_begin("close_" + String(sp[0]))
-		await _view_still("close_%s.png" % String(sp[0]), "close-up of %s at night (11 m, eye height)" % String(sp[0]).replace("_", " "), best_pos, tg)
+		await _view_still("close_%s.png" % String(sp[0]), "close-up of %s at night (9-26 m, eye height)" % String(sp[0]).replace("_", " "), best_pos, tg)
 		_perf_end()
 		if String(sp[0]) in ["hearth", "weirford", "saltmarket"]:
-			# the square as a whole, from a roof's height on the side opposite the close-up: is it a market or a plane
-			var back := Vector3(c2.x - (best_pos.x - c2.x), 0.0, c2.y - (best_pos.z - c2.y))
-			var hi := _gp(back.x, back.z, 7.5)
+			# the square as a whole, from a roof's height on the far side from the close-up (the first clear spot 85+ degrees round from it)
+			var hi := _gp(c2.x - (best_pos.x - c2.x), c2.y - (best_pos.z - c2.y), 7.5)
+			for ov: Array in _stand_views(c2, {"min": 14.0, "max": 34.0, "ty": 2.0}, 4, 7.0):
+				var ovp: Vector3 = ov[0]
+				if absf(angle_difference(atan2(ovp.z - c2.y, ovp.x - c2.x), atan2(best_pos.z - c2.y, best_pos.x - c2.x))) > 1.5:
+					hi = ovp
+					break
 			await _view_still("over_%s.png" % String(sp[0]), "the square of %s from 7 m up" % String(sp[0]), hi, tg)
 	# boss arenas as built: every BossArena from its edge
 	for a in get_tree().get_nodes_in_group(&"boss_arena"):
