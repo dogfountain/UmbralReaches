@@ -18,6 +18,7 @@ extends "res://core/npc/dwarf_rig.gd"
 ## of DwarfMesh stops at 1.55 m).
 
 const VMesh := preload("res://core/life/village/villager_mesh.gd")
+const Extra := preload("res://core/life/village/villager_tools_extra.gd")   ## broom, bucket, sack, fiddle, bow, torch
 const SELF_V := "res://core/life/village/villager_rig.gd"
 const SCALE := 1.1                 ## adults are built 1.53 m tall and shown at 1.68 m
 
@@ -931,6 +932,8 @@ func _tool(mb: Variant, side: int, kind: String, skin: Color) -> void:
 			mb.tube(PackedVector3Array([cb - ax * 0.02 * K, cb + ax * 0.04 * K]), _pf([0.035, 0.038], K), 10, IRON.darkened(0.3), DwarfMesh.MAT_METAL, {"lumps": 0.0})
 			mb.tube(PackedVector3Array([cb + ax * 0.03 * K, cb + ax * 0.12 * K]), _pf([0.012, 0.011], K), 8, Color(0.92, 0.88, 0.76), DwarfMesh.MAT_LINEN, {"lumps": 0.02})
 			tips[side] = cb + ax * 0.135 * K
+		_:
+			Extra.build(self, mb, side, kind)
 
 
 ## The lantern's glass, the candle's flame or the iron in the tongs: a tiny unshaded mesh on a
@@ -941,7 +944,7 @@ func _glow_part() -> void:
 	if not kind in ["lantern", "tongs"]:
 		kind = String(cfg.get("r", ""))
 		side = 0
-		if kind != "candle":
+		if not kind in ["candle", "torch"]:
 			return
 	_glow_side = side
 	glow_mat = StandardMaterial3D.new()
@@ -973,8 +976,8 @@ func _glow_part() -> void:
 			glow.basis = Basis(Quaternion(Vector3.BACK, ax))
 		_:
 			var f := SphereMesh.new()
-			f.radius = 0.012 * k
-			f.height = 0.045 * k
+			f.radius = (0.026 if kind == "torch" else 0.012) * k
+			f.height = (0.09 if kind == "torch" else 0.045) * k
 			f.radial_segments = 8
 			f.rings = 4
 			glow.mesh = f
