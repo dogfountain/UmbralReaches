@@ -147,7 +147,7 @@ static func states(tree: SceneTree = null) -> Dictionary:
 	return out
 
 
-## Lines an NPC's hub gains: [{text, quest_ui: "offer:id" | "turnin:id"}] (accept-screen tasks).
+## Lines an NPC's hub gains: [{text, task: "offer" | "turnin" (the dialogue paints the quest mark), quest_ui: "offer:id" | "turnin:id"}] (accept-screen tasks).
 static func gossip(npc: String, tree: SceneTree = null) -> Array:
 	var out: Array = []
 	for id: String in Chains.ORDER:
@@ -155,10 +155,10 @@ static func gossip(npc: String, tree: SceneTree = null) -> Array:
 		if not bool(qd.get("offer", false)):
 			continue
 		if Book.ready(id) and talker(id) == npc:
-			out.append({"text": "?  %s" % String(qd.name), "quest_ui": "turnin:" + id, "to": ""})
+			out.append({"text": String(qd.name), "task": "turnin", "quest_ui": "turnin:" + id, "to": ""})
 		elif Chains.giver(id) == npc and available(id, tree):
 			var tag := "  (daily)" if String(qd.get("repeat", "")) == "daily" else ""
-			out.append({"text": "◆  %s%s" % [String(qd.name), tag], "quest_ui": "offer:" + id, "to": ""})
+			out.append({"text": "%s%s" % [String(qd.name), tag], "task": "offer", "quest_ui": "offer:" + id, "to": ""})
 	return out
 
 

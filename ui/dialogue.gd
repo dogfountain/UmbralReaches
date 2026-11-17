@@ -186,6 +186,7 @@ func _build_subtitles() -> void:
 class _Choice extends Button:
 	var num := 1
 	var lit := false
+	var mark := ""                          ## "offer" / "turnin": the painted quest mark before the text ("" = a plain choice)
 
 	func _draw() -> void:
 		var cy := size.y * 0.5
@@ -202,6 +203,10 @@ class _Choice extends Button:
 		var ts := f.get_string_size(t, HORIZONTAL_ALIGNMENT_LEFT, -1, 19)
 		draw_string(f, Vector2(cap.position.x + (cap.size.x - ts.x) * 0.5, cy + ts.y * 0.3), t, HORIZONTAL_ALIGNMENT_LEFT, -1, 19,
 			Color(1.0, 0.9, 0.6) if hot else Color(0.8, 0.7, 0.5))
+		if mark != "":
+			var tex := IconArt.art("mark", "quest_turnin" if mark == "turnin" else "quest_available")
+			if tex != null:
+				draw_texture_rect(tex, Rect2(62.0, cy - 13.0, 26.0, 26.0), false, Color(1, 1, 1, 1.0 if hot else 0.85))
 
 
 # --- portrait ---------------------------------------------------------------------------------
@@ -331,7 +336,8 @@ func set_mood(att: int) -> void:
 
 
 ## Show a line. `choices` empty = continue on E.
-func line(speaker: String, text: String, choices: Array[String] = []) -> void:
+## `marks` (parallel to `choices`, "" = none) is a choice's painted task mark: "offer" or "turnin" (QuestBook.task_mark).
+func line(speaker: String, text: String, choices: Array[String] = [], marks: Array[String] = []) -> void:
 	_name.text = speaker
 	_text.text = text
 	_total = _text.get_total_character_count()
@@ -350,6 +356,7 @@ func line(speaker: String, text: String, choices: Array[String] = []) -> void:
 		var b := _Choice.new()
 		b.num = i + 1
 		b.text = String(choices[i])
+		b.mark = String(marks[i]) if i < marks.size() else ""
 		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		b.focus_mode = Control.FOCUS_NONE
 		b.custom_minimum_size = Vector2(0, 42)
@@ -399,7 +406,7 @@ func _refresh_hint() -> void:
 func _mark() -> void:
 	for i in _buttons.size():
 		var b := _buttons[i] as _Choice
-		var task := b.text.contains("◆")
+		var task := b.mark != ""
 		var lit := i == _sel
 		b.lit = lit
 		b.add_theme_color_override("font_color", Color(1.0, 0.92, 0.66) if lit else (Color(0.95, 0.82, 0.6) if task else Med.BONE_DIM))
@@ -407,10 +414,11 @@ func _mark() -> void:
 		if lit:
 			sb = Med.plaque("hover", 66, 4)
 			sb.modulate_color = Color(1.15, 1.08, 1.0)
+			sb.content_margin_left = 66 + (30 if task else 0)
 		else:
 			sb = Med.inset(4)
 			sb.modulate_color = Color(1, 1, 1, 0.55)
-			sb.content_margin_left = 66
+			sb.content_margin_left = 66 + (30 if task else 0)
 		sb.content_margin_right = 16
 		for st: String in ["normal", "hover", "pressed", "focus"]:
 			b.add_theme_stylebox_override(st, sb)
