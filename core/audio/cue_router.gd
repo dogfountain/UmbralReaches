@@ -37,6 +37,7 @@ var _fog_t := 50.0
 var _braziers: Array = []
 var _scan_t := 0.0
 var _heart_t := 0.0
+var _detail_t := 20.0
 var _gloom_k := 0.0
 var _rng := RandomNumberGenerator.new()
 
@@ -103,7 +104,8 @@ func _on_killed(enemy: Node) -> void:
 
 func _on_hurt(amount: float, _from: Vector3) -> void:
 	if _gate("hurt", 0.3):
-		CueBank.play(self, "hurt_body", clampf(-8.0 + amount * 0.5, -8.0, 3.0))
+		var cue := "hurt_light" if amount < 6.0 else ("hurt_body" if amount < 18.0 else "hurt_heavy")
+		CueBank.play(self, cue, clampf(-4.0 + amount * 0.15, -4.0, 3.0))
 
 
 func _on_cast(enemy: Node, _cast: String, _time: float, interruptible: bool) -> void:
@@ -205,6 +207,7 @@ func _process(dt: float) -> void:
 	_poll_room()
 	_moths(0.25)
 	_fog(0.25)
+	_details(0.25)
 
 
 ## Crossing into a room (the tavern, a hall, a cave, a crypt) is a door: a creak and a latch behind, the other way a thud.
@@ -278,6 +281,50 @@ func _moths(dt: float) -> void:
 			var off := Vector3(_rng.randf_range(-0.8, 0.8), _rng.randf_range(0.8, 1.8), _rng.randf_range(-0.8, 0.8))
 			CueBank.play_at("moth_flutter", (b as Node3D).global_position + off, 0.0, _rng.randf_range(0.9, 1.15))
 			return
+
+
+## Small things by the hour and the region: a dawn chorus in the last tenth of the night, owls in its late hours, and by place a
+## shutter, a far chime, a rockfall, bones settling, a gust. Never in a fight, the eclipse's totality or a heavy gloom.
+func _details(dt: float) -> void:
+	_detail_t -= dt
+	if _detail_t > 0.0:
+		return
+	var c := Reg.clock
+	var dawn := c > 0.9
+	_detail_t = _rng.randf_range(5.0, 11.0) if dawn else _rng.randf_range(14.0, 32.0)
+	var pl := _player()
+	if pl == null or ambience == null or _gloom_k > 0.5 or _e_state == 2:
+		return
+	var sd := get_tree().get_first_node_in_group(&"score_director") as ScoreDirector
+	if sd != null and (sd.combat > 0.1 or sd.tension > 0.3):
+		return
+	var family := String(ScoreDirector.SCAPE_FAMILY.get(ambience.scape, "village"))
+	var picks: Array = []
+	if dawn and family != "crypt":
+		picks = ["bird_a", "bird_b", "bird_c"]
+	elif c > 0.55 and c < 0.88 and family in ["wood", "fen", "village"]:
+		picks = ["owl_far", "owl_far", "wind_gust"]
+	else:
+		match family:
+			"village":
+				picks = ["shutter_creak", "chime_far", "wind_gust"]
+			"wood":
+				picks = ["stone_tick", "wind_gust", "owl_far"]
+			"fen":
+				picks = ["wind_gust", "chime_far", "owl_far"]
+			"heights":
+				picks = ["rockfall_far", "wind_gust", "stone_tick"]
+			"crypt":
+				picks = ["bone_settle", "stone_tick", "chime_far"]
+	if picks.is_empty():
+		return
+	var cue := String(picks[_rng.randi() % picks.size()])
+	var n := _rng.randi_range(2, 3) if dawn and cue.begins_with("bird") else 1
+	for i in n:
+		var a := _rng.randf() * TAU
+		var d := _rng.randf_range(12.0, 30.0)
+		var at := pl.global_position + Vector3(cos(a) * d, _rng.randf_range(0.6, 5.0), sin(a) * d)
+		get_tree().create_timer(0.4 + 0.7 * float(i) + _rng.randf() * 0.4, true).timeout.connect(func() -> void: CueBank.play_at(cue, at, 0.0, _rng.randf_range(0.92, 1.1)))
 
 
 ## Fog breathing over the fen's low ground (the drifting banks of night_life/fog_banks.gd): a long soft breath off to one side.

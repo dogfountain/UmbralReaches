@@ -71,6 +71,24 @@ const RECIPES := {
 	"tell_heavy": {"len": 1.0, "db": -19.0, "layers": [["sine", 0.0, 0.9, 82.0, 165.0, 0.4, 0.2, 0.8], ["noise", 0.0, 0.8, 0.15, 100.0, 800.0, 0.3, 0.5, 0.0]]},
 	"tell_break": {"len": 0.4, "db": -13.0, "layers": [["noise", 0.0, 0.12, 0.6, 1500.0, 9000.0, 0.001, 0.04, 0.0], ["bell", 0.0, 1319.0, 0.25, 0.25]]},
 	"gloom_heart": {"len": 0.7, "db": -16.0, "layers": [["thud", 0.0, 60.0, 42.0, 0.22, 0.7], ["thud", 0.28, 55.0, 40.0, 0.25, 0.5]]},
+	# --- small life and small things, placed by the hour and the region (cue_router.gd _details) ---
+	"bird_a": {"len": 0.5, "db": -24.0, "layers": [["sine", 0.0, 0.07, 3000.0, 3800.0, 0.5, 0.005, 0.03], ["sine", 0.11, 0.07, 3200.0, 4000.0, 0.45, 0.005, 0.03], ["sine", 0.22, 0.1, 2800.0, 3700.0, 0.5, 0.005, 0.04]]},
+	"bird_b": {"len": 0.6, "db": -25.0, "layers": [["sine", 0.0, 0.05, 4200.0, 4600.0, 0.4, 0.003, 0.02], ["sine", 0.07, 0.05, 4300.0, 4700.0, 0.4, 0.003, 0.02], ["sine", 0.14, 0.05, 4200.0, 4650.0, 0.4, 0.003, 0.02], ["sine", 0.21, 0.05, 4300.0, 4800.0, 0.4, 0.003, 0.02], ["sine", 0.28, 0.06, 4200.0, 4900.0, 0.4, 0.003, 0.025]]},
+	"bird_c": {"len": 0.9, "db": -23.0, "layers": [["sine", 0.0, 0.3, 2400.0, 2450.0, 0.45, 0.04, 0.18], ["sine", 0.38, 0.4, 1900.0, 1850.0, 0.45, 0.05, 0.22]]},
+	"owl_far": {"len": 2.0, "db": -22.0, "layers": [["sine", 0.0, 0.45, 390.0, 340.0, 0.5, 0.08, 0.25], ["sine", 0.75, 0.9, 380.0, 300.0, 0.5, 0.1, 0.45], ["noise", 0.0, 1.4, 0.08, 300.0, 900.0, 0.1, 0.5, 0.0]]},
+	"shutter_creak": {"len": 0.9, "db": -22.0, "layers": [["sine", 0.0, 0.4, 220.0, 310.0, 0.3, 0.05, 0.2], ["noise", 0.0, 0.4, 0.25, 300.0, 1500.0, 0.05, 0.2, 10.0], ["thud", 0.45, 150.0, 90.0, 0.08, 0.3]]},
+	"chime_far": {"len": 2.4, "db": -26.0, "layers": [["bell", 0.0, 2093.0, 0.3, 0.9], ["bell", 0.5, 2637.0, 0.22, 0.8], ["bell", 1.2, 1760.0, 0.2, 0.9]]},
+	"rockfall_far": {"len": 2.2, "db": -23.0, "layers": [["noise", 0.0, 1.8, 0.5, 150.0, 2500.0, 0.02, 0.5, 0.0], ["thud", 0.3, 90.0, 50.0, 0.15, 0.4], ["thud", 0.7, 80.0, 45.0, 0.15, 0.3], ["thud", 1.2, 100.0, 55.0, 0.12, 0.25]]},
+	"bone_settle": {"len": 1.4, "db": -24.0, "layers": [["noise", 0.0, 0.06, 0.5, 2000.0, 7500.0, 0.001, 0.02, 0.0], ["noise", 0.35, 0.05, 0.45, 2200.0, 7500.0, 0.001, 0.02, 0.0], ["noise", 0.8, 0.07, 0.4, 1800.0, 7000.0, 0.001, 0.025, 0.0], ["thud", 0.82, 110.0, 70.0, 0.1, 0.3]]},
+	"stone_tick": {"len": 0.5, "db": -25.0, "layers": [["thud", 0.0, 500.0, 300.0, 0.05, 0.4], ["noise", 0.0, 0.03, 0.4, 1500.0, 7000.0, 0.001, 0.01, 0.0]]},
+	"wind_gust": {"len": 3.0, "db": -26.0, "layers": [["noise", 0.0, 2.8, 0.5, 200.0, 2200.0, 1.0, 1.0, 0.0]]},
+	# --- the body: lighter and heavier, cloth and gear ---
+	"hurt_light": {"len": 0.35, "db": -12.0, "layers": [["thud", 0.0, 190.0, 90.0, 0.12, 0.5], ["noise", 0.0, 0.1, 0.3, 200.0, 1800.0, 0.002, 0.04, 0.0]]},
+	"hurt_heavy": {"len": 0.7, "db": -6.0, "layers": [["thud", 0.0, 120.0, 40.0, 0.35, 0.8], ["noise", 0.0, 0.3, 0.45, 80.0, 1200.0, 0.002, 0.12, 0.0], ["sine", 0.06, 0.45, 150.0, 90.0, 0.25, 0.02, 0.2]]},
+	"dodge_cloth": {"len": 0.4, "db": -20.0, "layers": [["noise", 0.0, 0.3, 0.45, 800.0, 5000.0, 0.03, 0.12, 6.0]]},
+	"land_soft": {"len": 0.3, "db": -18.0, "layers": [["thud", 0.0, 130.0, 70.0, 0.12, 0.6], ["noise", 0.0, 0.08, 0.3, 400.0, 3000.0, 0.002, 0.03, 0.0]]},
+	"parry_spark": {"len": 0.5, "db": -14.0, "layers": [["sine", 0.0, 0.3, 2349.0, 2300.0, 0.35, 0.001, 0.12], ["noise", 0.0, 0.08, 0.5, 3000.0, 10000.0, 0.001, 0.03, 0.0]]},
+	"gear_clink": {"len": 0.3, "db": -24.0, "layers": [["sine", 0.0, 0.15, 1800.0, 1780.0, 0.3, 0.001, 0.06], ["noise", 0.0, 0.03, 0.3, 2500.0, 8000.0, 0.001, 0.01, 0.0]]},
 	# --- the story ---
 	"quest_step": {"len": 0.6, "db": -19.0, "layers": [["pluck", 0.0, 784.0, 0.4, 0.35], ["bell", 0.06, 1175.0, 0.2, 0.3]]},
 	"stinger_victory": {"len": 3.2, "db": -12.0, "layers": [["horn", 0.0, 2.4, 147.0, 0.4, 0.3], ["bell", 0.2, 294.0, 0.4, 1.4], ["choir", 0.3, 2.4, 220.0, 0.2, 0.6]]},
@@ -94,7 +112,15 @@ const RECIPES := {
 	"boss_r37_hierarch_death": {"len": 4.0, "db": -11.0, "layers": [["horn", 0.0, 1.2, 147.0, 0.4, 0.1], ["choir", 0.3, 1.8, 784.0, 0.1, 0.3]]},
 }
 
-static var _bytes := {}                 ## id -> PackedByteArray (filled by the worker, read on the main thread)
+## How many takes a cue has: the same recipe with its pitches nudged a few percent, its notes a few percent early or late and its
+## noise reseeded, so a thing that sounds often (a blow, a pickup, a door) never sounds the same twice running.
+const TAKES := 3
+const FREQ_MUL := [1.0, 1.045, 0.958]
+const TIME_MUL := [1.0, 0.93, 1.07]
+const SINGLE_PREFIX := ["boss_", "eclipse_", "camp_", "beacon_", "stinger_", "landmark_", "horse_bond", "ui_count", "ui_chronicle"]
+
+static var _bytes := {}                 ## "id#take" -> PackedByteArray (filled by the worker, read on the main thread)
+static var _turn := {}                  ## id -> the take played last
 static var _streams := {}               ## id -> AudioStreamWAV
 static var _mutex := Mutex.new()
 static var _task := -1
@@ -109,6 +135,14 @@ static func has(id: String) -> bool:
 	return RECIPES.has(id)
 
 
+## How many takes `id` renders (one for the long, set-piece cues).
+static func takes_of(id: String) -> int:
+	for p: String in SINGLE_PREFIX:
+		if id.begins_with(p):
+			return 1
+	return TAKES
+
+
 ## Start rendering the shelf on a worker thread (once). Cached cues load from disk; the rest are rendered one after another.
 static func warm() -> void:
 	if _task >= 0 or _done:
@@ -120,7 +154,10 @@ static func ready() -> bool:
 	_mutex.lock()
 	var n := _bytes.size()
 	_mutex.unlock()
-	return n >= RECIPES.size()
+	var want := 0
+	for id: String in RECIPES:
+		want += takes_of(id)
+	return n >= want
 
 
 static func release() -> void:
@@ -132,68 +169,80 @@ static func release() -> void:
 	_bytes.clear()
 	_mutex.unlock()
 	_streams.clear()
+	_turn.clear()
 
 
-static func _key(id: String) -> String:
-	return "cue_%s_v%d" % [id, VERSION]
+static func _key(id: String, take: int) -> String:
+	return "cue_%s_t%d_v%d" % [id, take, VERSION]
 
 
 static func _work() -> void:
 	for id: String in RECIPES:
-		var key := _key(id)
-		var data: Variant = GenCache.load_var(key, SELF)
-		var bytes: PackedByteArray
-		if data is PackedByteArray and (data as PackedByteArray).size() > 64:
-			bytes = data
-		else:
-			bytes = Kit.encode(render(id))
-			GenCache.save_var(key, SELF, bytes)
-		_mutex.lock()
-		_bytes[id] = bytes
-		_mutex.unlock()
+		for take in takes_of(id):
+			var key := _key(id, take)
+			var data: Variant = GenCache.load_var(key, SELF)
+			var bytes: PackedByteArray
+			if data is PackedByteArray and (data as PackedByteArray).size() > 64:
+				bytes = data
+			else:
+				bytes = Kit.encode(render(id, take))
+				GenCache.save_var(key, SELF, bytes)
+			_mutex.lock()
+			_bytes["%s#%d" % [id, take]] = bytes
+			_mutex.unlock()
 	_done = true
 
 
-## One cue's samples (peak-normalised; the cue's own `db` is its playback level). Pure: safe on any thread.
-static func render(id: String) -> PackedFloat32Array:
+## One take of a cue's samples (peak-normalised; the cue's own `db` is its playback level). Pure: safe on any thread.
+static func render(id: String, take := 0) -> PackedFloat32Array:
 	var r: Dictionary = RECIPES[id]
 	var out := Kit.buf(float(r.len))
-	var seed_v := hash(id) % 100000
+	var seed_v := hash(id) % 100000 + take * 1013
+	var fm: float = FREQ_MUL[take % 3]
+	var tm: float = TIME_MUL[take % 3]
 	var n := 0
 	for ly: Array in r.layers:
 		n += 1
 		var s := seed_v + n * 17
+		var t := float(ly[1]) * tm
 		match String(ly[0]):
 			"sine":
-				Kit.partial(out, float(ly[1]), float(ly[2]), float(ly[3]), float(ly[5]), float(ly[6]), float(ly[7]), float(ly[4]))
+				Kit.partial(out, t, float(ly[2]), float(ly[3]) * fm, float(ly[5]), float(ly[6]), float(ly[7]), float(ly[4]) * fm)
 			"bell":
-				Kit.bell(out, float(ly[1]), float(ly[2]), float(ly[3]), float(ly[4]))
+				Kit.bell(out, t, float(ly[2]) * fm, float(ly[3]), float(ly[4]))
 			"pluck":
-				Kit.pluck(out, float(ly[1]), float(ly[2]), float(ly[3]), float(ly[4]))
+				Kit.pluck(out, t, float(ly[2]) * fm, float(ly[3]), float(ly[4]))
 			"noise":
-				Kit.noise(out, float(ly[1]), float(ly[2]), float(ly[3]), float(ly[4]), float(ly[5]), float(ly[6]), float(ly[7]), s, float(ly[8]))
+				Kit.noise(out, t, float(ly[2]), float(ly[3]), float(ly[4]), float(ly[5]) * fm, float(ly[6]), float(ly[7]), s, float(ly[8]))
 			"thud":
-				Kit.thud(out, float(ly[1]), float(ly[2]), float(ly[3]), float(ly[4]), float(ly[5]), s)
+				Kit.thud(out, t, float(ly[2]) * fm, float(ly[3]) * fm, float(ly[4]), float(ly[5]), s)
 			"choir":
-				Kit.choir(out, float(ly[1]), float(ly[2]), float(ly[3]), float(ly[4]), float(ly[5]))
+				Kit.choir(out, t, float(ly[2]), float(ly[3]) * fm, float(ly[4]), float(ly[5]))
 			"horn":
-				Kit.horn(out, float(ly[1]), float(ly[2]), float(ly[3]), float(ly[4]), float(ly[5]))
+				Kit.horn(out, t, float(ly[2]), float(ly[3]) * fm, float(ly[4]), float(ly[5]))
 	Kit.finish(out, 0.85, 0.02)
 	return out
 
 
 ## The stream of a cue, or null while it has not rendered yet.
 static func stream(id: String) -> AudioStreamWAV:
-	if _streams.has(id):
-		return _streams[id]
-	_mutex.lock()
-	var b: Variant = _bytes.get(id)
-	_mutex.unlock()
-	if b == null:
-		return null
-	var w := Kit.wav(b as PackedByteArray)
-	_streams[id] = w
-	return w
+	var k := takes_of(id)
+	var last := int(_turn.get(id, -1))
+	for i in k:
+		var take := (last + 1 + i) % k              # round-robin: never the take just played while another is ready
+		var tk := "%s#%d" % [id, take]
+		if _streams.has(tk):
+			_turn[id] = take
+			return _streams[tk]
+		_mutex.lock()
+		var b: Variant = _bytes.get(tk)
+		_mutex.unlock()
+		if b != null:
+			var w := Kit.wav(b as PackedByteArray)
+			_streams[tk] = w
+			_turn[id] = take
+			return w
+	return null
 
 
 static func _bus(id: String) -> StringName:

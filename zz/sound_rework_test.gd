@@ -23,7 +23,7 @@ func _ready() -> void:
 	var total := 0.0
 	for id: String in CueBank.ids():
 		var t0 := Time.get_ticks_usec()
-		var pcm := CueBank.render(id)
+		var pcm := CueBank.render(id, CueBank.takes_of(id) - 1)
 		var ms := float(Time.get_ticks_usec() - t0) / 1000.0
 		total += ms
 		var st := _stats(pcm)
