@@ -128,3 +128,19 @@ Families and their character: **hollow** (a breathy moan), **gaunt** (a dry rasp
 **cinder** (a crackle and a sigh), **brood** (a chittering swarm). Bosses keep their phase cues (`boss_<id>_intro/phase/death`, fired by the router on
 engage, on each phase turn and on death). **Cost:** none on the main thread; the render is
 part of the cue worker's one-time job.
+
+## Sound coverage audit (fifth wave)
+
+Every `Events` signal and gameplay action was walked; those without a sound now have a cue (three takes each, through the cue bank, router-driven):
+climbing (`grab_clink`, `vault_whoosh`, `mantle_grunt`, hooked in `player_traversal.gd`), wading into water (`wade_splash`), landing (existing `land_soft`), respawn (`respawn_breath`),
+seals (`seal_tick` on progress, `seal_break`), the Ember Road (`fire_whoosh` and the toll's `toll_grains`), a status taken on (`status_buff` / `status_debuff`, wanderer only),
+a night turning (`night_turn`), the credits told (`stinger_credits`), a denied cast (`ui_deny` via `skill_failed`), a world event's warning (`event_warn`), the horse whistle. Already covered
+elsewhere: map open/close, the Count, the shop, level choices, quest steps, camp, kindling, pickups. There is no stash, crafting or swimming in the game (pools are waded), so none was invented.
+
+## Interior beds (`interior_beds.gd`, `acoustic_zones.gd`)
+
+`AcousticZones.register(aabb, room, label)` now carries the zone's bed name. Standing in a zone fades in its twelve-second loop (non-positional on the Ambience bus, so the outdoor muffle
+does not touch it): **hall**, **cave**, **crypt**, **tower** (Wardens' towers: wind in iron, a fire's tick), **hollow** (the Hollow King's hall), **heart** (a furnace's slow pulse),
+**hold** (a ship's timbers and water), **nave** (a held chord and drips). A builder registers a zone with the label it wants; one without a bed of its own gets its room's. The reverb room (hall,
+cave, crypt) and indoor muffle are Ambience's. **Cost:** one non-positional player; a 0.5 s zone lookup over the registered boxes; the worker renders eight loops once.
+**Check:** the world seat's interiors (Sleeper's heart-hall, the ship's hold, a cathedral nave, the Wardens' halls) call `AcousticZones.register` with these labels when they land; until then only the Wardens' towers and the Hollow King's hall register (from `landmark_voices.gd`).

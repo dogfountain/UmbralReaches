@@ -14,6 +14,8 @@ const MixDirector := preload("res://core/audio/mix_director.gd")
 const BarkDB := preload("res://core/life/village/village_bark_db.gd")
 const Chains := preload("res://core/story/quest_chains.gd")
 const DialogueDB := preload("res://core/story/dialogue_db.gd")
+const InteriorBeds := preload("res://core/audio/interior_beds.gd")
+const LandmarkVoices := preload("res://core/audio/landmark_voices.gd")
 const Village := preload("res://core/life/village/village.gd")
 
 var bad := 0
@@ -49,6 +51,13 @@ func _ready() -> void:
 			_ok(st2.seam < 0.35 * st2.peak, "%s loops without a click (seam %.3f of peak %.2f)" % [id2, st2.seam, st2.peak])
 		if dump != "":
 			Kit.wav(Kit.encode(pcm2)).save_to_wav("%s/stem_%s.wav" % [dump, id2])
+	for bed: String in InteriorBeds.BEDS:
+		var pcm3 := InteriorBeds.build(bed)
+		var st3 := _stats(pcm3)
+		_ok(not st3.nan and st3.rms > 0.01 and st3.seam < 0.35 * maxf(st3.peak, 0.001), "interior bed %s renders and loops (rms %.3f seam %.3f)" % [bed, st3.rms, st3.seam])
+	for bed2: String in LandmarkVoices.BEDS:
+		var st4 := _stats(LandmarkVoices.build(bed2))
+		_ok(not st4.nan and st4.rms > 0.01, "landmark bed %s renders (rms %.3f)" % [bed2, st4.rms])
 	_ok(Occlusion.db(null, Vector3.ZERO) == 0.0, "no camera, no occlusion")
 	AcousticZones.clear()
 	AcousticZones.register(AABB(Vector3(0, 0, 0), Vector3(10, 5, 10)), "hall")
