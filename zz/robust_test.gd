@@ -121,7 +121,7 @@ func _process(d: float) -> void:
 			sm.call("open")
 			for i in 4:
 				sm.call("_show_tab", i)
-			_ok(String(sm.call("_keys_text", ["dodge"], "?")) == "V", "keys list reads the InputMap (dodge = %s)" % sm.call("_keys_text", ["dodge"], "?"))
+			_ok(InputSetup.live_label("dodge", false, "?") == "V", "keys list reads the InputMap (dodge = %s)" % InputSetup.live_label("dodge", false, "?"))
 			_ok(String(sm.call("_pad_text", ["jump"], "")) == "A", "pad list reads the InputMap (jump = %s)" % sm.call("_pad_text", ["jump"], ""))
 			sm.call("close")
 			_ok(not get_tree().paused, "settings close unpauses")

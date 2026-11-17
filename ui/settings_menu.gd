@@ -345,23 +345,6 @@ func _build_hud(p: VBoxContainer) -> void:
 		cb.set_pressed_no_signal(bool(HudPrefs.track.get(k, true)))
 
 
-## [label, actions (their bindings are shown), keyboard text when none is in the InputMap, pad text
-## to use instead of the InputMap's]
-const KEY_ROWS := [
-	["Move", [], "W A S D", "Left stick"], ["Look", [], "Mouse", "Right stick"],
-	["Sprint", ["sprint"], "", "L3 (toggles)"], ["Jump", ["jump"], "", ""], ["Slide", ["slide"], "", ""],
-	["Dodge roll", ["dodge"], "", "B (slow or locked on)"], ["Lock on", ["lock_on"], "", ""], ["Next target", ["target_next"], "T", "Flick the stick, locked"],
-	["Staff strike (hold: heavy)", ["staff_strike"], "", "RT up close"], ["Guard / parry", ["guard"], "", "B held, locked on"],
-	["Kindle / talk / use", ["interact"], "", ""],
-	["Skills 1  ·  2", ["skill_bolt", "skill_lance"], "", ""], ["Skills 3  ·  4  ·  5", ["skill_nova", "skill_ward", "skill_step"], "", ""],
-	["Character (Wanderer, Kindling, Pack, Journal)", ["inventory"], "", ""], ["Its tabs  ·  pages", [], "1 - 4  ·  Q E", "LT RT  ·  LB RB"],
-	["Straight to Gear  ·  Kindling", ["gear", "kindling"], "O  ·  K", ""], ["Straight to Journal  ·  Tasks", ["codex", "quest_log"], "J  ·  L", ""],
-	["World map  ·  Minimap", ["world_map", "minimap"], "M  ·  N", "Share"],
-	["Settings", ["toggle_settings"], "", ""], ["Fullscreen", ["fullscreen"], "", "-"],
-	["Colour grade", ["toggle_grade"], "", "-"], ["Stats overlay", ["toggle_debug"], "", "-"],
-]
-
-
 ## the bindings are editable. Click a button, press the new key / mouse button (or controller button for the
 ## pad column); Esc cancels. A key or button that already does something else is refused, with the message below.
 ## Saved in settings.cfg (Settings.bindings) and applied by InputSetup on boot.
@@ -484,31 +467,6 @@ func _listen_input(event: InputEvent) -> void:
 	_refresh_binds()
 
 
-func _keys_text(actions: Array, fallback: String) -> String:
-	var parts := PackedStringArray()
-	for act: String in actions:
-		if not InputMap.has_action(act):
-			continue
-		var mine := PackedStringArray()
-		for ev in InputMap.action_get_events(act):
-			if ev is InputEventKey:
-				var kc := (ev as InputEventKey).physical_keycode
-				if kc == KEY_NONE:
-					kc = (ev as InputEventKey).keycode
-				mine.append(OS.get_keycode_string(kc))
-			elif ev is InputEventMouseButton:
-				mine.append(String({MOUSE_BUTTON_LEFT: "LMB", MOUSE_BUTTON_RIGHT: "RMB", MOUSE_BUTTON_MIDDLE: "MMB"}.get((ev as InputEventMouseButton).button_index, "Mouse")))
-		if not mine.is_empty():
-			parts.append(" / ".join(mine))
-	return fallback if parts.is_empty() else "  ·  ".join(parts)
-
-
-const PAD_NAMES := {JOY_BUTTON_A: "A", JOY_BUTTON_B: "B", JOY_BUTTON_X: "X", JOY_BUTTON_Y: "Y",
-	JOY_BUTTON_BACK: "View", JOY_BUTTON_START: "Menu", JOY_BUTTON_LEFT_STICK: "L3", JOY_BUTTON_RIGHT_STICK: "R3",
-	JOY_BUTTON_LEFT_SHOULDER: "LB", JOY_BUTTON_RIGHT_SHOULDER: "RB", JOY_BUTTON_DPAD_UP: "D-pad up",
-	JOY_BUTTON_DPAD_DOWN: "D-pad down", JOY_BUTTON_DPAD_LEFT: "D-pad left", JOY_BUTTON_DPAD_RIGHT: "D-pad right"}
-
-
 func _pad_text(actions: Array, fallback: String) -> String:
 	if fallback != "":
 		return fallback
@@ -519,7 +477,7 @@ func _pad_text(actions: Array, fallback: String) -> String:
 		for ev in InputMap.action_get_events(act):
 			if ev is InputEventJoypadButton:
 				var bi := (ev as InputEventJoypadButton).button_index
-				parts.append(String(PAD_NAMES.get(bi, "Button %d" % bi)))
+				parts.append(InputSetup.event_name(ev))
 				break
 			if ev is InputEventJoypadMotion:
 				var ax := (ev as InputEventJoypadMotion).axis
