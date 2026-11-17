@@ -181,6 +181,11 @@ func _overlays(dt: float) -> void:
 		nod_t = maxf(0.0, nod_t - dt)
 
 
+## (villager_fidgets.gd's wave asks the villager where the wanderer is)
+func _player_pos() -> Vector3:
+	return ctx.get("player", Vector3.INF)
+
+
 func start_wave(secs := 2.6) -> void:
 	wave_t = secs
 	wave_cd = 50.0 + _rng.randf() * 40.0
