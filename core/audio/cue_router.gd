@@ -143,8 +143,7 @@ func _on_cast(enemy: Node, _cast: String, _time: float, interruptible: bool) -> 
 		return
 	var at := (enemy as Node3D).global_position + Vector3.UP * 1.4
 	CueBank.play_at("tell_windup" if interruptible else "tell_heavy", at, 0.0)
-	if enemy is Enemy:
-		CueBank.family((enemy as Enemy).voice_family(), "alert", at, 0.0)           # and the family's own wind-up character
+
 
 
 func _on_cast_end(enemy: Node, _cast: String, interrupted: bool) -> void:
