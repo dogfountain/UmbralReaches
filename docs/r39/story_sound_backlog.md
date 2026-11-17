@@ -42,3 +42,9 @@ Tick as done. Each item: committed, lint clean, doc entry in docs/r39/sound.md o
 ## What to do next if resumed
 - More regional depth: the Rift's rim and the summit's approach have readables and the Late Ringer but no dedicated long task of their own; the Saints' Quarry, Foundry and Crowns now have one each.
 - UI-owned items from the critique (the guide's default, the keep's hub length) need the UI seat.
+
+## Fifth wave (lead's list) - all ticked
+- [x] 1 long tasks for the Rift's rim (The Watch on the Rim, Coyle) and the summit approach (Lamps for the Last Mile, Isolde)
+- [x] 2 the night on paper (story_depth.md): fixed the nearest-bell gate and the "four bells" contradictions
+- [x] 3 sound coverage audit: climbing, vaulting, wading, respawn, seals, Ember Road, statuses, night turn, credits, denied casts, world-event warnings
+- [x] 4 interior beds and zones (interior_beds.gd, acoustic_zones.gd labels)
