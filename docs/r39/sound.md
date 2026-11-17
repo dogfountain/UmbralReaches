@@ -114,4 +114,4 @@ horse and ride (bond cue); take a photo; open the Count and the map; open a ches
 | Mix director | two AudioEffectAmplify and two compressors on buses; a per-frame float move for the ducks | no allocation |
 | Hour variation | one small dictionary assignment a second | none |
 | Buses | five new buses (UI, Score, World, Combat, Stingers) | empty buses cost nothing; the SFX and Music compressors are the only DSP added |
-| The bus layout | created at runtime by Settings (no `default_bus_layout.tres`: the project has none and the existing code builds buses the same way) | one place builds them, so a layout file would be a second source of truth |
+| The bus layout | `default_bus_layout.tres` (Master compressor + limiter, the sends); Settings and Ambience only add buses the file lacks | no runtime cost |

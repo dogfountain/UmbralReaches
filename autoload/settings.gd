@@ -223,8 +223,8 @@ func save_settings() -> void:
 		push_warning("Settings: could not replace %s (%s)" % [PATH, err])
 
 
-## Buses are created at runtime (no bus layout file in the project): SFX and Ambience both send
-## to Master, so each has its own slider and Master still scales everything.
+## The buses are laid out in default_bus_layout.tres (Master with a gentle compressor and a hard limiter; SFX, Ambience, Music; Score, World, Combat,
+## Voices, UI and Stingers under them; AmbOut). This only adds any the file lacks (an old layout, a test harness), so every setting still maps.
 func _ensure_buses() -> void:
 	for b: String in BUSES:
 		if AudioServer.get_bus_index(b) == -1:
