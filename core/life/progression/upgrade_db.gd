@@ -98,7 +98,6 @@ const SPELLS: Array[Dictionary] = [
 ## Hotbar: slot 0 is always Rift Bolt; the other four take any known spell (swapped at a fire).
 const SLOT_ACTIONS: Array[StringName] = [&"skill_bolt", &"skill_lance", &"skill_nova", &"skill_ward", &"skill_step"]
 const SLOT_KEYS := ["LMB", "RMB / R", "Q", "F", "C"]
-const SLOT_ACTIONS := ["skill_bolt", "skill_lance", "skill_nova", "skill_ward", "skill_step"]
 
 
 ## The key (or, on a pad, the button) a loadout slot casts with, as rebound: SLOT_KEYS are only the defaults.
