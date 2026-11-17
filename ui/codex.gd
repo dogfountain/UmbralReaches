@@ -814,7 +814,7 @@ func _task_pins() -> Array:
 					at = Vector3((vp as Vector2).x, 0.0, (vp as Vector2).y)
 			"talk":
 				var who := String(qd.giver)
-				if s == 2 and id == "keg_thief":
+				if s == 3 and id == "keg_thief":
 					who = "nan"
 				var pv: Variant = people.get(who)
 				if is_instance_valid(pv) and pv is Node3D:

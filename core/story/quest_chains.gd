@@ -66,6 +66,7 @@ const FRS := preload("res://core/story/quest_chains_far_reaches_south.gd")
 const FRE := preload("res://core/story/quest_chains_far_reaches_east.gd")
 const VQ := preload("res://core/story/quest_chains_verbs.gd")   ## Hearthward's five tasks deepened with the task verbs (docs/QUEST_VERBS.md)
 const VerbKit := preload("res://core/story/verb_kit.gd")
+const DA := preload("res://core/story/quest_chains_deepen_a.gd")   ## writer A: the deepened Hearthward / Thornwood / fen tasks and the two new ones (three_knocks, forty_days)
 
 const ORDER := ["edda_tongs", "forty_first", "names_yard", "keg_thief", "slow_way",
 	"hearth_ash", "road_clear", "coal_shrine", "spire_lamps", "alms_loaf",
@@ -94,7 +95,9 @@ const ORDER := ["edda_tongs", "forty_first", "names_yard", "keg_thief", "slow_wa
 	"plinth_lamp", "cutters_pledge", "landing_staves", "moor_niches",
 	"rh_lamps", "fm_tithe", "ll_gate", "ll_oil",          # --- the towns ---
 	"wr_stand_down", "wr_kings_lamp", "wr_cold_light", "wr_fourth_stone", "wr_tansys_boat", "ds_water_road", "ds_unmade", "ds_witchs_price", "ds_clapper",
-	"er_ringers_candle", "er_nave_fire", "er_halter_bell", "er_inn_slate"]          # --- the reaches ---
+	"er_ringers_candle", "er_nave_fire", "er_halter_bell", "er_inn_slate",          # --- the reaches ---
+	# --- deepen A ---
+	"three_knocks", "forty_days"]
 
 ## Who stands where, for the map's turn-in pins when the person is not in the night's tree.
 const GIVER_NAMES := {"hild": "Hild", "fennick": "Old Fennick", "oswin": "Oswin", "nan": "Nan Wright", "abel": "Abel the sexton",
@@ -133,23 +136,8 @@ const QUESTS := {
 		"reward": {"ash": 10, "items": {"ember_shard": 1}},
 		"outcome": {"forge": "Hild shod your staff with a ferrule of Edda's iron. The tongs work the forge again.",
 			"stone": "Edda's tongs lie on her stone again. It stays warm."}},
-	"forty_first": {"name": "The Forty-First Stone", "giver": "oswin", "where": "Oswin the pilgrim, on the west road", "zone": "road",
-		"text": "Oswin has touched forty waystones on the way to the Stair. He wants to touch the last, and his eyes are bad in the dark.",
-		"steps": [
-			{"kind": "escort", "text": "Walk Oswin to the forty-first waystone, at the head of the north lane past the green"},
-			{"kind": "talk", "who": "oswin", "text": "Speak with Oswin at the forty-first stone"},
-		],
-		"reward": {"ash": 12, "charm": "charm_waystone", "else": {"relic_fragment": 1}},
-		"outcome": {"truth": "You told Oswin the Stair is gone. He stopped counting waystones, and set his staff against the wall of the road's rest.",
-			"faith": "Oswin keeps his vigil at the forty-first stone, waiting for a bell."}},
-	"names_yard": {"name": "Names for the Yard", "giver": "abel", "where": "Abel the sexton, by the Kindlers' Yard", "zone": "hearth",
-		"text": "The Order cut numbers where the names should be. A few of the faithful scratched the names back on slates and hid them.",
-		"steps": [
-			{"kind": "gather", "of": 3, "text": "Find the three name-slates: in the Glimmer Glade, on the chapel lane, in the Barrow Field ({n}/{of})"},
-			{"kind": "talk", "who": "abel", "text": "Bring the names to Abel at his dig"},
-		],
-		"reward": {"ash": 15, "items": {"relic_fragment": 1}},
-		"outcome": {"": "Maren Coyle, Tam, Sister Ide: their names are cut in the Kindlers' Yard, by Edda's stone."}},
+	"forty_first": DA.QUESTS["forty_first"],
+	"names_yard": DA.QUESTS["names_yard"],
 	"keg_thief": VQ.KEG_THIEF,
 	"slow_way": VQ.SLOW_WAY,
 	# --- r33: tasks set by the giver's mark and the accept screen ----------------------------------
@@ -210,40 +198,10 @@ const QUESTS := {
 		],
 		"reward": {"ash": 15, "items": {"relic_fragment": 1}},
 		"outcome": {"": "Nobody tends the clamps in the Hollow. They burn anyway. Wyck says that's worse."}},
-	"ring_heart": {"name": "What the Oaks Keep", "giver": "wyck", "where": "Wyck, at his fire in the Thornwood", "zone": "thornwood",
-		"offer": true, "avail": "qd:thorn_door",
-		"text": "The Thornwarden roots in a heart. Cut it out and the wood forgets it was ever kept. I won't say do it. I won't say don't. Bring me a thorn off it, after. I'll bury it face down.",
-		"steps": [
-			{"kind": "cond", "cond": "boss:thornwarden", "at": Vector2(-72.0, -18.0), "label": "The Thornwarden", "past": "The Thorn Heart is already cut.",
-				"text": "Cut the Thorn Heart from the Thornwarden in the Ring"},
-			{"kind": "turnin", "who": "wyck", "text": "Bring a thorn to Wyck"},
-		],
-		"reward": {"ash": 25},
-		"choose": [{"set": "kindler", "slot": "focus", "rarity": 2}, {"set": "kindler", "slot": "lantern", "rarity": 2}, {"set": "kindler", "slot": "vestment", "rarity": 2}],
-		"outcome": {"": "Wyck buried the thorn face down, and sang the verse the abbey chiselled off."}},
-	"unpaid_toll": {"name": "The Toll Unpaid", "giver": "hesk", "where": "Hesk the Woodcutter, at the Keg", "zone": "thornwood",
-		"offer": true,
-		"text": "Tollmen. Ride with the war bands, ring a bell, and the whole wood comes running. One of 'em had my brother's axe. Put two of 'em down before they ring. Then I'll drink easier.",
-		"steps": [
-			{"kind": "slay", "of": 2, "kinds": ["tollman"], "region": "thornwood,henge", "label": "Tollmen", "at": Vector2(-92.0, -30.0),
-				"text": "Put down tollmen riding with the war bands ({n}/{of})"},
-			{"kind": "turnin", "who": "hesk", "text": "Tell Hesk the tolls are unpaid"},
-		],
-		"reward": {"ash": 12},
-		"choose": [{"slot": "girdle", "rarity": 1}, {"slot": "focus", "rarity": 1}],
-		"outcome": {"": "Hesk drank to his brother, twice. The second was for the axe."}},
+	"ring_heart": DA.QUESTS["ring_heart"],
+	"unpaid_toll": DA.QUESTS["unpaid_toll"],
 	# the Hollow Fen and the Ossuary: Abel's tally, Brannoc's bell
-	"bead_count": {"name": "The Lay Brothers' Beads", "giver": "abel", "where": "Abel the sexton, by the Kindlers' Yard", "zone": "fen",
-		"offer": true, "avail": "met:abel",
-		"text": "The bone-walkers in the fen are the lay brothers, still counting. They carry their tally-beads on them. Bring me the beads and the count stops. I'll lay them flat. The beads, I mean. Them too.",
-		"steps": [
-			{"kind": "collect", "of": 4, "chance": 0.75, "kinds": ["ossuant"], "region": "fen,barrows", "label": "Tally-beads", "at": Vector2(96.0, -30.0),
-				"text": "Take tally-beads from the bone-walkers of the fen and the Barrow Field ({n}/{of})"},
-			{"kind": "turnin", "who": "abel", "text": "Bring the tally-beads to Abel"},
-		],
-		"reward": {"ash": 12},
-		"choose": [{"set": "tally", "slot": "vestment", "rarity": 1}, {"set": "tally", "slot": "girdle", "rarity": 1}, {"set": "tally", "slot": "lantern", "rarity": 1}],
-		"outcome": {"": "Abel buried the beads loose, so nobody can count them again."}},
+	"bead_count": DA.QUESTS["bead_count"],
 	"count_below": {"name": "The Count Below", "giver": "abel", "where": "Abel the sexton, by the Kindlers' Yard", "zone": "ossuary",
 		"offer": true, "avail": "qd:bead_count",
 		"text": "The Abbot's still down there counting. Every one of them a number. Break the gallery seal, go down to his mound and stop him. Then the dead can lie down without being told how many they are.",
@@ -735,6 +693,7 @@ const QUESTS := {
 		],
 		"reward": {"ash": 60, "items": {"ember_shard": 5, "relic_fragment": 5}},
 		"choose": [{"legend": "door_splinter"}, {"legend": "sunk_shroud"}, {"legend": "unlit_lamp"}, {"legend": "stair_rope"}],
+		"leaves": {"": {"at": Vector2(8.0, 30.5), "prop": "bell"}},     # the peal's last bell hangs at the Keg's door
 		"outcome": {"": "Brannoc rang the chimney tongue eight times, slowly, and the Keg went quiet for each one. Then he put his head down on the bar and laughed."}},
 	"shepherd_strays": South.QUESTS["shepherd_strays"], "oak_song": South.QUESTS["oak_song"], "well_answer": South.QUESTS["well_answer"],
 	"wf_wheel": R37WQ.QUESTS["wf_wheel"], "wf_watch": R37WQ.QUESTS["wf_watch"], "wf_lights": R37WQ.QUESTS["wf_lights"],
@@ -756,6 +715,8 @@ const QUESTS := {
 	"wr_tansys_boat": FRW.QUESTS["wr_tansys_boat"], "ds_water_road": FRS.QUESTS["ds_water_road"], "ds_unmade": FRS.QUESTS["ds_unmade"], "ds_witchs_price": FRS.QUESTS["ds_witchs_price"],
 	"ds_clapper": FRS.QUESTS["ds_clapper"], "er_ringers_candle": FRE.QUESTS["er_ringers_candle"], "er_nave_fire": FRE.QUESTS["er_nave_fire"], "er_halter_bell": FRE.QUESTS["er_halter_bell"],
 	"er_inn_slate": FRE.QUESTS["er_inn_slate"],
+	# --- deepen A ---
+	"three_knocks": DA.QUESTS["three_knocks"], "forty_days": DA.QUESTS["forty_days"],
 }
 
 ## r36: the bell quests (Act II), in no order; BELLS_NEEDED of them wake the summit door.
@@ -772,11 +733,11 @@ const PICKUPS := {
 	"tongs_back": {"quest": "edda_tongs", "step": 2, "near": Vector2(-84.35, 44.15), "kind": "place", "name": "Edda's stone", "verb": "Lay the tongs on",
 		"say": "You lay the tongs on the stone. It is warmer than it should be."},
 	"slate_glade": {"quest": "names_yard", "step": 0, "near": Vector2(-35.0, 11.0), "kind": "slate", "name": "a name-slate", "verb": "Read",
-		"say": "MAREN COYLE. SHE SANG THE LOW PART. Scratched with a nail, under a number somebody chiselled first."},
+		"say": "MAREN COYLE. SHE SANG THE LOW PART. Scratched with a nail, under a number somebody chiselled first. Pushed behind the offering shelf, where a choir-woman would stand: the choir hid their own."},
 	"slate_lane": {"quest": "names_yard", "step": 0, "near": Vector2(-63.0, 55.5), "kind": "slate", "name": "a name-slate", "verb": "Read",
-		"say": "TAM, THE CARTER'S BOY. NINE. LIKED HORSES. The number above it has been rubbed out with a thumb."},
+		"say": "TAM, THE CARTER'S BOY. NINE. LIKED HORSES. The number above it has been rubbed out with a thumb. Wedged in a wall-crack at a carter's height: a carter hid it, beside the cart he could not mend."},
 	"slate_barrow": {"quest": "names_yard", "step": 0, "near": Vector2(80.0, -34.0), "kind": "slate", "name": "a name-slate", "verb": "Read",
-		"say": "SISTER IDE, WHO KEPT THE BEES. NOT A NUMBER. The last three words are cut deeper than the rest."},
+		"say": "SISTER IDE, WHO KEPT THE BEES. NOT A NUMBER. The last three words are cut deeper than the rest. Under the lodge steps, where the brothers would not kneel; the bees' wax on its edge is hers."},
 	"lantern": {"quest": "slow_way", "step": 2, "near": Vector2(58.0, -47.0), "kind": "lantern", "name": "Father Harrow's lantern", "verb": "Take",
 		"say": "A tin lantern, the glass cracked. HARROW scratched on the base. The wick is dry. It has not been lit in a long time."},
 	# r33
@@ -889,6 +850,10 @@ const PICKUPS := {
 	"ds_keeper_log": FRS.PICKUPS["ds_keeper_log"], "ds_unmade_look": FRS.PICKUPS["ds_unmade_look"], "ds_unmade_turn": FRS.PICKUPS["ds_unmade_turn"], "ds_nail": FRS.PICKUPS["ds_nail"],
 	"ds_witch_door": FRS.PICKUPS["ds_witch_door"], "ds_clapper": FRS.PICKUPS["ds_clapper"], "ds_bell": FRS.PICKUPS["ds_bell"],
 	"er_candle": FRE.PICKUPS["er_candle"], "er_door": FRE.PICKUPS["er_door"], "er_halter": FRE.PICKUPS["er_halter"], "er_tower": FRE.PICKUPS["er_tower"], "er_slate": FRE.PICKUPS["er_slate"],
+	# --- deepen A ---
+	"yard_cut": DA.PICKUPS["yard_cut"], "oswin_flame": DA.PICKUPS["oswin_flame"], "heart_thorn": DA.PICKUPS["heart_thorn"], "toll_axe": DA.PICKUPS["toll_axe"],
+	"tally_post": DA.PICKUPS["tally_post"], "maud_door": DA.PICKUPS["maud_door"], "ninth_grave": DA.PICKUPS["ninth_grave"],
+	"harrow_flame": VQ.PICKUPS["harrow_flame"], "belfry_flame": VQ.PICKUPS["belfry_flame"], "spire_cradle": VQ.PICKUPS["spire_cradle"],
 }
 
 ## Oswin's walk: from wherever he is to the waystone. He keeps 2-3 m behind you and waits when you

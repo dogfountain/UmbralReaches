@@ -25,7 +25,7 @@ const CONV := {
 	"keep": {
 		"name": "The Keep",
 		"portrait": KEEP_PORTRAIT,
-		"start": [["boss:ascended_warden,!flag:ending_told", "end_1"], ["qd:names_under,!flag:epilogue_told", "epi_1"], ["flag:deeper,!flag:deeper_met", "ng_1"], ["!flag:met_keep", "meet_1"], ["qat:keg_thief:3", "thief_report"], ["", "hub"]],
+		"start": [["boss:ascended_warden,!flag:ending_told", "end_1"], ["qd:names_under,!flag:epilogue_told", "epi_1"], ["flag:deeper,!flag:deeper_met", "ng_1"], ["!flag:met_keep", "meet_1"], ["qat:keg_thief:4", "thief_report"], ["", "hub"]],
 		"nodes": {
 			# --- first meeting (the night's only errand until this is done) ------------------
 			"meet_1": {"say": "Shut the door. No, leave it. The fire's done arguing with the dark tonight.", "next": "meet_2"},
@@ -63,7 +63,7 @@ const CONV := {
 				{"text": "What now?", "to": "next"},
 				{"text": "What's on the slate?", "to": "slate"},
 				{"text": "You look troubled, keep.", "to": "thief_ask", "if": "!q:keg_thief,flag:met_keep"},
-				{"text": "About your ale thief...", "to": "thief_where", "if": "qat:keg_thief:0|qat:keg_thief:1|qat:keg_thief:2"},
+				{"text": "About your ale thief...", "to": "thief_where", "if": "qat:keg_thief:0|qat:keg_thief:1|qat:keg_thief:2|qat:keg_thief:3"},
 				{"text": "Any news?", "to": "news"},
 				{"text": "Tell me again about the three.", "to": "three_again"},
 				{"text": "Who are you, keep?", "to": "who_1", "once": true},
@@ -89,10 +89,21 @@ const CONV := {
 				["", "Not one of the four lit. The dark's patient. Not that patient."],
 			], "next": "news_2"},
 			"news_2": {"say_if": [
+				["qp:three_knocks:open,boss:ascended_warden", "Maud's door is off the bar. Two bowls on her table, and one is always empty and always washed. The candle's out. She doesn't need it."],
+				["qp:three_knocks:answer,boss:ascended_warden", "Maud kept her candle. She says it'll do for the both of them. Something answers to her voice now, from the east road, and goes away again. She's content with that."],
+				["qp:three_knocks:shut,boss:ascended_warden", "Maud's candle went out last night. She put it out herself, and the bar is still down, and the knocking stopped when the sky did. She sleeps. She says she doesn't want to know why."],
 				["boss:ascended_warden", "Maud's candle went out last night. She put it out herself. Said he wasn't coming, and she was tired."],
 				["secret:found:cairn,!boss:ascended_warden", "You found his stones up on the Crowns. Don't tell her. She'd go up there."],
+				["qp:three_knocks:open", "Maud's door has been on the latch since you sat up at it. Nan says there's a second bowl on the table, and nobody's let her see why."],
+				["qp:three_knocks:answer", "Maud answers the knock herself now, through the planks, in her own voice. It doesn't come in. It says her name first, and she says his."],
+				["qp:three_knocks:shut", "Maud's bar stays down. Three knocks at dusk, three at dawn. She counts them the way I count barrels."],
 				["elite:hobb", "The knocking's stopped on the east road. Maud still sits up for it. Habit's the last thing to go."],
 				["qp:forty_first:faith", "Oswin kneels at the forty-first stone every night. Fennick lights him a lamp. Nobody's told him. Nobody's going to."],
+				["qp:slow_way:mercy", "Ostrin's stool is empty at dusk. He's down at the fen's fire with a lit lamp, and comes back at dawn and says nothing. I leave the stool."],
+				["qp:drowned_bell:hung", "The fen tower rang a stroke last night. Nobody rang it. Brannoc swears he never stirred, and he sleeps like a dropped sack."],
+				["qp:spire_lamps:burning", "Fennick says there's a lamp burning on the Spire. I can't see it. He walks to the green's edge every dusk and stands looking."],
+				["qp:ring_heart:rooted", "Wyck sang the last verse at his fire, out loud, with a name in it. Hesk heard it from the road and sat down on the verge."],
+				["qp:names_yard:confess", "Abel cut where each slate was hidden, under the names. Folk walk the long way round to read the hiders."],
 				["secrets:3", "Folk say you've been opening the places the Order sealed. The Order sealed them for a reason. Usually a bad one."],
 				["qp:forty_first:truth", "Oswin stopped counting. Sits at the road's rest with his staff against the wall, looking down the west road the other way. First pilgrim I ever saw do that."],
 				["bosses:2", "The bells. Brannoc swears he heard one in his sleep. Brannoc swears a lot."],
@@ -108,8 +119,8 @@ const CONV := {
 			"thief_yes": {"say": "Out the back, by the chimney. Whoever it is spills. I'm not a fool; I just don't go out there in the dark.", "next": "hub"},
 			"thief_no": {"say": "Spoken like somebody who doesn't pay for barrels.", "next": "hub"},
 			"thief_where": {"say_if": [
-				["qat:keg_thief:2", "Chalk circles, you say? Nan. It's always Nan. Go and ask her, gently. She bites."],
-				["qat:keg_thief:1", "Circles in chalk? Follow them, then. I'm not getting down on my knees at my age."],
+				["qat:keg_thief:3", "Chalk circles, you say, and the ale walking to the green's fire? Nan. It's always Nan. Go and ask her, gently. She bites."],
+				["qat:keg_thief:1|qat:keg_thief:2", "Circles in chalk? Drops of ale across the green? Follow them, then. I'm not getting down on my knees at my age."],
 				["", "Behind the Keg. By the chimney. Look down; thieves never look down."],
 			], "next": "hub"},
 			"thief_report": {"say": "Well? Who's drinking my ale?", "choices": [
@@ -119,13 +130,13 @@ const CONV := {
 				{"text": "...It's Nan. She does it for Pell.", "to": "rep_told", "if": "!qp:keg_thief:told", "do": "qp:keg_thief:told,qc:keg_thief,att:keep:2,att:nan:-3,give:grave_ash:8"},
 				{"text": "Rats. Gnawing all down the chimney wall, a crust chewed to the rind.", "to": "rep_wrong", "if": "qp:keg_thief:wrong", "do": "qc:keg_thief,att:keep:-1"},
 			]},
-			"rep_told": {"say": "Nan. ...For Pell. Well. I'm not taking a mug off a child for that. I'll put one out myself, from now on. Here, for your trouble. Don't tell her I went soft.", "next": "hub"},
-			"rep_covered": {"say": "You. A mug a night, quiet, by the back door. ...Right. Ten ash, and I'm watching you.", "next": "hub"},
+			"rep_told": {"say": "Nan. ...For Pell. I'd have known from the circles. Well. I'm not taking a mug off a child for that. I'll put one out myself, from now on. Here, for your trouble. Don't tell her I went soft. She'll come in on her own tomorrow and tell me the rest, and I'll pretend it's news.", "next": "hub"},
+			"rep_covered": {"say": "You. A mug a night, quiet, by the back door. ...Right. Ten ash, and I'm watching you. There's a chalk circle behind the Keg I'm not scrubbing off, and I don't know why.", "next": "hub"},
 			"rep_wrong": {"say_if": [
 				["qc:keg_thief:latch", "Rats. Then I'll trap them. ...Odd rats, that put the bung back. Never mind. I'll set the trap."],
 				["", "Rats. Then I'll trap them. A big one. Something small has been at my stores all winter."],
 			], "next": "hub"},
-			"rep_rats": {"say": "Rats. That drink ale, and draw circles. ...I'll set a trap, then. A big one.", "next": "hub"},
+			"rep_rats": {"say": "Rats. That drink ale, and draw circles. ...I'll set a trap, then. A big one. Behind the Keg, where the ale was spilled.", "next": "hub"},
 			"three_again": {"say_if": [
 				["boss:ascended_warden", "Were three. The Thornwarden in the Ring, Osric under the abbey, Aurel at the top. Now there's a story, and a Keg to tell it in."],
 				["", "The Thornwarden in the Ring, west. The Abbot under the abbey, down the fen. And whatever holds the door at the top. Heart and crown open the ward; nothing shuts the door but you."],
@@ -161,6 +172,18 @@ const CONV := {
 				["qp:forty_first:truth", "That pilgrim of yours went home. First one I ever saw. There'll be others, now."],
 				["qp:keg_thief:told|qp:keg_thief:covered|qp:keg_thief:rats", "Nan's put a mug out by the green's fire again. I've stopped counting the barrels."],
 				["", "The village will want to tell you things. Let them."],
+			], "next": "end_4m"},
+			"end_4m": {"say_if": [
+				["qp:three_knocks:open", "Maud's door has been open since you sat up at it. Hobb's on the floor by her fire. She says he's no trouble."],
+				["qp:three_knocks:answer", "Maud answers the knock herself, in her own voice, and something on the step says her name back, and goes. She says that's enough of a visit."],
+				["qp:three_knocks:shut", "Maud's candle went out the same night as the sky. She said she was tired. The bar's still down; I'd not touch it."],
+				["", "Maud's candle's still in the window. Habit's the last thing to go."],
+			], "next": "end_4n"},
+			"end_4n": {"say_if": [
+				["qp:spire_lamps:burning", "Fennick lit the gate lantern himself at dawn. Never has. He says it's the one he wasn't let. He won't say who by."],
+				["qp:forty_days:carried", "There's a tin door on a cord on your staff. I won't ask. One of that company's still on the Stair, they say. I don't know whose."],
+				["qp:forty_days:buried", "The Ninth Company's buried at Aldo's root, Wyck says. Late. Forty days late. They got there."],
+				["", "Fennick's pole went by the door as the sun came up. First time he's put it out at dawn."],
 			], "next": "end_4c"},
 			# r36 Act II: what the bells say about the night (all eight, then the ones left where they hung)
 			"end_4c": {"say_if": [
@@ -177,6 +200,7 @@ const CONV := {
 				["", "On the latch. Brannoc told me. The ones still up there can come home if they want to. Two came down the road last night. One of them asked for a room."],
 			], "next": "epi_2"},
 			"epi_2": {"say_if": [
+				["qp:drowned_bell:hung,qd:full_peal", "And all eight of her bells, and the fen tower's, with its tongue back. It rang when the eighth did, under the water, like a man clearing his throat."],
 				["qd:full_peal", "And all eight of her bells, the one for the Marches too. I heard the last of them from here. Brannoc's not been sober since. Neither have I."],
 				["", "Brannoc's still short of bells. He'll have them off you yet, if you stay."],
 			], "next": "epi_3"},
@@ -191,6 +215,9 @@ const CONV := {
 		"nodes": {
 			"meet": {"say": "Mind the oaks west of the road. They remember axes. I'd know; mine's the hut by the abbey wall.", "do": "flag:met_hesk", "next": "hub"},
 			"hub": {"say_if": [
+				["qp:unpaid_toll:hild,qd:unpaid_toll", "Hild reground the axe. Bright both sides now, and I won't use it. It hangs over my door where I can see the edge. Well?"],
+				["qp:unpaid_toll:cairn,qd:unpaid_toll", "I walked out to his cairn. The axe was on it, edge down, and a second stone beside it that wasn't mine. The Rooted leave those. First one I've ever seen left for one of ours. Well?"],
+				["qp:ring_heart:rooted,boss:thornwarden", "Wyck sang it with a name in it. I heard it on the road. My grandmother's people had a name for it. I never knew it. I think it was hers. Well?"],
 				["secret:open:oak", "You went in the hollow oak. I can tell. You've got that look, like the wood looked back."],
 				["flag:deeper,!boss:thornwarden", "The wood's awake again. Something rang wrong last night and every oak heard it. Well?"],
 				["att:hesk:2", "You're all right, for a kindled. Sit. Well?"],
@@ -213,13 +240,13 @@ const CONV := {
 	"harrow": {
 		"name": "Ostrin Harrow",
 		"portrait": {"seated": false, "seed": 911 + 8 * 37, "hat": "hood"},
-		"start": [["qat:slow_way:3", "lantern"], ["boss:bone_abbot,!flag:harrow_after", "after"], ["flag:met_harrow", "hub"], ["", "meet"]],
+		"start": [["qat:slow_way:5", "lantern"], ["boss:bone_abbot,!flag:harrow_after", "after"], ["flag:met_harrow", "hub"], ["", "meet"]],
 		"nodes": {
 			"meet": {"say": "Harrow. The house with the door off its hinges is ours. Was.", "do": "flag:met_harrow", "next": "meet_2"},
 			"meet_2": {"say": "Mother went up with the bells. Father went after her the slow way, down the fen.", "next": "hub"},
 			"hub": {"say_if": [
 				["qp:slow_way:truth", "The lantern's lit. I trim it every hour. The keep says I'm wasting oil. The keep can shut up."],
-				["qp:slow_way:mercy", "Still cold, the lantern. He'll want it when he comes up. He'll come up."],
+				["qp:slow_way:mercy", "Still cold, the lantern on the counter. He'll want it when he comes up. And a lit one at the fen's fire, every dusk; I walk it down myself. He'll see it. He'll come up."],
 				["flag:deeper,!boss:bone_abbot", "They're counting again down there. I can hear it through the floor. Don't tell me it's the ale."],
 				["secret:open:crypt", "You went in the drowned crypt. Father used to say the fen keeps what it takes, and keeps it wet. Drinking, or asking?"],
 				["", "Drinking, or asking?"],
@@ -238,16 +265,17 @@ const CONV := {
 			"father_yes": {"say": "Don't tell me what you find till you've found it. I'll be here. I'm always here.", "next": "hub"},
 			"father_no": {"say": "That's what the keep says. Then he pours me another.", "next": "hub"},
 			"father_where": {"say_if": [
+				["qat:slow_way:3|qat:slow_way:4", "You've got it. And it's lit? Then don't run with it. I've seen a flame go out on a man who ran, and the man went after."],
 				["qat:slow_way:2", "You've done it, then. I can see it on you. Bring me the lantern. Just the lantern."],
 				["qat:slow_way:1", "Something's standing over it. I heard it in your voice. Do what you have to."],
 				["", "Out on the fen, past the fen brazier below the barrows' descent. A tin lantern with our name scratched on the base."],
 			], "next": "hub"},
-			"lantern": {"say": "That's it. That's his. ...Was it him? Tell me.", "choices": [
+			"lantern": {"say": "That's it. That's his. ...Lit, too. You carried it lit all that way. Was it him? Tell me.", "choices": [
 				{"text": "It was him. Hollow. I put him to rest.", "to": "truth", "do": "qp:slow_way:truth,att:harrow:2"},
 				{"text": "Just the lantern, in the reeds. No sign of him.", "to": "mercy", "do": "qp:slow_way:mercy"},
 			]},
-			"truth": {"say": "...Good. Good. He'd have hated standing. Light it. Put it on the counter where I can see it. He kept it lit for Mother; I'll keep it lit for him.", "next": "keepsake"},
-			"mercy": {"say": "No sign. ...Then he's still walking, somewhere down there. That's something. I'll keep it on the counter, cold, till he comes for it.", "next": "keepsake"},
+			"truth": {"say": "...Good. Good. He'd have hated standing. Put it on the counter where I can see it. He kept it lit for Mother; I'll keep it lit for him. Every hour I'll trim it.", "next": "keepsake"},
+			"mercy": {"say": "No sign. ...Then he's still walking, somewhere down there. That's something. The one you carried, I'll set at the fen's fire for him, lit, so he can see his way up. This one, I'll keep on the counter, cold, till he comes for it.", "next": "keepsake"},
 			"keepsake": {"say": "He left a few things in the house, and I can't carry all of them, and you walked a fen for me. Take one. Something that's seen the dark and come out the other side of it. Go on.", "choices": [
 				{"text": "His lamp-glass.", "to": "keepsake_done", "do": "qc:slow_way:0"},
 				{"text": "His old coat.", "to": "keepsake_done", "do": "qc:slow_way:1"},
@@ -275,6 +303,8 @@ const CONV := {
 				["qd:founder_peal,!boss:ascended_warden", "Elspeth's tongue is in my chimney, warming. Cast in Mother's mould. When you go up, the bell in his hand rings her way now. Wrong for him. You want something?"],
 				["qat:founder_peal:2", "That's Elspeth's wrapping. I'd know her knots in the dark. Give it here, then. You want something?"],
 				["secret:solved:bells", "Somebody rang Mother's peal on the rim, the great bell first, bottom to top. You? Nobody's rung it since she died. You want something?"],
+				["qp:drowned_bell:kept", "Grandfather's tongue's by the bench. It doesn't ring. I check it. Don't tell me it's an iron bar; I know what it is."],
+				["qp:drowned_bell:hung", "You hung it back. Then it's ringing for the sunk again, and I'll hear it. I do, some nights, through the floor. One stroke. Don't tell me to stop listening."],
 				["att:brannoc:2", "Sit down, sit down. You stood the room a round; that buys you my good ear. Which one's that. This one."],
 				["", "You want something, or just the company of a man who can't hear well?"],
 			], "choices": [
@@ -300,7 +330,10 @@ const CONV := {
 				["boss:ascended_warden", "He did. One bell, the right way up. I'd cast another just to hear it twice."],
 				["", "The door shuts. Maybe a bell rings. I'd like to hear one ring again, the right way up."],
 			], "next": "hub"},
-			"after": {"say": "I heard it. One bell. From the bottom, the right way up. You did that.", "do": "flag:brannoc_after", "next": "hub"},
+			"after": {"say_if": [
+				["qp:drowned_bell:hung", "I heard it. One bell, from the bottom, the right way up. And under it, a long way down in the fen, a second. Grandfather's. You did that, too."],
+				["", "I heard it. One bell. From the bottom, the right way up. You did that."],
+			], "do": "flag:brannoc_after", "next": "hub"},
 		},
 	},
 	# r36 Act III: the latch-stone under the door (quest the_latch, step 1)
@@ -318,6 +351,130 @@ const CONV := {
 			"open": {"say": "You lay the Seal in the slot and do not turn it. The door stays shut. It would open, now, from the other side, to a hand that wanted it to.", "who": "", "do": "qp:the_latch:open,qa:the_latch", "next": ""},
 			"broken": {"say": "You set the Seal on the stone and bring the staff down on it. It breaks clean, like a bell cast too cold. Overhead the line of the door fades out of the sky, and there are only stars.", "who": "", "do": "qp:the_latch:broken,qa:the_latch", "next": ""},
 			"gone": {"say": "The latch-stone. What's done is done.", "who": "", "next": ""},
+		},
+	},
+	# deepen A (docs/QUEST_DEPTH.md): the choices the deepened tasks make at a place in the world (the pickup's `conv`)
+	"yard_cut": {
+		"name": "The Yard's wall",
+		"start": [["!qat:names_yard:2", "gone"], ["", "at"]],
+		"nodes": {
+			"at": {"say": "The wall by Edda's stone is bare but for the numbers the Order cut and Abel scraped off. The chisel lies on the sill with the three slates. Maren Coyle. Tam. Sister Ide. You can cut them as they were named, or as they were hidden.", "who": "", "choices": [
+				{"text": "Cut each name, and under it where its slate hid, so the hiders are named too.", "to": "confess"},
+				{"text": "Cut the three names. Deep, and no more.", "to": "deep"},
+				{"text": "Not yet.", "to": ""},
+			]},
+			"confess": {"say": "MAREN COYLE, who sang the low part: the choir hid her. TAM, the carter's boy: a carter hid him. SISTER IDE, who kept the bees: a sister hid her, and was not found. You cut until the chisel is warm. It takes longer than the names did. Behind you in the dark, somebody who is not Abel reads them out under their breath.", "who": "", "do": "qp:names_yard:confess,att:abel:1,qa:names_yard", "next": ""},
+			"deep": {"say": "MAREN COYLE. TAM. SISTER IDE. Three names, as deep as the stone will take, and nothing round them. They will outlast the wall.", "who": "", "do": "qp:names_yard:deep,qa:names_yard", "next": ""},
+			"gone": {"say": "The names are cut in the wall by Edda's stone.", "who": "", "next": ""},
+		},
+	},
+	"belfry_tongue": {
+		"name": "The belfry's bell",
+		"start": [["!qat:drowned_bell:3", "gone"], ["", "at"]],
+		"nodes": {
+			"at": {"say": "The clapper lies in the reeds where the water dropped it, a yard of black iron, cold, humming when you lift it. The bell hangs over you with its mouth open and nothing in it. Brannoc wants the tongue. The bell would like it back.", "who": "", "choices": [
+				{"text": "Take the tongue to Brannoc.", "to": "kept"},
+				{"text": "Hang it back in the bell.", "to": "hung"},
+				{"text": "Not yet.", "to": ""},
+			]},
+			"kept": {"say": "The iron is heavy and does not stop humming until you wrap it. Behind you the belfry rings once, from nothing, the way a house settles.", "who": "", "do": "qp:drowned_bell:kept,qa:drowned_bell", "next": ""},
+			"hung": {"say": "You wade up to the sill, lift the tongue, and fit it in its loop. It hangs true. The bell speaks once, under the water, a long low note, and the fen goes quiet round it the way a room does when someone is finally asked.", "who": "", "do": "qp:drowned_bell:hung,qa:drowned_bell", "next": ""},
+			"gone": {"say_if": [["qp:drowned_bell:hung", "The tongue hangs in the drowned bell again."], ["", "The bell hangs mouth open over the water, and nothing in it."]], "who": "", "next": ""},
+		},
+	},
+	"spire_cradle": {
+		"name": "The Spire's lamp",
+		"start": [["!qat:spire_lamps:3", "gone"], ["", "at"]],
+		"nodes": {
+			"at": {"say": "The lamp sits in the Spire's cradle, small and steady, and the sky has turned once over it. The Order kept it burning to watch the sky by. Nobody is left to watch.", "who": "", "choices": [
+				{"text": "Leave it burning. Whoever climbs next will find it lit.", "to": "burning"},
+				{"text": "Put it out. It is a long way up to burn for no one.", "to": "out"},
+				{"text": "Not yet.", "to": ""},
+			]},
+			"burning": {"say": "You leave the flame in its cradle. From up here you can see the whole valley, and the green's fire, and one lamp on a pole moving slowly along the road, very small.", "who": "", "do": "qp:spire_lamps:burning,qa:spire_lamps", "next": ""},
+			"out": {"say": "You pinch the wick. The dark comes in at once from the Crowns, as if it had been standing at the edge of the light with its hat in its hand.", "who": "", "do": "qp:spire_lamps:out,qa:spire_lamps", "next": ""},
+			"gone": {"say_if": [["qp:spire_lamps:burning", "The lamp burns in the cradle."], ["", "The cradle is dark."]], "who": "", "next": ""},
+		},
+	},
+	"heart_whose": {
+		"name": "The Thorn Heart",
+		"start": [["!qat:ring_heart:3", "gone"], ["", "at"]],
+		"nodes": {
+			"at": {"say": "The Heart lies in the roots, a knot of bark the size of two fists, still warm, and caught in it like a splinter, a thorn as long as a finger. Round it, in the Rooted's hand, worn nearly smooth, a name or a title. Wyck will want a thorn. He will want to know whose it was.", "who": "", "choices": [
+				{"text": "It was nobody's. A thing the Rooted made to keep a wood.", "to": "nobody"},
+				{"text": "It was somebody's. Someone gave it, and kept nothing back.", "to": "rooted"},
+				{"text": "Not yet.", "to": ""},
+			]},
+			"nobody": {"say": "You take the thorn. The bark round the worn place goes soft and lets you, and you do not read what it says. The wood is very quiet.", "who": "", "do": "qp:ring_heart:nobody,qa:ring_heart", "next": ""},
+			"rooted": {"say": "You take the thorn and read the worn place by touch. A name is a shape under the thumb. You do not say it. The oaks all round you lean, a hair, to hear.", "who": "", "do": "qp:ring_heart:rooted,qa:ring_heart", "next": ""},
+			"gone": {"say": "The Heart is cut. The roots have gone still.", "who": "", "next": ""},
+		},
+	},
+	"toll_axe": {
+		"name": "The bell-post",
+		"start": [["!qat:unpaid_toll:3", "gone"], ["", "at"]],
+		"nodes": {
+			"at": {"say_if": [
+				["qc:unpaid_toll:haft", "The axe-head hangs on its hook, bright on one side, and fits the split haft you read: the butt burned with Hesk's family's mark. The edge has been kept sharp by hands that did not know whose it was. Hesk will not use it. Hild could set the edge. A cairn could hold it."],
+				["", "The axe-head hangs on its hook by the bell's. Bright on one side, kept sharp. It is Hesk's brother's; it has to be. Hild could set the edge. A cairn could hold it."],
+			], "who": "", "choices": [
+				{"text": "Take it to Hild. A forge can set an edge.", "to": "hild"},
+				{"text": "Lay it on his brother's cairn.", "to": "cairn"},
+				{"text": "Not yet.", "to": ""},
+			]},
+			"hild": {"say": "You lift the head off its hook. It is heavier than it looks, and the bright side is warm. Hild will know what to do with a thing that has been kept sharp and never used.", "who": "", "do": "qp:unpaid_toll:hild,qa:unpaid_toll,att:hild:1", "next": ""},
+			"cairn": {"say": "You lift the head off its hook and carry it as you would carry something asleep. There is a cairn in the oaks near the road where a woodcutter's brother is. You lay the axe on it, edge down.", "who": "", "do": "qp:unpaid_toll:cairn,qa:unpaid_toll,att:hesk:1", "next": ""},
+			"gone": {"say": "The hook is empty.", "who": "", "next": ""},
+		},
+	},
+	"tally_judge": {
+		"name": "The last Tally post",
+		"start": [["!qat:bead_count:2", "gone"], ["", "at"]],
+		"nodes": {
+			"at": {"say": "Under ADD HIM the figure ONE THOUSAND AND NINETY is cut, and beside it a thumb has smeared a nought. Brother Lisle counted twice and both times it went up. The beads in your hand say 1,041. Is Lisle one of the dead, or the man who counted them?", "who": "", "choices": [
+				{"text": "Add him. He was counted. The dead are owed their number: 1,090.", "to": "add", "if": "qc:bead_count:p4"},
+				{"text": "Strike him. He went down to count, and was never theirs: 1,089.", "to": "strike", "if": "qc:bead_count:board"},
+				{"text": "Leave it as it was written. It isn't mine to judge.", "to": "stand"},
+				{"text": "Not yet.", "to": ""},
+			]},
+			"add": {"say": "You take a nail to the post and scratch a plain line under ADD HIM: yes. A cold hand seems to rest on yours, to be thanked. 1,090. Lisle is among them.", "who": "", "do": "qp:bead_count:add,qa:bead_count,att:abel:1", "next": ""},
+			"strike": {"say": "You scrape the glad ADD HIM off with the point of your knife and cut one stroke through the ninety. Under it, small, you write Lisle's own words: I COUNTED TWICE. 1,089. The post looks lighter.", "who": "", "do": "qp:bead_count:strike,qa:bead_count,att:abel:1", "next": ""},
+			"stand": {"say": "You leave the post as it is. The numbers sit on it, glad and wrong, or right. Not yours to say.", "who": "", "do": "qp:bead_count:stand,qa:bead_count", "next": ""},
+			"gone": {"say": "The post is cut. Lisle's line is the last on it.", "who": "", "next": ""},
+		},
+	},
+	"maud_door": {
+		"name": "Maud's door",
+		"start": [["!qat:three_knocks:2", "gone"], ["", "at"]],
+		"nodes": {
+			"at": {"say": "The bar is down. Three knocks have come and the step is quiet. Close on the other side of the planks, something breathes the way a man does who has walked a long way. Behind you, in the window, Maud is sitting up with the candle, not looking at you. 'If it doesn't say my name,' her letter said, 'I won't lift it.'", "who": "", "choices": [
+				{"text": "Lift the bar. Let him in.", "to": "open"},
+				{"text": "Leave the bar down. Sit with it till morning.", "to": "shut"},
+				{"text": "Say her name through the door, in her voice: 'Hobb. It's Mam. Say it first.'", "to": "answer"},
+				{"text": "Not yet.", "to": ""},
+			]},
+			"open": {"say": "The bar comes up. He is standing on the step in a coat that was his own, and he looks at the candle and not at you. He walks in past you and lies down on the boards by her fire, where it is warm, and does not move again. Maud covers him. She does not say thank you. She says: he always did sleep like that.", "who": "", "do": "qp:three_knocks:open,qa:three_knocks,att:nan:1", "next": ""},
+			"shut": {"say": "You leave the bar down, and sit with your back to the door. It knocks once more and then lies against the wood on the other side. At dawn it is gone. The chalk on the step has been rubbed out by something that did not step over it.", "who": "", "do": "qp:three_knocks:shut,qa:three_knocks", "next": ""},
+			"answer": {"say": "Your voice goes through the planks in an old woman's cadence you did not know you had. 'Hobb. It's Mam. Say it first.' A long wait. Then something says a word, wrongly, and tries again, and gets it. It does not ask to be let in. It stands there until the candle gutters, and goes away down the east road.", "who": "", "do": "qp:three_knocks:answer,qa:three_knocks,att:nan:1", "next": ""},
+			"gone": {"say_if": [["qp:three_knocks:open", "The door is on the latch."], ["qp:three_knocks:answer", "The bar is down, and the step is quiet."], ["", "The bar is down."]], "who": "", "next": ""},
+		},
+	},
+	"ninth_token": {
+		"name": "Aldo's root",
+		"start": [["!qat:forty_days:2", "gone"], ["", "at"]],
+		"nodes": {
+			"at": {"say_if": [
+				["qc:forty_days:whole", "Aldo's root, and the long mound under it, and his name cut in the wood: ALDO OF THE NINTH. HE WALKED THE WHOLE ROAD. The spade is still standing. In your hands: the ash and tin of the burned tokens, and one whole one, on its cord, worn smooth by a thumb. Bury it with him, or keep it."],
+				["", "Aldo's root, and the long mound under it, and his name cut in the wood: ALDO OF THE NINTH. HE WALKED THE WHOLE ROAD. The spade is still standing. In your hands: the ash and tin of the burned tokens."],
+			], "who": "", "choices": [
+				{"text": "Bury it all with Aldo, the whole token too.", "to": "buried", "if": "qc:forty_days:whole"},
+				{"text": "Bury the ash with Aldo. Keep the whole token.", "to": "carried", "if": "qc:forty_days:whole"},
+				{"text": "Bury what you found with Aldo.", "to": "buried", "if": "!qc:forty_days:whole"},
+				{"text": "Not yet.", "to": ""},
+			]},
+			"buried": {"say": "You dig with the Ninth's own spade and put them in: ash, tin, and the whole door on its cord if you found it, with Aldo's. You turn the earth face down, as Wyck would, so that nothing climbs out. The wood remembers what the company could not carry.", "who": "", "do": "qp:forty_days:buried,qa:forty_days", "next": ""},
+			"carried": {"say": "You bury the ash, and keep the whole one. The cord is warm from the lean-to pole. It does not feel like tin. You do not know why you are keeping it, and you put it away without looking at it again.", "who": "", "do": "qp:forty_days:carried,qa:forty_days", "next": ""},
+			"gone": {"say": "The mound is turned. The spade is gone from beside it.", "who": "", "next": ""},
 		},
 	},
 	# r36 Act II: The Kin Bell (quest bell_holds, step 1; the pickup opens this)
