@@ -11,6 +11,9 @@ const WK := preload("res://core/world/realm/wonders/r39/wonder_kit.gd")
 const Land := preload("res://core/world/realm/realm_land.gd")
 const TreeGen := preload("res://core/world/realm/tree_gen.gd")
 const RockKit := preload("res://core/world/realm/rock_kit.gd")
+const GenCache := preload("res://core/world/realm/gen_cache.gd")
+const SELF := "res://core/world/realm/wonders/r39/shorelines.gd"
+const SOURCES := ["res://core/world/realm/realm_land.gd", "res://core/world/realm/realm_layout.gd", "res://core/world/realm/realm_reaches.gd"]
 
 const STEP := 4.0
 const CELL := 64.0
@@ -23,7 +26,26 @@ static func build(root: Node) -> void:
 	w._run(root)
 
 
+## The shore points (the scan is cached: keyed on this file and the land sources, and on the count of registered sites it avoided).
 func _shore() -> Array:
+	var key := "shore|%d|%d" % [WorldLanes.sites.size(), hash([GenCache.salt(SOURCES[0]), GenCache.salt(SOURCES[1]), GenCache.salt(SOURCES[2])])]
+	var disk: Variant = GenCache.load_var(key, SELF)
+	if disk is PackedVector2Array:
+		var flat: PackedVector2Array = disk
+		var back: Array = []
+		for i in range(0, flat.size() - 1, 2):
+			back.append([flat[i], flat[i + 1]])
+		return back
+	var found := _scan()
+	var pack := PackedVector2Array()
+	for e: Array in found:
+		pack.append(e[0] as Vector2)
+		pack.append(e[1] as Vector2)
+	GenCache.save_var(key, SELF, pack)
+	return found
+
+
+func _scan() -> Array:
 	var out: Array = []
 	var taken := {}
 	var bd := RealmLayout.BOUNDS.grow(-6.0)

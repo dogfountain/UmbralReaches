@@ -328,3 +328,12 @@ This is the one item this round whose draws rise (about 3 per shore cell in view
   Leaf dither/alpha-to-coverage: the light seat's. Ground litter map (T6) and masonry detail normal (T3): not done, each adds a fetch; T4/T5 (moss/dirt masks, prop vertex AO) were already in (`_grime`, `prop_weather`).
 - Section 2 fullness: tree variants, undergrowth variants (grass tint and height, heather, tallgrass), props windows, yards, shorelines. Per-region signature props (B3) were earlier.
 - Not done: T7 decals, T8 tree impostors, T10 texture-array packing (the critique's own low priority), the hitch warm-up (lead).
+
+## Placement fix (after the engine run)
+Every family that fell short now searches the whole Realm instead of walking offsets from anchors on the ways: `WK.grid(seed, step, margin)` gives a jittered, shuffled grid of candidates (caves 26 m,
+hermit caches 24 m, hidden finds 14 m, tower sites 30 m, stair feet 12 m) and the first that pass are taken. Every refusal is counted (`WK.rej`) and printed once per family:
+`WONDER caves: n of 7 (k of m candidates tried); rejected: way 12, site 30, ...` (same for `hermit_caches`, `hidden_finds`, `climbs towers`, `climbs stairs`, `waterworks bridges/fords`; reasons: way, water, spacing, region, town, site, edge,
+slope, rise, span, bank, trail). Relaxed: way clearance 40 m (was 45-55), cave and cache spacing 75 / 60 m, find spacing 40 m, cliff stairs 8-16 m rise then 5-16 m, bridges and fords tried at five fractions of every river segment
+(10 m off a way, 45 m apart). Hidden finds: each find is a grid point and its three clues are laid back from it along the first of eight directions that is clear (preferring a trail that starts within 60 m of a way).
+Shorelines now cache their scan (GenCache, keyed on the land sources and the site count) to take the 160 ms off a warm build. The anchorholds cell lamps (`lamps/cell_3` near 197,-146): the cells were numbered by an unstable sort on x
+(portals and slits share an x), so the wall search started from a different mesh each run; now a total order (x, z, y, name), plus a fallback to the nearest wall in any of twelve directions.

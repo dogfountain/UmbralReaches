@@ -34,52 +34,68 @@ func _run(root: Node) -> void:
 		_ids.append(String(reg.id))
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 3232
+	var cands := WK.grid(3232, 14.0, 16.0)       # every candidate is a find; its three clues are laid back from it along the first direction that is clear
+	var t := {}
 	var n := 0
-	var tries := 0
-	var paths: Array = RealmLayout.PATHS
-	while n < COUNT and tries < 500:
-		tries += 1
-		var path: Dictionary = paths[rng.randi() % paths.size()]
-		var pts: Array = path.pts
-		var i := rng.randi() % (pts.size() - 1)
-		var a: Vector2 = pts[i]
-		var b: Vector2 = pts[i + 1]
-		var p := a.lerp(b, rng.randf())
-		var t := (b - a).normalized()
-		var nrm := Vector2(-t.y, t.x) * (1.0 if rng.randf() < 0.5 else -1.0)
-		var ang := rng.randf_range(-0.5, 0.5)
-		var dir := nrm.rotated(ang)
-		var c: Array[Vector2] = []
-		var ok := true
-		var d := dir
-		var q := p + dir * rng.randf_range(11.0, 15.0)
-		for s in 4:                                   # three clues, then the find
-			if not _spot(q):
-				ok = false
-				break
-			c.append(q)
-			d = d.rotated(rng.randf_range(-0.35, 0.35))
-			q += d * rng.randf_range(12.0, 16.0)
-		if not ok:
+	var tried := 0
+	for f: Vector2 in cands:
+		if n >= COUNT:
+			break
+		tried += 1
+		if Land.in_water(f.x, f.y):
+			WK.rej(t, "water")
 			continue
-		var f: Vector2 = c[3]
 		var close := false
 		for e: Vector2 in _found:
-			if e.distance_to(f) < 45.0:
+			if e.distance_to(f) < 40.0:
 				close = true
-		if close or Land.in_water(f.x, f.y):
+				break
+		if close:
+			WK.rej(t, "spacing")
+			continue
+		if not _spot(f, t):
+			continue
+		var c: Array[Vector2] = []
+		var a0 := rng.randf() * TAU
+		for k in 8:                                   # the first of eight directions whose three clues all stand on clear ground, preferring a trail that starts near a way
+			var dir := Vector2(cos(a0 + TAU * float(k) / 8.0), sin(a0 + TAU * float(k) / 8.0))
+			var chain: Array[Vector2] = [Vector2.ZERO, Vector2.ZERO, Vector2.ZERO, f]
+			var q := f
+			var ok := true
+			for s in 3:
+				q += dir.rotated(rng.randf_range(-0.35, 0.35)) * rng.randf_range(12.0, 16.0)
+				if not _spot(q, t):
+					ok = false
+					break
+				chain[2 - s] = q
+			if not ok:
+				continue
+			if RealmLayout.path_dist(chain[0]) > 60.0 and k < 7:
+				continue
+			c = chain
+			break
+		if c.is_empty():
+			WK.rej(t, "trail")
 			continue
 		_found.append(f)
 		_build(root, n, c, rng)
 		n += 1
-	print("WONDER hidden_finds: %d of %d in %d tries" % [n, COUNT, tries])
+	print("WONDER hidden_finds: %d of %d (%d of %d candidates tried); rejected: %s" % [n, COUNT, tried, cands.size(), WK.rejected(t)])
 
 
-func _spot(q: Vector2) -> bool:
-	if WK.in_town(q) or not RealmLayout.BOUNDS.grow(-16.0).has_point(q) or RealmLayout.path_dist(q) < 6.0:
-		return false
+func _spot(q: Vector2, t: Dictionary) -> bool:
+	if WK.in_town(q):
+		return WK.rej(t, "town")
+	if not RealmLayout.BOUNDS.grow(-16.0).has_point(q):
+		return WK.rej(t, "edge")
+	if RealmLayout.path_dist(q) < 6.0:
+		return WK.rej(t, "way")
 	var sp := WK.span(q, Vector2(2.0, 2.0), 0.0)
-	return sp.x != INF and sp.y - sp.x < 1.1 and not WK.site_hit(Rect2(q - Vector2(3.0, 3.0), Vector2(6.0, 6.0)), 1.0)
+	if sp.x == INF or sp.y - sp.x >= 1.4:
+		return WK.rej(t, "slope")
+	if WK.site_hit(Rect2(q - Vector2(3.0, 3.0), Vector2(6.0, 6.0)), 1.0):
+		return WK.rej(t, "site")
+	return true
 
 
 func _g(q: Vector2) -> Vector3:
