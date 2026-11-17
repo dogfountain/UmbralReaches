@@ -102,7 +102,7 @@ static func piece(p: Dictionary, cur: Dictionary = {}, st: Dictionary = {}, opts
 	for i in aff.size():
 		var a: Variant = aff[i]
 		if a is Array:
-			var mark := "> " if i == ri and aff.size() > 1 else "+ "
+			var mark := "+ "                         # (the line chosen for reforging is told by its gold, not a glyph)
 			var al := mark + GearDB.affix_line(p, a)
 			lines.append(_stat(al, QUIET if verb_led else (GOLD if i == ri and aff.size() > 1 else STAT), pips(GearDB.affix_tier(a)), 15 if verb_led else (20 if pg else 0)))
 	if ri >= 0 and ri < aff.size():
