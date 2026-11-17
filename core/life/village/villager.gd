@@ -496,21 +496,22 @@ func _after_step(dt: float) -> void:
 		lamp_light.light_energy = 0.8 + 0.08 * sin(_t * 9.0) + 0.05 * sin(_t * 23.0)
 	if hidden:
 		return
-	# pose at a rate for the distance (npc_life.gd): every frame close by, 30/20/12 Hz further,
-	# 2 Hz off screen, frozen past Life.FREEZE_R unless walking (then 5 Hz)
+	# pose at a rate for the distance (npc_life.gd): every frame close by, 30/20/12 Hz further, 2 Hz off screen, frozen far off
 	var cam := get_viewport().get_camera_3d()
 	var iv := Life.interval_keg(cam, global_position, false, state == "walk")
 	_pose_acc += dt
 	var active := iv >= 0.0
 	if active and _pose_acc >= iv:
-		# r30: each pose is eased in over the interval until the next (npc_life.gd blend_*), so the
-		# legs no longer step at 12 Hz under a root that moves every frame
+		# each pose is eased in over the interval until the next (npc_life.gd blend_*), and a change of act is crossfaded
 		if life:
 			life.blend_from(rig)
 		_pose(_pose_acc)
+		if life:
+			life.xfade_check(rig, "attend" if attend != null else (act if state == "act" else state), 0.28)
+			life.xfade_apply(rig, _pose_acc)
 		_pose_acc = 0.0
 		if life:
-			life.blend_to(rig, iv)
+			life.blend_to(rig, iv * 1.08)
 	elif active and life:
 		life.blend_step(rig, _pose_acc)
 	_was_active = active

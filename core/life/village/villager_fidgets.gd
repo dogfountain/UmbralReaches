@@ -25,33 +25,33 @@ static func gesture(v: Variant, kind: int, env: float, k: float, free_r: bool, f
 	var head := 0.0
 	match kind:
 		4:   # scratching the back of the neck: the hand goes up behind the head and rubs
-			if free_r or free_l:
+			if env > 0.003 and (free_r or free_l):
 				var tgt := Vector3(0.08 * sx, 1.55, 0.12 + 0.03 * sin(t * 9.0))
 				r.arm_to(side, rest.lerp(tgt, env) * k, Vector3(0.9 * sx, -0.2, 0.7), null)
 			head = 0.22 * env
 			r.q(B_CHEST, (r.get_q(B_CHEST) as Quaternion) * Quaternion(Vector3.FORWARD, 0.06 * env * sx))
 		5:   # shading the eyes: a flat hand at the brow, the head up and slowly turning, peering into the dark
-			if free_r or free_l:
+			if env > 0.003 and (free_r or free_l):
 				var tgt5 := Vector3(0.1 * sx, 1.52, -0.3)
 				r.arm_to(side, rest.lerp(tgt5, env) * k, Vector3(0.7 * sx, -0.4, 0.2), null)
 			head = -0.1 * env
 			r.q(B_CHEST, (r.get_q(B_CHEST) as Quaternion) * Quaternion(Vector3.UP, 0.5 * env * sin(t * 0.7)))
 		6:   # hands on the hips, the chest turning to look round at the dark
-			if free_r:
+			if env > 0.003 and free_r:
 				r.arm_to("r", rest.lerp(Vector3(0.3, 1.0, -0.04), env) * k, Vector3(1.0, -0.2, 0.0), null)
-			if free_l:
+			if env > 0.003 and free_l:
 				r.arm_to("l", Vector3(-rest.x, rest.y, rest.z).lerp(Vector3(-0.3, 1.0, -0.04), env) * k, Vector3(-1.0, -0.2, 0.0), null)
 			r.q(B_CHEST, (r.get_q(B_CHEST) as Quaternion) * Quaternion(Vector3.UP, 0.55 * env * sin(t * 0.9)))
 			r.q(B_SPINE, (r.get_q(B_SPINE) as Quaternion) * Quaternion(Vector3.RIGHT, 0.08 * env))
 			head = -0.08 * env
 		7:   # a yawn: the head thrown back, the back arched, a hand to the mouth at the top of it
 			var yaw := sin(clampf(env, 0.0, 1.0) * PI)
-			if free_r or free_l:
+			if env > 0.003 and (free_r or free_l):
 				r.arm_to(side, rest.lerp(Vector3(0.04 * sx, 1.42, -0.28), yaw) * k, Vector3(0.8 * sx, -0.5, 0.3), null)
 			r.q(B_SPINE, (r.get_q(B_SPINE) as Quaternion) * Quaternion(Vector3.RIGHT, 0.2 * yaw))
 			head = -0.5 * yaw + 0.25 * maxf(0.0, env - 0.7)
 		8:   # blowing into cupped hands: both up at the mouth, the shoulders hunched, a little shudder
-			if free_r and free_l:
+			if env > 0.003 and free_r and free_l:
 				var puff := 0.02 * sin(t * 4.0)
 				r.arm_to("r", rest.lerp(Vector3(0.05, 1.4 + puff, -0.3), env) * k, Vector3(0.9, -0.6, 0.2), null)
 				r.arm_to("l", Vector3(-rest.x, rest.y, rest.z).lerp(Vector3(-0.05, 1.4 + puff, -0.3), env) * k, Vector3(-0.9, -0.6, 0.2), null)
