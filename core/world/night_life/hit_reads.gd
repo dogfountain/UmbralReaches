@@ -22,6 +22,7 @@ var _last_school := {}                    ## enemy instance id -> school of the 
 func _ready() -> void:
 	Events.combat_damage.connect(_on_damage)
 	Events.enemy_killed.connect(_on_killed)
+	Events.player_hurt.connect(_on_hurt)
 
 
 func _process(delta: float) -> void:
@@ -56,6 +57,26 @@ func _on_damage(target: Node, amount: float, crit: bool, school: StringName, at:
 	if crit:
 		Vfx.burst(at, GOLD, {"count": 22, "life": 0.55, "speed": Vector2(3.0, 8.0), "size": 0.06, "gravity": -9.0, "trail": 0.12, "spread": 70.0, "damping": 2.0})
 		Vfx.light(at, GOLD, 2.0, 5.0, 0.18, 2)
+
+
+## A blow that lands on the wanderer: a ring of the hurt's red on the ground under him (sized by the blow) and sparks thrown away from the
+## attacker, so the hit reads in the dark from the side of the screen it came from (the grade's own flash is capped, grade.gdshader).
+func _on_hurt(amount: float, from_pos: Vector3) -> void:
+	if not Reg.enabled or _budget < 1.0:
+		return
+	var p := get_tree().get_first_node_in_group(Groups.PLAYER) as Node3D
+	if p == null:
+		return
+	_budget -= 1.0
+	var c := Color(2.2, 0.45, 0.4)
+	var at := p.global_position
+	Vfx.ring(at, 1.2 + clampf(amount / 40.0, 0.0, 1.4), c, 0.35, 0.09)
+	var away := Vector3.UP
+	if from_pos != Vector3.INF:
+		away = (at - from_pos)
+		away.y = 0.0
+		away = away.normalized() if away.length() > 0.05 else Vector3.UP
+	Vfx.burst(at + Vector3(0.0, 1.0, 0.0), c, {"count": 12, "life": 0.35, "speed": Vector2(2.0, 6.0), "size": 0.045, "gravity": 4.0, "spread": 60.0, "dir": away, "damping": 2.0})
 
 
 func _on_killed(enemy: Node) -> void:
