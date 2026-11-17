@@ -6,6 +6,7 @@ extends RefCounted
 ## Load by path (no class_name): const MapTravel := preload("res://ui/world_map_travel.gd")
 
 const FireRoad := preload("res://core/world/fire_road.gd")
+const EmberTrace := preload("res://core/story/ember_trace.gd")
 const REACH := 9.0                          ## how near a lit fire the wanderer must stand to take the road from the map
 
 
@@ -69,4 +70,5 @@ static func posts(tree: SceneTree) -> Array[Dictionary]:
 		if p != null and p.is_inside_tree():
 			out.append({"at": Vector2(p.global_position.x, p.global_position.z), "kind": "horse",
 				"name": String(p.get_meta(&"map_label", "A hitching post")), "note": "Horses are kept here, for grave ash"})
+	out.append_array(EmberTrace.map_marks())
 	return out
