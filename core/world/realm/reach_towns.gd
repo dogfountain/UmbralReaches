@@ -106,6 +106,22 @@ static func reserve(root: Node) -> void:
 		Flora.tree_clear.append([d.c as Vector2, float(d.r)])
 	for c: Array in Plan.CLEAR:
 		Flora.tree_clear.append([c[0] as Vector2, float(c[1])])
+	# the townsfolk's walks that leave the town's disc (Fallowmere's strips, out to the scarecrows): no tree on them
+	# (one stood in the far strips' gap, and then, re-rolled, on the strips: Dilly could not reach her scarecrows)
+	var walks := preload("res://core/life/village/village_reach_towns.gd")
+	for e: Array in walks.EDGES:
+		var a: Vector2 = walks.NODES.get(e[0], Vector2.INF)
+		var b: Vector2 = walks.NODES.get(e[1], Vector2.INF)
+		if a == Vector2.INF or b == Vector2.INF:
+			continue
+		var n := maxi(1, ceili(a.distance_to(b) / 3.0))
+		for k in n + 1:
+			var q := a.lerp(b, float(k) / float(n))
+			var inside := false
+			for t: String in Plan.TOWNS:
+				inside = inside or q.distance_to(Plan.TOWNS[t].c as Vector2) < float(Plan.TOWNS[t].r) - 3.0
+			if not inside:
+				Flora.tree_clear.append([q, 2.5])
 	for bk: Array in Plan.BANKS:
 		WorldLanes.register_terrace("poi_town_bank_%d_%d" % [roundi((bk[0] as Vector2).x), roundi((bk[0] as Vector2).y)], bk[0], float(bk[1]), float(bk[2]))
 	for pc: Array in _pieces():
