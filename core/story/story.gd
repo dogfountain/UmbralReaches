@@ -82,6 +82,7 @@ func _ready() -> void:
 	add_child(TallyPanel.new())
 	add_child(FirstHour.new())
 	add_child(Chronicle.new())
+	add_child(Wayfarer.new())
 	track = QuestTrack.new()
 	add_child(track)
 	trail = QuestTrail.new()
