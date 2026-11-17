@@ -122,7 +122,11 @@ func _run() -> void:
 	for qid: String in Chains.ORDER:
 		if bool(Chains.QUESTS[qid].get("offer", false)):
 			var g := Chains.giver(qid)
-			ok(_v(g) != null or _patron(g) != null, "%s: its giver %s stands in the night" % [qid, g])
+			# a giver gated by the night's state (Col after the Wrights come home, Iorweth by his task's step) stands in the night
+			# once its condition holds: here it is enough that it is in the cast with that condition (quests_r34 checks the offer itself)
+			var cast: Dictionary = (load("res://core/life/village/village.gd") as GDScript).call("cast_all")
+			var gated: bool = cast.has(g) and String((cast[g] as Dictionary).get("when", "")) != ""
+			ok(_v(g) != null or _patron(g) != null or gated, "%s: its giver %s stands in the night (or in the cast, gated)" % [qid, g])
 	await _marks_and_accept()
 	await _collect_and_daily()
 	await _slay_region()

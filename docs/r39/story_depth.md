@@ -132,3 +132,7 @@ six more two-person scenes were added. `zz/sound_rework_test` now fails on any b
 
 **Checks of the canon and of each other** (grepped): eight road bells everywhere (seven for the countries and the Shut-Out one), the rim's three are the Order's, forty small bells Brannoc's; "nine winters" throughout; Ione's father (the last ringer) rang on the Stair the week the Night began and is half-hollow, consistent with the lore's rule; Aurel's third edict, the scribe who cut it short, the scratched line "one is still on the Stair" and the stone at the Crossing's foot agree; Edda's apron, the First Hearth and Hild's forge agree.
 **Open (not contradictions):** the Rift's rim and the summit approach now have **The Watch on the Rim** (Coyle) and **Lamps for the Last Mile** (Isolde), both offered after Lastlight's earlier tasks; the world seat's landmark placements decide whether the readables beside them appear.
+
+## Camp moves (lead's fixes, kept here so the doc matches the code)
+
+Odile Frane's outpost moved off the open meadow east of Hearthward (the gloom dark spot, the owl hunt and the Fare-Caller's haunt check use it): her `near` list is now (96,74), (100,58), (88,86), (104,84), so her fire lands about (98,72) facing her lamp tower. Perrin Aldwyn's camp moved to the chapel's south side: (-64,34), (-52,32), (-72,40). Rule from now on: no new outposts on the meadow east and north of Hearthward between x -50..80 and z 40..70. Gorse and Wystan are in `GIVER_NAMES`; the bark that named "burl" now names his id, `wat`; `QuestProps.make` takes a `Node` parent.
