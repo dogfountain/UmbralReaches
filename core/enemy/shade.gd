@@ -34,6 +34,8 @@ var _pool: Decal
 var _warned := false          ## its swell has sounded for this approach
 var _idle_voice_t := randf_range(2.0, 7.0)
 var _whisper: AudioStreamPlayer3D
+var _whisper_t := 0.0
+const WHISPER_STOP := 30.0          ## m from the camera beyond which the whisper loop is stopped
 var _skins: Array[GeometryInstance3D] = []
 var _reach := 0.0
 var _tremor_t := 0.0
@@ -61,10 +63,11 @@ func _ready() -> void:
 	_build_presence()
 	_build_hurtbox()
 	_whisper = AudioStreamPlayer3D.new()
-	_whisper.bus = &"SFX"
+	_whisper.bus = &"Voices" if AudioServer.get_bus_index("Voices") >= 0 else &"SFX"     # a creature voice: compressed with the rest
 	_whisper.name = "Whisper"
 	_whisper.stream = _whisper_loop
-	_whisper.max_distance = 40.0
+	_whisper.unit_size = 3.0            # a murmur, not a presence: it falls off inside a few metres
+	_whisper.max_distance = 25.0
 	_whisper.volume_db = -14.0
 	_whisper.pitch_scale = 0.6          # bigger thing, lower voice
 	add_child(_whisper)
@@ -461,6 +464,15 @@ func _process(delta: float) -> void:
 	_pool.global_position = get_global_transform_interpolated().origin + Vector3.DOWN * 3.0
 	if _whisper and is_instance_valid(target):
 		_whisper.volume_db = linear_to_db(clampf(target.gloom / maxf(target.gloom_max, 1.0), 0.08, 1.0)) - 4.0
+	_whisper_t -= delta                 # a shade out of earshot stops its loop (looked at twice a second, on this tick)
+	if _whisper_t <= 0.0 and _whisper:
+		_whisper_t = 0.5
+		var cam := get_viewport().get_camera_3d()
+		var far := cam != null and cam.global_position.distance_squared_to(global_position) > WHISPER_STOP * WHISPER_STOP
+		if far and _whisper.playing:
+			_whisper.stop()
+		elif not far and not _whisper.playing:
+			_whisper.play()
 
 
 func _reach_goal() -> float:
