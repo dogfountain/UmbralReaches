@@ -12,6 +12,7 @@ extends RefCounted
 const Access := preload("res://ui/access.gd")
 const Tiers := preload("res://core/life/encounters/tiers.gd")
 const LevelDB := preload("res://core/life/progression/level.gd")
+const GearGap := preload("res://core/life/encounters/gear_gap.gd")
 
 const HAVENS := ["hearth", "weirford", "saltmarket", "lastlight", "fallow"]      ## the towns' own ground: the dark does not come in
 const NAMES := ["Haven", "Gentle", "Even", "Perilous", "Deadly"]
@@ -19,8 +20,17 @@ const COLORS := [Color(0.72, 0.9, 0.72), Color(0.66, 0.88, 0.62), Color(0.96, 0.
 const BOSS_RANK := 2                               ## a great one stands this far above a pawn of its ground
 
 
+static var _lv := 0
+static var _lv_ms := -1000
+
+
+## The wanderer's level (read at most twice a second: the enemy plates and the minimap ask every frame they draw).
 static func player_level() -> int:
-	return int(LevelDB.info(Travel.system_state("progression"), Travel.bosses_slain.size()).get("level", 0))
+	var now := Time.get_ticks_msec()
+	if now - _lv_ms > 500:
+		_lv_ms = now
+		_lv = int(LevelDB.info(Travel.system_state("progression"), Travel.bosses_slain.size()).get("level", 0))
+	return _lv
 
 
 ## The level a plain pawn at `at` shows on its plate (the tier's band and the distance from the hub).
@@ -31,7 +41,34 @@ static func pawn_level(at: Vector3) -> int:
 static func band(at: Vector3) -> int:
 	if Tiers.region_id(at) in HAVENS:
 		return 0
-	var d := pawn_level(at) - player_level()
+	return rate(pawn_level(at))
+
+
+static func plate(at: Vector3) -> String:
+	var b := band(at)
+	return NAMES[b] if b == 0 else "%s · Lv %d" % [NAMES[b], pawn_level(at)]
+
+
+## "Recommended level 14 (you are 9)" for a task's first step that has a place, or "" in a haven or when it has none.
+static func task_hint(qd: Dictionary) -> String:
+	for stp: Variant in qd.get("steps", []):
+		if stp is Dictionary and (stp as Dictionary).get("at") is Vector2:
+			var a: Vector2 = (stp as Dictionary).at
+			var at := Vector3(a.x, 0.0, a.y)
+			if band(at) == 0:
+				return ""
+			return "Recommended level %d (you are %d)" % [pawn_level(at), player_level()]
+	return ""
+
+
+## The gear-gap hint for the ground at `at` (core/life/encounters/gear_gap.gd): "" when the gear is not behind.
+static func gear_note(at: Vector3) -> String:
+	return GearGap.note(pawn_level(at), band(at))
+
+
+## Where a pawn of `level` stands against the wanderer, as a band (the plate's own thresholds, for enemy plates).
+static func rate(level: int) -> int:
+	var d := level - player_level()
 	if d <= -5:
 		return 1
 	if d <= 1:
@@ -39,11 +76,6 @@ static func band(at: Vector3) -> int:
 	if d <= 4:
 		return 3
 	return 4
-
-
-static func plate(at: Vector3) -> String:
-	var b := band(at)
-	return NAMES[b] if b == 0 else "%s · Lv %d" % [NAMES[b], pawn_level(at)]
 
 
 static func color(b: int) -> Color:
@@ -71,4 +103,5 @@ static func boss_hint(tree: SceneTree, boss_id: String) -> String:
 static func warn_text(at: Vector3) -> String:
 	if band(at) < 4:
 		return ""
-	return "The dark is deeper here: a pawn of this ground is level %d, and you are %d. Fires are fewer. Go warily, or go back." % [pawn_level(at), player_level()]
+	var gear := gear_note(at)
+	return "The dark is deeper here: a pawn of this ground is level %d, and you are %d. Fires are fewer. %sGo warily, or go back." % [pawn_level(at), player_level(), (gear + ". ") if gear != "" else ""]

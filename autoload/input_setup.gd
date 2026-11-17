@@ -106,6 +106,9 @@ const REBINDABLE := [
 ## key do two things inside a menu. (A key an action ships with stays rebindable to that action.)
 const MENU_KEYS := [KEY_Q, KEY_E, KEY_1, KEY_2, KEY_3, KEY_4, KEY_W, KEY_S, KEY_UP, KEY_DOWN, KEY_LEFT, KEY_RIGHT,
 	KEY_U, KEY_Y, KEY_R, KEY_X, KEY_F, KEY_V]
+## The pad's menu buttons (LB and RB page, the d-pad moves the cursor): refused for an action that does not ship with them, as the
+## keyboard's menu keys are (Menu is fixed already: it opens Settings).
+const MENU_PAD := [JOY_BUTTON_LEFT_SHOULDER, JOY_BUTTON_RIGHT_SHOULDER, JOY_BUTTON_DPAD_UP, JOY_BUTTON_DPAD_DOWN, JOY_BUTTON_DPAD_LEFT, JOY_BUTTON_DPAD_RIGHT]
 ## Keys that cannot be bound: Esc is Settings and cancels the rebind itself.
 const RESERVED_KEYS := [KEY_ESCAPE, KEY_F2, KEY_F8, KEY_F9]
 
@@ -147,6 +150,13 @@ static func event_from(d: Variant) -> InputEvent:
 			var b := InputEventJoypadButton.new()
 			b.button_index = code as JoyButton
 			return b
+		"axis":                                        # a trigger (the sticks stay the move and the look)
+			if code != JOY_AXIS_TRIGGER_LEFT and code != JOY_AXIS_TRIGGER_RIGHT:
+				return null
+			var a := InputEventJoypadMotion.new()
+			a.axis = code as JoyAxis
+			a.axis_value = 1.0
+			return a
 	return null
 
 
@@ -159,7 +169,14 @@ static func event_to(ev: InputEvent) -> Dictionary:
 		return {"t": "mouse", "c": int((ev as InputEventMouseButton).button_index)}
 	if ev is InputEventJoypadButton:
 		return {"t": "btn", "c": int((ev as InputEventJoypadButton).button_index)}
+	if ev is InputEventJoypadMotion and is_trigger(ev as InputEventJoypadMotion):
+		return {"t": "axis", "c": int((ev as InputEventJoypadMotion).axis)}
 	return {}
+
+
+## A trigger (LT or RT) as a pad event: the only axes a binding may take (a stick is the move and the look).
+static func is_trigger(m: InputEventJoypadMotion) -> bool:
+	return m.axis == JOY_AXIS_TRIGGER_LEFT or m.axis == JOY_AXIS_TRIGGER_RIGHT
 
 
 static func _same(a: InputEvent, b: InputEvent) -> bool:
@@ -170,7 +187,7 @@ static func _same(a: InputEvent, b: InputEvent) -> bool:
 static func slot_of(ev: InputEvent) -> String:
 	if ev is InputEventKey or ev is InputEventMouseButton:
 		return "key"
-	if ev is InputEventJoypadButton:
+	if ev is InputEventJoypadButton or (ev is InputEventJoypadMotion and is_trigger(ev as InputEventJoypadMotion)):
 		return "pad"
 	return ""
 
@@ -209,6 +226,8 @@ func refusal(action: String, ev: InputEvent) -> String:
 		for e in InputMap.action_get_events(other):
 			if _same(e, ev):
 				return "%s is already %s." % [event_name(ev), String(r[0])]
+	if ev is InputEventJoypadButton and int(d.c) in MENU_PAD and not _default_has(action, ev):
+		return "%s pages and moves inside the menus." % event_name(ev)
 	# (after the clash check: a key another action holds says which one)
 	if ev is InputEventKey and int(d.c) in MENU_KEYS and not _default_has(action, ev):
 		return "%s is used inside the menus." % OS.get_keycode_string(int(d.c) as Key)
@@ -272,7 +291,7 @@ func _replace(action: String, slot: String, ev: InputEvent) -> void:
 	if slot == "pad":
 		# a pad button bound here replaces the default trigger / stick too: the skill's LT would still fire it
 		# after being rebound to a button (and show in the Controls page as nothing)
-		evs = evs.filter(func(e: InputEvent) -> bool: return not (e is InputEventJoypadMotion))
+		evs = evs.filter(func(e: InputEvent) -> bool: return e == ev or not (e is InputEventJoypadMotion))
 	InputMap.action_erase_events(action)
 	for e in evs:
 		InputMap.action_add_event(action, e)

@@ -75,6 +75,10 @@ func _rescan() -> void:
 	var pl := get_tree().get_first_node_in_group(Groups.PLAYER) as Node3D
 	var you := pl.global_position if pl != null else cam.global_position
 	_marks = Feed.gather(get_tree(), cam.global_position, HudPrefs.compass_density, st, pl, you)
+	var tg0: Variant = st.get("target", Vector3.INF)
+	if tg0 is Vector3 and tg0 != Vector3.INF:      # the waypoint is shown once: a beacon on the tracked place is the goal mark itself
+		var tg: Vector3 = tg0
+		_marks.assign(_marks.filter(func(m: Dictionary) -> bool: return String(m.kind) != "beacon" or Vector2((m.pos as Vector3).x - tg.x, (m.pos as Vector3).z - tg.z).length() > 6.0))
 
 
 func _rank(kind: String) -> int:

@@ -7,6 +7,8 @@ extends CanvasLayer
 
 const Tally := preload("res://core/story/tally.gd")
 const Days := preload("res://core/story/days.gd")
+const PAGES := 4
+const Foot := preload("res://ui/foot_hint.gd")
 const QuestBook := preload("res://core/story/quest_book.gd")
 const Chains := preload("res://core/story/quest_chains.gd")
 const Med := preload("res://ui/medieval_style.gd")
@@ -28,6 +30,7 @@ var _root: Control
 var _left: VBoxContainer
 var _right: VBoxContainer
 var _opened_ms := 0
+var _led_sel := 0                    ## the posting under the cursor on the Long Night page
 var _page := 0                        ## 0 the Count, 1 the Chronicle
 var _title_l: Label
 var _foot_l: Label
@@ -134,14 +137,17 @@ func _clear(box: VBoxContainer) -> void:
 func _fill() -> void:
 	_clear(_left)
 	_clear(_right)
-	_title_l.text = "THE COUNT" if _page == 0 else "THE CHRONICLE"
-	_title_l.text = ["THE COUNT", "THE CHRONICLE", "THE BELLS"][_page]
-	_foot_l.text = "[Q] [E] page (%d of 3)     [%s] or [Esc] close" % [_page + 1, InputSetup.live_label("tally", false, "B")]
+	_title_l.text = ["THE COUNT", "THE CHRONICLE", "THE BELLS", "THE LONG NIGHT"][_page]
+	Foot.style(_foot_l)
+	_foot_l.text = "%s (%d of %d)     %s" % [Foot.page(), _page + 1, PAGES, Foot.leave("tally", "B")]
 	if _page == 1:
 		_fill_chronicle()
 		return
 	if _page == 2:
 		_fill_bells()
+		return
+	if _page == 3:
+		_fill_ledger()
 		return
 	var d := Tally.data()
 	_head(_left, "PUT DOWN  %d" % Tally.total())
@@ -174,15 +180,17 @@ func _fill() -> void:
 	var ride: String = String(Travel.system_state("stable").get("ride", ""))
 	if ride != "":
 		_row(_right, "%s, your horse" % HorseBond.name_of(ride), "%s, %d km" % [HorseBond.title(ride), roundi(HorseBond.metres(ride) / 1000.0)])
+	if int(d.get("races", 0)) > 0:
+		_row(_right, "Races run, won", "%d, %d" % [int(d.get("races", 0)), int(d.get("race_wins", 0))])
 	_right.add_child(Control.new())
 	_head(_right, "YOUR VOWS")
 	var sworn := Vows.chosen()
 	for v in sworn:
 		_row(_right, String((Vows.DEFS[v] as Array)[2]), String((Vows.DEFS[v] as Array)[1]))
 	if Vows.pending() >= 0:
-		_row(_right, "A vow waits (Remembrance %d)" % int(Vows.TIERS[Vows.pending()]), "")
+		_row(_right, "A vow waits (level %d)" % int(Vows.TIERS[Vows.pending()]), "")
 	elif sworn.is_empty():
-		_row(_right, "None sworn. The first is at Remembrance 5.", "")
+		_row(_right, "None sworn. The first is at level 5.", "")
 	_right.add_child(Control.new())
 	_head(_right, "WHO KNOWS YOU")
 	for f: String in ReachState.FACTIONS:
@@ -214,6 +222,48 @@ func _fill_bells() -> void:
 		var state := "rung where it hangs" if pick == "rung" else ("carried home" if pick == "carried" else ("taken up" if QuestBook.started(id) else "not yet"))
 		var nm := String((Chains.QUESTS.get(id, {}) as Dictionary).get("name", id))
 		_row(_right, nm, state)
+
+
+## The endgame's page (core/story/long_ledger.gd): rank and marks on the left, tonight's bounties and how far each has come on the right.
+func _fill_ledger() -> void:
+	_head(_left, "THE LONG LEDGER")
+	if not LongLedger.unlocked():
+		_left.add_child(_label("The ledger is kept at the Keg and opens when the door is shut: when the Ascended Warden has fallen. After that the night does not end. It asks more, and pays.", 17, DIM))
+		_head(_right, "TONIGHT'S POSTING")
+		_right.add_child(_label("Nothing is posted. The door is still open.", 17, DIM))
+		return
+	var r := LongLedger.rank()
+	var marks := LongLedger.marks()
+	_row(_left, "Rank", LongLedger.rank_name())
+	_row(_left, "Marks", str(marks))
+	if r < LongLedger.Data.RANKS.size() - 1:
+		_row(_left, "Next: %s" % String((LongLedger.Data.RANKS[r + 1] as Array)[1]), "%d marks" % int((LongLedger.Data.RANKS[r + 1] as Array)[0]))
+	else:
+		_row(_left, "No rank is left above you", "")
+	_row(_left, "Bounties done", str(int(LongLedger.st().get("done", 0))))
+	_row(_left, "Deeper Nights rung", str(LongLedger.ng()))
+	_left.add_child(_label("Each Deeper Night makes the ledger ask a third more and pay a third more. Each rank pays in ember shards and adds a twentieth to every purse. A camp at a lit fire renews the posting.", 16, DIM))
+	_head(_right, "TONIGHT'S POSTING")
+	var list: Array = LongLedger.st().list
+	if list.is_empty():
+		_right.add_child(_label("Nothing is posted yet. It is written within a breath or two.", 17, DIM))
+	_led_sel = clampi(_led_sel, 0, maxi(list.size() - 1, 0))
+	for i in list.size():
+		var b: Dictionary = list[i]
+		var state := "done" if int(b.s) == 1 else ("struck" if int(b.s) == 2 else "%d of %d" % [mini(LongLedger.progress(b), int(b.n)), int(b.n)])
+		_row(_right, ("> " if i == _led_sel else "   ") + ("Hard" if bool(b.hard) else "Plain") + " posting %d" % (i + 1), state)
+	if not list.is_empty():                              # the detail of the one under the cursor (up and down, or the d-pad)
+		var b: Dictionary = list[_led_sel]
+		var rw := LongLedger.reward(b)
+		_right.add_child(Control.new())
+		_head(_right, "THE POSTING")
+		_right.add_child(_label(LongLedger.text_of(b), 18, INK))
+		var need := int(b.n)
+		var got := mini(LongLedger.progress(b), need)
+		_right.add_child(_label("[%s%s]  %d of %d" % ["#".repeat(roundi(10.0 * float(got) / float(maxi(need, 1)))), "-".repeat(10 - roundi(10.0 * float(got) / float(maxi(need, 1)))), got, need], 17, DIM))
+		var st := "Done and paid." if int(b.s) == 1 else ("Struck from the ledger: you fell. Tomorrow's posting is fresh." if int(b.s) == 2 else "Pays %d grave ash and %d ember shards, %d mark%s." % [rw.x, rw.y, 2 if bool(b.hard) else 1, "s" if bool(b.hard) else ""])
+		_right.add_child(_label(st + ("  Cleaned only if you do not fall." if String(LongLedger.Data.POOL[String(b.t)][0]) == "clean" and int(b.s) == 0 else ""), 16, DIM))
+		_right.add_child(_label("[Up] [Down] or d-pad: choose a posting", 15, DIM))
 
 
 func _fill_chronicle() -> void:
@@ -305,7 +355,21 @@ func _input(event: InputEvent) -> void:
 	if Time.get_ticks_msec() - _opened_ms < 200:
 		return
 	if event is InputEventKey and event.pressed and not event.is_echo() and (event.physical_keycode in [KEY_Q, KEY_E, KEY_LEFT, KEY_RIGHT]):
-		_page = (_page + (2 if (event.physical_keycode == KEY_Q or event.physical_keycode == KEY_LEFT) else 1)) % 3
+		_page = (_page + (PAGES - 1 if (event.physical_keycode == KEY_Q or event.physical_keycode == KEY_LEFT) else 1)) % PAGES
+		_fill()
+		get_viewport().set_input_as_handled()
+		return
+	if _page == 3 and ((event is InputEventKey and event.pressed and not event.is_echo() and (event as InputEventKey).physical_keycode in [KEY_UP, KEY_DOWN, KEY_W, KEY_S]) \
+			or (event is InputEventJoypadButton and event.pressed and (event as InputEventJoypadButton).button_index in [JOY_BUTTON_DPAD_UP, JOY_BUTTON_DPAD_DOWN])):
+		var up := (event is InputEventKey and (event as InputEventKey).physical_keycode in [KEY_UP, KEY_W]) or (event is InputEventJoypadButton and (event as InputEventJoypadButton).button_index == JOY_BUTTON_DPAD_UP)
+		_led_sel = maxi(0, _led_sel + (-1 if up else 1))
+		UiSound.play(self, "move")
+		_fill()
+		get_viewport().set_input_as_handled()
+		return
+	if event is InputEventJoypadButton and event.pressed and ((event as InputEventJoypadButton).button_index in [JOY_BUTTON_LEFT_SHOULDER, JOY_BUTTON_RIGHT_SHOULDER, JOY_BUTTON_DPAD_LEFT, JOY_BUTTON_DPAD_RIGHT]):
+		var back := (event as InputEventJoypadButton).button_index in [JOY_BUTTON_LEFT_SHOULDER, JOY_BUTTON_DPAD_LEFT]
+		_page = (_page + (PAGES - 1 if back else 1)) % PAGES
 		_fill()
 		get_viewport().set_input_as_handled()
 		return

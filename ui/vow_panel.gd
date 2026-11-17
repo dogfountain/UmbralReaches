@@ -99,7 +99,7 @@ func _fill() -> void:
 		_list.remove_child(c)
 		c.queue_free()
 	_title.text = "A VOW"
-	_sub.text = "Remembrance %d. Three vows are offered. One is sworn, and it is yours for the rest of the night." % int(Vows.TIERS[_tier])
+	_sub.text = "Level %d. Three vows are offered. One is sworn, and it is yours for the rest of the night." % int(Vows.TIERS[_tier])
 	var first: Button = null
 	for id in Vows.options(_tier):
 		var d: Array = Vows.DEFS[id]

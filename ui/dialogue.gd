@@ -14,6 +14,7 @@ signal advanced
 signal chosen(index: int)
 signal closed
 
+const Foot := preload("res://ui/foot_hint.gd")
 const Access := preload("res://ui/access.gd")
 const UIType := preload("res://ui/type.gd")
 const TextDirector := preload("res://ui/text_director.gd")
@@ -408,6 +409,7 @@ func _refresh_hint() -> void:
 	var k := Interactable.prompt_key()
 	var pad := Settings.using_pad
 	var leave := "B" if pad else "Esc"
+	Foot.style(_hint)
 	if typing():
 		_hint.text = "[%s]  skip" % k
 	elif _buttons.is_empty():

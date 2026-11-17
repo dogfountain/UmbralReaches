@@ -61,6 +61,8 @@ static func blocked_reason(tree: SceneTree) -> String:
 		return "The fires will not carry you out of a warden's fight."
 	if Courier.active():
 		return "You carry a parcel. The fires will not carry it."
+	if HorseRace.active():
+		return "You are in a race. The fires will wait."
 	if tree.get_first_node_in_group(Flight.GROUP) != null:
 		return "You are already on the road."
 	var p := tree.get_first_node_in_group(Groups.PLAYER) as Node3D

@@ -6,6 +6,7 @@ extends RefCounted
 ## had to move off its region carries a hairline leader back to it. The map draws the marks over this.
 
 const LoreDB := preload("res://core/world/realm/lore_db.gd")
+const Landmarks := preload("res://ui/world_map_landmarks.gd")
 const INK := Color(0.1, 0.055, 0.03)
 const HALO := Color(0.93, 0.86, 0.68, 0.96)
 const MIN_PX := [18.0, 16.0, 15.0, 14.0]             ## smallest on-screen size by tier
@@ -40,6 +41,8 @@ func _init(font: Font) -> void:
 		_items.append({
 			"id": String(r.id), "text": LoreDB.place_name(String(r.id)).to_upper(), "at": rc.get_center() if r.has("rect") else r.c,
 			"tier": tier, "tall": tall, "dot": not r.has("rect"), "base": [15.0, 11.5, 9.2, 7.7][tier]})
+	for l: Array in Landmarks.LIST:                       # landmarks the sketch has reached are named, laid out with the rest
+		_items.append({"id": String(l[0]), "text": String(l[1]).to_upper(), "at": l[2], "tier": 3, "tall": false, "dot": true, "base": 7.7})
 
 
 static func _area(r: Dictionary) -> float:
@@ -99,7 +102,7 @@ func _width(s: String, size: int, sp: float) -> float:
 
 
 ## Lay the names out for this zoom (px per metre). `seen` is the set of walked region ids.
-func layout(zoom: float, zmin: float, seen: Array[String]) -> void:
+func layout(zoom: float, zmin: float, seen: Array) -> void:
 	var key := int(zoom * 40.0) + seen.size() * 100000
 	if key == _key:
 		return
