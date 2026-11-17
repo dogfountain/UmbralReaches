@@ -152,6 +152,17 @@ const CLOTH_COLLIDERS := [
 	["upper_l", 0.09, 0.32, 0.16], ["upper_r", 0.09, 0.32, 0.16], ["fore_l", 0.07, 0.3, 0.15], ["fore_r", 0.07, 0.3, 0.15],
 ]   # [bone, radius, length (0: a sphere), offset along the bone]
 var _springs: SpringBoneSimulator3D
+const Smooth := preload("res://core/enemy/pose_smooth.gd")
+var _flinch_v := 0.0                              ## the flinch is a critically damped spring (a blow kicks its speed)
+var _dt := 0.0
+var _pace_s := 1.0                                ## the clip's speed, smoothed: the ground speed is noisy tick to tick
+# the skeleton as of the last two ticks (bone poses are not physics-interpolated; a model posed at 60 Hz steps on a faster screen)
+var _bc_rot: Array[Quaternion] = []
+var _bp_rot: Array[Quaternion] = []
+var _bc_pos := PackedVector3Array()
+var _bp_pos := PackedVector3Array()
+var _bone_frame := -10
+var _bone_primed := false
 
 
 func _spring_cloth() -> void:
@@ -270,7 +281,10 @@ func animate(vel: Vector3, on_floor: bool, delta: float) -> void:
 		return
 	_t += delta
 	_size = maxf(global_basis.get_scale().y, 0.01)
-	_flinch = move_toward(_flinch, 0.0, delta * 3.0)
+	_dt = delta
+	var sp := Smooth.spring(_flinch, _flinch_v, 0.0, 14.0, delta)
+	_flinch = sp.x
+	_flinch_v = sp.y
 	if _model != null:
 		# a hit rocks the whole body off the blow for a moment, on top of whatever clip is playing
 		_model.rotation.x = -_flinch * 0.12
@@ -287,7 +301,41 @@ func animate(vel: Vector3, on_floor: bool, delta: float) -> void:
 			elif _state != &"windup_hold":
 				_locomote(vel, on_floor)
 	_anim.advance(delta)
+	_capture_bones()
 	_place_sockets()
+
+
+## Keep the skeleton's last two ticks (after the clip advanced), and draw between them every rendered frame.
+func _capture_bones() -> void:
+	if _skeleton == null:
+		return
+	var n := _skeleton.get_bone_count()
+	if _bc_rot.size() != n:
+		_bc_rot.resize(n)
+		_bp_rot.resize(n)
+		_bc_pos.resize(n)
+		_bp_pos.resize(n)
+		_bone_primed = false
+	for i in n:
+		_bp_rot[i] = _bc_rot[i]
+		_bp_pos[i] = _bc_pos[i]
+		_bc_rot[i] = _skeleton.get_bone_pose_rotation(i)
+		_bc_pos[i] = _skeleton.get_bone_pose_position(i)
+		if not _bone_primed:
+			_bp_rot[i] = _bc_rot[i]
+			_bp_pos[i] = _bc_pos[i]
+	_bone_primed = true
+	_bone_frame = Engine.get_physics_frames()
+
+
+func _process(_delta: float) -> void:
+	if _skeleton == null or not _bone_primed:
+		return
+	var live := is_physics_interpolated_and_enabled() and Engine.get_physics_frames() - _bone_frame < 2
+	var f := Engine.get_physics_interpolation_fraction() if live else 1.0
+	for i in _bc_rot.size():
+		_skeleton.set_bone_pose_rotation(i, _bp_rot[i].slerp(_bc_rot[i], f))
+		_skeleton.set_bone_pose_position(i, _bp_pos[i].lerp(_bc_pos[i], f))
 
 
 func _place_sockets() -> void:
@@ -313,7 +361,8 @@ func _locomote(vel: Vector3, on_floor: bool) -> void:
 			return
 	# ground speed as the model walks it: a boss three times the size covers three times the ground a stride
 	var speed := Vector2(vel.x, vel.z).length() / _size
-	if speed < 0.15:
+	var thr := 0.1 if (_state == &"walk" or _state == &"run") else 0.2        # a hysteresis: ground speed hovering at the edge flickered idle and walk
+	if speed < thr:
 		if _state != &"idle":
 			_play(&"idle", 0.3)
 		return
@@ -322,9 +371,12 @@ func _locomote(vel: Vector3, on_floor: bool) -> void:
 	var stride := run_stride if run else walk_stride
 	var pace := speed * _len(nm) / maxf(stride, 0.01)          # clip loops a second the ground asks for, over the clip's own
 	if _state != nm:
+		_pace_s = pace
 		_play(nm, 0.25, pace)
+	else:
+		_pace_s = lerpf(_pace_s, pace, 1.0 - exp(-6.0 * _dt))
 	_anim.speed_scale = 1.0
-	_anim.play(nm, -1.0, clampf(pace, 0.35, 2.2))
+	_anim.play(nm, -1.0, clampf(_pace_s, 0.35, 2.2))
 
 
 func cast(_sound := "") -> void:
@@ -368,7 +420,7 @@ func howl(dur: float) -> void:
 
 
 func flinch(amount: float, side := 0.0) -> void:
-	_flinch = clampf(maxf(_flinch, amount), 0.0, 1.0)
+	_flinch_v += clampf(amount, 0.0, 1.0) * 38.0
 	_flinch_side = side
 
 
@@ -376,7 +428,7 @@ func stagger() -> void:
 	if _dead:
 		return
 	_hold = &""
-	_flinch = 1.0
+	_flinch_v += 38.0
 	if has_clip(&"stagger"):
 		_play(&"stagger", 0.08)
 		_lock_t = _len(&"stagger")

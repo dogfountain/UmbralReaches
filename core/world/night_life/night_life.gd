@@ -12,6 +12,7 @@ extends Node
 ##   fog_banks         drifting mist stained warm and cold by what burns in it
 ##   hit_reads         rings, starbursts, a death's rising motes, tinted by damage school
 ##   telegraph_glow    the caster lit amber as it winds up, the interruptible one cold; the snap of a broken cast
+##   folk              twelve ambient people (core/life/folk): sweeping, fiddling, dancing, tag, a watchman's round, graves
 ##   wanderer_life     warming his hands at a fire, a hand to the moths, his lantern swelling in the eclipse
 ## Villagers' new gestures and their de-synced gait live in core/life/village (villager_fidgets.gd).
 ## Settings.night_life (Settings > Effects > Living Night) switches the lot off at once: cards and pools hide, lent
@@ -31,6 +32,7 @@ const Banks := preload("res://core/world/night_life/fog_banks.gd")
 const Hits := preload("res://core/world/night_life/hit_reads.gd")
 const Tells := preload("res://core/world/night_life/telegraph_glow.gd")
 const Wanderer := preload("res://core/world/night_life/wanderer_life.gd")
+const Folk := preload("res://core/life/folk/folk_stage.gd")
 
 var _poll := 0.0
 
@@ -65,6 +67,7 @@ func _ready() -> void:
 	_add(Hits.new(), "HitReads")
 	_add(Tells.new(), "TelegraphGlow")
 	_add(Wanderer.new(), "WandererLife")
+	_add(Folk.new(), "Folk")
 
 
 func _add(n: Node, nm: String) -> void:

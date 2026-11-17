@@ -17,8 +17,9 @@ const LEN := 46.0
 const SKIP_AFTER := 1.5
 const SKIP_HOLD := 0.8
 const BARS := 0.115                       ## each letterbox bar as a fraction of the screen's height
-## the beats' times (seconds): the three narration lines
-const BEATS := [1.0, 9.0, 33.0]
+## the beats' times (shot seconds)
+## index: 0 the sky's low stroke, 1-3 the narration lines, 4 the lantern's chime
+const BEATS := [0.5, 1.0, 9.0, 33.0, 34.5]
 
 var _cam: Camera3D
 var _player: Node3D
@@ -26,6 +27,9 @@ var _pcam: Camera3D
 var _home: Transform3D                    ## the follow camera's pose: where the shot must end
 var _origin: Vector3
 var _t := 0.0
+var _speed := 1.0                         ## the second night's shot runs faster (a New Game after an ending)
+var _again := false
+var _card: Label
 var _done := false
 var _hold := 0.0
 var _beats_sent := 0
@@ -37,7 +41,9 @@ var _space: PhysicsDirectSpaceState3D
 
 
 ## Begin the shot over `player`. False when there is nothing to shoot (no player or no camera): the story goes on.
-func begin(player: Node3D) -> bool:
+func begin(player: Node3D, again := false) -> bool:
+	_again = again
+	_speed = 1.5 if again else 1.0
 	_player = player
 	if _player == null or not is_inside_tree():
 		return false
@@ -73,6 +79,21 @@ func _bars() -> void:
 		r.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		r.set_anchors_preset(Control.PRESET_TOP_WIDE if r == _top else Control.PRESET_BOTTOM_WIDE)
 		_layer.add_child(r)
+	_card = Label.new()
+	_card.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_card.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_card.text = "THE SECOND NIGHT\nthe latch holds, for now" if _again else "THE UMBRAL REACHES\nwhere the sky turns inward"
+	_card.add_theme_font_override("font", load("res://ui/fonts/Cinzel.ttf") as Font)
+	_card.add_theme_font_size_override("font_size", 46)
+	_card.add_theme_color_override("font_color", Color(1.0, 0.78, 0.4, 0.0))
+	_card.add_theme_color_override("font_outline_color", Color(0.1, 0.045, 0.01, 0.0))
+	_card.add_theme_constant_override("outline_size", 4)
+	_card.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
+	_card.offset_left = -700.0
+	_card.offset_right = 700.0
+	_card.offset_top = -120.0
+	_card.offset_bottom = 40.0
+	_layer.add_child(_card)
 	_hint = Label.new()
 	_hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_hint.add_theme_font_size_override("font_size", 15)
@@ -83,6 +104,13 @@ func _bars() -> void:
 	_hint.position = Vector2(-220, -34)
 	_layer.add_child(_hint)
 	_size_bars(0.0)
+
+
+## The game's name over the empty dark (shot seconds 2 to 7): in with the first lines, out as the lens begins to climb.
+func _card_tick() -> void:
+	var a := smoothstep(2.0, 3.6, _t) * (1.0 - smoothstep(5.8, 7.4, _t))
+	_card.add_theme_color_override("font_color", Color(1.0, 0.78, 0.4, a))
+	_card.add_theme_color_override("font_outline_color", Color(0.1, 0.045, 0.01, a))
 
 
 func _size_bars(k: float) -> void:
@@ -96,7 +124,8 @@ func _size_bars(k: float) -> void:
 func _process(delta: float) -> void:
 	if _done or _cam == null:
 		return
-	_t += delta
+	_t += delta * _speed
+	_card_tick()
 	while _beats_sent < BEATS.size() and _t >= float(BEATS[_beats_sent]):
 		beat.emit(_beats_sent)
 		_beats_sent += 1

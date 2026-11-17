@@ -16,6 +16,8 @@ const ROBE_MAGIC := "res://art/textures/robe_magic.png"
 const ROBE_NORMAL := "res://art/textures/robe_normal.png"
 const WBody := preload("res://core/player/wanderer_body.gd")
 const WPiece := preload("res://core/player/wanderer_piece.gd")
+const Idles := preload("res://core/player/wanderer_idles.gd")
+var idle_ctx := {}                  ## what the night round him says (WandererLife): fire, cold, rain, dark (0..1), look (a world point or INF), injured, tired
 static var _cloth_shared := {}
 
 var walk_speed := 4.5
@@ -32,6 +34,7 @@ var charge := 0.0
 ## 0..1 slide blend from Player: low, legs out front, torso leaning back, trailing arm.
 var slide := 0.0
 var _tuck := 0.0                 ## double-jump knees-up, decays
+var _tuck_t := 0.0               ## what it is rising to: the knees come up over a few ticks, not in one frame
 ## The wanderer (built with the default loadout): foot IK, leaning, secondary motion. Enemy rigs
 ## (HunchRig, QuadRig) share this class and keep the plain stride.
 var hero := false
@@ -119,7 +122,6 @@ var _burst_t := -1.0
 var _flare: GeometryInstance3D
 var _cap_frame := -10
 
-# --- the wanderer's richer motion (hero only) ---
 ## World point the head turns toward (Player: the nearest enemy in front, else where the camera
 ## looks). Vector3.INF = no target, the head keeps its idle wander.
 var look_at_point := Vector3.INF
@@ -493,7 +495,8 @@ func animate(vel: Vector3, on_floor: bool, delta: float) -> void:
 	_legacy_pose(s, c, st, breathe, idle)
 	if gait:
 		_gait_body(speed, on_floor, idle, breathe, delta)
-	_tuck = move_toward(_tuck, 0.0, delta * 2.2)
+	_tuck_t = move_toward(_tuck_t, 0.0, delta * 2.2)
+	_tuck = move_toward(_tuck, _tuck_t, delta * 14.0)
 	if slide > 0.01 or _tuck > 0.01:
 		_pose_overlay()
 	if hero:
@@ -531,7 +534,7 @@ func animate(vel: Vector3, on_floor: bool, delta: float) -> void:
 			_trail.amount_ratio = lerpf(1.0, 0.16, run)
 			_trail.lifetime = lerpf(1.15, 0.38, run)
 	if _lantern_light:
-		_lantern_light.light_energy = 1.15 + sin(_t * 13.0) * 0.05 + sin(_t * 7.3) * 0.035
+		_lantern_light.light_energy = (1.15 + sin(_t * 13.0) * 0.05 + sin(_t * 7.3) * 0.035) * (1.0 + 0.4 * float(idle_ctx.get("dark", 0.0)))   # the lantern matters most where nothing else is lit
 	if hero:
 		_swing("lantern", _lantern, 0.26, Vector3.ZERO, body, delta)
 		_swing("satchel", _equipped.get("satchel"), 0.3, Vector3.ZERO, body, delta)
@@ -684,12 +687,12 @@ func _legacy_pose(s: float, c: float, st: float, breathe: float, idle: float) ->
 
 ## Double jump: a quick knees-up tuck that unfolds as it decays.
 func air_tuck() -> void:
-	_tuck = 1.0
+	_tuck_t = 1.0
 
 
 ## Held crouch in the air (slide queued): keep the knees up at least this much.
 func hold_tuck(v: float) -> void:
-	_tuck = maxf(_tuck, v)
+	_tuck_t = maxf(_tuck_t, v)
 
 
 ## Slide and tuck poses layered over the stride (blend by `slide` / `_tuck`).
@@ -1248,9 +1251,10 @@ func hurt_react(from_world: Vector3, amount := 10.0) -> void:
 			dir = Vector2(l.x, -l.z).normalized()
 	var k := clampf(0.55 + amount * 0.025, 0.55, 1.0)
 	_hit_sv += Vector2(dir.y, dir.x) * 7.0 * k
-	_hit = maxf(_hit, k)
+	_hit_t = maxf(_hit_t, k)
 
 
+var _hit_t := 0.0                    ## what the hit react is rising to (the pelvis dip and shoulder drop ease in over a few ticks)
 var _hit_s := Vector2.ZERO
 var _hit_sv := Vector2.ZERO
 
@@ -1259,7 +1263,8 @@ func _hit_tick(dt: float) -> void:
 	_hit_sv += -_hit_s * 170.0 * dt
 	_hit_sv *= exp(-9.0 * dt)
 	_hit_s += _hit_sv * dt
-	_hit = move_toward(_hit, 0.0, dt * 2.5)
+	_hit_t = move_toward(_hit_t, 0.0, dt * 2.5)
+	_hit = move_toward(_hit, _hit_t, dt * 16.0)
 	if _hit_s.length_squared() < 1e-6 and _hit <= 0.0:
 		return
 	_torso.rotation.x += _hit_s.x * 0.8
@@ -1583,7 +1588,6 @@ func _process(delta: float) -> void:
 		animate(Vector3.ZERO, true, delta)
 
 
-# =================================================================================================
 # Hero locomotion (r28). A real gait instead of a sine stride: each foot is either PLANTED (held
 # where it touched down in the world, so it never slides, and it pivots as the body turns) or
 # SWINGING along an arc to where the next touchdown will be, relative to the body. Step length,
@@ -1593,7 +1597,6 @@ func _process(delta: float) -> void:
 # under the body whenever it turns or drifts off them (turning on the spot, combat facing, the
 # last step of a stop). Legs are solved by two-bone IK onto the targets; airborne, sliding,
 # hanging and the traversal poses blend back to forward kinematics (plant_k).
-# =================================================================================================
 
 const H_LEG := 0.40                 ## the wanderer's thigh = shin
 const H_PELVIS := 0.955             ## pelvis height standing (hip 0.765: soft knees under the robe)
@@ -2277,7 +2280,6 @@ func _pose_ride(k: float) -> void:
 		_foot[i].rotation.x = lerpf(_foot[i].rotation.x, 0.2, k)
 
 
-
 func _pose_hang(k: float) -> void:
 	var sh := hang_shimmy
 	var walk := sin(_t * 9.0) * absf(sh)
@@ -2376,59 +2378,10 @@ func _pose_steep(k: float) -> void:
 	_staff_off.x += 0.3 * k
 
 
-## Standing a while, the wanderer does something: looks about, lifts the lantern to peer into the
-## dark, leans on the staff, glances back over a shoulder. Any movement or cast ends it at once.
+## Standing a while, the wanderer does something (wanderer_idles.gd: ten acts chosen by the night round him, the
+## condition overlays: a limp when hurt, the breath after a sprint, the lantern held higher in the dark).
 func _idle_acts(speed: float, on_floor: bool, dt: float) -> void:
-	var still := on_floor and speed < 0.2 and _cast_t < 0.0 and charge <= 0.0 and hang < 0.01 \
-		and _mv_t < 0.0 and not lock and slide < 0.01 and _hit <= 0.0
-	_still = _still + dt if still else 0.0
-	if _ia < 0:
-		if _still > _ia_next:
-			_ia = _rng.randi_range(0, 3)
-			if _ia == _ia_last:
-				_ia = (_ia + 1) % 4
-			_ia_last = _ia
-			_ia_t = 0.0
-			_ia_len = [3.8, 3.4, 4.4, 2.6][_ia]
-		else:
-			return
-	_ia_t += dt
-	var u := _ia_t / _ia_len
-	var env := smoothstep(0.0, 0.2, u) * (1.0 - smoothstep(0.75, 1.0, u))
-	_ia_k = minf(env, _ia_k + dt * 6.0) if still else move_toward(_ia_k, 0.0, dt * 5.0)
-	if u >= 1.0 or (not still and _ia_k <= 0.0):
-		_ia = -1
-		_ia_k = 0.0
-		_ia_next = _still + _rng.randf_range(5.0, 10.0)
-		return
-	var k := _ia_k
-	match _ia:
-		0:  # look about: left, then right
-			var s := sin(u * TAU)
-			_head.rotation.y += s * 0.7 * k
-			_torso.rotation.y += s * 0.16 * k
-			_head.rotation.x += 0.06 * k
-		1:  # the lantern lifted to peer into the dark ahead
-			_sh[0].rotation.x += 1.2 * k
-			_sh[0].rotation.z += 0.3 * k
-			_el[0].rotation.x += 0.35 * k
-			_head.rotation.x -= 0.08 * k
-			_head.rotation.y += 0.18 * k
-			_torso.rotation.x -= 0.08 * k
-			_torso.rotation.y += 0.1 * k
-		2:  # weight onto the staff, a slow breath
-			_staff_off.x -= 0.1 * k
-			_sh[1].rotation.x += 0.28 * k
-			_el[1].rotation.x += 0.25 * k
-			_torso.rotation.z -= 0.07 * k
-			_torso.rotation.x -= 0.07 * k
-			_pelvis.position.x += 0.03 * k
-			_head.rotation.x -= 0.14 * k * (0.7 + 0.3 * sin(_t * 1.2))
-		3:  # a glance back over the right shoulder
-			var b := smoothstep(0.08, 0.35, u) * (1.0 - smoothstep(0.62, 0.9, u))
-			_head.rotation.y -= 1.0 * b * k
-			_torso.rotation.y -= 0.32 * b * k
-			_sh[0].rotation.x += 0.12 * b * k
+	Idles.tick(self, speed, on_floor, dt)
 
 
 ## The hood's peak as a damped spring on the head's real acceleration: it flops back on a start,

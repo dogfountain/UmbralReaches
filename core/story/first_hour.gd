@@ -35,7 +35,7 @@ func _process(delta: float) -> void:
 	_t -= delta
 	if _t > 0.0:
 		return
-	_t = 1.5
+	_t = 3.0
 	var scene := get_tree().current_scene
 	if scene == null or scene.get_node_or_null("OpeningCam") != null or scene.get_node_or_null("CampCam") != null:
 		return
@@ -61,7 +61,9 @@ func _process(delta: float) -> void:
 			break
 	if owned.is_empty() and Travel.count("grave_ash") >= 40 and p.global_position.distance_to(Vector3(0.0, 0.0, 33.0)) > 160.0:
 		_say("far", "A long way from home. A horse would carry this road for you: the stables of Hearthward, the moor, the pits and the mere sell them.")
+	if not bool((Travel.story.get("flags", {}) as Dictionary).get("met_keep", false)) and p.global_position.distance_to(Vector3(17.6, 0.2, 22.4)) < 7.0:
+		_say("keg", "The Kindled Keg's lamps are the only warm windows on the green. The keep is behind the bar: {interact} to speak.")
 	if Tally.total() >= 6:
 		_say("count", "{tally} The Count: every hollowed thing you put down is given a name and kept. Read it when you rest.")
 	if Travel.bosses_slain.has("thornwarden") and Travel.bosses_slain.has("bone_abbot"):
-		_say("bells", "The summit door hears a peal, not a crown. Eight bells hang in the far countries; answer four. Ring one where it hangs, or carry its tongue home. The objective counts them.")
+		_say("bells", "The summit door is hung to a bell, not a crown. Eight bells hang in the far countries; answer one: ring it where it hangs, or carry its tongue home. Every bell after the first takes a hand off the Warden.")

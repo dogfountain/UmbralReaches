@@ -19,6 +19,9 @@ extends CharacterRig
 
 const VRig := preload("res://core/life/village/villager_rig.gd")
 const Life := preload("res://core/npc/npc_life.gd")
+const Smooth := preload("res://core/enemy/pose_smooth.gd")
+## Seconds a change of mode is blended over (pose_smooth.gd): short into a blow, long out of one and into a death.
+const BLEND := {&"idle": 0.24, &"windup": 0.14, &"strike": 0.05, &"stagger": 0.08, &"howl": 0.2, &"death": 0.3}
 
 const B_ROOT := 0
 const B_SPINE := 1
@@ -89,6 +92,9 @@ var _mlen := 0.0                                 ## the mode's length (windup: i
 var _gait := 0.0
 var _walk := 0.0
 var _flinch := 0.0
+var _flinch_v := 0.0                              ## the flinch is a critically damped spring: a blow kicks its speed, it settles without a snap
+var _sm: Smooth                                   ## mode crossfade and tick interpolation (pose_smooth.gd)
+var _sm_frame := -10
 var _flinch_side := 0.0
 var _dead := false
 var _sock_nodes := {}
@@ -142,6 +148,8 @@ func _build() -> void:
 	_fx = ShaderMaterial.new()
 	_fx.shader = sh
 	(_v.get("mesh_instance") as MeshInstance3D).material_overlay = _fx
+	var sk := _v.get("skeleton") as Skeleton3D
+	_sm = Smooth.new(sk.get_bone_count(), 2)
 	_pose(0.0, Vector3.ZERO)
 
 
@@ -158,7 +166,9 @@ func animate(vel: Vector3, _on_floor: bool, delta: float) -> void:
 		return
 	_t += delta
 	_mt += delta
-	_flinch = move_toward(_flinch, 0.0, delta * 3.0)
+	var sp := Smooth.spring(_flinch, _flinch_v, 0.0, 14.0, delta)
+	_flinch = sp.x
+	_flinch_v = sp.y
 	if not _dead and _mode != &"windup":
 		var done := (_mode == &"strike" and _mt >= STRIKE_LEN) or (_mode == &"stagger" and _mt >= STAGGER_LEN) or (_mode == &"howl" and _mt >= _mlen)
 		if done:
@@ -167,6 +177,8 @@ func animate(vel: Vector3, _on_floor: bool, delta: float) -> void:
 
 
 func _set_mode(m: StringName, length := 0.0) -> void:
+	if _sm != null and m != _mode:
+		_sm.mode_changed(float(BLEND.get(m, 0.15)))
 	_mode = m
 	_mt = 0.0
 	_mlen = length
@@ -195,14 +207,14 @@ func howl(dur: float) -> void:
 
 
 func flinch(amount: float, side := 0.0) -> void:
-	_flinch = clampf(maxf(_flinch, amount), 0.0, 1.0)
+	_flinch_v += clampf(amount, 0.0, 1.0) * 38.0            # a peak displacement of `amount`
 	_flinch_side = side
 
 
 func stagger() -> void:
 	if _dead:
 		return
-	_flinch = 1.0
+	_flinch_v += 38.0
 	_set_mode(&"stagger")
 
 
@@ -215,8 +227,10 @@ func collapse(_back := false) -> void:
 
 
 func _process(_delta: float) -> void:
-	if not _dead or _v == null:
-		set_process(false)
+	if _v == null:
+		return
+	_draw_bones()
+	if not _dead:
 		return
 	var mi := _v.get("mesh_instance") as MeshInstance3D
 	var d := float(mi.get_instance_shader_parameter(&"dissolve"))
@@ -226,6 +240,18 @@ func _process(_delta: float) -> void:
 		g.transparency = mi.transparency
 	for gl: Array in _glints:
 		(gl[0] as GeometryInstance3D).transparency = mi.transparency
+
+
+## The skeleton between the last two committed ticks (the bones are not physics-interpolated: posed at 60 Hz they would
+## step on a faster screen). A tick that was not posed (held, asleep) shows the last pose as it is.
+func _draw_bones() -> void:
+	var sk := _v.get("skeleton") as Skeleton3D
+	if sk == null or _sm == null or not _sm.primed:
+		return
+	var live := is_physics_interpolated_and_enabled() and Engine.get_physics_frames() - _sm_frame < 2
+	var f := Engine.get_physics_interpolation_fraction() if live else 1.0
+	for i in _sm.n:
+		sk.set_bone_pose_rotation(i, _sm.sample_q(i, f))
 
 
 ## The top of the staff (spells leave from it), else the head.
@@ -280,6 +306,7 @@ func _pose(dt: float, vel: Vector3) -> void:
 	var d_l := Vector3(0, 0, -1)
 	var u_l := Vector3(0, -1, 0)
 	var shift := Vector3.ZERO
+	var rot_x := 0.0
 	var lean := 0.0
 	var arch := 0.0
 	match _mode:
@@ -348,7 +375,7 @@ func _pose(dt: float, vel: Vector3) -> void:
 			g_r = g_r.lerp(Vector3(0.2, 0.85, -0.4) * k, smoothstep(0.05, 0.35, u))
 			d_r = d_r.lerp(Vector3(0.0, 1.0, 0.25), smoothstep(0.05, 0.35, u))
 			g_l = g_l.lerp(Vector3(-0.26, 0.7, -0.25) * k, smoothstep(0.05, 0.35, u))
-			_v.rotation.x = -1.42 * over
+			rot_x = -1.42 * over
 			shift = Vector3(0, 0.1 * k * over, 0)
 	r.q(B_SPINE, (r.get_q(B_SPINE) as Quaternion) * Quaternion(Vector3.RIGHT, -lean * 0.45 + arch * 0.4))
 	r.q(B_CHEST, (r.get_q(B_CHEST) as Quaternion) * Quaternion(Vector3.RIGHT, -lean * 0.55 + arch * 0.6))
@@ -360,9 +387,17 @@ func _pose(dt: float, vel: Vector3) -> void:
 	r.hold(1, g_l, d_l, u_l)
 	r.q(B_HEAD, Quaternion(Vector3.RIGHT, -head_pitch))
 	r.q(B_LID, Quaternion(Vector3.RIGHT, 0.25))          # heavy lids: he does not blink at you
-	if not _dead:
-		_v.rotation = Vector3(-_flinch * 0.1, 0.0, _flinch * _flinch_side * 0.12)
-	_v.position = Vector3(shift.x, off, shift.z) if not _dead else Vector3(0, off * cos(_v.rotation.x), 0) + shift
+	# commit: the mode's pose, crossfaded from the last if the mode just changed (pose_smooth.gd)
+	_sm.raw_v[0] = Vector3(-_flinch * 0.1, 0.0, _flinch * _flinch_side * 0.12) if not _dead else Vector3(rot_x, 0.0, 0.0)
+	_sm.raw_v[1] = Vector3(shift.x, off, shift.z) if not _dead else Vector3(0, off * cos(rot_x), 0) + shift
+	for i in _sm.n:
+		_sm.raw_q[i] = r.get_q(i)
+	_sm.commit(dt if dt > 0.0 else 0.0166)
+	_sm_frame = Engine.get_physics_frames()
+	_v.rotation = _sm.cur_v[0]
+	_v.position = _sm.cur_v[1]
+	for i in _sm.n:
+		r.q(i, _sm.cur_q[i])
 	r.apply()
 	r.update_glow()
 	if not _glints.is_empty():

@@ -38,6 +38,8 @@ var _rake_t := -1.0
 var _flinch := 0.0
 var _flinch_side := 0.0
 var _reel := 0.0          ## stagger
+var _flinch_t := 0.0      ## what the flinch and the reel are heading for: the shown values rise to it in a few ticks (no one-tick snap), then follow its decay
+var _reel_t := 0.0
 var _over := 0.0          ## 0..1 through the HELD part of the windup: the coil keeps tightening
 var _fold := 0.0          ## death collapse
 var _fall_base := Transform3D.IDENTITY   ## the rig's own transform when it began to fall
@@ -90,12 +92,12 @@ func strike() -> void:
 
 ## `side` -1..1: which way the hit came from (local x), for a twist away from it.
 func flinch(amount: float, side := 0.0) -> void:
-	_flinch = clampf(maxf(_flinch, maxf(amount, 0.45)), 0.0, 1.0)
+	_flinch_t = clampf(maxf(_flinch_t, maxf(amount, 0.45)), 0.0, 1.0)
 	_flinch_side = side
 
 
 func stagger() -> void:
-	_reel = 1.0
+	_reel_t = 1.0
 	_wind_t = -1.0
 	_wind = 0.0
 
@@ -152,8 +154,10 @@ func _tick_poses(delta: float) -> void:
 		if _rake <= 0.0 and k >= 1.0:
 			_rake_t = -1.0
 	_breath_pitch = sin(_t * 1.9) * 0.025 * sway
-	_flinch = move_toward(_flinch, 0.0, delta * 1.8)
-	_reel = move_toward(_reel, 0.0, delta * 0.65)
+	_flinch_t = move_toward(_flinch_t, 0.0, delta * 1.8)
+	_flinch = move_toward(_flinch, _flinch_t, delta * 18.0)
+	_reel_t = move_toward(_reel_t, 0.0, delta * 0.65)
+	_reel = move_toward(_reel, _reel_t, delta * 9.0)
 	if _howl_t >= 0.0:
 		_howl_t += delta
 		var hk := clampf(_howl_t / _howl_dur, 0.0, 1.0)
