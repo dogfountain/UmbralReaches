@@ -16,6 +16,7 @@ static var moon_gain := 1.0               ## the moon's phase: its light scales 
 static var haze := 0.0                    ## 0..1 mist and rain in the air: far cards swell into halos (weather_life.gd)
 static var rain := 0.0                    ## 0..1 rain falling: fires gutter and spit
 static var gust := 0.0                    ## wind with its gusts: fires lean and flicker harder
+static var arena_dim := 1.0               ## a boss arena in use dims the moon to two thirds (arena_light.gd)
 static var pulse := 0.0                   ## 0..1 a moment of light (a level, a boss phase) flaring every card; decays by itself
 static var flash := 0.0                   ## 0..1 lightning: every landmark flares for the flash
 static var gain_mul := 1.0                ## the whole landmark set's brightness: an eclipse raises it, the dark makes them shine
