@@ -188,7 +188,7 @@ func box(key: String, c: Vector3, size: Vector3, b := Basis.IDENTITY, solid := t
 	var ez := b.z.normalized()
 	var h := size.abs() * 0.5
 	if solid and size.x > 0.05 and size.y > 0.05 and size.z > 0.05:
-		solids.append([c, b.orthonormalized(), h])
+		solids.append([c, b.orthonormalized(), h, key])
 	if solid:
 		_box_col(c, ex * h.x, ey * h.y, ez * h.z)
 	var mn := minf(size.x, minf(size.y, size.z))
@@ -267,6 +267,7 @@ static func _grime(n: Vector3, y: float, ybot: float, shade: float, under: float
 ## proud of a darker recessed base by 0-5 cm with its own tone, mortar gaps showing the base: cut stone, not a slab. Collision stays
 ## the plain box; the extra triangles are build-time geometry (a cell is 2 triangles, the base 2).
 var relief := false
+var debris_max := 0                     ## > 0: commit() lays fallen blocks at the foot of up to this many tall walls (the landmarks and ruins)
 
 
 func _face(st: SurfaceTool, ctr: Vector3, u: Vector3, v: Vector3, n: Vector3, shade: float, ybot: float, split: bool) -> void:
@@ -788,6 +789,8 @@ func bone_count() -> int:
 ## collision soup, and the prop MultiMeshes (one per prop mesh). Returns draw calls added.
 func commit(parent: Node3D, body_name := "Body") -> int:
 	var draws := 0
+	if debris_max > 0:
+		_debris()
 	for key in _st:
 		var st: SurfaceTool = _st[key]
 		var mi := MeshInstance3D.new()
@@ -852,6 +855,35 @@ func commit(parent: Node3D, body_name := "Body") -> int:
 	if candle_lights:
 		_light_clusters(parent)
 	return draws + int(counter[0])
+
+
+## Fallen blocks at the foot of tall upright walls (non-solid, the wall's own material): up to `debris_max` walls,
+## chosen by a hash of their place, 1-3 blocks each, thrown to the side the hash picks.
+func _debris() -> void:
+	var made := 0
+	for sb in solids.duplicate():
+		if made >= debris_max or (sb as Array).size() < 4:
+			continue
+		var c: Vector3 = sb[0]
+		var b: Basis = sb[1]
+		var h: Vector3 = sb[2]
+		if h.y < 1.4 or absf(b.y.y) < 0.95 or h.y * 2.0 < minf(h.x, h.z) * 1.6:
+			continue
+		var hv := absi(hash(Vector3i((c * 3.0).round()))) % 100
+		if hv > 40:
+			continue
+		var key: String = sb[3]
+		var out := b.z if h.x > h.z else b.x
+		if hv % 2 == 0:
+			out = -out
+		var base_y := c.y - h.y
+		for i in 1 + hv % 3:
+			var r := float((hv * (i + 3)) % 100) / 100.0
+			var p := c + out * (maxf(h.x, h.z) + 0.5 + r * 1.4) + b.x * ((r - 0.5) * 2.0 * h.x * 0.6)
+			p.y = base_y + 0.2 + 0.1 * float(i)
+			var sz := Vector3(0.5 + 0.7 * r, 0.3 + 0.3 * r, 0.45 + 0.5 * (1.0 - r))
+			box(key, p, sz, Basis(Vector3.UP, r * TAU) * Basis(Vector3.RIGHT, (r - 0.5) * 0.5), false, 0.78 + 0.2 * r)
+		made += 1
 
 
 ## One unshadowed warm light per few clustered candles (fade past 14 m): the wax lights the walls and the floor round it.
