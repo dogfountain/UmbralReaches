@@ -66,6 +66,7 @@ const FRS := preload("res://core/story/quest_chains_far_reaches_south.gd")
 const FRE := preload("res://core/story/quest_chains_far_reaches_east.gd")
 const VQ := preload("res://core/story/quest_chains_verbs.gd")   ## Hearthward's five tasks deepened with the task verbs (docs/QUEST_VERBS.md)
 const VerbKit := preload("res://core/story/verb_kit.gd")
+const DC := preload("res://core/story/quest_chains_deepen_c.gd")   ## the Far Reaches' signature tasks (Relief, A Night of Charcoal, The Rope Rung Right)
 
 const ORDER := ["edda_tongs", "forty_first", "names_yard", "keg_thief", "slow_way",
 	"hearth_ash", "road_clear", "coal_shrine", "spire_lamps", "alms_loaf",
@@ -94,7 +95,8 @@ const ORDER := ["edda_tongs", "forty_first", "names_yard", "keg_thief", "slow_wa
 	"plinth_lamp", "cutters_pledge", "landing_staves", "moor_niches",
 	"rh_lamps", "fm_tithe", "ll_gate", "ll_oil",          # --- the towns ---
 	"wr_stand_down", "wr_kings_lamp", "wr_cold_light", "wr_fourth_stone", "wr_tansys_boat", "ds_water_road", "ds_unmade", "ds_witchs_price", "ds_clapper",
-	"er_ringers_candle", "er_nave_fire", "er_halter_bell", "er_inn_slate"]          # --- the reaches ---
+	"er_ringers_candle", "er_nave_fire", "er_halter_bell", "er_inn_slate",          # --- the reaches ---
+	"wr_relief", "ds_charcoal", "er_rope"]          # --- deepen C ---
 
 ## Who stands where, for the map's turn-in pins when the person is not in the night's tree.
 const GIVER_NAMES := {"hild": "Hild", "fennick": "Old Fennick", "oswin": "Oswin", "nan": "Nan Wright", "abel": "Abel the sexton",
@@ -756,6 +758,8 @@ const QUESTS := {
 	"wr_tansys_boat": FRW.QUESTS["wr_tansys_boat"], "ds_water_road": FRS.QUESTS["ds_water_road"], "ds_unmade": FRS.QUESTS["ds_unmade"], "ds_witchs_price": FRS.QUESTS["ds_witchs_price"],
 	"ds_clapper": FRS.QUESTS["ds_clapper"], "er_ringers_candle": FRE.QUESTS["er_ringers_candle"], "er_nave_fire": FRE.QUESTS["er_nave_fire"], "er_halter_bell": FRE.QUESTS["er_halter_bell"],
 	"er_inn_slate": FRE.QUESTS["er_inn_slate"],
+	# --- deepen C ---
+	"wr_relief": DC.WR_RELIEF, "ds_charcoal": DC.DS_CHARCOAL, "er_rope": DC.ER_ROPE,
 }
 
 ## r36: the bell quests (Act II), in no order; BELLS_NEEDED of them wake the summit door.
@@ -886,9 +890,12 @@ const PICKUPS := {
 	"wr_satchel": FRW.PICKUPS["wr_satchel"], "wr_shrine": FRW.PICKUPS["wr_shrine"], "wr_king_lamp": FRW.PICKUPS["wr_king_lamp"], "wr_king_door": FRW.PICKUPS["wr_king_door"],
 	"wr_cap_a": FRW.PICKUPS["wr_cap_a"], "wr_cap_b": FRW.PICKUPS["wr_cap_b"], "wr_cap_c": FRW.PICKUPS["wr_cap_c"], "wr_cap_punt": FRW.PICKUPS["wr_cap_punt"],
 	"wr_stones": FRW.PICKUPS["wr_stones"], "wr_ledger": FRW.PICKUPS["wr_ledger"], "wr_boat": FRW.PICKUPS["wr_boat"],
-	"ds_keeper_log": FRS.PICKUPS["ds_keeper_log"], "ds_unmade_look": FRS.PICKUPS["ds_unmade_look"], "ds_unmade_turn": FRS.PICKUPS["ds_unmade_turn"], "ds_nail": FRS.PICKUPS["ds_nail"],
+	"ds_keeper_log": FRS.PICKUPS["ds_keeper_log"], "ds_unmade_turn": FRS.PICKUPS["ds_unmade_turn"], "ds_nail": FRS.PICKUPS["ds_nail"],
 	"ds_witch_door": FRS.PICKUPS["ds_witch_door"], "ds_clapper": FRS.PICKUPS["ds_clapper"], "ds_bell": FRS.PICKUPS["ds_bell"],
 	"er_candle": FRE.PICKUPS["er_candle"], "er_door": FRE.PICKUPS["er_door"], "er_halter": FRE.PICKUPS["er_halter"], "er_tower": FRE.PICKUPS["er_tower"], "er_slate": FRE.PICKUPS["er_slate"],
+	# --- deepen C ---
+	"fm_roll": Towns.PICKUPS["fm_roll"], "ll_bar": Towns.PICKUPS["ll_bar"], "ll_nave_flame": Towns.PICKUPS["ll_nave_flame"], "ll_wick": Towns.PICKUPS["ll_wick"],
+	"wr_relief_post": DC.PICKUPS["wr_relief_post"], "ds_clamp_coals": DC.PICKUPS["ds_clamp_coals"], "er_rope": DC.PICKUPS["er_rope"],
 }
 
 ## Oswin's walk: from wherever he is to the waystone. He keeps 2-3 m behind you and waits when you

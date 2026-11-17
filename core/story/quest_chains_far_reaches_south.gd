@@ -4,8 +4,8 @@ extends RefCounted
 ## under the Long Arches and into the Southwood. Existing step kinds only; every step names a place.
 ##   ds_water_road     The Water Road (Reeve Penn)         MAIN: the Order's beacons relit (Fallow, Arches), Spill in the dry channel,
 ##                                                         the water-keeper's log at the castellum (the dungeon hook: HOOKS.castellum)
-##   ds_unmade         The One I Didn't Make (Dilly)       the scarecrow nobody made, the Tithe-Taker in the reeve's coat
-##   ds_witchs_price   The Witch's Price (Hesper Lark)     a door-nail driven into the Hollow-Witch's stone: a choice
+##   ds_unmade         The One I Didn't Make (Dilly)       the coat read (clues), the chalk lines followed (tracks), the Tithe-Taker; turn the scarecrow to the road or burn the coat
+##   ds_witchs_price   The Witch's Price (Hesper Lark)     the burners' marks (tracks), the older nails (clues), a nail driven into the Hollow-Witch's stone: a choice
 ##                                                         (the dungeon hook: HOOKS.witchs_hollow)
 ##   ds_clapper        Cobb's Clapper (Cobb Lark)          the plough's clapper hung in the castellum's water-bell; hold it while it tolls
 ## The boss dungeon of the south is one of the castellum or the hollow (another lane's); both have a hook. House style: terse,
@@ -16,7 +16,7 @@ const ZONE := ["deepsouth", "The Deep South"]
 ## Where a thread ends at a dungeon's entrance (see the west file's HOOKS).
 const HOOKS := {
 	"castellum": {"quest": "ds_water_road", "step": 2, "at": Vector2(-60.0, 346.0), "r": 16.0, "cond": "q:ds_water_road:2", "done": "qd:ds_water_road"},
-	"witchs_hollow": {"quest": "ds_witchs_price", "step": 2, "at": Vector2(224.0, 360.0), "r": 12.0, "cond": "q:ds_witchs_price:2", "done": "qd:ds_witchs_price"},
+	"witchs_hollow": {"quest": "ds_witchs_price", "step": 3, "at": Vector2(224.0, 360.0), "r": 12.0, "cond": "q:ds_witchs_price:3", "done": "qd:ds_witchs_price"},
 }
 
 const QUESTS := {
@@ -40,32 +40,65 @@ const QUESTS := {
 		"where": "Dilly, on the green at Fallowmere",
 		"text": "Dilly makes the scarecrows, and every one faces the road so the fields know somebody is looking. One in the far strips faces the house, wears a reeve's coat of the old Order cut, and she did not make it. It walks when nobody is watching the fields, her mam says. Dilly has asked everyone to deal with it, and everyone has asked Dilly to keep out of the far strips. She has been three times, to look at its face.",
 		"steps": [
-			{"kind": "find", "text": "Look at the scarecrow nobody made, in the last of the far strips"},
+			{"kind": "clues", "at": Vector2(-118.0, 351.0), "r": 8.0, "need": 2, "label": "The scarecrow nobody made",
+				"text": "Look the scarecrow over, in the last of the far strips: its coat, its face, its pockets ({n}/{of} read)",
+				"clues": [
+					{"key": "seams", "at": Vector2(-120.0, 349.5), "name": "the coat's seams", "text": "A reeve's coat of the old Order's cut, gone green at the seams. The lining has a name worked into it in red thread, small, where only the wearer would feel it: HALE. Not Penn."},
+					{"key": "face", "at": Vector2(-116.0, 353.0), "prop": "slate", "name": "the chalk face", "text": "The face is in chalk, on the sack: Dilly's chalk, in Dilly's hand. A small plain face. She drew it a year ago on another scarecrow, and it has been carrying the drawing about ever since."},
+					{"key": "pocket", "at": Vector2(-121.0, 353.5), "name": "the coat's pocket", "text": "A pocket stuffed with seed corn, a button with the reeve's seal, and a tally-stick cut once, deep: HALE. COUNTED. EAST. The coat was not stolen. It was left."},
+				]},
+			{"kind": "tracks", "r": 12.0, "label": "The chalk lines",
+				"text": "Follow the chalk lines down the far strips to where the coat's wearer walks ({n}/{of})",
+				"marks": [
+					{"at": Vector2(-128.0, 360.0), "text": "A chalk line across a furrow, one stroke, a child's width. It runs on to the next furrow and starts again, as if the hand had to be lifted at every ridge."},
+					{"at": Vector2(-150.0, 369.0), "text": "A small plain face drawn on a grave-marker, then drawn again beside it, then again. Nine faces in a row. All of them look at the house."},
+					{"at": Vector2(-168.0, 377.0), "text": "The chalk stops at a coat-shaped hollow in the long grass. Somebody was lying here, in the Order's green, and has just got up."},
+				]},
 			{"kind": "slay", "of": 1, "rares": ["tithe_taker"], "at": Vector2(-176.0, 380.0), "label": "The Tithe-Taker",
 				"text": "Put down the Tithe-Taker, who has been wearing the reeve's coat in the far fields"},
-			{"kind": "place", "text": "Turn the scarecrow on its pole to face the road"},
-			{"kind": "turnin", "who": "dilly", "text": "Tell Dilly it faces the road"},
+			{"kind": "place", "text": "Decide the coat on its pole: turn it to the road, or burn it"},
+			{"kind": "turnin", "who": "dilly", "text": "Tell Dilly what you did with the coat"},
 		],
+		"alt": {"turn": {4: "Tell Dilly it faces the road"}, "burn": {4: "Tell Dilly the coat is ash"}},
 		"reward": {"ash": 22, "items": {"relic_fragment": 1}},
 		"choose": [{"slot": "focus", "rarity": 2}, {"slot": "vestment", "rarity": 2}],
-		"stands": {"at": Vector2(-119.0, 350.0), "kind": "staff"},
-		"outcome": {"": "Dilly drew a new face on the sack, a small plain one, and tied the coat back on its pole herself. 'That is Hale's coat,' Penn said at the barn door, not to anyone. 'Hale was reeve before me. He wore it to the Stair, to be counted.' Dilly said the scarecrow was hers now and it faced the road, like the others. The reeve said nothing, and stood a long time looking at his own field, and in the morning went out and straightened the pole."}},
+		"leaves": {"turn": {"at": Vector2(-119.0, 350.0), "prop": "staff"}, "burn": {"at": Vector2(-119.0, 350.0), "prop": "coal"}},
+		"outcome": {
+			"turn": "Dilly drew a new face on the sack, a small plain one, and tied the coat back on its pole herself. 'That is Hale's coat,' Penn said at the barn door, not to anyone. 'Hale was reeve before me. He wore it to the Stair, to be counted.' Dilly said the scarecrow was hers now and it faced the road, like the others. The reeve said nothing, and stood a long time looking at his own field, and in the morning went out and straightened the pole.",
+			"burn": "You took the coat off the pole and burned it in the furrow, where the chalk was thickest. The sack stands bare on its marker, and Dilly has not drawn a face on it. 'It is just a scarecrow now,' she said, and did not sound as if she believed it. Penn watched the smoke go up from the barn's loft, and said Hale would not have minded a fire. Then he went to find out which of the coats on his own pegs was his.",
+			"": "Dilly drew a new face on the sack, a small plain one, and tied the coat back on its pole herself."}},
 	"ds_witchs_price": {"name": "The Witch's Price", "giver": "hesper", "zone": "deepsouth", "offer": true,
 		"where": "Hesper Lark, at the farmhouse door in Fallowmere",
 		"text": "The well at Fallowmere is sweet and the bread is grey, and the Larks have had nine winters to learn which they mind. In the Southwood a witch lives in the roots of a fallen oak, and her price is paid in nails: you drive one into her stone yourself, and she takes what it costs. Hesper has the nail. She does not want to learn what it costs her. She wants somebody else to drive it, and to ask the question she cannot find the words for.",
 		"steps": [
 			{"kind": "find", "text": "Take the door-nail out of the farmhouse's own post"},
-			{"kind": "visit", "at": Vector2(169.0, 330.0), "r": 12.0, "label": "The Burners' Ruin", "text": "Take the road east into the Southwood, past the burners' ruin where the clamps still smoke"},
+			{"kind": "tracks", "r": 12.0, "label": "The burners' marks",
+				"text": "Take the burners' marks east into the Southwood, past the ruin where the clamps still smoke ({n}/{of})",
+				"marks": [
+					{"at": Vector2(148.0, 306.0), "text": "A charcoal X on an oak, shoulder-high, and another on the next. The burners marked the way in so the cart could find its way out."},
+					{"at": Vector2(158.0, 318.0), "text": "A hazel wand set upright in the leaf-mould, a rag knotted on it, the knot a burner's. Somebody has re-tied the rag since. The rag is new."},
+					{"at": Vector2(168.0, 331.0), "text": "The burners' ruin. A clamp still smokes, banked under turf and left. The marks run through it without turning and out the far side, the way a man walks who has already decided."},
+					{"at": Vector2(196.0, 346.0), "text": "A boot, charred through at the toe, set neat at the foot of an oak with its laces tied. Nobody is in it. It faces the hollow."},
+					{"at": Vector2(214.0, 356.0), "text": "The marks end at a stone as high as a door, bristling with nails. A light in a window in the trunk behind it. The last X is cut in the stone itself."},
+				]},
+			{"kind": "clues", "at": Vector2(220.0, 358.0), "r": 8.0, "need": 2, "label": "The older nails",
+				"text": "Read the older nails in the witch's stone: who paid, and for what ({n}/{of} read)",
+				"clues": [
+					{"key": "mother", "at": Vector2(218.5, 355.5), "name": "a nail through apron-linen", "text": "A nail through a scrap of apron-linen, rusted to a thread. A Lark's weave, thirty winters old. The linen has a loaf worked into the hem. Hesper's mother asked for something here, and bread has been grey at Fallowmere since."},
+					{"key": "coat", "at": Vector2(224.0, 355.0), "prop": "mark", "name": "a nail through a reeve's button", "text": "A nail through a pewter button with the reeve's seal. Newer. Nine winters, no more. Somebody asked on the reeve's behalf, and the far strips filled with the dead the same night."},
+					{"key": "crust", "at": Vector2(218.0, 361.0), "name": "a nail through a crust", "text": "A nail through a crust of grey bread, turned to stone. The bread does not rot here. It is the only thing at the stone that is not afraid of the price."},
+				]},
 			{"kind": "place", "text": "Drive the nail into the stone at the Hollow-Witch's door, and ask"},
 			{"kind": "turnin", "who": "hesper", "text": "Tell Hesper what the witch took"},
 		],
-		"alt": {"bread": {3: "Tell Hesper the bread will rise"}, "strips": {3: "Tell Hesper the far strips will lie down"}, "nothing": {3: "Tell Hesper you asked nothing"}},
+		"alt": {"bread": {4: "Tell Hesper the bread will rise"}, "strips": {4: "Tell Hesper the far strips will lie down"}, "nothing": {4: "Tell Hesper you asked nothing"}},
 		"reward": {"ash": 26, "items": {"ember_shard": 1}},
 		"choose": [{"slot": "lantern", "rarity": 2}, {"slot": "vestment", "rarity": 2}],
+		"leaves": {"bread": {"at": Vector2(-171.5, 306.5), "prop": "loaf"}, "strips": {"at": Vector2(-146.0, 337.0), "prop": "cairn"}, "nothing": {"at": Vector2(-169.0, 303.5), "prop": "mark"}},
 		"outcome": {
-			"bread": "The bread rose at dawn, light as a held breath, and it tastes of the Southwood's smoke. Cobb will not eat it. Hesper eats it a slice at a time, for the length of the loaf, and does not say what it cost, and the draught from the door-post whistles a note she has started to hum.",
-			"strips": "The far strips went flat in the night, every marker settling at once like a held breath let go. In the morning the field was only a field, and Wystan stood at its edge a long time with his spade on his shoulder. Hesper's bread stayed grey. 'Cheap at the price,' Wystan said, and he was the only one who said it.",
-			"nothing": "Hesper heard you had asked nothing, and sat down on the step with her hands in her apron. 'She'll want paying anyway,' she said. 'She'll come for the nail.' She did not say what she would pay. The post whistles at night where the nail was, and nobody has mended it.",
+			"bread": "The bread rose at dawn, light as a held breath, and it tastes of the Southwood's smoke. Cobb will not eat it. Hesper eats it a slice at a time, for the length of the loaf, and does not say what it cost, and the draught from the door-post whistles a note she has started to hum. A loaf sits on the sill for whoever comes.",
+			"strips": "The far strips went flat in the night, every marker settling at once like a held breath let go. In the morning the field was only a field, and Wystan stood at its edge a long time with his spade on his shoulder. Hesper's bread stayed grey. 'Cheap at the price,' Wystan said, and he was the only one who said it. A cairn stands at the field's edge where the markers were.",
+			"nothing": "Hesper heard you had asked nothing, and sat down on the step with her hands in her apron. 'She'll want paying anyway,' she said. 'She'll come for the nail.' She did not say what she would pay. The post whistles at night where the nail was, and a nail-head stands bright in the earth by the step that nobody has put there.",
 			"": "Hesper held the door shut with her foot, and said nothing."}},
 	"ds_clapper": {"name": "Cobb's Clapper", "giver": "cobb", "zone": "deepsouth", "offer": true,
 		"where": "Cobb Lark, at his fields' gate in Fallowmere",
@@ -88,13 +121,11 @@ const QUESTS := {
 const PICKUPS := {
 	"ds_keeper_log": {"quest": "ds_water_road", "step": 2, "near": Vector2(-60.0, 352.0), "kind": "page", "name": "the water-keeper's log", "verb": "Read",
 		"say": "The last page of the water-keeper's log, nailed inside the castellum door where the next keeper would see it: THE WATER STOPPED AT THE SECOND BELL. I OPENED EVERY SLUICE AND IT DID NOT COME. THE BEACON ON THE SCARP IS TO BE LIT WHEN THE WATER RETURNS AND NOT BEFORE. Under it, in another hand, in charcoal: LIT IT ANYWAY. IT MAY HELP SOMEONE FIND US."},
-	"ds_unmade_look": {"quest": "ds_unmade", "step": 0, "near": Vector2(-118.0, 351.0), "kind": "slate", "name": "the scarecrow nobody made", "verb": "Look at",
-		"say": "It stands in the last strip with its back to the road, in a reeve's coat gone green at the seams. The pole is a grave-marker, the head a sack, and the face is drawn in chalk: Dilly's chalk, in Dilly's hand. She drew it a year ago on another scarecrow, a small plain face, and it has been carrying the drawing about ever since."},
-	"ds_unmade_turn": {"quest": "ds_unmade", "step": 2, "near": Vector2(-118.0, 351.0), "kind": "place", "name": "the scarecrow's pole", "verb": "Turn to the road",
-		"say": "You turn the pole in its socket, a quarter and then a half, until the sack face looks down the strips toward the hamlet's lamps. The chalk smile has smudged in the damp. Nothing in the field is walking."},
+	"ds_unmade_turn": {"quest": "ds_unmade", "step": 3, "near": Vector2(-118.0, 351.0), "kind": "place", "name": "the scarecrow's pole", "verb": "Deal with", "conv": "ds_nail_door",
+		"say": "The scarecrow's pole."},
 	"ds_nail": {"quest": "ds_witchs_price", "step": 0, "near": Vector2(-169.8, 305.0), "kind": "mark", "name": "the door-nail", "verb": "Take",
 		"say": "A square-headed nail of the Order's smith, drawn out of the farmhouse's own door-post. It leaves a hole you could put a finger in, and a draught. Hesper holds the door shut with her foot, and does not look at it."},
-	"ds_witch_door": {"quest": "ds_witchs_price", "step": 2, "near": Vector2(222.5, 359.0), "kind": "place", "name": "the witch's door", "verb": "Drive the nail into", "conv": "ds_nail_door",
+	"ds_witch_door": {"quest": "ds_witchs_price", "step": 3, "near": Vector2(222.5, 359.0), "kind": "place", "name": "the witch's door", "verb": "Drive the nail into", "conv": "ds_nail_door",
 		"say": "The witch's door."},
 	"ds_clapper": {"quest": "ds_clapper", "step": 0, "near": Vector2(-157.0, 333.0), "kind": "clapper", "name": "the Order's clapper", "verb": "Take",
 		"say": "A clapper of black iron as long as your forearm, the head worn bright where it struck for three hundred years. It lay in the furrow with its shank toward the arches, and it is warm, and it is heavier than it was a step ago."},
@@ -103,8 +134,29 @@ const PICKUPS := {
 }
 
 const CONVS := {
-	"ds_nail_door": {"name": "The Hollow-Witch's Door", "start": [["!qat:ds_witchs_price:2", "gone"], ["", "at"]], "nodes": {
-		"at": {"say": "The witch's door is a slab of root-plate with a standing stone set against it, bristling with nails driven through scraps of cloth: the oldest rusted to nothing, the newest bright. A window in the trunk's hollow is lit with wax. Nobody answers. The price is to drive the nail yourself, and to ask.", "who": "", "choices": [
+	"ds_nail_door": {"name": "The Hollow-Witch's Door", "start": [["qat:ds_unmade:3", "coat"], ["qat:fm_tithe:3", "roll"], ["qat:ds_charcoal:2", "coals"], ["!qat:ds_witchs_price:3", "gone"], ["", "at"]], "nodes": {
+		"coat": {"say": "The scarecrow nobody made stands in its strip in the reeve's coat, HALE worked in red thread inside the collar. The pole is a grave-marker. The face is Dilly's. There is a good deal of coat, and it was somebody's.", "who": "", "choices": [
+			{"text": "Turn the pole to face the road, coat and all.", "to": "turn"},
+			{"text": "Take the coat off and burn it in the furrow.", "to": "burn"},
+			{"text": "Not yet.", "to": ""},
+		]},
+		"turn": {"say": "You turn the pole in its socket, a quarter and then a half, until the sack face looks down the strips toward the hamlet's lamps. The chalk smile has smudged in the damp. Nothing in the field is walking.", "who": "", "do": "qp:ds_unmade:turn,qa:ds_unmade", "next": ""},
+		"burn": {"say": "The coat comes off the pole in one piece, a shape with nobody in it. You lay it in the furrow where the chalk is thickest and put a light to the hem. It burns the way wet wool burns, slowly, without a sound, and the smoke goes up the strips toward the barn.", "who": "", "do": "qp:ds_unmade:burn,qa:ds_unmade", "next": ""},
+		"roll": {"say": "The roll lies open on the board, eleven winters of strips in the clerk's hand and, on top of them, three bundles of sticks. A lamp has been trimmed beside it by somebody who did not stay to see it read. The barn is listening.", "who": "", "choices": [
+			{"text": "Read the roll out as it stands, every name, the reeve's too.", "to": "full"},
+			{"text": "Strike the reeve's own line, and read the rest.", "to": "strike", "if": "qc:fm_tithe:penn"},
+			{"text": "Not yet.", "to": ""},
+		]},
+		"full": {"say": "You read it, strip by strip, name by name, Penn's at the last. Your voice carries to the barn's dark end and the barn does not answer. Out in the far strips something lies down, and a lamp stays on the board.", "who": "", "do": "qp:fm_tithe:full,qa:fm_tithe", "next": ""},
+		"strike": {"say": "You score his line through with the clerk's knife, one stroke, twelve winters of OWED gone under it. Then you read the rest. The roll is whole without it, which is not the same as whole.", "who": "", "do": "qp:fm_tithe:strike,qa:fm_tithe", "next": ""},
+		"coals": {"say": "A man in a soot-black coat sits against the stack's far side, a rake across his knees, and does not look up. Hob's clamp is banked under turf, red at the seams. The last charcoal-burner keeps it the way the dead keep a promise, without being asked.", "who": "", "choices": [
+			{"text": "Ask his leave for one coal, and leave the clamp banked.", "to": "spare"},
+			{"text": "Draw the clamp and take what it holds.", "to": "take"},
+			{"text": "Not yet.", "to": ""},
+		]},
+		"spare": {"say": "You say it out loud, and wait. He does not look up. He turns the rake over once on his knees, which is leave, and you lift one coal from the seam in the horn cup. The clamp stays red behind you. He keeps the beacons, Penn said. He will keep this.", "who": "", "do": "qp:ds_charcoal:spare,qa:ds_charcoal", "next": ""},
+		"take": {"say": "You rake the turf back and draw the clamp, and the coals roll out red onto the grey ground, a night's work gone to a heap in a breath. The man in the soot-black coat stands up. He looks at the heap, not at you, and walks into the smoke, and the stack goes on smoking without him.", "who": "", "do": "qp:ds_charcoal:take,qa:ds_charcoal", "next": ""},
+		"at": {"say_if": [["qc:ds_witchs_price:mother", "The witch's door is a slab of root-plate with a standing stone set against it, bristling with nails driven through scraps of cloth. A Lark's apron-linen is among the oldest. A window in the trunk's hollow is lit with wax. Nobody answers. The price is to drive the nail yourself, and to ask."], ["qc:ds_witchs_price:coat", "The witch's door is a slab of root-plate with a standing stone set against it, bristling with nails. One of them goes through a reeve's button. A window in the trunk's hollow is lit with wax. Nobody answers. The price is to drive the nail yourself, and to ask."], ["", "The witch's door is a slab of root-plate with a standing stone set against it, bristling with nails driven through scraps of cloth: the oldest rusted to nothing, the newest bright. A window in the trunk's hollow is lit with wax. Nobody answers. The price is to drive the nail yourself, and to ask."]], "who": "", "choices": [
 			{"text": "Ask that the bread rise.", "to": "bread"},
 			{"text": "Ask that the far strips lie down.", "to": "strips"},
 			{"text": "Drive it, and ask nothing.", "to": "nothing"},
