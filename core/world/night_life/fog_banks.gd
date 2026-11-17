@@ -38,15 +38,7 @@ func _ready() -> void:
 	var quad := QuadMesh.new()
 	quad.size = Vector2.ONE
 	quad.orientation = PlaneMesh.FACE_Y
-	var mat := StandardMaterial3D.new()
-	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	mat.cull_mode = BaseMaterial3D.CULL_DISABLED
-	mat.depth_draw_mode = BaseMaterial3D.DEPTH_DRAW_DISABLED
-	mat.vertex_color_use_as_albedo = true
-	mat.albedo_texture = _cloud()
-	mat.proximity_fade_enabled = true
-	mat.proximity_fade_distance = 2.5
+	var mat := material()
 	_mm = MultiMesh.new()
 	_mm.transform_format = MultiMesh.TRANSFORM_3D
 	_mm.use_colors = true
@@ -61,6 +53,20 @@ func _ready() -> void:
 	_mi.custom_aabb = AABB(Vector3(-2000, -400, -2000), Vector3(4000, 1200, 4000))
 	_mi.add_to_group(Groups.CULL_SKIP)
 	add_child(_mi)
+
+
+## The mist banks' material: unshaded alpha, depth fade where it meets the ground (NightWarm draws one behind the loading cover).
+static func material() -> StandardMaterial3D:
+	var m := StandardMaterial3D.new()
+	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	m.cull_mode = BaseMaterial3D.CULL_DISABLED
+	m.depth_draw_mode = BaseMaterial3D.DEPTH_DRAW_DISABLED
+	m.vertex_color_use_as_albedo = true
+	m.albedo_texture = _cloud()
+	m.proximity_fade_enabled = true
+	m.proximity_fade_distance = 2.5
+	return m
 
 
 func _process(delta: float) -> void:

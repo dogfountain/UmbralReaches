@@ -51,36 +51,48 @@ func _ready() -> void:
 	global_transform = Transform3D.IDENTITY
 	var quad := QuadMesh.new()
 	quad.size = Vector2.ONE
-	_card_mat = StandardMaterial3D.new()
-	_card_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	_card_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	_card_mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
-	_card_mat.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
-	_card_mat.billboard_keep_scale = true
-	_card_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
-	_card_mat.disable_fog = true
-	_card_mat.vertex_color_use_as_albedo = true
-	_card_mat.albedo_texture = _spark()
-	_card_mat.albedo_color = Color(1.5, 1.5, 1.5, 1.0)            # over 1: the glow pass (threshold 1.15) blooms the point
-	_card_mat.no_depth_test = false
+	_card_mat = card_material()
 	_cards = _multimesh("FarCards", quad, _card_mat, MAX_CARDS)
 	var flat := QuadMesh.new()
 	flat.size = Vector2.ONE
 	flat.orientation = PlaneMesh.FACE_Y
-	_pool_mat = StandardMaterial3D.new()
-	_pool_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	_pool_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	_pool_mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
-	_pool_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
-	_pool_mat.vertex_color_use_as_albedo = true
-	_pool_mat.albedo_texture = _pool()
-	_pool_mat.albedo_color = Color(1.2, 1.2, 1.2, 1.0)
-	_pool_mat.depth_draw_mode = BaseMaterial3D.DEPTH_DRAW_DISABLED
-	_pool_mat.proximity_fade_enabled = true
-	_pool_mat.proximity_fade_distance = 0.6
+	_pool_mat = pool_material()
 	_pools = _multimesh("Pools", flat, _pool_mat, MAX_POOLS)
 	Events.brazier_kindled.connect(_on_kindled)
 	_scan = 0.0
+
+
+## The far card's material: unshaded, additive, billboard, fog-free, vertex colour as albedo (NightWarm draws one behind the loading cover).
+static func card_material() -> StandardMaterial3D:
+	var m := StandardMaterial3D.new()
+	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	m.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+	m.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
+	m.billboard_keep_scale = true
+	m.cull_mode = BaseMaterial3D.CULL_DISABLED
+	m.disable_fog = true
+	m.vertex_color_use_as_albedo = true
+	m.albedo_texture = _spark()
+	m.albedo_color = Color(1.5, 1.5, 1.5, 1.0)            # over 1: the glow pass (threshold 1.15) blooms the point
+	m.no_depth_test = false
+	return m
+
+
+## The ground pool's material: a flat additive disc, proximity-faded where it meets the ground.
+static func pool_material() -> StandardMaterial3D:
+	var m := StandardMaterial3D.new()
+	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	m.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+	m.cull_mode = BaseMaterial3D.CULL_DISABLED
+	m.vertex_color_use_as_albedo = true
+	m.albedo_texture = _pool()
+	m.albedo_color = Color(1.2, 1.2, 1.2, 1.0)
+	m.depth_draw_mode = BaseMaterial3D.DEPTH_DRAW_DISABLED
+	m.proximity_fade_enabled = true
+	m.proximity_fade_distance = 0.6
+	return m
 
 
 func _multimesh(n: String, mesh: Mesh, mat: Material, count: int) -> MultiMeshInstance3D:

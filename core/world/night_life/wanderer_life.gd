@@ -10,6 +10,7 @@ extends Node
 ## Posing only; walking, fighting, riding and any open menu cancel it at once.
 
 const Reg := preload("res://core/world/night_life/night_registry.gd")
+const NightFx := preload("res://core/world/night_life/night_fx.gd")
 
 const WARM_RANGE := 5.0
 
@@ -74,7 +75,7 @@ func _process(delta: float) -> void:
 		if fire != Vector3.INF:
 			_next_warm = randf_range(7.0, 10.0)
 			_rig.cast_pose(&"reach")
-			Vfx.burst(fire, Color(2.0, 0.9, 0.3), {"count": 5, "life": 1.2, "speed": Vector2(0.6, 1.8), "size": 0.05, "gravity": 0.7, "spread": 25.0, "damping": 0.6, "dir": Vector3.UP})
+			NightFx.burst(fire, Color(2.0, 0.9, 0.3), "reach", Vector3.UP)
 		else:
 			_next_warm = 2.0
 	if _still >= 9.0 and _next_moth <= 0.0:

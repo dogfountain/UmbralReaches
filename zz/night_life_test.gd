@@ -13,6 +13,8 @@ const Stage := preload("res://core/life/folk/folk_stage.gd")
 const Roles := preload("res://core/life/folk/folk_roles.gd")
 const Rig := preload("res://core/life/village/villager_rig.gd")
 const Arena := preload("res://core/world/night_life/arena_light.gd")
+const Warm := preload("res://core/world/night_life/night_warm.gd")
+const NightFx := preload("res://core/world/night_life/night_fx.gd")
 
 var bad := 0
 
@@ -31,6 +33,7 @@ func _ready() -> void:
 	_folk()
 	_arena()
 	_tools()
+	_warm()
 	print("NIGHTLIFE PASS" if bad == 0 else "NIGHTLIFE FAIL %d" % bad)
 	get_tree().quit(1 if bad > 0 else 0)
 
@@ -153,3 +156,31 @@ func _tools() -> void:
 		var tip: Vector3 = (rig.tips as Array)[0]
 		ok(tip.length() > 0.05, "a villager's %s builds and has a working end (%.2f m from the origin)" % [kind, tip.length()])
 		rig.queue_free()
+
+
+## Nothing the night draws or throws may be first built in play: every file under night_life and folk that builds a material, a creature group or a
+## burst is in NightWarm.COVERED, every burst is a night_fx preset, and every covered file exists.
+func _warm() -> void:
+	var seen := {}
+	var rx := RegEx.new()
+	rx.compile("NightFx\\.burst\\([^\\n]*?\"([a-z_]+)\"")
+	for dir: String in ["res://core/world/night_life/", "res://core/life/folk/"]:
+		for f: String in DirAccess.get_files_at(dir):
+			if not f.ends_with(".gd"):
+				continue
+			var text := FileAccess.get_file_as_string(dir + f)
+			seen[f] = true
+			var builds := text.contains("Material.new(") or text.contains("Kit.group(") or text.contains("NightFx.burst(")
+			if f != "night_warm.gd" and f != "night_fx.gd" and builds:
+				ok(Warm.COVERED.has(f), "%s builds something the engine must not meet cold, and is in the warm list" % f)
+			if f != "night_fx.gd":
+				var raw := false
+				for line in text.split("\n"):
+					if line.contains("Vfx.burst(") and not line.strip_edges().begins_with("#"):
+						raw = true
+				ok(not raw, "%s throws no burst that is not a night_fx preset" % f)
+			for m in rx.search_all(text):
+				ok(NightFx.PRESETS.has(m.get_string(1)), "%s uses the preset %s, which exists" % [f, m.get_string(1)])
+	for f: String in Warm.COVERED:
+		ok(seen.has(f), "the warm list names %s, which exists" % f)
+	ok(NightFx.warm_list(Arena.PAL).size() > 40, "the warm list holds every preset in every colour (%d)" % NightFx.warm_list(Arena.PAL).size())

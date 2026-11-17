@@ -17,6 +17,7 @@ extends Node3D
 ## No work between events beyond the status carriers. Skipped with the Living Night off.
 
 const Reg := preload("res://core/world/night_life/night_registry.gd")
+const NightFx := preload("res://core/world/night_life/night_fx.gd")
 
 const MAX_CARRIERS := 10
 
@@ -73,9 +74,9 @@ func _on_cast_stopped(id: StringName, reason: StringName) -> void:
 		return
 	var at := p.global_position + Vector3(0.0, 1.1, 0.0)
 	if reason == &"done":
-		Vfx.burst(at, skill_colour(id), {"count": 14, "life": 0.4, "speed": Vector2(2.0, 5.0), "size": 0.05, "gravity": -3.0, "spread": 180.0, "damping": 2.0})
+		NightFx.burst(at, skill_colour(id), "cast_done")
 	elif reason == &"interrupted" or reason == &"moved":
-		Vfx.burst(at, Color(2.0, 0.4, 0.3), {"count": 10, "life": 0.3, "speed": Vector2(1.0, 3.0), "size": 0.04, "gravity": 4.0, "spread": 180.0, "damping": 2.5})
+		NightFx.burst(at, Color(2.0, 0.4, 0.3), "fizzle")
 
 
 func _on_skill_cast(id: StringName) -> void:
@@ -160,17 +161,17 @@ func _status_burst(n: Node3D, id: StringName, stacks: int) -> void:
 	var at := n.global_position + Vector3(0.0, 1.0, 0.0)
 	match id:
 		&"ember_scar":
-			Vfx.burst(at, Color(2.6, 0.9, 0.3), {"count": 2 + stacks * 2, "life": 1.0, "speed": Vector2(0.3, 1.0), "size": 0.05, "gravity": -1.2, "spread": 35.0, "dir": Vector3.UP})
+			NightFx.burst(at, Color(2.6, 0.9, 0.3), "scar", Vector3.UP, float(2 + stacks * 2) / 10.0)
 		&"sundered":
-			Vfx.burst(at + Vector3(0.0, 0.5, 0.0), Color(1.1, 0.7, 1.6), {"count": 4, "life": 0.7, "speed": Vector2(0.2, 0.8), "size": 0.045, "gravity": 3.0, "spread": 180.0})
+			NightFx.burst(at + Vector3(0.0, 0.5, 0.0), Color(1.1, 0.7, 1.6), "shard")
 		&"shaken":
-			Vfx.burst(at, Color(1.6, 0.4, 0.35), {"count": 3, "life": 0.4, "speed": Vector2(1.0, 2.5), "size": 0.04, "gravity": 0.0, "spread": 180.0, "damping": 2.0})
+			NightFx.burst(at, Color(1.6, 0.4, 0.35), "shaken")
 		&"resonance":
-			Vfx.burst(at, Color(1.2, 0.6, 2.6), {"count": 1 + stacks, "life": 1.2, "speed": Vector2(0.2, 0.6), "size": 0.045, "gravity": -0.5, "spread": 60.0, "dir": Vector3.UP})
+			NightFx.burst(at, Color(1.2, 0.6, 2.6), "reson", Vector3.UP, float(1 + stacks) / 6.0)
 		&"surge":
-			Vfx.burst(at, Color(2.4, 1.6, 0.8), {"count": 5, "life": 0.5, "speed": Vector2(1.0, 3.0), "size": 0.04, "gravity": -2.0, "spread": 120.0, "dir": Vector3.UP})
+			NightFx.burst(at, Color(2.4, 1.6, 0.8), "surge", Vector3.UP)
 		_:
-			Vfx.burst(at, Color(1.4, 0.6, 3.0), {"count": 2, "life": 1.0, "speed": Vector2(0.3, 0.8), "size": 0.045, "gravity": -0.4, "spread": 180.0})
+			NightFx.burst(at, Color(1.4, 0.6, 3.0), "mark")
 
 
 # --- pickups and the level -------------------------------------------------------------------------
@@ -181,7 +182,7 @@ func _on_item(_id: String, amount: int, _total: int) -> void:
 	var p := _player()
 	if p == null:
 		return
-	Vfx.burst(p.global_position + Vector3(0.0, 0.5, 0.0), Color(2.2, 1.7, 0.7), {"count": 8, "life": 0.9, "speed": Vector2(0.4, 1.4), "size": 0.045, "gravity": -1.0, "spread": 50.0, "dir": Vector3.UP})
+	NightFx.burst(p.global_position + Vector3(0.0, 0.5, 0.0), Color(2.2, 1.7, 0.7), "pickup", Vector3.UP)
 	Vfx.ring(p.global_position, 0.9, Color(2.2, 1.7, 0.7), 0.4, 0.05)
 
 
@@ -194,7 +195,7 @@ func _on_level(_level: int, _points: int) -> void:
 	var c := Color(2.4, 1.8, 0.7)
 	Vfx.ring(p.global_position, 8.0, c, 1.0, 0.14)
 	Vfx.ring(p.global_position, 4.0, c, 0.7, 0.1)
-	Vfx.burst(p.global_position + Vector3(0.0, 0.3, 0.0), c, {"count": 60, "life": 1.8, "speed": Vector2(1.0, 4.5), "size": 0.06, "gravity": -1.5, "spread": 25.0, "dir": Vector3.UP})
+	NightFx.burst(p.global_position + Vector3(0.0, 0.3, 0.0), c, "level", Vector3.UP)
 	Vfx.light(p.global_position + Vector3(0.0, 1.2, 0.0), c, 4.0, 14.0, 1.2, 3)
 	Reg.pulse = 1.0
 	_column.global_position = p.global_position + Vector3(0.0, 13.0, 0.0)
@@ -206,16 +207,7 @@ func _on_level(_level: int, _points: int) -> void:
 func _build_column() -> void:
 	var quad := QuadMesh.new()
 	quad.size = Vector2.ONE
-	var mat := StandardMaterial3D.new()
-	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
-	mat.billboard_mode = BaseMaterial3D.BILLBOARD_FIXED_Y
-	mat.billboard_keep_scale = true
-	mat.cull_mode = BaseMaterial3D.CULL_DISABLED
-	mat.albedo_texture = _beam_tex()
-	mat.albedo_color = Color(1.0, 0.85, 0.5, 0.0)
-	mat.disable_fog = true
+	var mat := column_material()
 	_column = MeshInstance3D.new()
 	_column.mesh = quad
 	_column.material_override = mat
@@ -233,6 +225,21 @@ func _look_for_hearth() -> void:
 	if h != null and h.has_signal("leveled_up"):
 		_hearth = h
 		h.connect("leveled_up", _on_level)
+
+
+## The level-up column's material: an additive billboard card (NightWarm draws one behind the loading cover).
+static func column_material() -> StandardMaterial3D:
+	var m := StandardMaterial3D.new()
+	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	m.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+	m.billboard_mode = BaseMaterial3D.BILLBOARD_FIXED_Y
+	m.billboard_keep_scale = true
+	m.cull_mode = BaseMaterial3D.CULL_DISABLED
+	m.albedo_texture = _beam_tex()
+	m.albedo_color = Color(1.0, 0.85, 0.5, 0.0)
+	m.disable_fog = true
+	return m
 
 
 static func _beam_tex() -> ImageTexture:

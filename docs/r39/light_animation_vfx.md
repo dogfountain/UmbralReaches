@@ -169,3 +169,20 @@ Never mid-play: no mesh, texture or shader is first built after the loading star
 - **See / film.** The spawn brazier at night from 40 m, a newly kindled fire (bats arrive within four seconds), the vista from the south-east hill (specks wheeling over the fires).
 - **Cost.** One MultiMesh of 80 instances, written once as a fire is found; a registry scan every four seconds; visible within 160 m.
 - **Files.** core/world/night_life/fire_bats.gd.
+
+---
+
+# The warm-up (frame stutter: nothing is first built in play)
+
+The loading screen (ui/loading_screen.gd) already tours the Realm under its cover and shows the combat set once at the first stop so the engine compiles every world material and
+builds every pooled effect there. The living night joins it with `NightWarm.show` (core/world/night_life/night_warm.gd), called where the combat set is shown (one line):
+- **Materials, each on the real instanced path the night uses** (a MultiMesh with per-instance colour): the far card, the ground pool, the moth, the mist bank, the puddle glint; plus the
+  level-up column, the log and the net (folk), a dog or cat and a bat (the fox creature material and the bat orbit shader, one instance each).
+- **Particle bursts.** Every burst the night throws is a named preset in `night_fx.gd` (`NightFx.burst(at, colour, id, dir, ratio)`; a count that varies with a stack is the preset's `ratio`, never a new
+  preset). `NightFx.warm_list` lists every (preset, colour) pair, including the fifteen arena palette colours, and the warm-up throws one of each, so every emitter and process material is built and
+  pooled before play (Vfx pools by colour and options).
+- **Already covered elsewhere**: the five bosses' FX overlay shaders (the loading screen's BOSSES list builds each boss and its rig), the sky shader (drawn from the first frame; the new terms are uniforms),
+  the ground and terrain shaders (`wetness` is a term in the shader they already compile), the folk's and villagers' bodies (VillagerRig, GenCache, built behind the cover once the Realm is up).
+- **The guard.** `zz/night_life_test.tscn` fails if any file under core/world/night_life or core/life/folk builds a material, a creature group or a burst without being listed in `NightWarm.COVERED`, if
+  any file throws a raw `Vfx.burst` instead of a preset, if a preset name does not exist, or if a covered file does not exist. A new system cannot add an unwarmed material.
+- **Cost.** One frame group of about fifty small bursts and a dozen quads while the cover is up (about 0.2 s of the tour); nothing in play.

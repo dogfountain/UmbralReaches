@@ -17,6 +17,7 @@ extends Node3D
 ## bursts a second in rain, nothing when it is dry. Settings.night_life off puts every term back to dry.
 
 const Reg := preload("res://core/world/night_life/night_registry.gd")
+const NightFx := preload("res://core/world/night_life/night_fx.gd")
 
 const GLINTS := 28
 const CELL := 3.0
@@ -43,14 +44,7 @@ func _ready() -> void:
 	var quad := QuadMesh.new()
 	quad.size = Vector2.ONE
 	quad.orientation = PlaneMesh.FACE_Y
-	var mat := StandardMaterial3D.new()
-	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
-	mat.cull_mode = BaseMaterial3D.CULL_DISABLED
-	mat.vertex_color_use_as_albedo = true
-	mat.albedo_texture = _glint_tex()
-	mat.depth_draw_mode = BaseMaterial3D.DEPTH_DRAW_DISABLED
+	var mat := material()
 	var mm := MultiMesh.new()
 	mm.transform_format = MultiMesh.TRANSFORM_3D
 	mm.use_colors = true
@@ -68,6 +62,19 @@ func _ready() -> void:
 	add_child(_mm)
 	if env != null and env.sky != null and env.sky.sky_material is ShaderMaterial:
 		_sky = env.sky.sky_material as ShaderMaterial
+
+
+## The puddle glints' material: flat additive soft discs (NightWarm draws one behind the loading cover).
+static func material() -> StandardMaterial3D:
+	var m := StandardMaterial3D.new()
+	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	m.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+	m.cull_mode = BaseMaterial3D.CULL_DISABLED
+	m.vertex_color_use_as_albedo = true
+	m.albedo_texture = _glint_tex()
+	m.depth_draw_mode = BaseMaterial3D.DEPTH_DRAW_DISABLED
+	return m
 
 
 func _process(delta: float) -> void:
@@ -236,8 +243,7 @@ func _drip() -> void:
 			if randi() % seen == 0:
 				pick = i
 	if pick >= 0:
-		Vfx.burst((Reg.pos[pick] as Vector3) + Vector3(randf_range(-0.8, 0.8), -0.4, randf_range(-0.8, 0.8)), Color(0.7, 0.82, 1.0, 0.8),
-			{"count": 2, "life": 0.6, "speed": Vector2(0.05, 0.3), "size": 0.025, "gravity": 9.0, "spread": 10.0, "dir": Vector3.DOWN})
+		NightFx.burst((Reg.pos[pick] as Vector3) + Vector3(randf_range(-0.8, 0.8), -0.4, randf_range(-0.8, 0.8)), Color(0.7, 0.82, 1.0, 0.8), "drip", Vector3.DOWN)
 
 
 ## Rain on the nearest fire: steam.
@@ -256,8 +262,7 @@ func _hiss() -> void:
 			best = d2
 			at = Reg.pos[i]
 	if at != Vector3.INF:
-		Vfx.burst(at + Vector3(0.0, 0.3, 0.0), Color(0.8, 0.82, 0.88, 0.45),
-			{"count": 8, "life": 1.4, "speed": Vector2(0.3, 0.9), "size": 0.22, "gravity": -0.6, "spread": 40.0, "dir": Vector3.UP})
+		NightFx.burst(at + Vector3(0.0, 0.3, 0.0), Color(0.8, 0.82, 0.88, 0.45), "steam", Vector3.UP)
 
 
 static func _glint_tex() -> ImageTexture:

@@ -181,10 +181,7 @@ func _log(at: Vector2) -> void:
 	c.radial_segments = 8
 	c.rings = 1
 	m.mesh = c
-	var mat := StandardMaterial3D.new()
-	mat.albedo_color = Color(0.22, 0.15, 0.1)
-	mat.roughness = 1.0
-	m.material_override = mat
+	m.material_override = log_material()
 	m.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	m.visibility_range_end = 70.0
 	add_child(m)
@@ -200,14 +197,7 @@ func _net(at: Vector2, face: float) -> void:
 	q.size = Vector2(1.1, 0.9)
 	q.orientation = PlaneMesh.FACE_Y
 	m.mesh = q
-	var mat := StandardMaterial3D.new()
-	mat.albedo_texture = _net_texture()
-	mat.albedo_color = Color(0.5, 0.42, 0.3)
-	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR
-	mat.alpha_scissor_threshold = 0.5
-	mat.cull_mode = BaseMaterial3D.CULL_DISABLED
-	mat.roughness = 1.0
-	m.material_override = mat
+	m.material_override = net_material()
 	m.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	m.visibility_range_end = 50.0
 	add_child(m)
@@ -216,6 +206,25 @@ func _net(at: Vector2, face: float) -> void:
 	m.global_position = Vector3(p.x, _ground(at) + 0.36, p.y)
 	m.rotation.y = face
 	_props.append(m)
+
+
+## The log's and the net's materials (NightWarm draws one of each behind the loading cover).
+static func log_material() -> StandardMaterial3D:
+	var m := StandardMaterial3D.new()
+	m.albedo_color = Color(0.22, 0.15, 0.1)
+	m.roughness = 1.0
+	return m
+
+
+static func net_material() -> StandardMaterial3D:
+	var m := StandardMaterial3D.new()
+	m.albedo_texture = _net_texture()
+	m.albedo_color = Color(0.5, 0.42, 0.3)
+	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR
+	m.alpha_scissor_threshold = 0.5
+	m.cull_mode = BaseMaterial3D.CULL_DISABLED
+	m.roughness = 1.0
+	return m
 
 
 static func _net_texture() -> ImageTexture:

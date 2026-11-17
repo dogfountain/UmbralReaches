@@ -15,6 +15,7 @@ extends Node3D
 ## handful of colour writes a frame; nothing otherwise.
 
 const Reg := preload("res://core/world/night_life/night_registry.gd")
+const NightFx := preload("res://core/world/night_life/night_fx.gd")
 
 ## [fog colour, fog emission, light colour, light energy] per phase (1, 2, 3).
 const PAL := {
@@ -153,7 +154,7 @@ func _mark(p: int) -> void:
 	var hot := Color(c.r * 2.2, c.g * 2.2, c.b * 2.2)
 	Vfx.ring(at, 7.0, hot, 0.9, 0.16)
 	Vfx.ring(at, 3.5, hot, 0.6, 0.1)
-	Vfx.burst(at + Vector3(0.0, 1.5, 0.0), hot, {"count": 40, "life": 1.2, "speed": Vector2(2.0, 7.0), "size": 0.07, "gravity": -1.0, "spread": 180.0, "damping": 1.5})
+	NightFx.burst(at + Vector3(0.0, 1.5, 0.0), hot, "arena_mark")
 	Vfx.light(at + Vector3(0.0, 2.0, 0.0), c, 4.5, 16.0, 0.8, 3)
 	Reg.pulse = 0.8
 	_le += 1.5

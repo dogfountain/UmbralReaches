@@ -30,16 +30,7 @@ func _ready() -> void:
 		_scatter.append(0.0)
 	var quad := QuadMesh.new()
 	quad.size = Vector2.ONE
-	var mat := StandardMaterial3D.new()
-	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
-	mat.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
-	mat.billboard_keep_scale = true
-	mat.cull_mode = BaseMaterial3D.CULL_DISABLED
-	mat.vertex_color_use_as_albedo = true
-	mat.albedo_texture = _moth()
-	mat.albedo_color = Color(1.4, 1.4, 1.4, 1.0)
+	var mat := material()
 	var mm := MultiMesh.new()
 	mm.transform_format = MultiMesh.TRANSFORM_3D
 	mm.use_colors = true
@@ -54,6 +45,21 @@ func _ready() -> void:
 	_mm.custom_aabb = AABB(Vector3(-2000, -400, -2000), Vector3(4000, 1200, 4000))
 	_mm.add_to_group(Groups.CULL_SKIP)
 	add_child(_mm)
+
+
+## The moths' material: additive billboard quads with a soft dot, vertex colour as albedo (NightWarm draws one behind the loading cover).
+static func material() -> StandardMaterial3D:
+	var m := StandardMaterial3D.new()
+	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	m.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+	m.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
+	m.billboard_keep_scale = true
+	m.cull_mode = BaseMaterial3D.CULL_DISABLED
+	m.vertex_color_use_as_albedo = true
+	m.albedo_texture = _moth()
+	m.albedo_color = Color(1.4, 1.4, 1.4, 1.0)
+	return m
 
 
 func _process(delta: float) -> void:

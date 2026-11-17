@@ -10,6 +10,7 @@ extends Node3D
 ## fades the light out in a blink. Cost: one omni, at most one ring per cast.
 
 const Reg := preload("res://core/world/night_life/night_registry.gd")
+const NightFx := preload("res://core/world/night_life/night_fx.gd")
 
 const AMBER := Color(1.0, 0.62, 0.2)
 const COLD := Color(0.7, 0.88, 1.0)
@@ -58,7 +59,7 @@ func _on_end(enemy: Node, _cast: String, interrupted: bool) -> void:
 		return
 	if interrupted and Reg.enabled and _caster != null and is_instance_valid(_caster):
 		var p := _caster.global_position
-		Vfx.burst(p + Vector3(0.0, 1.0, 0.0), Color(1.6, 1.9, 2.4), {"count": 20, "life": 0.4, "speed": Vector2(3.0, 8.0), "size": 0.06, "gravity": -4.0, "trail": 0.1, "spread": 180.0, "damping": 3.0})
+		NightFx.burst(p + Vector3(0.0, 1.0, 0.0), Color(1.6, 1.9, 2.4), "snap")
 		Vfx.ring(p, 3.2, Color(1.6, 1.9, 2.4), 0.35, 0.12)
 		Vfx.light(p + Vector3(0.0, 1.0, 0.0), COLD, 2.4, 6.0, 0.2, 2)
 	_dur = 0.0
