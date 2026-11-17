@@ -66,7 +66,7 @@ func _run(root: Node) -> void:
 		for i in range(1, 8):
 			var p := pa.lerp(pb, float(i) / 8.0)
 			mn = minf(mn, WK.h(p.x, p.y))
-		var sc := float(dry) * 100.0 + minf(WK.h(pa.x, pa.y), WK.h(pb.x, pb.y)) - mn - (50.0 if _taken(pa, pb, c) else 0.0)
+		var sc := float(dry) * 100.0 + minf(WK.h(pa.x, pa.y), WK.h(pb.x, pb.y)) - mn - (250.0 if _taken(pa, pb, c) else 0.0)
 		if dry == 2 and not _taken(pa, pb, c):
 			best = {"pos": c, "ang": ang}
 			break

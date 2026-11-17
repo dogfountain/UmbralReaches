@@ -36,7 +36,7 @@ func _run(root: Node) -> void:
 		while gx < 360.0:
 			gx += 14.0
 			var p := Vector2(gx + rng.randf() * 10.0, gz + rng.randf() * 10.0)
-			if mb.has_point(p) or not RealmLayout.BOUNDS.grow(-12.0).has_point(p) or WK.wet(p.x, p.y) or Rect2(-24, -118, 48, 106).grow(70.0).has_point(p) or WK.in_town(p, 30.0):
+			if mb.has_point(p) or not RealmLayout.BOUNDS.grow(-12.0).has_point(p) or WK.wet(p.x, p.y) or Rect2(-24, -118, 48, 106).grow(70.0).has_point(p) or WK.in_town(p, 30.0) or RealmLayout.OLD_BOUNDS.grow(10.0).has_point(p):
 				continue
 			var gxv := (WK.h(p.x + 4.0, p.y) - WK.h(p.x - 4.0, p.y)) / 8.0
 			var gzv := (WK.h(p.x, p.y + 4.0) - WK.h(p.x, p.y - 4.0)) / 8.0

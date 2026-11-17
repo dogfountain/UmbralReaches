@@ -345,3 +345,8 @@ planted to the land as it is (orchard, necropolis, ossuary: terraces there hung 
 the chapel and Hearthward are untouched. `WK.place` tests sites with a 6 m margin and, when every listed spot is taken, widens in rings (26/52/80 m round the first two; at most 48 more spots); the Wardens' towers, the Sleeper, the Hollow King and the Salt Ship therefore leave lore
 sites and camp slots. The Titan gates try ten (distance, side) offsets with a 28 m box and 3 m margin; the Chain Span tries 125 turned and shifted crossings and tests its two pylons and its middle, not a 68 m box; outcrops keep out of the rift, the towns
 and 5 m round any site. Families that cannot fit now place fewer: read the per-family `WONDER ...: n of N ... rejected:` lines.
+
+## Placement fix, third round
+`WK.place` tested sites in one box round the footprint's longest half-extent (the Sleeper's is 49 m), so the whole south counted as taken and the least-bad spot won; it now tests the footprint's 25 own samples (boxes 0.3 x half-extent, 6 m margin) and widens in five rings (24-130 m, 12 spots each) round the first two candidates.
+The deep halls give their footprint the gate's end (half 16 x 40), the Titan gates have fourteen offsets out to 96 m and 34 m aside, the Chain Span weighs a taken crossing at -250 (a dry pair no longer outranks a clean one), and the outcrops stay out of the old valley (the quarry stair).
+Placement is recomputed before every kit-cache lookup (the position is in the kit's cache key: `WK.fp(SELF, [mid, ...])`), so a stale cached position cannot win; the protected set only changes where a landmark goes, never what a key means.

@@ -271,8 +271,18 @@ static func place(cands: Array, half: Vector2, yaws: Array, rel := 6.0) -> Dicti
 						wetn += 1
 					if RealmLayout.path_dist(p) < 4.0:
 						pathn += 1
-			var r := maxf(half.x, half.y)
-			var sitebad := 1 if site_hit(Rect2(c - Vector2(r, r), Vector2(r, r) * 2.0), 6.0) else 0
+			# sites and reserved places are tested under the footprint's own 25 samples (a box round its longest half-extent
+			# called the whole south "taken" for a footprint like the Sleeper's)
+			var sitebad := 0
+			var sb := half * 0.3
+			for ii in range(-2, 3):
+				if sitebad > 0:
+					break
+				for j in range(-2, 3):
+					var sp := c + ex * (half.x * float(ii) / 2.0) + ez * (half.y * float(j) / 2.0)
+					if site_hit(Rect2(sp - sb, sb * 2.0), 6.0):
+						sitebad = 1
+						break
 			var bad := wetn * 4 + pathn * 3 + sitebad * 6 + (1 if hi - lo > rel else 0)
 			var sc := float(bad) * 100.0 + (hi - lo)
 			if sc < best_s:
@@ -281,13 +291,13 @@ static func place(cands: Array, half: Vector2, yaws: Array, rel := 6.0) -> Dicti
 			if bad == 0:
 				return best
 		if i >= all.size() and not widened:
-			# every listed spot is taken: widen, in rings round the first two (at most 2 x 3 x 8 = 48 more spots), never an open search
+			# every listed spot is taken: widen, in rings round the first two (at most 2 x 5 x 12 = 120 more spots), never an open search
 			widened = true
 			for k in mini(2, cands.size()):
 				var c0: Vector2 = cands[k]
-				for rad: float in [26.0, 52.0, 80.0]:
-					for q in 8:
-						var a := TAU * float(q) / 8.0 + rad * 0.1
+				for rad: float in [24.0, 48.0, 72.0, 100.0, 130.0]:
+					for q in 12:
+						var a := TAU * float(q) / 12.0 + rad * 0.1
 						all.append(c0 + Vector2(cos(a), sin(a)) * rad)
 	return best
 

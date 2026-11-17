@@ -52,7 +52,7 @@ func _run(root: Node) -> void:
 
 
 func _hall(root: Node, spec: Dictionary) -> bool:
-	var f := WK.place(spec.cand as Array, Vector2(16.0, 34.0), [0.0, PI * 0.5, PI, PI * 1.5], 12.0)
+	var f := WK.place(spec.cand as Array, Vector2(16.0, 40.0), [0.0, PI * 0.5, PI, PI * 1.5], 12.0)
 	var c: Vector2 = f.pos
 	var yaw := float(f.yaw)
 	var ez := Vector2(-sin(yaw), cos(yaw))
