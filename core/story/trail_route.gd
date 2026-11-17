@@ -46,7 +46,7 @@ func ensure() -> void:
 	for path: Dictionary in RealmLayout.PATHS:
 		polys.append(path.pts)
 	for l: Array in WorldLanes.extra_lanes:
-		if _walked(String(l[0])):
+		if walked(String(l[0])):
 			polys.append(l[1])
 	if not ThornHenge.stair_pts.is_empty():           # the pilgrim stair up to the henge (its lane, henge_way, stops at the foot)
 		var stair: Array = [RealmLayout.HENGE_STAIR_FOOT]
@@ -78,8 +78,8 @@ func ensure() -> void:
 		cell[c] = arr
 
 
-
-func _walked(n: String) -> bool:
+## Is the registered lane `n` walked (one of LANES), not ground held back for a wall?
+static func walked(n: String) -> bool:
 	for p: String in LANES:
 		if n == p or (p.ends_with("_") and n.begins_with(p)):
 			return true

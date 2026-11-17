@@ -5,12 +5,13 @@ extends Node
 ## way to the place bends, the mark hangs over the farthest point of the route that the straight sight-line from the
 ## wanderer still follows (within CORRIDOR m of it, at most LOOK m along it), held there until you are REACH m from it,
 ## then on to the next; the place itself (guide is INF) only on the last straight within LOOK m. Far off, it is never the
-## place (Luke: "the destination one shouldn't be visible if 500m away, it should be the checkpoint"). One per night, a child of the story director (story.gd), group
-## "quest_trail".
-##   - the route: from the wanderer to the tracked step's foot point (quest_track.gd). The ways first: on to the nearest
-##     road or lane, along it (TrailRoute: an A* over RealmLayout.PATHS and the walkway lanes), off at the one nearest
-##     the place; the legs on and off by the navigation mesh (asked asynchronously, one query each) or straight, and the
-##     mesh's own path (or a straight line, with the mesh still baking) where the ways would not help. Rebuilt only when
+## place (Luke: "the destination one shouldn't be visible if 500m away, it should be the checkpoint"). One per night, a
+## child of the story director (story.gd), group "quest_trail".
+##   - the route: from the wanderer to the tracked step's foot point (quest_track.gd). The ways first (TrailRoute: one A*
+##     over RealmLayout.PATHS, the walkway lanes and the henge's pilgrim stair, getting on and off wherever the whole way
+##     is shortest, metres across country counted dearer); the legs on and off by the navigation mesh (asked
+##     asynchronously, one query each) or straight, and the mesh's own path (or a straight line, with the mesh still
+##     baking) where the ways would not help (none, or a detour past DETOUR). Rebuilt only when
 ##     the followed step or its place changes, the place moves more than MOVED m, the wanderer strays STRAY m off the
 ##     route, or the mesh came in; at most every REBUILD_GAP seconds. Nothing searches per frame: the aim is a few
 ##     thousand point-to-segment checks five times a second.
@@ -38,6 +39,10 @@ const MOVED := 8.0                 ## the place moved this much: made again
 const REBUILD_GAP := 1.5
 const NEAR := 11.0                 ## closer than this to the place, no route: the mark is on the place
 const HOVER := 2.4                 ## the mark's point over its seat (as high as a place's own mark hangs)
+const WAYS_FROM := 40.0            ## nearer than this the ways are not asked (the mesh, or a straight line, does)
+const DETOUR := 2.0                ## the ways are not taken when they are this many times the straight distance (+ DETOUR_PAD m)
+const DETOUR_PAD := 80.0
+const STRAIGHT := -2               ## _gi while the mark is the no-route checkpoint (_aim_straight)
 
 var guide := Vector3.INF           ## where the one mark hangs now (INF: on the place itself)
 var left := -1.0                   ## metres along the way to the place (-1: no route; the waypoint measures straight)
@@ -168,11 +173,10 @@ func _build(here: Vector3, foot: Vector3) -> void:
 	if straight < NEAR:
 		return                                      # there: the mark is on the place
 	var legs: Array = []
-	var r: Dictionary = _ways.route(from, to) if straight > 40.0 else {}
-	if not r.is_empty():
-		var total := float(r.entry) + float(r.length) + float(r.exit)
-		if float(r.entry) > 120.0 or float(r.exit) > 150.0 or total > straight * 2.0 + 80.0:
-			r = {}
+	var r: Dictionary = _ways.route(from, to) if straight > WAYS_FROM else {}
+	# (the legs on and off are capped by the route itself: TrailRoute.ON_REACH / OFF_REACH)
+	if not r.is_empty() and float(r.entry) + float(r.length) + float(r.exit) > straight * DETOUR + DETOUR_PAD:
+		r = {}
 	if r.is_empty():
 		legs.append({"type": "nav", "a": here, "b": foot})
 	else:
@@ -307,7 +311,8 @@ func _aim(here: Vector3) -> void:
 	var at := Vector2(here.x, here.z)
 	# the checkpoint holds until the wanderer is within REACH of it (or has passed it, or the way to it is no longer in
 	# line): Destiny's waypoint stays put and then jumps on; it never creeps ahead step by step
-	if _gi > _idx and _gi < n and _rs[_gi] - _sp > REACH and _in_line(at, _gi, HOLD):
+	# (and never past LOOK: walked away from, the place would show from afar)
+	if _gi > _idx and _gi < n and _rs[_gi] - _sp > REACH and _rs[_gi] - _sp <= LOOK and _in_line(at, _gi, HOLD):
 		if _gi >= last:
 			guide = Vector3.INF
 		return
@@ -343,10 +348,11 @@ func _aim_straight(here: Vector3, foot: Vector3) -> void:
 	if d.length() <= LOOK:
 		_drop_aim()
 		return
-	if guide != Vector3.INF and _gi == -2 and Vector2(guide.x - here.x, guide.z - here.z).length() > REACH:
-		return                                      # holds like any checkpoint
+	var held := Vector2(guide.x - here.x, guide.z - here.z).length() if guide != Vector3.INF else INF
+	if _gi == STRAIGHT and held > REACH and held <= LOOK + REACH:
+		return                                      # holds like any checkpoint (not once walked away from)
 	var q := Vector2(here.x, here.z) + d.normalized() * LOOK
-	_gi = -2
+	_gi = STRAIGHT
 	left = -1.0
 	guide = Vector3(q.x, RealmLayout.macro_height(q.x, q.y) + HOVER, q.y)
 

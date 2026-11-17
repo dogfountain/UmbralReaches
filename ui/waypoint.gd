@@ -98,11 +98,15 @@ func _draw() -> void:
 	draw_arc(c, SIZE * 0.58 + 2.0 * glow, 0.0, TAU, 40, Color(1.0, 0.8, 0.42, (0.7 + 0.3 * glow) * _alpha), 3.0, true)
 	if not IconArt.draw_mark(self, "mark", _art, c, SIZE, Color(1, 1, 1, _alpha)):
 		draw_circle(c, SIZE * 0.3, Color(1.0, 0.72, 0.3, _alpha))
+	var rim := SIZE * 0.66 + 6.0                # just outside the glow ring
+	var s := SIZE * 0.2
+	var below := 0.0                            # room the down arrow takes above the label
 	if absf(_dy) > UPDOWN:                      # Destiny's inset arrow: the point is well above or below
-		var s := SIZE * 0.2
 		var dir := -1.0 if _dy > 0.0 else 1.0
-		var tip := c + Vector2(0.0, dir * (SIZE * 0.66 + s * 1.4))
+		var tip := c + Vector2(0.0, dir * (rim + s))
 		draw_colored_polygon(PackedVector2Array([tip, tip + Vector2(-s, -dir * s), tip + Vector2(s, -dir * s)]), Color(1.0, 0.82, 0.45, _alpha))
+		if dir > 0.0:
+			below = s + 4.0                         # the label steps down under it (it sat on the "237 m")
 	var text := "%d m" % roundi(_dist)
 	var w := _font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, 17).x
-	Forge.label(self, _font, c + Vector2(-w * 0.5, SIZE * 0.5 + 18.0), text, 17, Color(INK.r, INK.g, INK.b, _alpha), HORIZONTAL_ALIGNMENT_LEFT, -1.0, 3)
+	Forge.label(self, _font, c + Vector2(-w * 0.5, rim + below + 15.0), text, 17, Color(INK.r, INK.g, INK.b, _alpha), HORIZONTAL_ALIGNMENT_LEFT, -1.0, 3)

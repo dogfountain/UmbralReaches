@@ -9,6 +9,7 @@ extends Node
 ## within LOOK; else "PROBE FAIL n".
 
 const QuestTrail := preload("res://core/story/quest_trail.gd")
+const TrailRoute := preload("res://core/story/trail_route.gd")
 const RealmLayout := preload("res://core/world/realm/realm_layout.gd")
 const OFF_WAY := 4.0
 
@@ -143,7 +144,8 @@ func _way_dist(p: Vector2) -> float:
 	for path: Dictionary in RealmLayout.PATHS:
 		best = minf(best, _poly_dist(p, path.pts))
 	for l: Array in WorldLanes.extra_lanes:
-		best = minf(best, _poly_dist(p, l[1]))
+		if TrailRoute.walked(String(l[0])):               # the walked ones only (a wall's reserved strip is no way)
+			best = minf(best, _poly_dist(p, l[1]))
 	var stair: Array = [RealmLayout.HENGE_STAIR_FOOT]       # the pilgrim stair (core/story/trail_route.gd adds it)
 	for v: Vector3 in ThornHenge.stair_pts:
 		stair.append(Vector2(v.x, v.z))
