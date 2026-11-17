@@ -83,6 +83,7 @@ func _ready() -> void:
 	add_child(FirstHour.new())
 	add_child(Chronicle.new())
 	add_child(Wayfarer.new())
+	add_child(PhotoMode.new())
 	track = QuestTrack.new()
 	add_child(track)
 	trail = QuestTrail.new()
