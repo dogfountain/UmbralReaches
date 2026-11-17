@@ -6,7 +6,9 @@ extends RefCounted
 ##   wr_kings_lamp    A Lamp for the Kings' Door (Siany)  the lamp book's first lamp carried up the barrow road to the open door
 ##                                                        (the dungeon hook: HOOKS.kings_barrow)
 ##   wr_cold_light    Cold Light (Ebba Sallow)           Wick, the lamp-grown, in the ring of giant caps; caps for the punts
-##   wr_fourth_stone  The Fourth Stone (Hobb Wade)        the heron stones' verse (a small puzzle), then the Heron-Wife
+##   wr_fourth_stone  The Fourth Stone (Hobb Wade)        the herons touched in the verse's order (order), the fourth bird waited for (vigil),
+##                                                        the Heron-Wife; the oar laid on Tam's stone or given to Hobb
+##   wr_relief        Relief (Aud Corle)                 quest_chains_deepen_c.gd: the Sentry's watch at the Signal Cairn, after Stand Down
 ##   wr_tansys_boat   Tansy's Boat (Ebba Sallow)         FOUND at the Last Milestone's toll-house: the ledger's last line
 ## `found_at` tasks start when the wanderer comes within `found_r` (quest_world.gd). House style: terse, concrete, dark.
 
@@ -35,7 +37,7 @@ const QUESTS := {
 		"alt": {"read": {4: "Tell Aud Corle what the order said"}, "burned": {4: "Tell Aud Corle the order is ash"}, "sealed": {4: "Tell Aud Corle the order is left sealed"}},
 		"reward": {"ash": 40, "items": {"relic_fragment": 2, "ember_shard": 1}},
 		"choose": [{"set": "ferryman", "slot": "lantern", "rarity": 3}, {"set": "ferryman", "slot": "vestment", "rarity": 3}, {"set": "ferryman", "slot": "girdle", "rarity": 3}],
-		"stands": {"at": Vector2(-280.0, -117.0), "kind": "lantern_lit"},
+		"leaves": {"read": {"at": Vector2(-280.0, -117.0), "prop": "lantern_lit"}, "burned": {"at": Vector2(-280.0, -117.0), "prop": "coal"}, "sealed": {"at": Vector2(-280.0, -117.0), "prop": "page"}},
 		"outcome": {
 			"read": "You read it at the shrine's foot, to the keep above and the fell below, and the wind dropped as it does for any order. Aud made you say it twice at her gallery rail: THE ASCENSION IS ACCOMPLISHED. THE WATCH IS ENDED. COME EAST AND BE COUNTED. 'They would have gone,' she said. 'Every one. Nobody ever got it, so they stood, and they are the only garrison in the valley that is still anything.' She wrote DELIVERED in the lamp book, crossed it out, and wrote it again.",
 			"burned": "You gave the order to the fire unread. Aud asked what it had said, and you told her you did not know. She looked at you a long while over the lamp book. 'Good,' she said. 'Then it was never delivered, and nobody walked east.' She wrote the courier's line over in her own hand: not home, and not blamed.",
@@ -72,17 +74,39 @@ const QUESTS := {
 		"outcome": {"": "Ebba hung a cap in the bow of each of her three punts, and by midnight the slip was lit the colour of deep water. They cast no shadow, which Siany says is the only wrong thing about them. 'They don't light anything,' Ebba said. 'That is the point of them. A boat should be seen from other boats and from nowhere else.' The punts have not looked back at her from the black water since, and for a warm minute she believed it was the caps."}},
 	"wr_fourth_stone": {"name": "The Fourth Stone", "giver": "hobb", "zone": "westreach", "offer": true,
 		"where": "Hobb Wade, at the long house in Reedholm",
-		"text": "Aud says her three boats went the night the fourth heron stone was bare. Hobb says it was the same stone and the same bird gone when his brother Tam rowed out. The seven stones in the south mere have a heron cut on each, a different thing in each beak, and a verse round the lowest slab's foot that nobody in Reedholm has read aloud in a hundred years. Hobb wants it read at the stones, and the fourth bird answered.",
+		"text": "Aud says her three boats went the night the fourth heron stone was bare. Hobb says it was the same stone and the same bird gone when his brother Tam rowed out. The seven stones in the south mere have a heron cut on each, a different thing in each beak, and a verse round the lowest slab's foot that nobody in Reedholm has read aloud in a hundred years: THE OAR FOLLOWS THE LAMP. THE LAMP FOLLOWS THE NET. THE NET FOLLOWS THE EEL. TOUCH THEM AS THEY FOLLOW, AND THE FOURTH WILL KNOW YOU. Hobb wants it read at the stones, the herons touched in the order it gives, and the fourth bird waited for.",
 		"steps": [
 			{"kind": "visit", "at": Vector2(-340.0, 360.0), "r": 12.0, "label": "The heron stones", "text": "Go out to the heron stones in the south mere and read the verse at the lowest slab"},
-			{"kind": "find", "text": "Touch the herons in the order the verse gives, and call the fourth"},
+			{"kind": "order", "at": Vector2(-337.0, 356.0), "label": "The herons",
+				"text": "Touch the four herons in the order the verse gave: first the eel's, then whatever follows it, down to the oar",
+				"things": [
+					{"key": "eel", "at": Vector2(-341.5, 352.0), "prop": "mark", "name": "the eel's heron", "text": "The eel's heron is cold and wet under your palm, and the ring of water round its stone goes still."},
+					{"key": "net", "at": Vector2(-333.0, 351.0), "prop": "mark", "name": "the net's heron", "text": "The net's heron. A breath of reed-smoke from nowhere, and the smell of tar."},
+					{"key": "lamp", "at": Vector2(-331.0, 359.5), "prop": "mark", "name": "the lamp's heron", "text": "The lamp's heron. For a moment the lamp in its beak is lit, and the stone beside it has a shadow it did not have."},
+					{"key": "oar", "at": Vector2(-340.5, 361.0), "prop": "mark", "name": "the oar's heron", "text": "The oar's heron. The fourth stone, the bare one, is not bare: for the length of a breath there is a heron on it, grey as the water, with an oar across its beak."},
+				],
+				"order": ["eel", "net", "lamp", "oar"],
+				"wrong": "Nothing answers. The heron under your hand turns its head away, the ring goes quiet, and the others turn away one by one. You will have to begin from the verse.",
+				"wrong_spawns": {"kind": "wretch", "n": 1},
+				"done": "Eel, net, lamp, oar. The ring holds its breath."},
+			{"kind": "vigil", "at": Vector2(-337.0, 357.0), "r": 9.0, "time": 40.0, "gloom": 0.5, "label": "The fourth bird", "noun": "stone", "prop": "mark",
+				"waves": [{"at": 14.0, "kinds": ["wretch"], "n": 2, "say": "The reeds move against the wind, as if something were stepping out of them."},
+					{"at": 28.0, "kinds": ["crawler"], "n": 1, "say": "Something long comes down the channel between the stones."}],
+				"held": "The fourth stone has its bird, for the length of a breath. Something in the south reeds lets out a long breath, and begins to walk.", "away": "Go back to the stones. The fourth bird comes to whoever waits.",
+				"text": "Wait at the stones for the fourth bird, and keep what the waiting wakes off the ring ({t} s)"},
 			{"kind": "slay", "of": 1, "rares": ["heron_wife"], "at": Vector2(-300.0, 372.0), "label": "The Heron-Wife",
 				"text": "Put down the Heron-Wife, who left the fourth stone and walks the south reeds"},
+			{"kind": "place", "text": "Lay the fourth heron's oar where it belongs: on Tam's stone, or in Hobb's hands"},
 			{"kind": "turnin", "who": "hobb", "text": "Tell Hobb the fourth heron is back on its stone"},
 		],
+		"alt": {"tam": {5: "Tell Hobb the oar is on Tam's stone"}, "hobb": {5: "Bring Hobb the fourth heron's oar"}},
 		"reward": {"ash": 24, "items": {"relic_fragment": 1}},
 		"choose": [{"slot": "girdle", "rarity": 2}, {"slot": "lantern", "rarity": 2}],
-		"outcome": {"": "The fourth stone had its bird back by morning, grey as the water, an oar across its beak. Hobb rowed out to see, and came back, and said that Tam was not in it. 'He's in the book,' he said. 'That is enough. I only wanted to know it was not the bird that took him.' It had been, and he knew. He rowed out again that night anyway, to put an oar on the stone for his brother, and rowed back with only the one."}},
+		"leaves": {"tam": {"at": Vector2(-338.0, 358.5), "prop": "staff"}},
+		"outcome": {
+			"tam": "The fourth stone had its bird back by morning, grey as the water, and an oar across the stone beside it that was not the bird's. Hobb rowed out to see, and came back, and said that Tam was not in it. 'He's in the book,' he said. 'That is enough. I only wanted to know it was not the bird that took him.' It had been, and he knew. The oar on the stone is for Tam. Hobb says he won't touch it, and rows round it.",
+			"hobb": "The fourth stone had its bird back by morning, grey as the water. You put the oar in Hobb's hands, and he stood with it a long time in the long house's door. 'It is not Tam's,' he said. 'It is the bird's. He would have said that was the whole joke.' He rowed out that night to put it back on the stone himself, and rowed back with only the one.",
+			"": "The fourth stone had its bird back by morning, grey as the water, an oar across its beak. Hobb rowed out to see, and came back, and said that Tam was not in it. 'He's in the book,' he said. 'That is enough.'"}},
 	"wr_tansys_boat": {"name": "Tansy's Boat", "giver": "ebba", "zone": "westreach", "offer": true,
 		"where": "a toll-house at the Last Milestone",
 		"found_at": Vector2(-350.0, 38.0), "found_r": 9.0, "found_prop": "slate",
@@ -115,8 +139,8 @@ const PICKUPS := {
 		"say": "The smallest of the three, hardly a thumbnail across, and the brightest. It lit the moss round it for a yard on every side, and it is the only one that is warm."},
 	"wr_cap_punt": {"quest": "wr_cold_light", "step": 2, "near": Vector2(-318.0, 267.5), "kind": "place", "name": "the punt's bow", "verb": "Hang the caps in",
 		"say": "You push a cap into the cleat in the bow, and the slip comes up blue around it, wet planks and coiled rope and Ebba's hands, and nothing else. The water under the punt is for the first time in nine winters only water."},
-	"wr_stones": {"quest": "wr_fourth_stone", "step": 1, "near": Vector2(-337.0, 356.0), "kind": "mark", "name": "the heron stones", "verb": "Touch", "conv": "wr_herons",
-		"say": "The heron stones."},
+	"wr_stones": {"quest": "wr_fourth_stone", "step": 4, "near": Vector2(-337.0, 358.5), "kind": "place", "name": "the fourth stone's oar", "verb": "Take up", "conv": "wr_herons",
+		"say": "The fourth stone's oar."},
 	"wr_ledger": {"quest": "wr_tansys_boat", "step": 0, "near": Vector2(-350.0, 37.0), "kind": "page", "name": "the toll-keeper's ledger", "verb": "Read",
 		"say": "Every pilgrim who passed east is counted by name and homeland, three hundred years of them, the ink fading toward the end of the book. The last entry is the day before the Night: TANSY, ALMA, OF REEDHOLM. ONE. EAST. LEFT HER BOAT PAID FOR AND HER LAMP LIT. Beside it the keeper has drawn a small boat, very carefully, and nothing else."},
 	"wr_boat": {"quest": "wr_tansys_boat", "step": 1, "near": Vector2(-313.5, 264.5), "kind": "place", "name": "Alma Tansy's boat", "verb": "Cut her name in",
@@ -124,7 +148,14 @@ const PICKUPS := {
 }
 
 const CONVS := {
-	"wr_order": {"name": "The Fell Shrine", "start": [["!qat:wr_stand_down:3", "gone"], ["", "at"]], "nodes": {
+	"wr_order": {"name": "The Fell Shrine", "start": [["qat:wr_relief:3", "relief"], ["!qat:wr_stand_down:3", "gone"], ["", "at"]], "nodes": {
+		"relief": {"say": "The Signal Cairn stands over the fell, built and never lit. The Sentry sat down at it at dawn, if sitting is what it was, and is not sitting now. His place by the stack is warm. The watch is yours to end. It is a long walk, from the Order's last word to the one who stood it.", "who": "", "choices": [
+			{"text": "Salute the cairn, and stand the watch down.", "to": "salute"},
+			{"text": "Keep the watch. The fell is not safe yet.", "to": "keep"},
+			{"text": "Not yet.", "to": ""},
+		]},
+		"salute": {"say": "You put your hand flat to the cairn's capstone, WHEN THE SKY OPENS, BURN, and say it: the watch is ended. Nothing answers. Far below, on the keep's crag, a lamp goes out in a window nobody had known was lit.", "who": "", "do": "qp:wr_relief:salute,qa:wr_relief", "next": ""},
+		"keep": {"say": "You take his place by the stack, and his watch with it, the way a man takes up a coat somebody has laid down. The wind finds the collar. Down on the crag a lamp in the keep's window stays lit.", "who": "", "do": "qp:wr_relief:keep,qa:wr_relief", "next": ""},
 		"at": {"say": "The fell shrine's stone, under the Broken Keep's crag, and no sentry on it now. You hold the courier's order, the wax still whole, nine winters of water in the grain of the paper.", "who": "", "choices": [
 			{"text": "Read it aloud, to the keep and the fell.", "to": "read"},
 			{"text": "Burn it unread.", "to": "burned"},
@@ -136,31 +167,14 @@ const CONVS := {
 		"sealed": {"say": "You lay it on the stone with the wax to the sky, and put the cresset's cold lamp on it for a weight. Whoever stands the next watch here will find it exactly as the courier left it.", "who": "", "do": "qp:wr_stand_down:sealed,qa:wr_stand_down", "next": ""},
 		"gone": {"say": "The fell shrine is quiet. Whatever the order said is finished with.", "who": "", "next": ""},
 	}},
-	"wr_herons": {"name": "The Heron Stones", "start": [["!qat:wr_fourth_stone:1", "gone"], ["", "s0"]], "nodes": {
-		"s0": {"say": "Seven slabs in a ring in the black water, a heron cut on each, a thing in each beak. Round the lowest slab's foot, in the fishers' square letters: THE OAR FOLLOWS THE LAMP. THE LAMP FOLLOWS THE NET. THE NET FOLLOWS THE EEL. TOUCH THEM AS THEY FOLLOW, AND THE FOURTH WILL KNOW YOU. Four of the herons hold an eel, a net, a lamp and an oar. Which do you touch first?", "who": "", "choices": [
-			{"text": "The heron with the net.", "to": "bad"},
-			{"text": "The heron with the eel.", "to": "s1"},
-			{"text": "The heron with the oar.", "to": "bad"},
-			{"text": "The heron with the lamp.", "to": "bad"},
-			{"text": "Leave them for now.", "to": ""},
+	"wr_herons": {"name": "The Heron Stones", "start": [["!qat:wr_fourth_stone:4", "gone"], ["", "oar"]], "nodes": {
+		"oar": {"say": "The fourth bird is gone from its stone again, and in the ring's middle, on the black water, an oar floats upright as if it stood on something. A fisher's oar, ash, the blade worn thin. Tam's pattern. Not Tam's. It is yours to lay.", "who": "", "choices": [
+			{"text": "Lay it across Tam's stone, for him.", "to": "tam"},
+			{"text": "Take it back to Hobb.", "to": "hobb"},
+			{"text": "Not yet.", "to": ""},
 		]},
-		"s1": {"say": "The eel's heron is cold and wet under your palm, and the ring of water round its stone goes still. Which follows the eel?", "who": "", "choices": [
-			{"text": "The lamp.", "to": "bad"},
-			{"text": "The net.", "to": "s2"},
-			{"text": "The oar.", "to": "bad"},
-		]},
-		"s2": {"say": "The net's heron. A breath of reed-smoke from nowhere, and the smell of tar. Which follows the net?", "who": "", "choices": [
-			{"text": "The oar.", "to": "bad"},
-			{"text": "The eel.", "to": "bad"},
-			{"text": "The lamp.", "to": "s3"},
-		]},
-		"s3": {"say": "The lamp's heron. For a moment the lamp in its beak is lit, and the stone beside it has a shadow it did not have. Which follows the lamp?", "who": "", "choices": [
-			{"text": "The oar.", "to": "done"},
-			{"text": "The net.", "to": "bad"},
-			{"text": "The eel.", "to": "bad"},
-		]},
-		"bad": {"say": "Nothing answers. The heron under your hand turns its head away, and the ring goes quiet again. You will have to begin from the verse.", "who": "", "next": "s0"},
-		"done": {"say": "The oar's heron. The fourth stone, the bare one, is not bare: for the length of a breath there is a heron on it, grey as the water, with an oar across its beak, looking at you. Then there is not. Something in the south reeds lets out a long breath, and begins to walk.", "who": "", "do": "qa:wr_fourth_stone", "next": ""},
-		"gone": {"say": "The seven stones stand in their ring. The fourth has its bird, and the others do not look at it.", "who": "", "next": ""},
+		"tam": {"say": "You wade it to the lowest slab and lay it across. The water round it does not move. Somewhere behind you a heron settles its feathers, and a great deal of weight leaves the mere.", "who": "", "do": "qp:wr_fourth_stone:tam,qa:wr_fourth_stone", "next": ""},
+		"hobb": {"say": "You lift it out. It is lighter than it should be and warmer than the water. Hobb will know what to do with it. He may not forgive you for bringing it.", "who": "", "do": "qp:wr_fourth_stone:hobb,qa:wr_fourth_stone", "next": ""},
+		"gone": {"say_if": [["qp:wr_fourth_stone:tam", "The seven stones stand in their ring. An oar lies across the lowest slab, and the fourth bird stands over it."], ["", "The seven stones stand in their ring. The fourth has its bird, and the others do not look at it."]], "who": "", "next": ""},
 	}},
 }
