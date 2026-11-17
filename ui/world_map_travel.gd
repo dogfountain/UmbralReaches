@@ -46,6 +46,9 @@ static func click(map: Node, m: Dictionary) -> bool:
 	if not dest.lit:
 		return false
 	var tree := map.get_tree()
+	if CampRite.running(tree):
+		Events.toast.emit("You are sitting to the fire. Finish the camp first.")
+		return true
 	var from := origin(tree)
 	if from == null:
 		Events.toast.emit("Stand beside a lit fire to take the Ember Road from the map.")

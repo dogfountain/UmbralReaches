@@ -14,9 +14,8 @@ const LAST := ["Tarrow", "Reed", "Vail", "Harrow", "Wick", "Sallow", "Tansy", "L
 	"Cooper", "Carter", "Fuller", "Mason", "Tolliver", "Bellman", "Ferryman", "Saltwife", "Draper", "Hollis", "Pike", "Warden", "Kettle",
 	"Sexton", "Ringer", "Chandler", "Weir", "Cairn", "Fenner", "Hurdle", "Shaw", "Tiller", "Ostler", "Lantern", "Underhill", "Greaves"]
 const TITLES := ["", "", "", "", "Brother ", "Sister ", "Old ", "Goodwife ", "Reeve ", "Ringer "]
-const MIN_NIGHT_S := 600.0
 
-signal counted(name: String, total: int)
+signal counted(who: String, total: int)
 
 
 static func data() -> Dictionary:
