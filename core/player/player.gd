@@ -921,6 +921,8 @@ func is_hanging() -> bool: return traversal.is_hanging()
 ## cooldown beyond its own length. Distinct from the Rift Step: no riposte, no marks, stays visible.
 func _try_dodge(wish: Vector3) -> bool: return evasion._try_dodge(wish)
 func is_rolling() -> bool: return evasion.is_rolling()
+## At a run, not merely holding the key (a lit lamp carried for a task goes out on it: core/story/verb_lantern.gd).
+func is_sprinting() -> bool: return _sprint_held and _wish_len > 0.1 and velocity.length() > walk_speed * 1.2
 func _can_glide() -> bool: return evasion._can_glide()
 func _start_glide() -> void: evasion._start_glide()
 ## Rising air under a glide: any node in the "updraft" group (meta "radius" 3 m, "height" 16 m,

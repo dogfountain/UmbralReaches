@@ -31,6 +31,7 @@ var _drawn := 0.0
 var _pt := Vector3.INF                      ## the world point the mark is drawn over
 var _next := Vector3.INF                    ## the point it is moving to (after a dip)
 var _dy := 0.0                              ## the point's height over the wanderer's eyes
+var _area := 0.0                            ## a search area's radius (clues, a trail): the mark goes in at its edge, not at the place
 
 
 func _ready() -> void:
@@ -62,7 +63,8 @@ func _process(delta: float) -> void:
 			_dist = straight                        # to the place, as the compass strip counts it (one number on the HUD)
 			if _pt == Vector3.INF or _alpha <= 0.02:
 				_pt = _next                         # unseen: it moves at once
-			want = smoothstep(NEAR_OUT, NEAR_IN, straight)
+			_area = float(st.get("area", 0.0))
+			want = smoothstep(NEAR_OUT + _area, NEAR_IN + _area, straight)
 			if _pt.distance_to(_next) > HOP:
 				want = 0.0                          # on to the next bend: out here, in there
 			elif _pt != _next:

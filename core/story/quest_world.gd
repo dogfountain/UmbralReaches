@@ -20,6 +20,7 @@ const QProps := preload("res://core/story/quest_props.gd")
 const Pickup := preload("res://core/story/quest_pickup.gd")
 const RealmLayout := preload("res://core/world/realm/realm_layout.gd")
 const Hier := preload("res://core/world/realm/realm_pois_hierarch.gd")
+const VerbWorld := preload("res://core/story/verb_world.gd")      ## the clues, trails, orders and left props of the task verbs (docs/QUEST_VERBS.md)
 
 ## Found floor points: pickup key / "stair" / "names" / "staff" -> Vector3 (tests read them).
 static var spots := {}
@@ -70,6 +71,7 @@ static func prepare(v: Node3D) -> void:
 			report.append("no floor for %s" % k2)
 	if spots.stair != Vector3.INF:
 		(nav.get("nodes") as Dictionary)["q_stair"] = spots.stair
+	VerbWorld.prepare(func(near: Vector2, r: float) -> Vector3: return _spot(nav, near, r))
 
 
 static func _spot(nav: RefCounted, near: Vector2, r := 0.3) -> Vector3:
@@ -137,6 +139,9 @@ func _ready() -> void:
 		QProps.make(self, "Waystone41", "waystone", Transform3D(Basis(Vector3.UP, yaw), ws))
 	Events.quest_changed.connect(func(_id: String, _s: int, _d: bool) -> void: sync.call_deferred())
 	Events.enemy_killed.connect(_on_killed)
+	var verbs := VerbWorld.new()
+	verbs.name = "Verbs"
+	add_child(verbs)
 	sync()
 
 
@@ -379,8 +384,14 @@ func _process(delta: float) -> void:
 					# the step stays where it is: the objective is still the man, not the lantern
 					_hollow_failed = true
 					_narrate("The reeds would not give him up.")
-			if s == 0 and is_instance_valid(hollow) and d < float(Chains.HOLLOW.wake):
-				Book.advance("slow_way")
+			if d > HOLLOW_STAND_R + 20.0:
+				_hollow_named = false
+			# a `reach` first step ends when he wakes; a `tracks` one ends on its last mark, and he is named when you come close
+			var named := (s == 0 and String(Chains.step("slow_way", 0).get("kind", "")) == "reach") or (s == 1 and not _hollow_named)
+			if named and is_instance_valid(hollow) and d < float(Chains.HOLLOW.wake):
+				_hollow_named = true
+				if s == 0:
+					Book.advance("slow_way")
 				# one voice: his name is the banner; the narrator says it only when there is no banner to carry it
 				var lg := get_tree().get_first_node_in_group("quest_log")
 				if lg and lg.has_method("banner"):
@@ -404,6 +415,7 @@ func _found(pl: Node3D) -> void:
 
 const HOLLOW_STAND_R := 70.0   ## the body stands this far out, in view on a gallop; it wakes at Chains.HOLLOW.wake
 var _hollow_failed := false
+var _hollow_named := false
 
 
 func _wake_hollow(at: Vector3) -> bool:
@@ -431,8 +443,8 @@ func _wake_hollow(at: Vector3) -> bool:
 func _on_killed(e: Node) -> void:
 	if e == hollow and e != null:
 		hollow = null
-		if Book.active("slow_way") and Book.step("slow_way") == 1:
-			Book.advance("slow_way")
+		if Book.active("slow_way") and Book.step("slow_way") <= 1:       # (felled on the trail, before the last mark, too)
+			Book.advance("slow_way", 2)
 			_narrate("He lies down in the reeds as if he had only been waiting to be told.")
 
 

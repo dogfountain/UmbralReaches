@@ -24,6 +24,7 @@ const SecretPages := preload("res://core/life/secrets/pages.gd")
 const QBook := preload("res://core/story/quest_book.gd")
 const QChains := preload("res://core/story/quest_chains.gd")
 const QWorld := preload("res://core/story/quest_world.gd")
+const VerbKit := preload("res://core/story/verb_kit.gd")
 const UiSound := preload("res://ui/ui_sound.gd")   ## quiet menu sounds (F)
 const TextDirector := preload("res://ui/text_director.gd")
 const Banner := preload("res://core/world/realm/discovery_banner.gd")   ## r35: title_up, the title-card hold
@@ -804,6 +805,13 @@ func _task_pins() -> Array:
 					at = Vector3((live_at as Vector2).x, 0.0, (live_at as Vector2).y)
 			"reach", "kill":
 				at = spots.get("hollow", Vector3.INF)
+			"clues", "tracks", "order", "lantern_walk", "vigil":
+				# the task verbs: the middle of the area to search (clues, a trail), else the place the step names
+				var vs: Dictionary = (qd.steps as Array)[s]
+				var va := VerbKit.area(id, vs, QBook.q(id))
+				var vp: Variant = va.c if not va.is_empty() else vs.get("to", vs.get("at"))
+				if vp is Vector2:
+					at = Vector3((vp as Vector2).x, 0.0, (vp as Vector2).y)
 			"talk":
 				var who := String(qd.giver)
 				if s == 2 and id == "keg_thief":

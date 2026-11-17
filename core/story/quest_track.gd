@@ -8,7 +8,8 @@ extends Node
 ##     first act's step while the guide is on, else the newest task under way, else the story. A task that ended
 ##     hands back to the default.
 ##   - current(): {id, title, text, kind, art, label, key, target (the point the waypoint hangs from, Vector3.INF when
-##     the step has no place), foot (the same point on the ground), src}. Polled four times a second and on
+##     the step has no place), foot (the same point on the ground), area (m: > 0 when the step sends you to search a circle
+##     about `target` rather than to a point), src}. Polled four times a second and on
 ##     Events.quest_changed / quest_tracked; a few group lookups and no searching.
 ## Places of a task's step, in order: the task's own map target (quest_markers.gd: `at`, `to`, the next bell, a rare's
 ## last seen), a pickup the step wants, the person to speak to, the seal, the boss's arena, the region its foes are in.
@@ -106,7 +107,7 @@ func _resolve(id: String) -> Dictionary:
 	var s := Book.step(id)
 	var stp := Chains.step(id, s)
 	var out := {"id": id, "title": String(Chains.QUESTS[id].name), "text": Chains.step_text(id, s, Book.q(id)), "key": "%s:%d" % [id, s],
-		"kind": "place", "art": "followed", "label": "", "target": Vector3.INF, "foot": Vector3.INF, "src": ""}
+		"kind": "place", "art": "followed", "label": "", "target": Vector3.INF, "foot": Vector3.INF, "src": "", "area": 0.0}
 	var at := _place(id, s, stp, out)
 	out.art = {"seal": "seal", "boss": "boss"}.get(String(out.kind), "followed")
 	if at != Vector3.INF:
@@ -137,6 +138,7 @@ func _place(id: String, s: int, stp: Dictionary, out: Dictionary) -> Vector3:
 			if is_instance_valid(t) and String(t.get_meta("quest", "")) == id:
 				out.src = "markers"
 				out.label = String(stp.get("label", ""))
+				out.area = float(t.get_meta("map_radius", 0.0))      # a search area (clues, a trail): the waypoint goes in at its edge
 				return (t as Node3D).global_position
 	var kind := String(stp.get("kind", ""))
 	# 2) a pickup this step wants, the nearest not yet taken

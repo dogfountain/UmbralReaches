@@ -25,6 +25,7 @@ extends RefCounted
 ## Conditions (QuestDB terms):
 ##   q:id  started    q:id:n  at step n or past it (or done)    qat:id:n  active and on step n
 ##   qd:id done       qp:id:val  that choice was made           att:npc:n  attitude >= n
+##   qc:id:key  that clue was examined (clues steps)
 ##   ash:n  that much grave ash      secret:group:id / secrets:n  the secrets system's record
 ##   elite:id  that named elite was put down (the encounters system's record)
 ## Load by path: const QuestBook := preload("res://core/story/quest_book.gd")
@@ -136,6 +137,7 @@ static func advance(id: String, to := -1) -> void:
 	d["s"] = nx
 	d["n"] = 0
 	d.erase("left")
+	d.erase("o")                               # a verb's own count (an order's place) belongs to the step it was kept on
 	_touch(d)
 	_changed(id)
 	_announce(id, nx, d)
@@ -319,6 +321,21 @@ static func offered_gear(id: String) -> Array:
 	for o: Dictionary in opts:
 		out.append(GearDB.make(rng, o))
 	return out
+
+
+## A small count a verb keeps in the task's saved state: "n" (a trail's marks found), "o" (an order's next place).
+## It is saved with the task and reset when the step moves on. See docs/QUEST_VERBS.md.
+static func note(id: String, field: String, v: int) -> void:
+	var d := q(id)
+	if d.is_empty():
+		return
+	d[field] = v
+	_touch(d)
+	_changed(id)
+
+
+static func noted(id: String, field: String) -> int:
+	return int(q(id).get(field, 0))
 
 
 ## One more for the current counted step (a kill, a drop, a seal guard). Moves the task on when
@@ -562,6 +579,9 @@ static func term(key: String, val: String) -> Variant:
 			return done(p[0])
 		"qp":
 			return p.size() > 1 and pick(p[0]) == p[1]
+		"qc":
+			# a clue examined (a `clues` step: docs/QUEST_VERBS.md); stays true once the task is done
+			return p.size() > 1 and found(p[0]).has("c:" + p[1])
 		"att":
 			return p.size() > 1 and att(p[0]) >= int(p[1])
 		"ash":
@@ -588,7 +608,7 @@ static func term(key: String, val: String) -> Variant:
 	return null
 
 
-const TERMS := ["q", "qat", "qd", "qp", "att", "ash", "secret", "secrets", "elite", "bells", "peal"]
+const TERMS := ["q", "qat", "qd", "qp", "qc", "att", "ash", "secret", "secrets", "elite", "bells", "peal"]
 
 
 # --- the objective line -----------------------------------------------------------------------------

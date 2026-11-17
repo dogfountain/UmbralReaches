@@ -17,6 +17,7 @@ const Chains := preload("res://core/story/quest_chains.gd")
 const Giver := preload("res://core/story/quest_giver.gd")
 const StoryDB := preload("res://core/story/quest_db.gd")
 const RealmLayout := preload("res://core/world/realm/realm_layout.gd")
+const VerbKit := preload("res://core/story/verb_kit.gd")      ## clues and trails send you to an area (a circle), not a point
 
 const GOLD := Color(1.0, 0.74, 0.32)
 const DAILY := Color(0.7, 0.84, 1.0)
@@ -234,9 +235,12 @@ func _refresh_targets() -> void:
 			seen = _last_seen(stp.rares)          # a standing bounty on named rares: pin the nearest one still up
 			if not seen.is_empty():
 				at = seen[1]
+		var ar := VerbKit.area(id, stp, Book.q(id))
+		if not ar.is_empty():
+			at = ar.c                               # the area's centre: the pin gets a circle (meta map_radius), the waypoint no exact spot
 		if not (at is Vector2):
 			continue
-		var key := "%s:%d:%s%s" % [id, s, bell, String(seen[0]) if not seen.is_empty() else ""]
+		var key := "%s:%d:%s%s%s" % [id, s, bell, String(seen[0]) if not seen.is_empty() else "", (":a%d" % int(ar.i)) if not ar.is_empty() else ""]
 		want[key] = true
 		var tv: Variant = _targets.get(key)
 		var t: Node3D = tv as Node3D if is_instance_valid(tv) else null
@@ -258,6 +262,7 @@ func _refresh_targets() -> void:
 			t.set_meta("map_color", GOLD)
 			t.set_meta("quest", id)
 			_targets[key] = t
+		t.set_meta("map_radius", float(ar.get("r", 0.0)))
 		var lbl := String(stp.get("label", Chains.step(bell, maxi(0, Book.step(bell))).get("label", "") if bell != "" else ""))
 		if not seen.is_empty():
 			lbl = "%s, last seen" % String(seen[2])
