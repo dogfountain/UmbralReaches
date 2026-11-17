@@ -68,6 +68,7 @@ const VQ := preload("res://core/story/quest_chains_verbs.gd")   ## Hearthward's 
 const VerbKit := preload("res://core/story/verb_kit.gd")
 const StoryQ := preload("res://core/story/quest_chains_story.gd")   ## the five long tasks: The Third Edict, The Lamp-Road, The Name on the Roll, What the Horn Was For, The Vow's Cell
 const RegionsQ := preload("res://core/story/quest_chains_regions.gd")   ## the regions' long tasks: Lanternwood, Thousand Cairns, Southwood, White Pans, Long Arches
+const FavoursQ := preload("res://core/story/quest_chains_favours.gd")   ## favours for Col, Wenna, Nan (Pell) and Grisel
 const DoorsQ := preload("res://core/story/quest_chains_doors.gd")   ## the four doors the Far Reaches' threads stopped at, closed as stories
 const DC := preload("res://core/story/quest_chains_deepen_c.gd")   ## the Far Reaches' signature tasks (Relief, A Night of Charcoal, The Rope Rung Right)
 const DeepB := preload("res://core/story/quest_chains_deepen_b.gd")   ## the deepened tasks (docs/QUEST_DEPTH.md)
@@ -104,6 +105,7 @@ const ORDER := ["edda_tongs", "forty_first", "names_yard", "keg_thief", "slow_wa
 	"wr_relief", "ds_charcoal", "er_rope",          # --- deepen C ---
 	"aurel_edicts", "lamp_road", "name_on_roll", "horn_end", "vow_cell",          # --- the story's long tasks ---
 	"wr_door_kings", "ds_door_castellum", "ds_door_witch", "er_door_nave",
+	"col_boots", "wenna_candle", "pell_stitches", "grisel_weights",          # --- the favours ---
 	"lanternwood_debt", "cairn_count", "oak_memory", "brine_road", "arches_keeper",          # --- the regions' long tasks ---
 	# --- deepen B ---
 	"seventh_day",
@@ -122,7 +124,7 @@ const GIVER_NAMES := {"hild": "Hild", "fennick": "Old Fennick", "oswin": "Oswin"
 	"corle": "Aud Corle", "penn": "Reeve Penn", "coyle": "Serjeant Coyle", "isolde": "Old Isolde",      # --- the towns ---
 	"siany": Towns.GIVER_NAMES["siany"], "ebba": Towns.GIVER_NAMES["ebba"], "hobb": Towns.GIVER_NAMES["hobb"], "dilly": Towns.GIVER_NAMES["dilly"], "hesper": Towns.GIVER_NAMES["hesper"],
 	"cobb": Towns.GIVER_NAMES["cobb"], "maudlin": Towns.GIVER_NAMES["maudlin"], "wat": Towns.GIVER_NAMES["wat"], "vell": Towns.GIVER_NAMES["vell"], "fenn": Towns.GIVER_NAMES["fenn"],      # --- the reaches ---
-	"perrin": StoryQ.GIVER_NAMES["perrin"], "odile": StoryQ.GIVER_NAMES["odile"], "ione": StoryQ.GIVER_NAMES["ione"], "lowe": StoryQ.GIVER_NAMES["lowe"], "tamsin": StoryQ.GIVER_NAMES["tamsin"]}      # --- the story's five ---
+	"col": "Col Wright", "wenna": "Wenna Ashby", "perrin": StoryQ.GIVER_NAMES["perrin"], "odile": StoryQ.GIVER_NAMES["odile"], "ione": StoryQ.GIVER_NAMES["ione"], "lowe": StoryQ.GIVER_NAMES["lowe"], "tamsin": StoryQ.GIVER_NAMES["tamsin"]}      # --- the story's five ---
 
 ## r34: the raids' attunements (WoW's attunement chains, adapted): the last task of each pre-raid
 ## chain, once handed in, loosens the boss's hold (QuestBook.attuned(boss); Travel.story flag
@@ -639,6 +641,7 @@ const QUESTS := {
 	# --- the story's long tasks ---
 	"aurel_edicts": StoryQ.QUESTS["aurel_edicts"], "lamp_road": StoryQ.QUESTS["lamp_road"], "name_on_roll": StoryQ.QUESTS["name_on_roll"],
 	"horn_end": StoryQ.QUESTS["horn_end"], "vow_cell": StoryQ.QUESTS["vow_cell"],
+	"col_boots": FavoursQ.QUESTS["col_boots"], "wenna_candle": FavoursQ.QUESTS["wenna_candle"], "pell_stitches": FavoursQ.QUESTS["pell_stitches"], "grisel_weights": FavoursQ.QUESTS["grisel_weights"],
 	"lanternwood_debt": RegionsQ.QUESTS["lanternwood_debt"], "cairn_count": RegionsQ.QUESTS["cairn_count"], "oak_memory": RegionsQ.QUESTS["oak_memory"],
 	"brine_road": RegionsQ.QUESTS["brine_road"], "arches_keeper": RegionsQ.QUESTS["arches_keeper"],
 	"wr_door_kings": DoorsQ.QUESTS["wr_door_kings"], "ds_door_castellum": DoorsQ.QUESTS["ds_door_castellum"], "ds_door_witch": DoorsQ.QUESTS["ds_door_witch"], "er_door_nave": DoorsQ.QUESTS["er_door_nave"],
@@ -784,6 +787,7 @@ const PICKUPS := {
 	"lr_last": StoryQ.PICKUPS["lr_last"], "nr_page": StoryQ.PICKUPS["nr_page"], "nr_roll": StoryQ.PICKUPS["nr_roll"], "he_horn": StoryQ.PICKUPS["he_horn"],
 	"vc_bread": StoryQ.PICKUPS["vc_bread"], "vc_wall": StoryQ.PICKUPS["vc_wall"],
 	"lanternwood_debt_coal": RegionsQ.PICKUPS["lanternwood_debt_coal"], "lanternwood_debt_place": RegionsQ.PICKUPS["lanternwood_debt_place"], "cairn_count_coal": RegionsQ.PICKUPS["cairn_count_coal"], "cairn_count_place": RegionsQ.PICKUPS["cairn_count_place"], "oak_memory_coal": RegionsQ.PICKUPS["oak_memory_coal"], "oak_memory_place": RegionsQ.PICKUPS["oak_memory_place"], "brine_road_coal": RegionsQ.PICKUPS["brine_road_coal"], "brine_road_place": RegionsQ.PICKUPS["brine_road_place"], "arches_keeper_coal": RegionsQ.PICKUPS["arches_keeper_coal"], "arches_keeper_place": RegionsQ.PICKUPS["arches_keeper_place"],
+	"col_boots": FavoursQ.PICKUPS["col_boots"], "col_boots_coal": FavoursQ.PICKUPS["col_boots_coal"], "col_boots_place": FavoursQ.PICKUPS["col_boots_place"], "wenna_candle_coal": FavoursQ.PICKUPS["wenna_candle_coal"], "wenna_candle_place": FavoursQ.PICKUPS["wenna_candle_place"], "pell_stitches_place": FavoursQ.PICKUPS["pell_stitches_place"], "grisel_weight_1": FavoursQ.PICKUPS["grisel_weight_1"], "grisel_weight_2": FavoursQ.PICKUPS["grisel_weight_2"], "grisel_weight_3": FavoursQ.PICKUPS["grisel_weight_3"], "grisel_weights_place": FavoursQ.PICKUPS["grisel_weights_place"],
 	"wd_kings": DoorsQ.PICKUPS["wd_kings"], "dc_sluice": DoorsQ.PICKUPS["dc_sluice"], "dw_door": DoorsQ.PICKUPS["dw_door"], "en_step": DoorsQ.PICKUPS["en_step"],
 	# --- deepen B ---
 	"turf_roof": DeepB.PICKUPS["turf_roof"], "wards_set": DeepB.PICKUPS["wards_set"], "ward_holds": DeepB.PICKUPS["ward_holds"],

@@ -1,0 +1,165 @@
+extends RefCounted
+## Favours for the named people Hearthward's quests had left out (Col, Wenna, Pell by way of Nan, Grisel): short tasks, five to seven steps,
+## each with a place to be, a verb or two and a choice that changes what they say and a light or a stone that stays. Listed by quest_chains.gd
+## under `# --- the favours ---`. House style (docs/LORE.md). No class_name.
+##   col_boots     Col's Boots (Col)                 find the boots at the Thornwood's edge, carry them home lit, decide whose they are
+##   wenna_candle  The Candle on the Sill (Wenna)    a candle walked from the Shrine of the Lost to the green, a vigil, the sill
+##   pell_stitches Whose Stitches (Nan)              the shoe's new stitches in the Glade, a night's watch, what to do with the one who mends
+##   grisel_weights The Ash-Wife's Weights (Grisel)  three weights found, the scales, fair or short or none
+
+const ORDER := ["col_boots", "wenna_candle", "pell_stitches", "grisel_weights"]
+
+const QUESTS := {
+	"col_boots": {"name": "Col's Boots", "giver": "col", "zone": "hearth", "offer": true, "avail": "qd:keg_thief|bosses:1",
+		"where": "Col Wright, at the Wrights' cottage",
+		"text": "Col's father's boots were left at the Thornwood's edge the morning the Wrights fled to the Keg, and Col has not been back. They are the only thing of the old man's he asked for, and he will not say why. Go and find them. Carry the coal from the green to light them home, and decide whose they are.",
+		"steps": [
+			{"kind": "clues", "at": Vector2(-96.0, 24.0), "r": 10.0, "need": 2, "label": "The boots' stump",
+				"text": "Read the stump the boots stood on for what the old man left with them ({n}/{of} read)",
+				"clues": [
+					{"key": "note", "at": Vector2(-97.0, 25.0), "name": "a note under a stone", "text": "A note under a flat stone: FOR COL. THE LEFT ONE LEAKS. I NEVER GOT ROUND TO IT. I WALKED A GOOD DEAL IN THEM. DON'T THROW THEM OUT, THEY'RE FINE."},
+					{"key": "chalk", "at": Vector2(-95.0, 26.0), "name": "a chalked mile", "text": "A mile in chalk on the stump's side: 4. Four miles from the green, in a pair of boots with a leak. It was how far the old man walked every dusk, to look at the Thornwood, and be home by the third bell."},
+					{"key": "print", "at": Vector2(-96.0, 27.5), "name": "a print in the moss", "text": "A bare footprint in the moss beside the stump, very old, very small: a child's. It has been looked at, and not touched. Someone knelt here, once, and did not know what to say."},
+				]},
+			{"kind": "find", "text": "Find Col's father's boots at the Thornwood's edge, left on a stump where the road ends"},
+			{"kind": "find", "text": "Draw a coal from the green's fire, in the lantern, to light the boots home"},
+			{"kind": "lantern_walk", "from": "col_boots_coal", "to": Vector2(-8.0, 38.0), "r": 8.0, "label": "The Wrights' step",
+				"relight": "Draw another coal from the green's fire.",
+				"arrive": "You set the boots on the Wrights' step, side by side, the toes to the door, as an old man would have wanted to find them. Col comes to the door, and does not say anything at all.",
+				"text": "Light the boots home: carry the green's coal to the Wrights' step. Walk it, a run, a roll, a blow or deep water puts it out"},
+			{"kind": "place", "text": "Decide whose the boots are: Col's to wear, the old man's to keep by the door, or the road's"},
+			{"kind": "turnin", "who": "col", "text": "Tell Col what became of the boots"},
+		],
+		"alt": {"wear": {5: "Tell Col the boots are his to wear"}, "door": {5: "Tell Col the boots stand by the door"}, "road": {5: "Tell Col the boots went back to the road"}},
+		"reward": {"ash": 18, "items": {"relic_fragment": 1}},
+		"choose": [{"set": "kindler", "slot": "girdle", "rarity": 2}, {"set": "tally", "slot": "focus", "rarity": 2}],
+		"leaves": {"wear": {"at": Vector2(-9.0, 38.5), "prop": "lantern_lit"}, "door": {"at": Vector2(-9.0, 38.5), "prop": "lantern"}, "road": {"at": Vector2(-96.0, 24.5), "prop": "mark"}},
+		"outcome": {"wear": "Col put them on at the door and walked a few paces in them. The left one leaked. He stood in the puddle and laughed, shortly, and it turned into something else. 'He said it was fine,' he said. 'It was not fine. It was exactly right.'",
+			"door": "Col set them by the door, toes out. 'For if he comes,' he said, and did not look at you. 'He will not. But a pair of boots by the door is a thing a house can do.' That night, Nan said, a light stayed on in the Wrights' window till dawn.",
+			"road": "Col took them back to the stump himself the next dusk. 'Four miles,' he said. 'He would have wanted them to finish it.' He came home without them, and was easier, and ate.",
+			"": "Col took the boots and said nothing."}},
+	"wenna_candle": {"name": "The Candle on the Sill", "giver": "wenna", "zone": "hearth", "offer": true, "avail": "boss:bone_abbot",
+		"where": "Wenna Ashby, by the green's fire",
+		"text": "Wenna sits by the green's fire with one candle and will not light it. It was her mother's, she says, and her mother's candle was lit in the Shrine of the Lost the night they parted, and has burned there since. She will not light her own from the fire: it has to be from the shrine's. Carry the shrine's flame to the green without letting it fail, and see it settled.",
+		"steps": [
+			{"kind": "find", "text": "Take a flame from the Shrine of the Lost's candles, in the lantern"},
+			{"kind": "lantern_walk", "from": "wenna_candle_coal", "to": Vector2(1.0, 36.0), "r": 8.0, "label": "The green's fire",
+				"relight": "Take another flame from the Shrine of the Lost.",
+				"arrive": "You touch the shrine's flame to the candle on the green's stone. It takes, small and straight. Wenna, a few paces off, is not looking at it. She has put her hand over her mouth.",
+				"text": "Carry the shrine's flame to the green. Walk it: a run, a roll, a blow or deep water puts it out"},
+			{"kind": "vigil", "at": Vector2(1.0, 36.0), "r": 8.0, "time": 45.0, "gloom": 0.4, "label": "The green's candle", "noun": "candle", "prop": "lantern_lit",
+				"waves": [{"at": 10.0, "kinds": ["husk"], "n": 2, "say": "A candle on the green, lit by a child's mother's flame, and the dark has noticed it."},
+					{"at": 26.0, "kinds": ["wretch"], "n": 2, "say": "A shade sits at the edge of the light and looks at the candle with an expression like pain."}],
+				"held": "The candle stands straight. It has not gone out. Wenna, you notice, has stopped holding her breath.", "away": "Go back to the green. A candle is kept at the place it was lit.",
+				"text": "Keep the shrine's flame lit on the green until it has taken ({t} s)"},
+			{"kind": "place", "text": "Decide where the candle goes: the Harrows' sill, the green's stone, or back to the shrine"},
+			{"kind": "turnin", "who": "wenna", "text": "Tell Wenna where the candle stands"},
+		],
+		"alt": {"sill": {4: "Tell Wenna the candle is on the Harrows' sill"}, "green": {4: "Tell Wenna the candle stays on the green"}, "shrine": {4: "Tell Wenna the candle went home to the shrine"}},
+		"reward": {"ash": 20, "items": {"relic_fragment": 1}},
+		"choose": [{"set": "kindler", "slot": "lantern", "rarity": 2}, {"set": "bell", "slot": "vestment", "rarity": 2}],
+		"leaves": {"sill": {"at": Vector2(-3.0, 30.0), "prop": "lantern_lit"}, "green": {"at": Vector2(1.5, 36.5), "prop": "lantern_lit"}, "shrine": {"at": Vector2(-45.0, 18.0), "prop": "lantern_lit"}},
+		"outcome": {"sill": "Wenna carried it herself to the Harrows' house, and set it on the sill, in the window of a house that has had a roof for a week. 'She will see it,' she said. 'If she is anywhere. She will see a light in her own kitchen.' She sat on the step by it till the candle was a stub.",
+			"green": "'Here,' said Wenna. 'Where everyone is.' She did not move the candle. Villagers going by in the dark stopped and looked at it, and some of them nodded, and nobody said anything. It was the best thing the green had had in nine winters.",
+			"shrine": "Wenna took it back to the shrine at dusk. 'Hers,' she said. 'It should stay with its own flame.' She came back with her own candle unlit, and set it on the green's stone, and lit it from the fire, and nobody minded.",
+			"": "Wenna held the candle and did not say what she would do."}},
+	"pell_stitches": {"name": "Whose Stitches", "giver": "nan", "zone": "hearth", "offer": true, "avail": "boss:ascended_warden",
+		"where": "Nan Wright, at the Kindled Keg",
+		"text": "Pell's little red shoe hangs at the Shrine of the Lost and somebody keeps mending it: a new stitch each dusk, neat, in grey thread. Nan wants to know who. Pell does not speak, and she is the obvious answer, and Nan does not think it is her. Read the shrine's shoe. Keep the watch it wants. And decide what to do with the one who mends.",
+		"steps": [
+			{"kind": "clues", "at": Vector2(-45.5, 17.5), "r": 10.0, "need": 2, "label": "Pell's shoe",
+				"text": "Read Pell's shoe and the shrine round it for who mends it ({n}/{of} read)",
+				"clues": [
+					{"key": "thread", "at": Vector2(-46.0, 18.5), "name": "grey thread", "text": "The thread is grey, undyed, from a grey wool: the Order's, the kind a sister wore. The stitches are tight and small, a sempstress's, and not Pell's: her own, on her own sleeve, are crooked."},
+					{"key": "heel", "at": Vector2(-45.0, 19.5), "name": "a mended heel", "text": "The heel has been darned with a pattern of tiny crosses, over and over: a prayer in thread. Every cross has an open door worked into the knot: the Order's sign, turned the wrong way up."},
+					{"key": "dust", "at": Vector2(-46.5, 20.0), "name": "dust on the stone", "text": "The dust on the shrine's step is disturbed in a line: very small, very light, and barefoot. It stops at the shoe, and begins again on the other side, as if whoever came knelt there a long time."},
+				]},
+			{"kind": "vigil", "at": Vector2(-45.5, 17.5), "r": 9.0, "time": 60.0, "gloom": 0.5, "label": "The Shrine of the Lost", "noun": "shrine", "prop": "lantern_lit",
+				"waves": [{"at": 12.0, "kinds": ["husk"], "n": 2, "say": "The shrine's candles lean. Something small has come into the Glade, barefoot, and is waiting for you to go."},
+					{"at": 30.0, "kinds": ["wretch", "husk"], "n": 3, "say": "The dark is full of little hollow shapes, and not one of them goes near the shoe."},
+					{"at": 48.0, "kinds": ["gaunt"], "n": 2, "say": "A needle, somewhere, makes the very small sound of a stitch pulled through."}],
+				"held": "The shrine is quiet. The shoe has a new stitch in it, still bright, and nobody has passed. Whoever it is does not need to be seen.", "away": "Go back to the shrine. A watch is kept at the place it was set.",
+				"text": "Keep the watch at the Shrine of the Lost until the stitch is made ({t} s)"},
+			{"kind": "place", "text": "Decide what to do about the one who mends: leave her thread, leave your own, or take the shoe to Pell"},
+			{"kind": "turnin", "who": "nan", "text": "Tell Nan what you found at the shrine"},
+		],
+		"alt": {"thread": {3: "Tell Nan you left a spool of thread"}, "own": {3: "Tell Nan you left a stitch of your own"}, "pell": {3: "Tell Nan you took the shoe to Pell"}},
+		"reward": {"ash": 22, "items": {"relic_fragment": 1}},
+		"choose": [{"set": "kindler", "slot": "focus", "rarity": 2}, {"set": "ferryman", "slot": "vestment", "rarity": 2}],
+		"leaves": {"thread": {"at": Vector2(-45.5, 18.0), "prop": "page"}, "own": {"at": Vector2(-45.5, 18.0), "prop": "lantern_lit"}, "pell": {"at": Vector2(-45.5, 18.0), "prop": "mark"}},
+		"outcome": {"thread": "You left a spool of grey thread on the step, and a needle. In the morning the spool was a third lighter, and there was a very small mended place in the shoe's toe, and nothing else. Nan nodded for a long time. 'That's an answer,' she said. 'Not a name. But an answer.'",
+			"own": "You put one stitch in the shoe, red, crooked, your own. In the morning there were two stitches beside it, grey, tight, over yours, and beside them a third, small and crooked in the same red. Somebody had learned from you. Nan did not ask who.",
+			"pell": "You took the shoe to the child in the red hood by the green's fire. She turned it over in her hands for a long time, and looked at the stitches, and then, very carefully, she set it back in your hands and pointed at the shrine. Nan understood before you did. 'It is not hers,' she said. 'It is the shrine's. Leave it be.'",
+			"": "Nan listened and said she would think about it."}},
+	"grisel_weights": {"name": "The Ash-Wife's Weights", "giver": "grisel", "zone": "hearth", "offer": true, "avail": "bosses:1",
+		"where": "Grisel the ash-wife, at her stall",
+		"text": "Grisel weighs ash for the valley, and her scales are honest, and she has lost the three brass weights that made them so. She will not say how. One she thinks is in Hild's forge; one in the Chapel; one in the Barrow Field, which is a long way to go for a weight. Find them. Set them on the scale. And decide what an honest weight is for in a world that has nothing to weigh.",
+		"steps": [
+			{"kind": "gather", "of": 3, "text": "Find Grisel's three brass weights: at Hild's forge, in the Chapel's nave, in the Barrow Field's lodge ({n}/{of})"},
+			{"kind": "visit", "at": Vector2(11.0, 60.0), "r": 12.0, "label": "Hild's forge", "text": "Take the weights back past Hild's forge, where the last of them was cast"},
+			{"kind": "place", "text": "Set the weights on the scale and decide what they are for: honest to the grain, a little short for the poor, or hung up and not used"},
+			{"kind": "turnin", "who": "grisel", "text": "Tell Grisel the weights are home"},
+		],
+		"alt": {"honest": {3: "Tell Grisel the weights are honest"}, "short": {3: "Tell Grisel the scale gives the poor a little over"}, "hung": {3: "Tell Grisel the weights are hung up"}},
+		"reward": {"ash": 24, "items": {"ember_shard": 1}},
+		"choose": [{"set": "tally", "slot": "lantern", "rarity": 2}, {"set": "kindler", "slot": "vestment", "rarity": 2}],
+		"leaves": {"honest": {"at": Vector2(14.0, 46.0), "prop": "slate"}, "short": {"at": Vector2(14.0, 46.0), "prop": "loaf"}, "hung": {"at": Vector2(14.0, 46.0), "prop": "mark"}},
+		"outcome": {"honest": "Grisel set the weights on the scale one by one and watched the beam come level, and let out a breath. 'Honest to the grain,' she said. 'It is a small virtue. It is the only one a market has.' She sold you a pinch of ash for exactly what it weighed, and not a thread over.",
+			"short": "Grisel looked at you for a long time. 'A little over, for the ones who have little,' she said, slowly. 'A thing I have done for nine winters, and never been told was right.' She put a thumb on the pan, once, for the next customer in the queue, a woman in a thin shawl.",
+			"hung": "'Hung up.' Grisel took the weights and strung them on a cord and hung them from the stall's pole, where they chimed, very small, in the wind. 'Let the ash be given,' she said. 'Let it be weighed by whoever needs it. I have been selling the dark's leavings long enough.'",
+			"": "Grisel put the weights in her apron."}},
+}
+
+const PICKUPS := {
+	"col_boots": {"quest": "col_boots", "step": 1, "near": Vector2(-97.0, 22.0), "kind": "mark", "name": "Col's father's boots", "verb": "Take",
+		"say": "A pair of old boots, left side by side on a stump with the toes turned toward the Thornwood. The leather is cracked and soft, and the left sole, when you lift it, lets in daylight. You tie the laces together and sling them across your staff."},
+	"col_boots_coal": {"quest": "col_boots", "step": 2, "near": Vector2(0.5, 36.5), "kind": "lantern_lit", "name": "the green's fire", "verb": "Draw a coal from",
+		"say": "The green's fire. You draw a coal into the lantern and stand a moment to let it settle, and the fire, you could swear, leans a little to see who is taking it."},
+	"col_boots_place": {"quest": "col_boots", "step": 4, "near": Vector2(-9.0, 38.0), "kind": "place", "name": "the Wrights' step", "verb": "Decide at", "conv": "story_col_boots",
+		"say": "The Wrights' step."},
+	"wenna_candle_coal": {"quest": "wenna_candle", "step": 0, "near": Vector2(-45.0, 17.0), "kind": "lantern_lit", "name": "the shrine's candles", "verb": "Take a flame from",
+		"say": "The Shrine of the Lost, with its candles and bundles and its blue ribbons. You touch your lantern to the nearest flame, and the shrine, very slightly, bows."},
+	"wenna_candle_place": {"quest": "wenna_candle", "step": 3, "near": Vector2(1.5, 36.0), "kind": "place", "name": "the green's stone", "verb": "Set the candle at", "conv": "story_wenna_candle",
+		"say": "The green's stone."},
+	"pell_stitches_place": {"quest": "pell_stitches", "step": 2, "near": Vector2(-45.5, 18.0), "kind": "place", "name": "Pell's shoe", "verb": "Decide at", "conv": "story_pell_stitches",
+		"say": "Pell's shoe."},
+	"grisel_weight_1": {"quest": "grisel_weights", "step": 0, "near": Vector2(12.0, 58.0), "kind": "mark", "name": "a brass weight", "verb": "Take",
+		"say": "Under Hild's anvil, in the ash: a small brass weight stamped G, warm from the forge. Hild says it fell off the stall the night of the Night and she never gave it back. She did not know it was wanted."},
+	"grisel_weight_2": {"quest": "grisel_weights", "step": 0, "near": Vector2(-78.0, 50.0), "kind": "mark", "name": "a brass weight", "verb": "Take",
+		"say": "In the Chapel's nave, on the lectern, laid in the place a candle should go: a brass weight. A penitent has used it for a paperweight over a page of the Litany. It still holds the page down."},
+	"grisel_weight_3": {"quest": "grisel_weights", "step": 0, "near": Vector2(86.0, -50.0), "kind": "mark", "name": "a brass weight", "verb": "Take",
+		"say": "In the lay brothers' lodge, hung on a nail with a tally string through its ring: a brass weight, being used to keep a count straight. It holds the count's string taut. When you lift it, the string falls slack, and the lodge feels, a little, as if it had been let go."},
+	"grisel_weights_place": {"quest": "grisel_weights", "step": 2, "near": Vector2(14.0, 46.0), "kind": "place", "name": "Grisel's scale", "verb": "Set the weights on", "conv": "story_grisel_weights",
+		"say": "Grisel's scale."},
+}
+
+const CONVS := {
+	"story_col_boots": {"name": "The Wrights' Step", "start": [["qat:col_boots:4", "here"], ["", "gone"]], "nodes": {
+		"here": {"say": "The boots stand on the Wrights' step, toes to the door, the left one leaking a little onto the stone. The light from the lantern is the only one in the lane. Col is somewhere behind the door, and has not yet come out.", "who": "", "choices": [
+			{"text": "Leave them for Col to wear.", "to": "wear"}, {"text": "Stand them by the door, for the old man.", "to": "door"}, {"text": "Take them back to the road, where he walked.", "to": "road"}, {"text": "Not yet.", "to": ""}]},
+		"wear": {"say": "You set them squarely on the step and step back. Behind the door, a long breath, and the sound of a latch.", "who": "", "do": "qp:col_boots:wear,qa:col_boots", "next": ""},
+		"door": {"say": "You turn them toes out, so a man could step into them from the doorway without bending. You leave the lantern beside them.", "who": "", "do": "qp:col_boots:door,qa:col_boots", "next": ""},
+		"road": {"say": "You pick them up again. The step is a little darker without them. You turn toward the Thornwood, four miles of dusk, and they swing in your hand.", "who": "", "do": "qp:col_boots:road,qa:col_boots", "next": ""},
+		"gone": {"say": "The step stands as you left it.", "who": "", "next": ""}}},
+	"story_wenna_candle": {"name": "The Green's Stone", "start": [["qat:wenna_candle:3", "here"], ["", "gone"]], "nodes": {
+		"here": {"say": "The candle burns on the green's stone with the shrine's own flame, small and straight in the lee of the fire. Wenna is not looking. She is looking, with great care, at the stars.", "who": "", "choices": [
+			{"text": "Carry it to the Harrows' sill, in the house with the new roof.", "to": "sill"}, {"text": "Leave it on the green, where everyone is.", "to": "green"}, {"text": "Take it back to the shrine, to its own flame.", "to": "shrine"}, {"text": "Not yet.", "to": ""}]},
+		"sill": {"say": "You carry it across the green with your hand round the flame. The Harrows' window is dark. You set it on the sill, and the glass takes the light and holds it, and a house, for the first time in nine winters, is lit from inside.", "who": "", "do": "qp:wenna_candle:sill,qa:wenna_candle", "next": ""},
+		"green": {"say": "You leave it where it is. The green, with its fire and its stone and its single steady flame, looks like what it was always meant to be: a place where people are.", "who": "", "do": "qp:wenna_candle:green,qa:wenna_candle", "next": ""},
+		"shrine": {"say": "You carry it back across the dark to the Glade, and set it among the shrine's candles, where a flame is only a flame among flames. It is a long walk to leave it. The walk back is lighter.", "who": "", "do": "qp:wenna_candle:shrine,qa:wenna_candle", "next": ""},
+		"gone": {"say": "The candle burns where you left it.", "who": "", "next": ""}}},
+	"story_pell_stitches": {"name": "Pell's Shoe", "start": [["qat:pell_stitches:2", "here"], ["", "gone"]], "nodes": {
+		"here": {"say": "The shoe hangs on its nail with its new stitch bright against the old, in grey thread. Nobody has come. Nobody needs to. You have the thread and the needle in your pack, and a child's quiet in the dark behind you.", "who": "", "choices": [
+			{"text": "Leave a spool of grey thread on the step, for whoever mends.", "to": "thread"}, {"text": "Put in a stitch of your own, red, and leave it.", "to": "own"}, {"text": "Take the shoe to Pell, and ask.", "to": "pell"}, {"text": "Not yet.", "to": ""}]},
+		"thread": {"say": "You set the spool on the step, with the needle laid across it, as one sets a cup for a guest. You do not wait to see it taken.", "who": "", "do": "qp:pell_stitches:thread,qa:pell_stitches", "next": ""},
+		"own": {"say": "You thread the needle with red, and put a single stitch in the toe, crooked, the way you do it. The shoe, you could swear, accepts it. You hang it back on its nail.", "who": "", "do": "qp:pell_stitches:own,qa:pell_stitches", "next": ""},
+		"pell": {"say": "You lift the little red shoe from its nail, and it comes away warm, as if someone had just had it in their hands. You carry it, very carefully, across the dark to the green's fire.", "who": "", "do": "qp:pell_stitches:pell,qa:pell_stitches", "next": ""},
+		"gone": {"say": "The shoe hangs where it hung.", "who": "", "next": ""}}},
+	"story_grisel_weights": {"name": "Grisel's Scale", "start": [["qat:grisel_weights:2", "here"], ["", "gone"]], "nodes": {
+		"here": {"say": "The scale is a plain beam on a post, its pans clean, its beam very slightly out of level. Three brass weights lie in your hand, warm, stamped G. Grisel is watching with her arms folded, and her face is carefully blank.", "who": "", "choices": [
+			{"text": "Set them on the scale, honest to the grain.", "to": "honest"}, {"text": "Set them a little light, for the poor.", "to": "short"}, {"text": "Hang them up and let the ash be given.", "to": "hung"}, {"text": "Not yet.", "to": ""}]},
+		"honest": {"say": "You lay them on the pan, one by one. The beam rises and settles and comes level. It is the whole trade, and it is true.", "who": "", "do": "qp:grisel_weights:honest,qa:grisel_weights", "next": ""},
+		"short": {"say": "You file a hair off the heaviest weight with the edge of a coin, and set it on the pan. The beam tips, a very little, in the customer's favour. Grisel's face does a thing you do not ask about.", "who": "", "do": "qp:grisel_weights:short,qa:grisel_weights", "next": ""},
+		"hung": {"say": "You string them on a cord and hang them from the stall's pole. They turn in the wind and knock together, three small brass notes, in the dark.", "who": "", "do": "qp:grisel_weights:hung,qa:grisel_weights", "next": ""},
+		"gone": {"say": "The scale stands as you left it.", "who": "", "next": ""}}},
+}
