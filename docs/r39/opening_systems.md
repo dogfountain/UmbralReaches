@@ -125,6 +125,27 @@ Settings > Interface > Comfort: Reduce Camera Shake (kicks and casts), Reduce Fl
 ### 25. Save robustness
 `core/util/state_migrate.gd` runs on every slot load: it creates the keys added this round (`tally`, `chronicle`, `chronicle_keys`, `trail`, `pins`, `night_no`, `night_age`, `danger_warned`, `courier`, `vows`, and the `stable` keys) and repairs a damaged one (a number where a list belongs, an odd-length trail, negative counts, a chronicle line with no text) instead of failing later. A save from a newer build is left alone. The slot loader already falls back to the `.bak` and `.tmp` files.
 
+### 26. Map filters
+On the open map, keys 1 to 5 (LB and RB on a pad for tasks and fires) hide or show tasks, fires, lamps, rares and posts, horses and marks; saved per run (`story["map_hide"]`); the folding code applies them (`world_map_cluster.gd`).
+
+### The curve, written down (progression review)
+- **XP**: level L to L+1 costs 60 + 20 L (cap 30 = 10,500 XP); a full night's sources total about 13,600 (DECISIONS, 15 Nov). Vows at 5, 10, 15, 20, 25, 30 (about 400, 1,600, 3,500, 6,100, 8,600 and 10,500 XP cumulative with the cap).
+- **Danger**: a plain pawn's plate level is `LEVEL_BAND[tier] + step + 1`, bands 1, 4, 9, 14, 19, 24, 28 for tiers 0 to 6; a tier is the region's base plus bosses felled (`Tiers.night_depth`). Boss level is the pawn's plus 2 (`Danger.BOSS_RANK`). The plate now says so (Haven, Gentle, Even, Perilous, Deadly; Deadly is 5 or more above the wanderer).
+- **Gear**: item level is 8 + 7 x rarity (0 to 4) + 3 x raise level, +3 set, +4 named, +6 legend (`GearDB.item_level`): a common piece 8, a legend about 36 plus raises. Item level changes nothing by itself (tooltips compare it), so power is the Paths, the spells, the vows and the sets: there is no gear gate. A gear-gap hint on the plate (item level against the tier's pawn level) is the next step and was not built.
+- **Where it sags or spikes** (from the first critique, still true): the world hardens by bosses felled, not by the wanderer's level, so a boss-beeline player meets tier-6 plates at the summit with a level in the high teens; the plate and the danger warning now say so before the walk, the vows give a choice every five levels and the toll and tithe make falling cost something.
+
+### Debug routes for the lead
+- Second-night opening: write `[profile]\nendings=1` into `profile.cfg` in the save dir (`--save-dir=`), or finish an ending.
+- A vow: grant memory so Remembrance is 5 (`Travel.system_state("progression")["memory"] = 1100`), stand away from foes; the panel opens within 2 s.
+- Courier: buy a horse (`Travel.items["grave_ash"] = 500`, buy at the Hearthward post), `[E]` at the post rail, take "The Tor Parcel".
+- Ember trace and toll: hollow yourself three times (`Events.hollowed` after `player.vitals.hollow()` via the harness), then rest at a fire.
+- Credits: set story flag `ending_card` and read them from the Chronicle page, or set `credits_seen` false and `ending_told`.
+- Summary: make camp after 600 s of playtime (`Travel.story["night_age"] = 700.0`).
+- Comfort: Settings > Interface > Comfort (hud.cfg `[access]`).
+
+### Not done in this round (honest list)
+A horse race at Hearthward; a charcoal-sketch reveal of unseen ground and landmarks inked when seen (the existing fog and discovery banners are unchanged); label de-collision (the existing placer already avoids marks and other names); an endgame loop after the Warden beyond the existing Deeper Night; a gear-gap hint; controller remapping parity; the full UX consistency pass over every older menu (the new panels were built to one pattern: keyboard, pad buttons with focus, empty states and a footer). The brief's perf rule was kept by construction, not measured.
+
 ## Data and content the lead should hand to the other agents (not edited here)
 - Story: Brannoc's `far_work` is gated on `peal:4`; open a Reach errand or a word in Hearthward in Act I (barks in `guide_lines.gd`); give one bell a home in a Reach so the Outliers touch the peal; quest endings that send the wanderer to a stable ("a horse would help" tasks) and a line in villagers' talk about the Count and the camp.
 - World: waystation hitching posts on the long roads (HorseDB has one post per breed; a second post for the same breed needs a data row); a seat prop for the camp (the interaction works without a model).
