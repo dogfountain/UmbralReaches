@@ -31,6 +31,7 @@ var _boss: Node3D
 var _arena: Variant                       ## the BossArena node (its `radius`), or null
 var _pal: Array = []
 var _phase := 1
+var _key := "crown"
 var _goal := 0.0
 var _k := 0.0                             ## 0 the night's own air .. 1 the fight's
 var _lights: Array[OmniLight3D] = []
@@ -64,17 +65,21 @@ func _ready() -> void:
 	Events.respawned.connect(func(_at: Vector3) -> void: _goal = 0.0)
 
 
-static func palette_for(title: String) -> Array:
+static func key_for(title: String) -> String:
 	var t := title.to_lower()
 	if t.contains("thorn"):
-		return PAL["thorn"]
+		return "thorn"
 	if t.contains("abbot"):
-		return PAL["abbot"]
+		return "abbot"
 	if t.contains("warden") or t.contains("ascended"):
-		return PAL["warden"]
+		return "warden"
 	if t.contains("anchor"):
-		return PAL["anchoress"]
-	return PAL["crown"]
+		return "anchoress"
+	return "crown"
+
+
+static func palette_for(title: String) -> Array:
+	return PAL[key_for(title)]
 
 
 func _on_engaged(boss: Node, title: String) -> void:
@@ -82,6 +87,7 @@ func _on_engaged(boss: Node, title: String) -> void:
 		return
 	_boss = boss as Node3D
 	_pal = palette_for(title)
+	_key = key_for(title)
 	_phase = 1
 	_goal = 1.0
 	# the arena the boss stands in: the nearest of the arenas
@@ -156,6 +162,20 @@ func _mark(p: int) -> void:
 	Vfx.ring(at, 3.5, hot, 0.6, 0.1)
 	NightFx.burst(at + Vector3(0.0, 1.5, 0.0), hot, "arena_mark")
 	Vfx.light(at + Vector3(0.0, 2.0, 0.0), c, 4.5, 16.0, 0.8, 3)
+	# each boss's phase has its own gesture in the air: thorns lift embers, the Abbot's candles gutter up gold, the Warden's white ring is a great
+	# one, the Anchoress's bubbles rise, the Crown's brass sparks fall
+	var hot2 := Color(c.r * 2.0, c.g * 2.0, c.b * 2.0)
+	match _key:
+		"thorn":
+			NightFx.burst(at, hot2, "kindle", Vector3.UP, 0.6)
+		"abbot":
+			NightFx.burst(at + Vector3(0.0, 1.0, 0.0), hot2, "mote", Vector3.UP)
+		"warden":
+			Vfx.ring(at, 12.0, hot2, 1.3, 0.2)
+		"anchoress":
+			NightFx.burst(at, hot2, "mote", Vector3.UP)
+		_:
+			NightFx.burst(at + Vector3(0.0, 4.0, 0.0), hot2, "kindle", Vector3.DOWN, 0.6)
 	Reg.pulse = 0.8
 	_le += 1.5
 

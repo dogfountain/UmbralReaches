@@ -12,7 +12,9 @@ const B_SHIN_R := 12
 const B_THIGH_L := 13
 const B_SHIN_L := 14
 
-const KINDS := 6                          ## kinds 4 .. 9 of villager_idle.stand
+const KINDS := 11
+const POLE_R_F := Vector3(0.9, -0.6, 0.2)
+const POLE_L_F := Vector3(-0.9, -0.6, 0.2)                         ## kinds 4 .. 9 of villager_idle.stand
 
 
 static func gesture(v: Variant, kind: int, env: float, k: float, free_r: bool, free_l: bool) -> float:
@@ -57,6 +59,34 @@ static func gesture(v: Variant, kind: int, env: float, k: float, free_r: bool, f
 				r.arm_to("l", Vector3(-rest.x, rest.y, rest.z).lerp(Vector3(-0.05, 1.4 + puff, -0.3), env) * k, Vector3(-0.9, -0.6, 0.2), null)
 			r.q(B_SPINE, (r.get_q(B_SPINE) as Quaternion) * Quaternion(Vector3.RIGHT, -0.14 * env) * Quaternion(Vector3.FORWARD, 0.03 * sin(t * 13.0) * env))
 			head = 0.3 * env
+		10:  # wiping the hands on the apron or the coat front, a look down at them
+			if env > 0.003 and (free_r and free_l):
+				var wipe := sin(t * 9.0) * 0.04
+				r.arm_to("r", rest.lerp(Vector3(0.1 + wipe, 0.95, -0.22), env) * k, POLE_R_F, null)
+				r.arm_to("l", Vector3(-rest.x, rest.y, rest.z).lerp(Vector3(-0.1 - wipe, 0.95, -0.22), env) * k, POLE_L_F, null)
+			r.q(B_SPINE, (r.get_q(B_SPINE) as Quaternion) * Quaternion(Vector3.RIGHT, -0.08 * env))
+			head = 0.3 * env
+		11:  # rolling the neck: the head round in a slow arc, a hand to the nape
+			if env > 0.003 and (free_r or free_l):
+				r.arm_to(side, rest.lerp(Vector3(0.1 * sx, 1.5, 0.05), env) * k, Vector3(0.9 * sx, -0.2, 0.6), null)
+			head = 0.15 * env * sin(t * 2.4)
+			r.q(B_CHEST, (r.get_q(B_CHEST) as Quaternion) * Quaternion(Vector3.FORWARD, 0.07 * env * sin(t * 2.4)))
+		12:  # holding the hands up to look at them (a callus, a splinter), turning them over
+			if env > 0.003 and (free_r and free_l):
+				var turn := sin(t * 1.3) * 0.05
+				r.arm_to("r", rest.lerp(Vector3(0.08 + turn, 1.2, -0.38), env) * k, POLE_R_F, null)
+				r.arm_to("l", Vector3(-rest.x, rest.y, rest.z).lerp(Vector3(-0.08 - turn, 1.2, -0.38), env) * k, POLE_L_F, null)
+			head = 0.35 * env
+		13:  # a hand to the hat or hood: settling it, a tug at the brim
+			if env > 0.003 and (free_r or free_l):
+				var tug := sin(t * 7.0) * 0.015 * smoothstep(0.4, 0.6, env)
+				r.arm_to(side, rest.lerp(Vector3(0.1 * sx, 1.72 + tug, -0.05), env) * k, Vector3(0.9 * sx, 0.1, 0.4), null)
+			head = -0.05 * env
+		14:  # leaning to listen: the head tilted, a hand cupped behind the ear
+			if env > 0.003 and (free_r or free_l):
+				r.arm_to(side, rest.lerp(Vector3(0.17 * sx, 1.5, -0.05), env) * k, Vector3(1.0 * sx, 0.0, 0.5), null)
+			r.q(B_CHEST, (r.get_q(B_CHEST) as Quaternion) * Quaternion(Vector3.FORWARD, 0.1 * env * sx) * Quaternion(Vector3.UP, 0.25 * env * sx))
+			head = 0.05 * env
 		_:   # tapping a foot, glancing up at the sky and down again
 			var tap := pow(maxf(0.0, sin(t * 5.5)), 3.0) * env
 			r.q(B_THIGH_R, (r.get_q(B_THIGH_R) as Quaternion) * Quaternion(Vector3.RIGHT, 0.32 * tap))

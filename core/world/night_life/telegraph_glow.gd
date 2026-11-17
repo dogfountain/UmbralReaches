@@ -20,6 +20,7 @@ var _caster: Node3D
 var _dur := 0.0
 var _t := 0.0
 var _cold := false
+var _land_budget := 3.0
 
 
 func _ready() -> void:
@@ -54,7 +55,31 @@ func _on_start(enemy: Node, _cast: String, time: float, interruptible: bool) -> 
 	Vfx.ring(e.global_position, 2.6, Color(col.r * 1.8, col.g * 1.8, col.b * 1.8), time, 0.09)
 
 
-func _on_end(enemy: Node, _cast: String, interrupted: bool) -> void:
+## What a cast that was not broken does where it lands, by the family its name says (the ground zone said where; this is the blow arriving):
+## a slam or stomp throws a ring and a ground-hugging cloud, a charge or lunge a streak of dust ahead of the foe, a nova or wave a wide ring,
+## anything else a small ring. Three a second at most.
+func _landing(e: Node3D, cast: String) -> void:
+	var p := e.global_position
+	var fwd := -e.global_basis.z
+	fwd.y = 0.0
+	fwd = fwd.normalized() if fwd.length() > 0.05 else Vector3.FORWARD
+	var dust := Color(0.4, 0.36, 0.32, 0.55)
+	var warm := Color(2.0, 1.2, 0.6)
+	if cast.contains("slam") or cast.contains("stomp") or cast.contains("quake") or cast.contains("smash"):
+		Vfx.ring(p + fwd * 1.5, 4.0, warm, 0.5, 0.14)
+		NightFx.burst(p + fwd * 1.5 + Vector3(0.0, 0.2, 0.0), dust, "dust")
+	elif cast.contains("charge") or cast.contains("rush") or cast.contains("lunge") or cast.contains("pounce") or cast.contains("leap"):
+		NightFx.burst(p + Vector3(0.0, 0.2, 0.0), dust, "dust", -fwd)
+	elif cast.contains("nova") or cast.contains("wave") or cast.contains("ring") or cast.contains("tithe"):
+		Vfx.ring(p, 7.0, warm, 0.7, 0.12)
+	else:
+		Vfx.ring(p + fwd * 1.2, 1.8, warm, 0.35, 0.09)
+
+
+func _on_end(enemy: Node, cast: String, interrupted: bool) -> void:
+	if not interrupted and Reg.enabled and enemy is Node3D and is_instance_valid(enemy) and _land_budget >= 1.0:
+		_land_budget -= 1.0
+		_landing(enemy as Node3D, cast.to_lower())
 	if enemy != _caster:
 		return
 	if interrupted and Reg.enabled and _caster != null and is_instance_valid(_caster):
@@ -73,6 +98,7 @@ func _physics_process(_delta: float) -> void:
 
 
 func _process(delta: float) -> void:
+	_land_budget = minf(3.0, _land_budget + delta * 3.0)
 	if _caster != null and not is_instance_valid(_caster):
 		_caster = null
 		_dur = 0.0
