@@ -15,6 +15,7 @@ extends CanvasLayer
 ## Rules live in core/items/gear_runtime.gd; data in gear_db.gd; the card is ui/item_tooltip.gd.
 
 const GearDB := preload("res://core/items/gear_db.gd")
+const BbArt := preload("res://ui/bb_art.gd")
 const GearStats := preload("res://core/items/gear_stats.gd")
 const UiSound := preload("res://ui/ui_sound.gd")
 const UIType := preload("res://ui/type.gd")
@@ -704,7 +705,7 @@ func _diff_line(p: Dictionary, cur: Dictionary, st: Dictionary) -> String:
 		return head + "\n[center]%s[/center]" % Tip._c(QUIET, "no change")
 	var cells := ""
 	for d: Array in diffs:
-		cells += "[cell padding=0,1,28,1]%s[/cell]" % Tip._c(Tip.GOOD if bool(d[2]) else Tip.BAD, ("▲ " if bool(d[2]) else "▼ ") + String(d[1]))
+		cells += "[cell padding=0,1,28,1]%s %s[/cell]" % [BbArt.mark("up", 14, Tip.GOOD) if bool(d[2]) else BbArt.mark("down", 14, Tip.BAD), Tip._c(Tip.GOOD if bool(d[2]) else Tip.BAD, String(d[1]))]
 	return head + "\n[table=2]" + cells + "[/table]"
 
 

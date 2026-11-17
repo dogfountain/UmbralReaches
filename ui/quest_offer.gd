@@ -241,7 +241,7 @@ func _fill(giver_name: String) -> void:
 			if String(stp.kind) == "seal":
 				preview["of"] = EnemySpawner.seal_total(String(stp.get("seal", "")))
 			var ico := QuestMarks.task_art(String(stp.kind))
-			l.text = ("" if ico != null else "  ›  ") + Chains.step_text(quest, si, preview)
+			l.text = Chains.step_text(quest, si, preview)
 			l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 			QuestMarks.row(_obj, l, ico, 32.0)
 	_pay.text = pay_line(qd.get("reward", {}))

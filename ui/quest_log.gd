@@ -549,7 +549,7 @@ func _fill_detail() -> void:
 			var stp := Chains.step(sel, si)
 			var st := _lbl(19, INK if si == cur else Color(0.62, 0.6, 0.56), false)
 			var ico := QuestMarks.lore_art("done") if si < cur else QuestMarks.task_art(String(stp.kind))
-			var lead := "" if ico != null else ("  ›  " if si == cur else "  ✓  ")
+			var lead := ""                            # (every step has painted art; no glyph stands in for it)
 			st.text = lead + Chains.step_text(sel, si, Book.q(sel) if si == cur else {})
 			if si < cur and String(stp.kind) in Chains.COUNTED:
 				st.text = lead + String(stp.text).replace(" ({n}/{of})", "")
