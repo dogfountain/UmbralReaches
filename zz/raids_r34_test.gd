@@ -115,6 +115,19 @@ func _kill_seal(id: String) -> int:
 	return n
 
 
+## The rig's drawn height in metres (the r39 bosses are built at size, so the rig's scale no longer says it).
+func _height(rig: Node3D) -> float:
+	if rig == null:
+		return 0.0
+	var lo := INF
+	var hi := -INF
+	for m: Node in rig.find_children("*", "MeshInstance3D", true, false):
+		var bx: AABB = (m as MeshInstance3D).global_transform * (m as MeshInstance3D).get_aabb()
+		lo = minf(lo, bx.position.y)
+		hi = maxf(hi, bx.end.y)
+	return hi - lo if hi > lo else 0.0
+
+
 func _clear_others() -> void:
 	for e in get_tree().get_nodes_in_group(Groups.ENEMY):
 		if not (e as Node).has_meta(&"boss_id") and not (e as Node).has_meta(&"summoned_by"):
@@ -353,7 +366,8 @@ func _summit() -> void:
 	if b == null:
 		return
 	check("summit: the veil shuts", _shut(arena.gate) and Player.boss_fight_active(get_tree()))
-	check("summit: the boss is raid-sized", b._rig != null and b._rig.scale.x >= 2.8 and b.max_hp >= 700)
+	var bh := _height(b._rig)
+	check("summit: the boss is raid-sized", b._rig != null and bh >= 6.0 and b.max_hp >= roundi(AscendedWarden.HP * 0.6), "%.1f m tall, %d hp" % [bh, b.max_hp])
 	check("summit: eight blink points over the deck", (b.get("anchors") as Array).size() == 8, str((b.get("anchors") as Array).size()))
 	await _secs(2.6)
 	b._ward_t = 0.0

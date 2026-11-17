@@ -11,8 +11,8 @@ extends RefCounted
 ## Data only. Voices stay babble. No class_name.
 
 const OUTPOSTS := {
-	"perrin": {"near": [Vector2(-92.0, 56.0), Vector2(-60.0, 44.0), Vector2(-84.0, 66.0)], "region": "chapel", "style": "necropolis", "look": Vector2(-78.0, 51.0)},
-	"odile": {"near": [Vector2(58.0, 62.0), Vector2(46.0, 60.0), Vector2(72.0, 62.0), Vector2(34.0, 60.0)], "region": "road", "style": "moor", "look": Vector2(112.0, 70.0)},
+	"perrin": {"near": [Vector2(-64.0, 34.0), Vector2(-52.0, 32.0), Vector2(-72.0, 40.0)], "region": "chapel", "style": "necropolis", "look": Vector2(-78.0, 51.0)},
+	"odile": {"near": [Vector2(96.0, 74.0), Vector2(100.0, 58.0), Vector2(88.0, 86.0), Vector2(104.0, 84.0)], "region": "road", "style": "moor", "look": Vector2(112.0, 70.0)},
 	"ione": {"near": [Vector2(-30.0, 16.0), Vector2(-44.0, 16.0), Vector2(-32.0, 0.0), Vector2(-46.0, 2.0)], "region": "glade", "style": "holds", "look": Vector2(-46.0, -38.0)},
 	"lowe": {"near": [Vector2(-170.0, 170.0), Vector2(-176.0, 182.0), Vector2(-164.0, 160.0), Vector2(-168.0, 196.0)], "region": "siege", "style": "necropolis", "look": Vector2(-206.0, 148.0)},
 	"tamsin": {"near": [Vector2(196.0, -72.0), Vector2(200.0, -82.0), Vector2(188.0, -90.0), Vector2(190.0, -64.0)], "region": "anchorholds", "style": "holds", "look": Vector2(214.0, -132.0)},

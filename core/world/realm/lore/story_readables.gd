@@ -106,7 +106,7 @@ func _spawn_at(id: String, at: Vector2, root: Node, pl: Node3D, tag: String) -> 
 	var kind := String(LoreIndex.entry(id).get("kind", "tablet"))
 	var prop := "page" if kind in ["letter", "ledger", "page"] else "slate"
 	var xf := Transform3D(Basis(Vector3.UP, float(hash(id) % 628) * 0.01), pos)
-	var holder := QuestProps.make(root as Node3D, "Readable_" + tag + "_" + id, prop, xf)
+	var holder := QuestProps.make(root, "Readable_" + tag + "_" + id, prop, xf)
 	if holder == null:
 		return null
 	LoreMore.place(holder, id, Vector3(0.0, 0.45, 0.0))
