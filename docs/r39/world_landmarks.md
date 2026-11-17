@@ -228,3 +228,18 @@ kinds at ~25 ms once (cache); warm build: a few more small meshes read from disk
 **Check.** 5 m: ridged bark that catches the moon, no seam down the trunk (the ring is periodic), no gap where a burl or rootlet meets the
 trunk, lichen patches on the oaks. 50 m: no change in silhouette, no pop at the 38 m far swap. A deadwood spike leaning at the old forest's
 edge reads as a different tree from a split one. Draw calls per region unchanged.
+
+## Rocks and cliffs (`rock_kit.gd`, `rock_kit.gdshader`)
+**What.** Every RockKit mesh (boulders, cliff faces, menhirs and grave slabs; granite, mossy and ash styles) now carries **strata bands**
+(each layer its own tone with a shadow line under each ledge, baked into vertex alpha) and **lichen patches** (grey-green, noise-broken,
+favouring up-facing faces, baked into the blue channel on the styles that have no embers). Boulders get three more faint "scar" facets
+that break the outline, slabs and cliffs get the lichen and a band tone of their own. The shader reads them with two multiplies and one
+clamp in terms that already existed (the lichen mix, the albedo): no new texture fetch, no new uniform sampler.
+**Where.** Everywhere there is stone: the crag (x 180..330, z -60..80), the heath boulders, the walls of the Ossuary's yard, the Far Reaches'
+outcrops; grave slabs in the necropolis (x -150, z 90). Walk up to any granite cliff face.
+**Cost: nothing at runtime.** Triangles are unchanged (the painting is on the same vertices; the facets are plane cuts of the same
+tessellation); the meshes are GenCache'd under `rock_kit.gd`'s source hash, so they rebuild once and load warm; draw calls unchanged.
+Cold build: a `_vertex_normals` and two `_fbm` passes per rock (about 2 ms each, once).
+**Check.** 5 m: stripes of tone that follow the ledges on a cliff, lichen on the shoulders of boulders, no black or blown-out rock
+(vertex alpha is 1 on meshes that do not carry bands, so the basalt columns and the rift's rock are unchanged). 50 m: the facets still read
+as a chipped silhouette; nothing shimmers.
