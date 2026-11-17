@@ -86,3 +86,78 @@ FILL_ENERGY, ambient, ambient inject, black_crush and vignette are untouched.
 - Moon course: shadows creeping must not shimmer; the vista scenes that read the moon once (star crater glints, plume)
   are fixed to the start bearing (a 20 degree swing is the most they can be out).
 - Settings toggle: Living Night off restores the moon and hides everything at once.
+
+
+---
+
+# Round two: the sky, the weather, the VFX library, the arenas, the interiors, the palette
+
+All of it is attached by `NightLife` (core/world/night_life/night_life.gd), is switched off live by Settings > Effects > Living Night, and is
+written to cost nothing at rest. Each entry gives: what, where to see it, what to film, cost, files.
+
+## 14. The living sky (sky_life.gd, world/sky/vortex.gdshader)
+- **What.** The moon has a phase tied to the saved night count (eight nights to a cycle: night 0 full, night 4 new). The disc is drawn as a lit
+  sphere (a dot-product terminator); the moon's light scales by it (0.6 at a new moon, 1.0 at full: a thin moon is a darker night, so the
+  landmarks shine the more). The eclipse takes the disc, corona and streaks to a tenth and turns them copper, brings the stars and the
+  constellations up half again and swells the aurora. Five constellations (the Lantern, the Crown, the Bell, the Anchor, the Long Road) are baked
+  once into a 512 x 256 equirect and drawn with one texture fetch. The aurora's strength is a hash of the night count (a faint thread or a great
+  curtain). A cloud deck overhead (cover from a hash of the night plus the weather's mist and rain) is lit warm from below over the six strongest fires within
+  260 m (passed as a uniform array) and hides the stars behind it. The last tenth of the night puts a grey band low in the east.
+- **See / film.** Look at the sky from the Hearthward green on nights 0, 2 and 4 (camp at a fire, 10 minutes apart, to advance the count: `Travel.story["night_no"]`);
+  the eclipse at about nine and a half minutes into a session (or set `Reg.clock` to 0.49); the constellations at 40 to 60 degrees up to the east, south and west;
+  cloud lit over a fire from 50 m back in drizzle.
+- **Cost.** One texture fetch, a six-iteration dot product loop and three fbm octaves in the half-resolution sky pass (a few hundred thousand pixels), nothing per frame in
+  script (twice a second). The cube pass is untouched. Zero when the Living Night is off (all terms back to the old sky).
+- **Files.** core/world/night_life/sky_life.gd, world/sky/vortex.gdshader, moon_course.gd (phase gain), night_registry.gd.
+
+## 15. Weather made visible (weather_life.gd, realm_ground.gdshader, terrain.gdshader, project.godot)
+- **What.** The weather node (weather.gd) already makes fronts, rain, wind and storms; each night now opens on a different front (night count x 5 modulo the cycle:
+  night 0 is clear, as before, so a reload brings the same weather). New: a global shader float `wetness` (declared in project.godot) rises over a minute of rain and dries over
+  five: the ground goes smoother and a little darker and the lamps' and fires' own GGX highlight shows in it; a ring of 28 puddle glints on a 3 m grid round the wanderer
+  (pale sky blue; where a fire or lit window stands near, the puddle takes its colour and a bright streak toward the camera); drips from lit eaves; steam from the nearest
+  fire; the far cards swell into halos in mist and rain; fires gutter lower and flicker harder in rain and gusts; lightning flashes every landmark card; at the end of the
+  night mist is brought in and the sky gains a grey dawn band.
+- **See / film.** `Weather.force("drizzle")` from the debugger, then the green and the Keg: the paving shining under the brazier, glints, drips, steam, halos on the far
+  windows; a storm from the hill south-east of Hearthward (vista_realm_from_se): landmark cards flaring with each flash; Reg.clock 0.92 for the mist and grey east.
+- **Cost.** One MultiMesh (28 instances, rewritten at 12 Hz only while wet), a global float, two shader terms already paid for, a few pooled bursts a second in rain; nothing when dry.
+- **Files.** core/world/night_life/weather_life.gd, light_signatures.gd (haze, flash), night_registry.gd, core/life/wildlife/weather.gd (night opening), world/realm/realm_ground.gdshader, world/zones/terrain.gdshader.
+
+## 16. The VFX library (vfx_library.gd, hit_reads.gd, telegraph_glow.gd, kindling_surge.gd, arena_light.gd)
+- **What.** Casts: a rune ring closing at the wanderer's feet over the cast's time in the skill's colour, a burst on completion, ground shock rings for nova, ward and peal, a red
+  fizzle on a break. Statuses: a small continuous effect per carrier in its status colour (embers off a scarred foe, more per stack; violet shards from a sundered one; red sparks
+  from a shaken one; the mark's motes; resonance violet and surge gold on the wanderer), at most ten carriers and four bursts a second. Pickups: a gold lift and ring. Level-up: a
+  tall column of light (one card) over him, two rings, sixty motes, a flash and every landmark flaring (registry pulse). Hits and kills (hit_reads) and tells (telegraph_glow) and
+  the kindling surge as in round one; boss phases in arena_light.
+- **See / film.** A fight in the Thornwood at night: casting nova, being hit, a foe burning (ember scar), a kill; picking up an item; levelling up; kindling a brazier.
+- **Cost.** All Vfx pooled (Vfx keeps its emitters; presets are bounded: a dozen new ones, warmed by the first use in a fight); per-event only; the column is one card.
+- **Files.** core/world/night_life/vfx_library.gd.
+
+## 17. The arenas (arena_light.gd)
+- **What.** Each boss has a three-phase palette for the fog's colour and emission (never its density: the weather owns that), the set-piece lights on the rim (two, three or four
+  by the detail setting, unshadowed, class player_orb) and the moon dimmed to two thirds while the fight lasts. A phase change is marked (two rings and a burst at the boss, a flash,
+  the landmark cards flaring, the lights surging). A wipe, a kill, a fast travel or the Living Night off eases everything back.
+- **See / film.** The Thornwarden (green, then crimson, then blood red), the Bone Abbot (candle gold, bone blue, ember), the Ascended Warden (ivory and gold, white-blue, blinding white), the Anchoress (drowned teal, deep blue,
+  cold white), the Speaking Crown (brass, violet, furnace): film each at the pull and at each phase from 12 m.
+- **Cost.** Up to four unshadowed lights while a boss is up and a handful of colour writes a frame; nothing otherwise.
+- **Files.** core/world/night_life/arena_light.gd, night_registry.gd (arena_dim), moon_course.gd.
+
+## 18. The door and the rooms (interior_light.gd, interiors.gd)
+- **What.** The camera inside a registered room (Interiors.at) eases a term (about a third of a second) that fades the mist banks, puddle glints, drips, moths' glow, ground pools and lent
+  lights out at the door and back in as he leaves, so the threshold dissolves. Every registered room is checked for a light inside its box at 4 s and 34 s after start; a room with none is
+  given a warm hearth glow through Interiors.light (director-budgeted and flickering). (The warm ambient and thin fog at the door are the weather's, already.)
+- **See / film.** Walk into the Keg, a cottage, the chapel in rain and mist: the mist and glints go out as the door passes; no room is dark.
+- **Cost.** One Interiors.at test a frame; two audits of the scene's lights.
+- **Files.** core/world/night_life/interior_light.gd, core/world/interiors.gd (a read-only `rooms()`).
+
+## 19. The grade and the palette (region_grade.gd, grade.gdshader, realm_foliage.gdshader)
+- **What.** The shadow tint, mid tint and saturation drift by the biome underfoot (old forest a deeper green-teal, fen teal-blue and paler, ruins cooler and stonier, ash and foundry warmer and greyer, crags colder, the glade a little more alive;
+  eased at 0.5 per second, never brighter) and warm a touch toward dawn. The grass and the leaf: ground cards give up a share of chroma and take a soft shoulder on value so a tuft never outshines
+  what it hides; the grade's saturation push is eased by 24 percent on plain greens (hue 70 to 150 degrees); the near-camera leaf dither narrowed from 1.6 m to 1.1 m (the coarse stipple under a crown).
+- **See / film.** A walk from the Hearthward green through the Thornwood to the Fen to the Foundry, and the same views as region_hearth_0, region_fen_0, region_necropolis_0 (grass luminance against the path).
+- **Cost.** Three uniform writes while easing, none at rest; shader terms already paid for.
+- **Files.** core/world/night_life/region_grade.gd, world/post/grade.gdshader, core/world/realm/flora/realm_foliage.gdshader.
+
+## Cost summary (the lead's check against regions_a, ~8.5 ms average)
+Always on, cheap: LightSignatures (2 draws, 16 Hz loop), FixturePool (3/5/7 unshadowed lights by detail), FogBanks (8 alpha quads, none on low), LightMoths (1 draw), MoonCourse, SkyLife, RegionGrade (uniform writes).
+Event or condition only: weather_life (wet), vfx_library, arena_light, hit_reads, telegraph_glow, kindling_surge, interior_light. Folk and pets: awake only within 80 m, posed at the villagers' distance rates.
+Never mid-play: no mesh, texture or shader is first built after the loading start-up (the constellation and glint textures are generated at attach; the folk rigs are a GenCache hit after the first run).
