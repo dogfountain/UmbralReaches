@@ -149,7 +149,7 @@ func _discover() -> void:
 		if Reg.has(key):
 			continue
 		var c := h.global_position
-		var cm: Variant = h.get_meta("centre", null)
+		var cm: Variant = h.get_meta("centre") if h.has_meta("centre") else null      # (a null default still errors when absent)
 		if cm is Vector3 and (cm as Vector3).length_squared() > 0.01:
 			c = cm
 		var id := String(h.get_meta("poi", String(h.name))).to_lower()
