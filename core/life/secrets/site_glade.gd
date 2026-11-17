@@ -11,6 +11,8 @@ const Kit := preload("res://core/life/secrets/kit.gd")
 const State := preload("res://core/life/secrets/state.gd")
 const LK := preload("res://core/world/realm/lore/lore_kit.gd")
 const PlacementLog := preload("res://core/world/realm/placement_log.gd")
+const Access := preload("res://ui/access.gd")
+const GLOW := Color(0.5, 0.85, 1.0)
 const SELF := "res://core/life/secrets/site_glade.gd"
 
 const GLADE_NEAR := Vector2(-36.0, 24.0)      ## searched outward from here for clear, level ground
@@ -81,7 +83,7 @@ static func build(root: Node, host: Node3D) -> void:
 		qm.size = Vector2(0.9, 0.9)
 		glow.mesh = qm
 		glow.material_override = Kit.shader_mat("glint")
-		glow.set_instance_shader_parameter(&"tint", Color(0.5, 0.85, 1.0))
+		glow.set_instance_shader_parameter(&"tint", GLOW)
 		glow.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		glow.visibility_range_end = 60.0
 		node.add_child(glow)
@@ -208,6 +210,22 @@ static func _flash(idx: int) -> void:
 		return
 	m.visible = true
 	var tw := m.create_tween()
+	if Access.flash() < 1.0:
+		# Reduce Flashes: the same phrase as a slow swell (0.25 s up, a held glow, 0.25 s down) rather than a pop, so it still reads
+		# in the puzzle's rhythm (0.75 s a note) without a sudden brightness change. The tint is the glint shader's own brightness.
+		var set_k := func(k: float) -> void:
+			if is_instance_valid(m):
+				m.set_instance_shader_parameter(&"tint", GLOW * k)
+		set_k.call(0.0)
+		tw.tween_method(set_k, 0.0, 1.0, 0.25)
+		tw.tween_interval(0.2)
+		tw.tween_method(set_k, 1.0, 0.0, 0.25)
+		tw.tween_callback(func() -> void:
+			if is_instance_valid(m):
+				m.set_instance_shader_parameter(&"tint", GLOW)
+				if not State.has("solved", "singing"):
+					m.visible = false)
+		return
 	tw.tween_interval(0.6)
 	tw.tween_callback(func() -> void:
 		if not State.has("solved", "singing"):
