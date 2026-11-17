@@ -30,6 +30,7 @@ uniform sampler2D constellations : source_color, hint_default_black, filter_line
 uniform float const_vis = 1.0;
 uniform float aurora = 1.0;         // the veils' strength tonight (0.4 faint .. 1.8 a great night)
 uniform float dawn = 0.0;           // the grey before the morning, low in the east (the last tenth of the night)
+uniform float cloud_speed = 1.0;      // a gale scuds the cloud
 uniform float cloud_cover = 0.0;    // 0 clear .. 1 a deck of cloud (the weather's fronts raise it)
 uniform vec4 fire_glow[6];          // xyz: the direction to a fire on the ground, w: how strongly it lights the cloud above it
 uniform float vistas = 1.0;         // the far ranges and the drain veils (sky_vistas.gdshaderinc); 0 with -- --no-vista-sky (A/B)
@@ -74,7 +75,7 @@ vec4 cloud_layer(vec3 d, vec3 col) {
     if (cloud_cover < 0.01 || d.y < 0.02) {
         return vec4(col, 1.0);
     }
-    vec2 p = d.xz / (d.y + 0.3) * 1.5 + vec2(sky_time * 0.004, sky_time * 0.0017);
+    vec2 p = d.xz / (d.y + 0.3) * 1.5 + vec2(sky_time * 0.004, sky_time * 0.0017) * cloud_speed;
     float c = fbm(p * 1.4) * 0.7 + fbm(p * 3.1 + 7.0) * 0.3;
     float edge = 1.0 - cloud_cover * 0.85;
     float m = smoothstep(edge, edge + 0.22, c) * smoothstep(0.02, 0.22, d.y);

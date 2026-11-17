@@ -45,6 +45,7 @@ func _ready() -> void:
 	top_level = true
 	global_transform = Transform3D.IDENTITY
 	_defs = _definitions()
+	Reg.breathers = _folk
 	_pets = (load("res://core/life/folk/pets.gd") as GDScript).new() as Node3D
 	_pets.name = "Pets"
 	_pets.set("ctx", ctx)

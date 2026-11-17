@@ -22,6 +22,7 @@ const NightFx := preload("res://core/world/night_life/night_fx.gd")
 const GLINTS := 28
 const CELL := 3.0
 const REACH := 13.0
+const FRONT_FX := ["fogbound", "windstorm", "sleet", "frost"]
 
 var env: Environment
 var _weather: Variant
@@ -34,6 +35,7 @@ var _hiss_t := 4.0
 var _ys := {}                              ## cell -> ground y (cached, filled a few rays a frame)
 var _dawn_told := false
 var _dawn_sent := -1.0
+var _breath_t := 0.0
 var _sky: ShaderMaterial
 static var _tex: ImageTexture
 
@@ -95,6 +97,17 @@ func _process(delta: float) -> void:
 		mist = float(st.get("mist", 0.0))
 		gust = clampf(float(_weather.get("gust")), 0.0, 1.5)
 		flash = clampf(float(_weather.get("flash")), 0.0, 1.0)
+	# the night's other weathers: each weight eases to 1 while its front holds, as the front's own state does
+	var front_name := String(_weather.get("front")) if _weather != null else "clear"
+	for fxn: String in FRONT_FX:
+		Reg.fx[fxn] = move_toward(float(Reg.fx[fxn]), 1.0 if front_name == fxn else 0.0, delta / 25.0)
+	var fog := float(Reg.fx.fogbound)
+	var sleet := float(Reg.fx.sleet)
+	var frost := float(Reg.fx.frost)
+	Reg.vis = lerpf(1.0, 0.45, fog)
+	Reg.weather_dim = lerpf(1.0, 0.65, fog) * lerpf(1.0, 0.85, sleet)
+	rain = maxf(rain, sleet * 0.9)            # sleet wets the ground as rain does
+	mist = maxf(mist, fog)
 	# wet: up over about a minute of rain, dry over several
 	if rain > _wet:
 		_wet = minf(rain, _wet + delta / 60.0)
@@ -103,7 +116,10 @@ func _process(delta: float) -> void:
 	Reg.rain = rain
 	Reg.gust = gust
 	Reg.flash = flash
-	Reg.haze = clampf(rain * 0.7 + mist * 0.5, 0.0, 1.0)
+	Reg.haze = clampf(rain * 0.7 + mist * 0.5 + fog, 0.0, 1.0)
+	RenderingServer.global_shader_parameter_set("frost", clampf(frost + sleet * 0.5, 0.0, 1.0))
+	if frost > 0.5:
+		_breath(delta)
 	RenderingServer.global_shader_parameter_set("wetness", _wet)
 	_dawn()
 	if _wet < 0.05:
@@ -126,12 +142,35 @@ func _process(delta: float) -> void:
 			_hiss()
 
 
+## Breath in the frost: every few seconds a pale puff leaves the wanderer's mouth and the mouths of the folk awake within 14 m (each on its own beat).
+func _breath(delta: float) -> void:
+	_breath_t -= delta
+	if _breath_t > 0.0:
+		return
+	_breath_t = randf_range(0.7, 1.4)
+	var cam := get_viewport().get_camera_3d()
+	if cam == null:
+		return
+	var cp := cam.global_position
+	var player := get_tree().get_first_node_in_group(Groups.PLAYER) as Node3D
+	if player != null and randf() < 0.45:
+		NightFx.burst(player.global_position + Vector3(0.0, 1.55, 0.0) - player.global_basis.z * 0.25, Color(0.8, 0.85, 0.95, 0.35), "breath", -player.global_basis.z)
+	for f: Variant in Reg.breathers:
+		if randf() < 0.3 and f.awake and not f.held and cp.distance_to((f as Node3D).global_position) < 14.0:
+			NightFx.burst((f as Node3D).global_position + Vector3(0.0, 1.55, 0.0), Color(0.8, 0.85, 0.95, 0.35), "breath", -(f as Node3D).global_basis.z)
+
+
 func _publish(rain: float, mist: float, gust: float, flash: float) -> void:
 	Reg.rain = rain
 	Reg.gust = gust
 	Reg.flash = flash
 	Reg.haze = mist
 	RenderingServer.global_shader_parameter_set("wetness", 0.0)
+	RenderingServer.global_shader_parameter_set("frost", 0.0)
+	Reg.vis = 1.0
+	Reg.weather_dim = 1.0
+	for fxn: String in FRONT_FX:
+		Reg.fx[fxn] = 0.0
 	if _sky != null:
 		_sky.set_shader_parameter("dawn", 0.0)
 

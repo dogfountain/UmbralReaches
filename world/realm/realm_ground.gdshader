@@ -22,6 +22,7 @@ uniform sampler2DArray alb : source_color, filter_linear_mipmap_anisotropic, rep
 uniform sampler2DArray nrm : hint_default_white, filter_linear_mipmap_anisotropic, repeat_enable;
 uniform sampler2D salt_alb : source_color, filter_linear_mipmap_anisotropic, repeat_enable;
 uniform sampler2D salt_nrm : hint_default_white, filter_linear_mipmap_anisotropic, repeat_enable;
+global uniform float frost;                      // a freezing night rimes the ground (weather_life.gd): paler, harder, and a glitter of ice
 global uniform float wetness;                    // the rain wets the ground (core/world/night_life/weather_life.gd): rougher to smooth, a little darker
 uniform float salt_scale = 0.2;
 uniform vec4 salt_rect = vec4(160.0, 112.0, 258.0, 240.0);     // x0 z0 x1 z1 = RealmLayout.PANS
@@ -366,6 +367,8 @@ void fragment() {
 	rough = mix(rough, 0.18, wet * 0.8);
 	rough = mix(rough, 0.2, wetness * 0.75 * flat_k);   // puddled and glossy: the lamps and the fires show in it
 	col *= 1.0 - wetness * 0.16;
+	col = mix(col, vec3(0.34, 0.4, 0.5), frost * 0.22 * flat_k);      // rime: paler, colder
+	rough = mix(rough, 0.38, frost * 0.5 * flat_k);
 
 	// crevices and pebble gaps (the layers' baked AO) darken the albedo: dark seams, lit tops
 	col *= mix(1.0 - cavity, 1.0 + cavity * 0.25, ao);
@@ -379,6 +382,11 @@ void fragment() {
 	float fres = pow(1.0 - clamp(dot(NORMAL, VIEW), 0.0, 1.0), 2.6);
 	EMISSION = rim_color * rim_strength * fres * (0.4 + 0.6 * flat_k);
 	EMISSION += scorch_heat * scorch_glow * scorch_heat_energy * (1.0 - path);
+	// frost: a glitter of ice crystals on the flat ground (a hashed cell lights up; each cell wakes and sleeps with the moving eye)
+	vec2 fc = floor(wpos.xz * 38.0);
+	float fh = fract(sin(dot(fc, vec2(12.9898, 78.233))) * 43758.5453);
+	float fk = step(0.982, fh) * (0.5 + 0.5 * sin(TIME * 1.7 + fh * 40.0 + dot(VIEW, vec3(5.0))));
+	EMISSION += vec3(0.5, 0.66, 0.95) * fk * frost * 0.35 * flat_k * (1.0 - path);
 }
 
 // The engine's Burley diffuse with a gain on positional lights, and a plain GGX highlight (the ground is rough:

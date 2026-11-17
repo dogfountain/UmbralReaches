@@ -233,6 +233,7 @@ func _draw() -> void:
 	var np := 0
 	var t := _t
 	var gm := Reg.gain_mul
+	var vis := Reg.vis
 	for i in Reg.size():
 		if Reg.on[i] == 0:
 			continue
@@ -243,7 +244,7 @@ func _draw() -> void:
 		var sh := Reg.shimmer(i, t)
 		var g: float = Reg.gain[i] * gm * (1.0 + Reg.boost[i] + 0.9 * Reg.flash + 1.2 * Reg.pulse)
 		if d > NEAR_OFF and d < FAR_FADE_B and nc < MAX_CARDS:
-			var a := smoothstep(NEAR_OFF, NEAR_ON, d) * (1.0 - smoothstep(FAR_FADE_A, FAR_FADE_B, d)) * g * sh
+			var a := smoothstep(NEAR_OFF, NEAR_ON, d) * (1.0 - smoothstep(FAR_FADE_A * vis, FAR_FADE_B * vis, d)) * g * sh
 			if a > 0.01:
 				var s := d * ANGLE * (1.0 + 0.7 * Reg.haze) * (1.25 if k == Reg.Kind.FIRE or k == Reg.Kind.TOWER else (0.8 if k == Reg.Kind.WINDOW else 1.0))
 				var bob := Vector3.ZERO

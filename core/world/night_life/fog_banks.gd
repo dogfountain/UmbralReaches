@@ -120,7 +120,7 @@ func _process(delta: float) -> void:
 				cold = f * Reg.gain[r] if k == Reg.Kind.MYSTERY else 0.0
 		tint = tint.lerp(Color(1.0, 0.62, 0.3), clampf(warm, 0.0, 1.0) * 0.8)
 		tint = tint.lerp(Color(0.4, 0.85, 1.0), clampf(cold, 0.0, 1.0) * 0.8)
-		var a := (0.085 + 0.1 * maxf(warm, cold)) * edge * (0.85 + 0.15 * sin(_t * 0.11 + float(i) * 2.0)) * (1.0 - Reg.indoor)
+		var a := (0.085 + 0.1 * maxf(warm, cold)) * edge * (0.85 + 0.15 * sin(_t * 0.11 + float(i) * 2.0)) * (1.0 - Reg.indoor) * (1.0 + 1.5 * float(Reg.fx.fogbound))
 		var s := _size[i]
 		var yaw := float(i) * 0.9 + _t * 0.004
 		_mm.set_instance_transform(n, Transform3D(Basis(Vector3.UP, yaw).scaled(Vector3(s, 1.0, s)), w))

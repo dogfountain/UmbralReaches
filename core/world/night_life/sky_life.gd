@@ -77,7 +77,7 @@ func _process(delta: float) -> void:
 	_mat.set_shader_parameter("moon_phase", phase)
 	_mat.set_shader_parameter("moon_glow", lerpf(1.0, 0.08, e))
 	_mat.set_shader_parameter("moon_tint", Vector3(1, 1, 1).lerp(COPPER, e))
-	_mat.set_shader_parameter("const_vis", 1.0 + 0.6 * e)
+	_mat.set_shader_parameter("const_vis", (1.0 + 0.6 * e + 0.4 * float(Reg.fx.frost)) * (1.0 - 0.9 * float(Reg.fx.fogbound)))
 	if n != _night:
 		_night = n
 	# the aurora of the night and the cloud of the night
@@ -93,14 +93,15 @@ func _process(delta: float) -> void:
 	elif _clock > _surge_next and e < 0.1:
 		_surge_t = 0.0
 		Events.toast.emit("The sky ripples with light")
-	_mat.set_shader_parameter("aurora", aur * (1.0 + 0.6 * e + 1.4 * surge))
+	_mat.set_shader_parameter("aurora", aur * (1.0 + 0.6 * e + 1.4 * surge + 0.5 * float(Reg.fx.frost)))
 	var base := 0.45 * fposmod(sin(float(n) * 78.233) * 43758.5453, 1.0)
 	var wet := 0.0
 	_weather = Reg.weather(get_tree())
 	if _weather != null:
 		var st: Dictionary = _weather.get("state")
 		wet = float(st.get("mist", 0.0)) * 0.45 + float(st.get("rain", 0.0)) * 0.6
-	_cloud_goal = clampf(base + wet, 0.0, 1.0)
+	_cloud_goal = clampf(base + wet + 0.8 * float(Reg.fx.fogbound) + 0.5 * float(Reg.fx.sleet) + 0.3 * float(Reg.fx.windstorm), 0.0, 1.0)
+	_mat.set_shader_parameter("cloud_speed", 1.0 + 4.0 * float(Reg.fx.windstorm))
 	_mat.set_shader_parameter("cloud_cover", _cloud)
 	_fires()
 
