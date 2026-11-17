@@ -2,8 +2,7 @@ extends RefCounted
 ## Lived-in detail for the code-built cottages (the deeper-models pass; core/world/realm/lore/cottage.gd calls `dress`
 ## for a whole cottage): sills, lintels and fixed shutters on every window, flower boxes, a lintel and a hung lantern at the
 ## door, a ridge cap along the roof, drip stones along the foot of the long walls, and a garden: a low fence of posts and
-## rails with a gap at the door, a bed of turned soil with leaf tufts. All kit boxes at build time (non-solid except
-none of it blocks). No class_name: preload by path.
+## rails with a gap at the door, a bed of turned soil with leaf tufts. All kit boxes at build time, none solid (none of it blocks). No class_name: preload by path.
 
 
 static func dress(L: RefCounted, xf: Transform3D, w: float, d: float, bas: Basis, rng: RandomNumberGenerator, state: String) -> void:
