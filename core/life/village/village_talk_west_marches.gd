@@ -75,9 +75,9 @@ const CONV := {
 		]},
 		"sunk": {"say": "Millers. Ferrymen. A boy who wanted to see the weir spill. People who fell in and people who walked in, when the sky began to turn. I do the roll each night.", "next": "hub"},
 	}},
-	"wren": {"name": "Wren", "start": [["!met:wren", "meet"], ["", "hub"]], "nodes": {
+	"wren": {"name": "Sedge", "start": [["!met:wren", "meet"], ["", "hub"]], "nodes": {
 		"meet": {"say": "You came over the bridge! Did it hum? It hums when someone brave goes over. Mostly it hums when it's wet.", "next": "meet2"},
-		"meet2": {"say": "I'm Wren. Da's the miller. I'm not allowed past the second stone, but I know what's past it anyway. A head, and a hand, and a great big thing in the moss that talks.", "do": "met:wren", "next": "hub"},
+		"meet2": {"say": "I'm Sedge. Da's the miller. I'm not allowed past the second stone, but I know what's past it anyway. A head, and a hand, and a great big thing in the moss that talks.", "do": "met:wren", "next": "hub"},
 		"hub": {"say_if": [
 			["boss:r37_hierarch", "It's quiet now. Da says the horn's finally out of breath. I miss it a bit. It was like having a big dog on the hill."],
 			["", "Want to see my chalk? I do the stones round the well. If it's not in a circle, it can't come in. Probably."],

@@ -124,7 +124,7 @@ const MEALS: Array[Dictionary] = [
 	# Bet Reed's garden (the Hearthfire II, and Bet home)
 	{"id": "honey", "who": "bet", "kind": "hearty", "name": "Bramble-honey cake", "glyph": "heart", "price": 5, "secs": 540.0,
 		"fx": {"gloom_add": 22.0}, "text": "Hearty: +22 Gloom held for 9 minutes.",
-		"say": "Tobin kept the bees. They kept on without him. So did I."},
+		"say": "Ewan kept the bees. They kept on without him. So did I."},
 	{"id": "feverfew", "who": "bet", "kind": "warming", "name": "Feverfew tonic", "glyph": "rosary", "price": 5, "secs": 540.0,
 		"fx": {"dark_mult": 0.85, "lit_mult": 1.15}, "text": "Warming: Gloom gathers 15% slower in the dark and by the Rift, and fire takes it off and mends the plate 15% faster, for 9 minutes.",
 		"say": "Bitter. Good. The sweet ones never did anybody any good."},

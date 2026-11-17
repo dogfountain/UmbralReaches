@@ -153,7 +153,7 @@ func _act3() -> void:
 	ok(String(Chains.QUESTS.the_latch.avail).contains("boss:ascended_warden"), "the latch waits for the Warden")
 	var at: Dictionary = DialogueDB.node("door_latch", "at")
 	ok((at.get("choices", []) as Array).size() == 4, "at the door: latch it, leave it on the latch, break it, or not yet")
-	ok(Chains.gather_keys("names_under", 0).size() == 6, "six names from six far fires")
+	ok(Chains.gather_keys("names_under", 0).size() == 9, "nine far fires give a name, any six will do")
 	Travel.story = {}
 	Travel.bosses_slain["ascended_warden"] = true
 	ok(Reach.act() == 4, "act 4 after the Warden")

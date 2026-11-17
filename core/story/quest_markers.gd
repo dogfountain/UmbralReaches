@@ -295,14 +295,14 @@ func _last_seen(ids: Array) -> Array:
 	return best
 
 
-## Where Saltmarket's fire is (RealmLayout.ZONES "saltmarket"): the way to the shut-out bell goes through Marl's work.
+## Where Saltmarket's fire is (RealmLayout.ZONES "saltmarket"): the shut-out bell is reached through Ardel Wick, who keeps the Spire's coal.
 const SALTMARKET := Vector2(212.0, 92.0)
 
 
 ## The next of the Founder's bells to go to, as a task id ("" when none is left): the Marches' bell first while it
 ## stands unanswered (the door insists on it), else the nearest bell whose task is under way or on offer. A bell whose
 ## task is not yet on offer (its `avail` chain is not done) is skipped, and when the Marches' is one of those the
-## answer is the task that unlocks it (Marl's, at Saltmarket: salt_sweep, salt_widow, then Ardel's spire_coal).
+## answer is the task that unlocks it (Ardel's spire_coal, at Saltmarket, which has no gate of its own).
 static func next_bell(tree: SceneTree, from: Vector2) -> String:
 	var shut := Chains.BELL_SHUT_OUT
 	if Book.pick(shut) == "":

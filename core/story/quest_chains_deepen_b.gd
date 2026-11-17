@@ -65,7 +65,7 @@ const KEEPER_WARDS := {"name": "The Keeper's Wards", "giver": "ruan", "where": "
 
 const OAK_SONG := {"name": "What the Oak Kept", "giver": "ruan", "where": "Gammer Ruan, at her fire in the Rooted Holds", "zone": "oak",
 	"offer": true, "avail": "kindled:1",
-	"text": "The first fire was carried out of the Grandmother Oak, in a knot of its own heart, and the Rooted hid the knot where the Order would not climb. The oak has to be asked in order: you touch its knots and say the verse. Root first, because the root was first. Then the heart, which held. The bough last, because the bough looked up. Wrong, and the Root-Wife wakes in the wrong place. Ruan is too old for the stair. She wants the oak whole, and the knot where they left it.",
+	"text": "The Rooted's first fire was carried out of the Grandmother Oak, in a knot of its own heart, and the Rooted hid the knot where the Order would not climb. The oak has to be asked in order: you touch its knots and say the verse. Root first, because the root was first. Then the heart, which held. The bough last, because the bough looked up. Wrong, and the Root-Wife wakes in the wrong place. Ruan is too old for the stair. She wants the oak whole, and the knot where they left it.",
 	"steps": [
 		{"kind": "visit", "at": Vector2(-70.0, 206.0), "r": 16.0, "label": "The Grandmother Oak", "text": "Go to the Grandmother Oak on the southern downs, and look up"},
 		{"kind": "order", "at": Vector2(-70.0, 206.0), "label": "The oak's knots",
@@ -226,7 +226,7 @@ const FIELD_RANKS := {"name": "Facing the Mountain", "giver": "agathe", "where":
 
 const MERE_LIGHT := {"name": "Light for the Sunk", "giver": "cadoc", "where": "Cadoc the ferryman, on the mere's north bank", "zone": "mere",
 	"offer": true, "avail": "qd:mere_chapel",
-	"text": "Corvin's rite: a light for the heart, the mouth, the eyes. In that order. The Abbot sank them with three stones, eyes first; Corvin lit it the other way, the heart first, so the drowned would know it was meant, and the eyes last, so they would see what he'd done. Carry a lit lamp from my fire to the chapel and light them so. Walk it. The mere takes a hurried flame. Wrong, and the nave stands up.",
+	"text": "Corvin's rite: a light for the eyes, the mouth, the heart. In that order. The Abbot sank them with three stones, eyes first; Corvin answered each stone with a light in the same place, so the drowned would know it was meant. Carry a lit lamp from my fire to the chapel and light them so. Walk it. The mere takes a hurried flame. Wrong, and the nave stands up. Amos, who rowed the other oar, waits on the east bank. A light for him, or for the nave.",
 	"steps": [
 		{"kind": "find", "text": "Take a lit lamp from Cadoc's fire"},
 		{"kind": "lantern_walk", "from": "lamp_cadoc", "to": Vector2(90.0, 112.0), "r": 6.0, "label": "Corvin's lamp",
@@ -234,7 +234,7 @@ const MERE_LIGHT := {"name": "Light for the Sunk", "giver": "cadoc", "where": "C
 			"arrive": "The causeway ends at the chapel's door. Three dark niches, in a row.",
 			"text": "Carry the lamp along the causeway to the half-sunk chapel. Walk it: a run, a blow or deep water puts it out"},
 		{"kind": "order", "at": Vector2(90.0, 112.0), "label": "Corvin's three lights",
-			"text": "Light the chapel's three niches in Corvin's order: the heart, then the mouth, then the eyes",
+			"text": "Light the chapel's three niches in Corvin's order: the eyes, then the mouth, then the heart",
 			"things": [
 				{"key": "eyes", "at": Vector2(88.0, 110.0), "prop": "lantern", "verb": "Light", "name": "the eyes' niche",
 					"text": "The eyes' niche takes the flame. The nave's water goes still, as water does when it is looked at."},
@@ -243,30 +243,30 @@ const MERE_LIGHT := {"name": "Light for the Sunk", "giver": "cadoc", "where": "C
 				{"key": "mouth", "at": Vector2(90.5, 113.5), "prop": "lantern", "verb": "Light", "name": "the mouth's niche",
 					"text": "The mouth's niche, a notch in the sill. The flame stands in it like a word nobody has said in nine years."},
 			],
-			"order": ["heart", "mouth", "eyes"],
+			"order": ["eyes", "mouth", "heart"],
 			"wrong": "The flame gutters in the wrong niche. The water in the nave stands up in rows, and turns to face you.",
 			"wrong_spawns": {"kind": "wretch", "n": 2},
-			"done": "Heart, mouth, eyes. The nave is lit from the ground up, and nothing in it moves."},
-		{"kind": "find", "text": "Carry the last light to its place: for Aldous on the east bank, or for the sunk in the nave"},
+			"done": "Eyes, mouth, heart. The nave is lit from the top down, as the Abbot sank it, and nothing in it moves."},
+		{"kind": "find", "text": "Carry the last light to its place: for Amos on the east bank, or for the sunk in the nave"},
 		{"kind": "turnin", "who": "cadoc", "text": "Tell Cadoc the chapel has its light"},
 	],
-	"alt": {"aldous": {4: "Tell Cadoc Aldous has his light"}, "sunk": {4: "Tell Cadoc the sunk have their light"}},
+	"alt": {"aldous": {4: "Tell Cadoc Amos has his light"}, "sunk": {4: "Tell Cadoc the sunk have their light"}},
 	"reward": {"ash": 20},
 	"choose": [{"set": "ferryman", "slot": "focus", "rarity": 2}, {"set": "ferryman", "slot": "vestment", "rarity": 2}, {"set": "ferryman", "slot": "lantern", "rarity": 2}],
 	"leaves": {"aldous": {"at": Vector2(130.0, 117.0), "prop": "lantern_lit"}, "sunk": {"at": Vector2(92.5, 114.0), "prop": "lantern_lit"}},
-	"outcome": {"aldous": "A lamp burns in the half-sunk chapel for the heart, the mouth, the eyes, and one burns on the east bank for a man without a boat. Cadoc rows past both every night, and looks at the east one.",
-		"sunk": "A lamp burns in the half-sunk chapel for the heart, the mouth, the eyes, and the last of them left in the nave for the rest of the sunk. Cadoc rows past it every night and doesn't look."}}
+	"outcome": {"aldous": "A lamp burns in the half-sunk chapel for the eyes, the mouth, the heart, and one burns on the east bank for a man without a boat. Cadoc rows past both every night, and looks at the east one.",
+		"sunk": "A lamp burns in the half-sunk chapel for the eyes, the mouth, the heart, and the last of them left in the nave for the rest of the sunk. Cadoc rows past it every night and doesn't look."}}
 
 const MERE_FERRYMAN := {"name": "The Other Oar", "giver": "cadoc", "where": "Cadoc the ferryman, on the mere's north bank", "zone": "mere",
-	"offer": true, "avail": "qd:mere_chapel",
-	"text": "Two of us rowed for Corvin. Me and Aldous. The night they took Corvin's hands, Aldous rowed out alone with the lamps and went over. He walks the banks now without his boat, waiting to be paid. I owe him the fare. Put him down, and pay it for me, however you think it ought to be paid.",
+	"offer": true, "avail": "qd:mere_chapel,qd:mere_light",
+	"text": "Two of us rowed for Corvin. Me and Amos. The night they took Corvin's hands, Amos rowed out alone with the lamps and went over. He walks the banks now without his boat, waiting to be paid. I owe him the fare. Put him down, and pay it for me, however you think it ought to be paid.",
 	"steps": [
 		{"kind": "slay", "of": 1, "rares": ["ferryman"], "label": "The Ferryman Without a Boat", "at": Vector2(140.0, 128.0),
 			"text": "Put down the Ferryman Without a Boat on the mere's east bank"},
-		{"kind": "find", "text": "Pay Aldous's fare at the east landing"},
+		{"kind": "find", "text": "Pay Amos's fare at the east landing"},
 		{"kind": "turnin", "who": "cadoc", "text": "Tell Cadoc the fare is paid"},
 	],
-	"alt": {"coins": {2: "Tell Cadoc the two coins are on the water"}, "named": {2: "Tell Cadoc you said Aldous's name"}},
+	"alt": {"coins": {2: "Tell Cadoc the two coins are on the water"}, "named": {2: "Tell Cadoc you said Amos's name"}},
 	"reward": {"ash": 18, "items": {"relic_fragment": 1}},
 	"choose": [{"set": "ferryman", "slot": "girdle", "rarity": 2}, {"set": "ferryman", "slot": "focus", "rarity": 2}],
 	"leaves": {"coins": {"at": Vector2(131.0, 120.0), "prop": "mark"}, "named": {"at": Vector2(131.0, 120.0), "prop": "slate"}},
@@ -274,7 +274,7 @@ const MERE_FERRYMAN := {"name": "The Other Oar", "giver": "cadoc", "where": "Cad
 		"named": "Cadoc said the name himself, twice, to the east bank, the second time as a question. Nothing answered. He put the oars across his knees and did not seem to mind."}}
 
 const WELL_ANSWER := {"name": "What Answers", "giver": "cadoc", "where": "Cadoc the ferryman, at his fire on Corvin's Mere", "zone": "well",
-	"offer": true, "avail": "kindled:2",
+	"offer": true, "avail": "kindled:2,qd:mere_ferryman",
 	"text": "Cadoc hears it on still nights from across the mere, the Well, calling his name back to him a breath after the dead called it. He will not row that way. Read the marks it has left on the rim, and keep the rim an hour while it calls; it will call in my voice. Put the Answerer down, and find what it was listening for. Then answer it, or don't.",
 	"steps": [
 		{"kind": "visit", "at": Vector2(72.0, 204.0), "r": 26.0, "label": "The Well of Echoes", "text": "Walk to the Well of Echoes, south of the mere, and look down"},
@@ -623,9 +623,9 @@ const CONVS := {
 		"gone": {"say": "The ranks lie still.", "who": "", "next": ""},
 	}},
 	"qb_mere_light": {"name": "The Last Light", "start": [["!qat:mere_light:3", "gone"], ["", "at"]], "nodes": {
-		"at": {"say": "Three niches are lit, heart and mouth and eyes, and there is a fourth flame in your hand that Corvin never lit: he had no hands left. Cadoc did not say what it was for. The nave wants it. So, perhaps, does the east bank.", "who": "", "choices": [
+		"at": {"say": "Three niches are lit, eyes and mouth and heart, and there is a fourth flame in your hand that Corvin never lit: he had no hands left. Cadoc did not say what it was for. The nave wants it. So, perhaps, does the east bank.", "who": "", "choices": [
 			{"text": "Leave it in the nave, for the sunk.", "to": "sunk"},
-			{"text": "Carry it to the east bank, for Aldous.", "to": "aldous"},
+			{"text": "Carry it to the east bank, for Amos.", "to": "aldous"},
 			{"text": "Not yet.", "to": ""},
 		]},
 		"sunk": {"say": "You set the fourth flame on the nave's sill, among the dead. The water stirs in rows and does not rise.", "who": "", "do": "qp:mere_light:sunk,qa:mere_light", "next": ""},
@@ -639,7 +639,7 @@ const CONVS := {
 			{"text": "Not yet.", "to": ""},
 		]},
 		"coins": {"say": "You lay the coins on the water, one by one. They float for a moment, which coins do not do, and then settle.", "who": "", "do": "qp:mere_ferryman:coins,qa:mere_ferryman", "next": ""},
-		"named": {"say": "'Aldous.' You say it to the east bank, and the reeds, and the water. Nothing answers. It was not asking for an answer. It was only the name, said where he could hear it.", "who": "", "do": "qp:mere_ferryman:named,qa:mere_ferryman", "next": ""},
+		"named": {"say": "'Amos.' You say it to the east bank, and the reeds, and the water. Nothing answers. It was not asking for an answer. It was only the name, said where he could hear it.", "who": "", "do": "qp:mere_ferryman:named,qa:mere_ferryman", "next": ""},
 		"gone": {"say": "The east landing is quiet.", "who": "", "next": ""},
 	}},
 	"qb_well_answer": {"name": "The Rim of the Well", "start": [["!qat:well_answer:5", "gone"], ["", "at"]], "nodes": {
@@ -649,7 +649,7 @@ const CONVS := {
 			{"text": "Not yet.", "to": ""},
 		]},
 		"silence": {"say": "You drop the stone in and count. It does not strike. The Well takes it, and nothing comes back: no voice, no echo, no practising. The silence is enormous.", "who": "", "do": "qp:well_answer:silence,qa:well_answer", "next": ""},
-		"name": {"say": "You call a name down, one a ferryman would know: Aldous. The Well considers it. Far down, a voice says it back, kindly, in a voice that is not Cadoc's.", "who": "", "do": "qp:well_answer:name,qa:well_answer", "next": ""},
+		"name": {"say": "You call a name down, one a ferryman would know: Amos. The Well considers it. Far down, a voice says it back, kindly, in a voice that is not Cadoc's.", "who": "", "do": "qp:well_answer:name,qa:well_answer", "next": ""},
 		"gone": {"say": "The Well is quiet.", "who": "", "next": ""},
 	}},
 	"qb_salt_widow": {"name": "Corra Vane's Rake", "start": [["!qat:salt_widow:2", "gone"], ["", "at"]], "nodes": {
@@ -716,9 +716,9 @@ const CONVS := {
 	# (spire_lamps' pick, writer A's: qp:spire_lamps:out / qp:spire_lamps:burning)
 	"qb_long_round": {"name": "The East Gate's Lantern", "start": [["!qat:long_round:3", "gone"], ["", "at"]], "nodes": {
 		"at": {"say_if": [
-			["qp:spire_lamps:out", "The shut-lantern lies where it fell. SHUT AT DUSK ON THE WARDEN'S WORD. F. You told him the Spire's lamp was out. He said he knew it would be, and went on lighting his round anyway. The wick here is trimmed. Nobody has had the heart."],
-			["qp:spire_lamps:burning", "The shut-lantern lies where it fell. SHUT AT DUSK ON THE WARDEN'S WORD. F. You told him the Spire's lamp was burning. He has watched it from the green, every night since, and not once looked at this. The wick is trimmed. Somebody wants it to be ready."],
-			["", "The shut-lantern lies where it fell. SHUT AT DUSK ON THE WARDEN'S WORD. F. The wick has been trimmed, in the dark, by someone who could not make himself light it."],
+			["qp:spire_lamps:out", "The shut-lantern lies where it fell. SHUT AT DUSK ON THE HIERARCH'S WORD. F. You told him the Spire's lamp was out. He said he knew it would be, and went on lighting his round anyway. The wick here is trimmed. Nobody has had the heart."],
+			["qp:spire_lamps:burning", "The shut-lantern lies where it fell. SHUT AT DUSK ON THE HIERARCH'S WORD. F. You told him the Spire's lamp was burning. He has watched it from the green, every night since, and not once looked at this. The wick is trimmed. Somebody wants it to be ready."],
+			["", "The shut-lantern lies where it fell. SHUT AT DUSK ON THE HIERARCH'S WORD. F. The wick has been trimmed, in the dark, by someone who could not make himself light it."],
 		], "who": "", "choices": [
 			{"text": "Light it where it fell, and leave it for the road.", "to": "lit"},
 			{"text": "Stand it up on its post, unlit. Let him do it.", "to": "stood"},

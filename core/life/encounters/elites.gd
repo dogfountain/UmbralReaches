@@ -123,7 +123,7 @@ const LOOT := {
 		"text": "Bounty of the Faceless Penitent (the Deeper Night)."},
 	# --- south marches ---
 	"oak_heartwood": {"name": "Heartwood of the Grandmother Oak", "shape": "branch", "tint": Color(0.5, 0.36, 0.22),
-		"desc": "A split of the oak's dead heart, still warm on one face. The Rooted say the first fire was carried out of this tree; the grain remembers it.",
+		"desc": "A split of the oak's dead heart, still warm on one face. The Rooted say their first fire was carried out of this tree; the grain remembers it.",
 		"text": "Bounty of the Root-Wife, from the roots of the Grandmother Oak."},
 	"echo_bell": {"name": "The Echo Bell", "shape": "lantern", "tint": Color(0.5, 0.42, 0.26),
 		"desc": "A small struck-bronze bell from the Answerer's halos. It rings once when you lift it, and again, softer, from somewhere below you.",

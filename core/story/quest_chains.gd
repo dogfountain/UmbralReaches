@@ -111,7 +111,7 @@ const GIVER_NAMES := {"hild": "Hild", "fennick": "Old Fennick", "oswin": "Oswin"
 	"linnet": "Linnet the grafter", "agathe": "Sister Agathe", "cadoc": "Cadoc the ferryman",
 	"dunstan": "Dunstan Pike",
 	"osk": "Osk the miller", "cassel": "Captain Cassel", "ennis": "Sister Ennis", "tolliver": "Old Tolliver",
-	"dorrit": "Dorrit Marl", "bryn": "Bryn Gale", "wren": "Wren", "gwyn": "Gwyn the ostler",
+	"dorrit": "Dorrit Marl", "bryn": "Bryn Gale", "wren": "Sedge", "gwyn": "Gwyn the ostler",
 	"marl": "Marl Pannick", "teasel": "Teasel Dray", "orrin": "Orrin Vail", "ardel": "Ardel Wick", "pip": "Pip", "nella": "Nella Crake",
 	"corle": "Aud Corle", "penn": "Reeve Penn", "coyle": "Serjeant Coyle", "isolde": "Old Isolde",      # --- the towns ---
 	"siany": Towns.GIVER_NAMES["siany"], "ebba": Towns.GIVER_NAMES["ebba"], "hobb": Towns.GIVER_NAMES["hobb"], "dilly": Towns.GIVER_NAMES["dilly"], "hesper": Towns.GIVER_NAMES["hesper"],
@@ -366,7 +366,7 @@ const QUESTS := {
 	"founder_clapper": DeepB.FOUNDER_CLAPPER,
 	"founder_moulds": {"name": "The Founder's Moulds", "giver": "elspeth", "where": "Elspeth Fane, at her fire in the Founder's Pits", "zone": "foundry",
 		"offer": true, "raid": "ascended_warden",
-		"text": "She cast the summit's bell in three cheeks of loam and iron. The Hierarch's bell. Brannoc says the thing up there holds the door with it still in its hand. Bring me the moulds. A bell's mould knows its note, and I can teach it a wrong one.",
+		"text": "Her son cast the summit's bell, in her moulds, in three cheeks of loam and iron. The Hierarch's bell. Brannoc says the thing up there holds the door with it still in its hand. Bring me the moulds. A bell's mould knows its note, and I can teach it a wrong one.",
 		"steps": [
 			{"kind": "gather", "of": 3, "text": "Find the three cheeks of the great bell's mould: by the furnace, in the casting pits, under the slag ({n}/{of})"},
 			{"kind": "turnin", "who": "elspeth", "text": "Bring the mould to Elspeth Fane"},
@@ -571,12 +571,12 @@ const QUESTS := {
 		"alt": {"latched": {2: "Tell Brannoc the door is latched"}, "open": {2: "Tell Brannoc the door is left on the latch"}, "broken": {2: "Tell Brannoc the latch is broken"}},
 		"reward": {"ash": 40, "items": {"relic_fragment": 3}},
 		"choose": [{"legend": "door_splinter"}, {"legend": "sunk_shroud"}, {"legend": "unlit_lamp"}, {"legend": "stair_rope"}],
-		"outcome": {"latched": "Brannoc nodded once. \"Then nothing more goes up. And nothing up there comes down. She'd have done that. She liked things finished.\"",
+		"outcome": {"latched": "Brannoc nodded once. \"Then nothing new goes up. Nothing new comes through. She'd have done that. She liked things finished.\"",
 			"open": "\"On the latch,\" Brannoc said. \"So the ones still climbing can turn round. That's kinder than she was.\"",
 			"broken": "Brannoc looked at the two halves of the latch for a long time. \"Then it's only sky,\" he said. \"Just sky. I don't know if that's better. Nobody does.\""}},
 	"still_climbing": {"name": "Those Still Climbing", "giver": "agathe", "where": "Sister Agathe, at the gate of the Waiting Field", "zone": "necropolis",
 		"offer": true, "avail": "qd:the_latch",
-		"text": "Since the door, the ones who were halfway up have been coming down. Not all of them know they're dead. Some walk into the Field and stand in their old places. Some walk into it with their hands out. Put down the ones with their hands out.",
+		"text": "Nine winters of the half-way up are still coming home down the road. The door only stopped sending more. Not all of them know they're dead. Some walk into the Field and stand in their old places. Some walk into it with their hands out. Put down the ones with their hands out.",
 		"steps": [
 			{"kind": "slay", "of": 8, "region": "necropolis", "label": "The ones who came down", "at": Vector2(-4.0, 124.0),
 				"text": "Put down the hollowed who came down into the Waiting Field ({n}/{of})"},
@@ -587,9 +587,9 @@ const QUESTS := {
 		"outcome": {"": "Agathe counted the ones who stood in their old places and didn't hold out their hands. Forty-one. She left them standing."}},
 	"names_under": {"name": "Names Under the Door", "giver": "keep", "where": "The keep of the Kindled Keg", "zone": "summit",
 		"offer": true, "avail": "qd:still_climbing",
-		"text": "The dais stone. 'The names of the faithful who went through,' and nothing cut under it. I've been thinking about that. Ask about. Get me a name from every fire in the far country, somebody who went up, and cut them in. Then come and sit down. For good, this time.",
+		"text": "The dais stone. 'The names of the faithful who went through,' and nothing cut under it. I've been thinking about that. Ask about. Get me a name from six of the far fires, nine keep one, somebody who went up, and cut them in. Then come and sit down. For good, this time.",
 		"steps": [
-			{"kind": "gather", "of": 6, "text": "Ask a name of the faithful at the fires of the far country, the Marches and the downs among them ({n}/{of})"},
+			{"kind": "gather", "of": 6, "text": "Ask a name of the faithful at any six fires of the far country, the Marches and the towns past the Lines among them ({n}/{of})"},
 			{"kind": "find", "text": "Cut the names into the dais stone under the door"},
 			{"kind": "turnin", "who": "keep", "text": "Sit on your stool at the Kindled Keg"},
 		],
@@ -726,8 +726,14 @@ const PICKUPS := {
 		"say": "Ardel gives it without being asked twice. \"Hale. He trimmed the Spire's lamp, the last one to. HALE, AND HE LEFT IT LIT.\" He does not say how he knows."},
 	"name_cadoc": {"quest": "names_under", "step": 0, "near": Vector2(111.0, 97.0), "camp": "cadoc", "kind": "slate", "name": "a name", "verb": "Ask for",
 		"say": "\"Corvin,\" Cadoc says. \"He rowed them all to the foot of the Stair and then went up himself. Nobody rowed him back.\""},
+	"name_corle": {"quest": "names_under", "step": 0, "near": Vector2(-316.5, 297.7), "kind": "slate", "name": "a name", "verb": "Ask for",
+		"say": "Corle opens the lamp book to the line for him and turns it so you can read it. \"The courier. Nobody ever put his name down. Put: THE LAST RIDER, WHO WAS EXPECTED.\""},
+	"name_penn": {"quest": "names_under", "step": 0, "near": Vector2(-147.3, 293.5), "kind": "slate", "name": "a name", "verb": "Ask for",
+		"say": "Penn takes his hat off for it. \"My father lit the first beacon every harvest. ODO PENN, AND HE LIT IT EARLY.\""},
+	"name_maudlin": {"quest": "names_under", "step": 0, "near": Vector2(315.5, 57.3), "kind": "slate", "name": "a name", "verb": "Ask for",
+		"say": "Maudlin does not turn from the gate. \"Ivo. Second rope. He knocked, and was not let in, and went back up the road. IVO, WHO KNOCKED ONCE.\""},
 	"dais_names": {"quest": "names_under", "step": 1, "near": Vector2(1.5, -101.0) + Endgame.O2, "kind": "place", "name": "the dais stone", "verb": "Cut the names into",
-		"say": "You cut them under the Hierarch's line, small, as straight as you can: BRANN. MAUD OF THE TOR. BROTHER ANSELM, HE PRUNED. CORVIN. WAT, WHO NEVER LOST ONE. HALE, AND HE LEFT IT LIT. There is room under them for a great many more."},
+		"say": "You cut them under the Hierarch's line, small, as straight as you can, every name you were given, one under the next. There is room under them for a great many more."},
 	"bell_spire": Bells.PICKUPS["bell_spire"], "bell_holds": Bells.PICKUPS["bell_holds"], "bell_quarry": Bells.PICKUPS["bell_quarry"], "bell_moor": Bells.PICKUPS["bell_moor"],
 	"bell_foundry": Bells.PICKUPS["bell_foundry"], "bell_orchard": Bells.PICKUPS["bell_orchard"], "bell_necropolis": Bells.PICKUPS["bell_necropolis"], "bell_mere": Bells.PICKUPS["bell_mere"],
 	"wf_sluice_key": R37WQ.PICKUPS["wf_sluice_key"], "wf_signal_lamp": R37WQ.PICKUPS["wf_signal_lamp"],
@@ -902,8 +908,8 @@ static func audit() -> Array[String]:
 			var kind := String(qd.steps[si].kind)
 			if kind in ["find", "gather", "place"] and gather_keys(id, si).is_empty():
 				bad.append("%s step %d (%s) has no pickup" % [id, si, kind])
-			if kind == "gather" and gather_keys(id, si).size() != int(qd.steps[si].get("of", 1)):
-				bad.append("%s step %d gathers %d of %d" % [id, si, gather_keys(id, si).size(), int(qd.steps[si].get("of", 1))])
+			if kind == "gather" and gather_keys(id, si).size() < int(qd.steps[si].get("of", 1)):
+				bad.append("%s step %d has only %d pickups for %d" % [id, si, gather_keys(id, si).size(), int(qd.steps[si].get("of", 1))])
 			# every step that sends you somewhere says where, so the map's task row never goes blank (the
 			# peal's steps point at the nearest unanswered bell; the two standing bounties roam)
 			if kind in ["slay", "collect", "cond", "visit", "seal"] and not (qd.steps[si].get("to", qd.steps[si].get("at")) is Vector2) \

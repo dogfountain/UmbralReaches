@@ -9,7 +9,7 @@ extends RefCounted
 ## House style (docs/LORE.md): terse, concrete, dark. Load by path.
 
 const MARL := {"name": "Marl", "title": "Marl Pannick, the salt-reeve", "when": "", "camp": "outpost",
-	"rig": {"seed": 6101, "sex": "m", "age": "old", "garment": "coat", "hat": "cap", "hair": "fringe", "beard": "short",
+	"rig": {"seed": 6101, "sex": "f", "age": "old", "garment": "coat", "hat": "cap", "hair": "bun",
 		"r": "staff", "girth": 1.08, "cloth": Color(0.34, 0.33, 0.3), "cloth2": Color(0.4, 0.38, 0.33),
 		"hair_c": Color(0.78, 0.76, 0.7), "skin": Color(0.74, 0.55, 0.42), "leather": Color(0.38, 0.25, 0.14)},
 	"home": "sm_fire", "speed": 0.8,
@@ -100,6 +100,8 @@ const CONV_MARL := {"name": "Marl Pannick", "start": [["!met:marl", "meet"], [""
 	"meet2": {"say": "Marl Pannick. Reeve here, which means I count the sacks and take the blame. The pans are to the south. Don't walk on the white after dusk without a reason.", "do": "met:marl", "next": "hub"},
 	"hub": {"say_if": [
 		["qp:salt_widow:rake,qd:salt_widow", "The rake lies by Corra Vane's stone, haft to the sea. She still walks. She walks home now, they say, and sits in the hollow, and stops. I didn't think you could have a widow for a neighbour. You can."],
+		["qp:pans_hauler:whole,qd:pans_hauler", "Pip's father did not run. I signed for every barrel the clerk took, and the count says so. I salt my own step now, and leave the door open. It is the least I can do with it."],
+		["qp:pans_hauler:torn,qd:pans_hauler", "Pip came to the door with the oilcloth, and I did not ask what was in it. He has stopped asking me what I signed. I have stopped answering. We salt the step."],
 		["qd:salt_widow", "Corra Vane's stone has a companion now. People leave salt on them. It's all we've got to leave."],
 		["qd:salt_sweep", "The pans are quiet. First night in a year I could hear the brine settle. It sounds like somebody breathing out."],
 		["", "Salt keeps meat and it keeps the hollowed off a threshold. A line across the door. They stop and look at it. Nobody knows why. Nobody asks."],
@@ -168,6 +170,8 @@ const CONV_ARDEL := {"name": "Ardel Wick", "start": [["!met:ardel", "meet"], [""
 const CONV_PIP := {"name": "Pip", "start": [["!met:pip", "meet"], ["", "hub"]], "nodes": {
 	"meet": {"say": "You've got a lantern! Real flame? Can I hold it? No. All right. I'm Pip.", "do": "met:pip", "next": "hub"},
 	"hub": {"say_if": [
+		["qp:pans_hauler:whole,qd:pans_hauler", "I read all of it. Dad didn't run. Marl's door is open now. I don't go in. But I look."],
+		["qp:pans_hauler:torn,qd:pans_hauler", "I read what was left. Twice. Dad didn't run. Marl's the reeve. Both. I'm not asking which is heavier any more."],
 		["secret:open:spire_lamp", "I saw it! From the roof of the shed! It's the colour of the inside of a loaf!"],
 		["", "I hauled forty sacks today. Fifty, if you count the ones I carried twice. Marl says I'm to count the ones I carried twice. I don't."],
 	], "choices": [

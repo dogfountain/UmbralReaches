@@ -37,7 +37,7 @@ const TEXTS := {
 	"hw_forge": {"region": "hearth", "kind": "plaque", "title": "Edda's forge",
 		"text": "Edda shod the abbey's mules and mended its censers. When the sky went in, she struck the first spark."},
 	"hw_reed": {"region": "hearth", "kind": "grave", "title": "A garden grave",
-		"text": "Tobin Reed, who let his fire go out to see the stars. He saw them."},
+		"text": "Ewan Reed, who let his fire go out to see the stars. He saw them."},
 	"hw_harrow": {"region": "hearth", "kind": "plaque", "title": "The Harrows' house",
 		"text": "Chalked on the lintel: GONE UP WITH THE BLESSING. The door was left unbarred, as the priests asked."},
 	"hw_stair_foot": {"region": "hearth", "kind": "tablet", "title": "The pilgrims' stone",
@@ -535,7 +535,7 @@ const PLACE_INFO := {
 	# --- south marches ---
 	"downs": {"name": "The Southern Downs", "line": "sheep country, and nobody to count them",
 		"text": "Open chalk south of the Waiting Field, between the oak and the well. The shepherds' huts still stand; the shepherds walked north in the winter of the Night and did not come back. A few of the flock did, and they are not sheep now."},
-	"oak": {"name": "The Grandmother Oak", "line": "the first fire was carried out of it",
+	"oak": {"name": "The Grandmother Oak", "line": "the Rooted's first fire was carried out of it",
 		"text": "A dead oak the width of a barn, hollow to the sky, older than the Order or the henge. A stair of timber winds up inside it, put there by the Rooted, who climbed to sing to stars they did not trust. Something keeps its roots."},
 	"well": {"name": "The Well of Echoes", "line": "it answers with what you said last",
 		"text": "A sinkhole forty paces across and a good deal deeper, a stream pouring in over its east rim. The shepherds cut a ledge down the wall to the pool and a cave beyond it. What answers when you call is not an echo."},

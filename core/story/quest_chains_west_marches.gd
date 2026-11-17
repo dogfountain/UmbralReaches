@@ -13,7 +13,7 @@ const ZONES := [["weirford", "Weirford"], ["sorrow", "The Sorrow's Banks"], ["pl
 const ORDER := ["wf_wheel", "wf_watch", "wf_lights", "wf_crown"]
 
 const GIVER_NAMES := {"osk": "Osk the miller", "cassel": "Captain Cassel", "ennis": "Sister Ennis", "tolliver": "Old Tolliver",
-	"dorrit": "Dorrit Marl", "bryn": "Bryn Gale", "wren": "Wren", "gwyn": "Gwyn the ostler"}
+	"dorrit": "Dorrit Marl", "bryn": "Bryn Gale", "wren": "Sedge", "gwyn": "Gwyn the ostler"}
 
 const RARE_IDS := ["drowned_reeve", "moss_mason", "gate_breaker"]
 

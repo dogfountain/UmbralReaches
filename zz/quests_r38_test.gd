@@ -464,7 +464,7 @@ func _step(id: String, s: int, choice: int) -> void:
 				runner.call("note_kill", kind, at, String(rares[0]) if not rares.is_empty() else "")
 		"gather", "find", "place":
 			await _frames(2)
-			for k: String in Chains.gather_keys(id, s):
+			for k: String in Chains.gather_keys(id, s).slice(0, int(stp.get("of", 99)) if String(stp.kind) == "gather" else 99):
 				var p: Node = (quests.get("pickups") as Dictionary).get(k)
 				ok(p != null and p.is_in_group("map_marker"), "%s: %s waits in the world, on the map" % [id, k])
 				if p == null:

@@ -6,7 +6,7 @@ extends RefCounted
 ##                                                                   and the Nave's west door (the dungeon hook: HOOKS.drowned_nave)
 ##   er_nave_fire       The One at the Nave Fire (Fenn)              after the candle: walk the man at the Nave's fire home by the road
 ##                                                                   (an escort), to the shrine at Lastlight
-##   er_halter_bell     The Bell on the Bridle (Wat)                 a mare's halter-bell carried south to the Cairn Tower, against the clock
+##   er_halter_bell     The Bell on the Bridle (Burl)                 a mare's halter-bell carried south to the Cairn Tower, against the clock
 ##   er_inn_slate       The Last Lamp's Slate (Mother Vell)          the tokens off the turned-back; the One Who Counted; the debtors read (clues); the slate: a choice
 ##   er_rope            The Rope Rung Right (Sister Maudlin)         quest_chains_deepen_c.gd: the ringers' rope-marks and the ropes in order, at the Nave's shore
 ## House style: terse, concrete, dark.
@@ -64,20 +64,20 @@ const QUESTS := {
 		"choose": [{"slot": "focus", "rarity": 2}, {"slot": "lantern", "rarity": 2}],
 		"outcome": {"": "Tobin knelt beside his sister at the shrine and did not speak, and she did not turn her head. They stayed like that until the lamp tower's light went white at midnight. In the morning there were two stubs in the horn cup, and Coyle, who had opened the postern for them without being asked and shut it again after, said only that a bar was a bar and a postern was a postern, and that the law of Lastlight had always been the first and had never once forbidden the second."}},
 	"er_halter_bell": {"name": "The Bell on the Bridle", "giver": "wat", "zone": "eastreach", "offer": true,
-		"where": "Wat, at the stable in Lastlight",
-		"text": "Nine winters ago a grey mare came back to Wat's stable with nobody on her and a brass bell on her bridle that was not Wat's, a name cut in the brass. She has stood in the stall since, and every night at the second bell she goes to the door and waits to be let out. Wat does not let her out. He wants the bell taken where she wants to go, and done before dawn, so that he does not have to watch her waiting. A horse would help.",
+		"where": "Burl, at the stable in Lastlight",
+		"text": "Nine winters ago a grey mare came back to Burl's stable with nobody on her and a brass bell on her bridle that was not Burl's, a name cut in the brass. She has stood in the stall since, and every night at the second bell she goes to the door and waits to be let out. Burl does not let her out. He wants the bell taken where she wants to go, and done before dawn, so that he does not have to watch her waiting. A horse would help.",
 		"steps": [
 			{"kind": "find", "text": "Take the halter-bell from the grey mare's bridle, in the stable"},
 			{"kind": "carry", "from": "er_halter", "to": Vector2(327.0, 337.0), "r": 10.0, "time": 150.0, "label": "The halter-bell",
-				"lost": "The bell has slipped its strap and lost itself in the heather. Wat has the mare's other halter.",
+				"lost": "The bell has slipped its strap and lost itself in the heather. Burl has the mare's other halter.",
 				"text": "Carry the bell south by the nave and cairn roads to the foot of the Cairn Tower before the mare gives up waiting ({t} s)"},
 			{"kind": "place", "text": "Hang the bell on the rag-pole at the Cairn Tower's foot"},
-			{"kind": "turnin", "who": "wat", "text": "Tell Wat the bell is hung"},
+			{"kind": "turnin", "who": "wat", "text": "Tell Burl the bell is hung"},
 		],
 		"reward": {"ash": 24, "items": {"ember_shard": 1}},
 		"choose": [{"slot": "lantern", "rarity": 2}, {"slot": "girdle", "rarity": 2}],
 		"stands": {"at": Vector2(327.0, 338.5), "kind": "staff"},
-		"outcome": {"": "Wat opened the stall door at the second bell. The mare stood a long time on the threshold, then went out across the yard to the road gate and stopped there, as horses stop at a thing they have decided to finish. 'She will not go,' Wat said. 'She carried it. She only wanted to know it had arrived.' He stood with her until the lamp tower paled. She is a horse again, he says, the sort that wants her oats, and she will not tell him whose bell it was."}},
+		"outcome": {"": "Burl opened the stall door at the second bell. The mare stood a long time on the threshold, then went out across the yard to the road gate and stopped there, as horses stop at a thing they have decided to finish. 'She will not go,' Burl said. 'She carried it. She only wanted to know it had arrived.' He stood with her until the lamp tower paled. She is a horse again, he says, the sort that wants her oats, and she will not tell him whose bell it was."}},
 	"er_inn_slate": {"name": "The Last Lamp's Slate", "giver": "vell", "zone": "eastreach", "offer": true,
 		"where": "Mother Vell, at the Last Lamp in Lastlight",
 		"text": "Every pilgrim who stopped at the Last Lamp owed Vell's family a night, chalked on the slate behind the bar, and none of them came back to pay it. Three hundred years of names stand on the slate and Vell has never rubbed one out. The pilgrims who turned back on the Thousand Cairns turned back in debt, and the ones who rise there still hold their tokens, the pewter discs the inn gave for a bed, in their fists. Something among them keeps count of every stone. Vell wants the tokens back on her counter, and each one read before the slate is touched: she has never looked whose they are.",

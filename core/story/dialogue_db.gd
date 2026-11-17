@@ -95,11 +95,11 @@ const CONV := {
 				["qp:three_knocks:answer,boss:ascended_warden", "Maud kept her candle. She says it'll do for the both of them. Something answers to her voice now, from the east road, and goes away again. She's content with that."],
 				["qp:three_knocks:shut,boss:ascended_warden", "Maud's candle went out last night. She put it out herself, and the bar is still down, and the knocking stopped when the sky did. She sleeps. She says she doesn't want to know why."],
 				["boss:ascended_warden", "Maud's candle went out last night. She put it out herself. Said he wasn't coming, and she was tired."],
-				["secret:found:cairn,!boss:ascended_warden", "You found his stones up on the Crowns. Don't tell her. She'd go up there."],
+				["elite:hobb", "The knocking's stopped on the east road. Maud still sits up for it. Habit's the last thing to go."],
 				["qp:three_knocks:open", "Maud's door has been on the latch since you sat up at it. Nan says there's a second bowl on the table, and nobody's let her see why."],
 				["qp:three_knocks:answer", "Maud answers the knock herself now, through the planks, in her own voice. It doesn't come in. It says her name first, and she says his."],
 				["qp:three_knocks:shut", "Maud's bar stays down. Three knocks at dusk, three at dawn. She counts them the way I count barrels."],
-				["elite:hobb", "The knocking's stopped on the east road. Maud still sits up for it. Habit's the last thing to go."],
+				["secret:found:cairn,!boss:ascended_warden", "You found his stones up on the Crowns. Don't tell her. She'd go up there."],
 				["qp:forty_first:faith", "Oswin kneels at the forty-first stone every night. Fennick lights him a lamp. Nobody's told him. Nobody's going to."],
 				["qp:slow_way:mercy", "Ostrin's stool is empty at dusk. He's down at the fen's fire with a lit lamp, and comes back at dawn and says nothing. I leave the stool."],
 				["qp:drowned_bell:hung", "The fen tower rang a stroke last night. Nobody rang it. Brannoc swears he never stirred, and he sleeps like a dropped sack."],
@@ -176,16 +176,21 @@ const CONV := {
 				["", "The village will want to tell you things. Let them."],
 			], "next": "end_4m"},
 			"end_4m": {"say_if": [
-				["qp:three_knocks:open", "Maud's door has been open since you sat up at it. Hobb's on the floor by her fire. She says he's no trouble."],
+				["qp:three_knocks:open", "Maud's door has been open since you sat up at it. Hobb lay down by her fire the night the door shut. She says he's no trouble."],
+				["qp:three_knocks:gone", "Maud sat up for a knock that never came. When the door shut she put out the candle, and slept."],
 				["qp:three_knocks:answer", "Maud answers the knock herself, in her own voice, and something on the step says her name back, and goes. She says that's enough of a visit."],
 				["qp:three_knocks:shut", "Maud's candle went out the same night as the sky. She said she was tired. The bar's still down; I'd not touch it."],
 				["", "Maud's candle's still in the window. Habit's the last thing to go."],
 			], "next": "end_4n"},
 			"end_4n": {"say_if": [
-				["qp:spire_lamps:burning", "Fennick lit the gate lantern himself at dawn. Never has. He says it's the one he wasn't let. He won't say who by."],
+				["qp:long_round:stood", "Fennick lit the gate lantern himself at dawn. Never has. He says it's the one he wasn't let."],
+				["qp:long_round:lit", "Fennick walked through the East Gate by your lantern's light at dawn, and did not look back."],
+				["", "Fennick's pole went by the door as the sun came up. First time he's put it out at dawn."],
+			], "next": "end_4f"},
+			"end_4f": {"say_if": [
 				["qp:forty_days:carried", "There's a tin door on a cord on your staff. I won't ask. One of that company's still on the Stair, they say. I don't know whose."],
 				["qp:forty_days:buried", "The Ninth Company's buried at Aldo's root, Wyck says. Late. Forty days late. They got there."],
-				["", "Fennick's pole went by the door as the sun came up. First time he's put it out at dawn."],
+				["", "Wyck counts the Stair's dead of an evening. He has stopped saying the number."],
 			], "next": "end_4c"},
 			# r36 Act II: what the bells say about the night (all eight, then the ones left where they hung)
 			"end_4c": {"say_if": [
@@ -197,7 +202,7 @@ const CONV := {
 			], "next": "end_5"},
 			# r36 Act III: the epilogue, after the names are cut under the door
 			"epi_1": {"say_if": [
-				["qp:the_latch:latched", "Latched. Brannoc told me. Nothing goes up now, and nothing comes down. The sky's a lid. I sleep under it fine."],
+				["qp:the_latch:latched", "Latched. Brannoc told me. Nothing new goes up now, and nothing new comes through. The sky's a lid. I sleep under it fine."],
 				["qp:the_latch:broken", "Broken. Brannoc told me. No door, then. Just the sky, the way it was before anybody climbed. I keep looking up. I think I'll stop."],
 				["", "On the latch. Brannoc told me. The ones still up there can come home if they want to. Two came down the road last night. One of them asked for a room."],
 			], "next": "epi_2"},
@@ -205,6 +210,21 @@ const CONV := {
 				["qp:drowned_bell:hung,qd:full_peal", "And all eight of her bells, and the fen tower's, with its tongue back. It rang when the eighth did, under the water, like a man clearing his throat."],
 				["qd:full_peal", "And all eight of her bells, the one for the Marches too. I heard the last of them from here. Brannoc's not been sober since. Neither have I."],
 				["", "Brannoc's still short of bells. He'll have them off you yet, if you stay."],
+			], "next": "epi_2w"},
+			"epi_2w": {"say_if": [
+				["qp:wr_stand_down:burned", "Reedholm's order is ash on the fell shrine. Aud Corle keeps the book open past the last line anyway."],
+				["qp:wr_stand_down:sealed", "Reedholm's order lies sealed on the fell shrine. Aud Corle says a sealed thing is a kept one."],
+				["qd:wr_stand_down", "Reedholm has read the courier's order aloud. Aud Corle closed the lamp book on it."],
+				["", "Nothing from Reedholm yet. Aud Corle's book is open on a courier nobody has finished."],
+			], "next": "epi_2s"},
+			"epi_2s": {"say_if": [
+				["qd:ds_water_road", "Fallowmere has two beacons burning on the scarp. Reeve Penn writes it in the tithe roll: fires, kept."],
+				["", "Fallowmere's scarp is dark. Reeve Penn is still waiting for a cart."],
+			], "next": "epi_2e"},
+			"epi_2e": {"say_if": [
+				["qp:er_ringers_candle:douse", "Lastlight's candle is out. Sister Maudlin has stopped facing the gate."],
+				["qd:er_ringers_candle", "A candle burns at the drowned Nave's door. Sister Maudlin has stopped facing the gate."],
+				["", "Lastlight's shrine still faces the shut gate. Sister Maudlin has not turned round."],
 			], "next": "epi_3"},
 			"epi_3": {"say": "The names are cut. Your stool's your stool. That's the whole of it. Stay as long as you like; the fire won't go out without you now.", "do": "flag:epilogue_told", "next": ""},
 			"end_5": {"say": "Sit. First round's for the kindled. Second's for the lost. The third's yours.", "do": "flag:ending_told", "next": ""},
@@ -218,6 +238,7 @@ const CONV := {
 			"meet": {"say": "Mind the oaks west of the road. They remember axes. I'd know; mine's the hut by the abbey wall.", "do": "flag:met_hesk", "next": "hub"},
 			"hub": {"say_if": [
 				["qp:unpaid_toll:hild,qd:unpaid_toll", "Hild reground the axe. Bright both sides now, and I won't use it. It hangs over my door where I can see the edge. Well?"],
+				["qd:keeper_wards,qp:unpaid_toll:cairn", "I walked out to the Holds. Gammer Ruan was at her fire. She said my brother's name before I could, and set a bowl down for me. I ate it. Well?"],
 				["qp:unpaid_toll:cairn,qd:unpaid_toll", "I walked out to his cairn. The axe was on it, edge down, and a second stone beside it that wasn't mine. The Rooted leave those. First one I've ever seen left for one of ours. Well?"],
 				["qp:ring_heart:rooted,boss:thornwarden", "Wyck sang it with a name in it. I heard it on the road. My grandmother's people had a name for it. I never knew it. I think it was hers. Well?"],
 				["secret:open:oak", "You went in the hollow oak. I can tell. You've got that look, like the wood looked back."],
@@ -314,12 +335,14 @@ const CONV := {
 				{"text": "What happens if it falls?", "to": "falls"},
 				{"text": "Who's up there?", "to": "who", "if": "bosses:1", "once": true},
 				{"text": "Which bell first?", "to": "bell_first", "if": "boss:thornwarden,boss:bone_abbot,!peal:4"},
+				{"text": "Where do the others hang?", "to": "bell_where", "if": "boss:thornwarden,boss:bone_abbot,!peal:4"},
 				{"text": "Is the peal all there is to do?", "to": "far_work", "if": "peal:4"},
 				{"text": "The company.", "to": ""},
 			]},
-			"far_work": {"say": "Mother hung the bells for the road, not the door. Past the Lines they'll want ringing for other reasons. Reedholm, west: Aud Corle has an order nobody's opened. Fallowmere, south: Reeve Penn wants his beacons lit. Lastlight, east: Sister Maudlin keeps a candle for ringers nobody let in. Three people, three errands. Go and be a stranger to them.", "next": "hub"},
+			"far_work": {"say": "Mother hung the bells for the road, not the door. The letters came to me, nine winters of them from past the Lines, and I never answered. Past the Lines they'll want ringing for other reasons. Reedholm, west: Aud Corle has the last courier's order, still sealed. Fallowmere, south: Reeve Penn wants his beacons lit. Lastlight, east: Sister Maudlin keeps a candle for ringers nobody let in. Three people, three errands. Go and be a stranger to them.", "next": "hub"},
+			"bell_where": {"say": "Seven for the road, and each hangs at the last fire of its country. Ruan at the Holds. Jory at the Quarry. Ysolt on the moor. Elspeth in the Pits, her own tenor. Linnet in the Orchard. Agathe at the Field's gate. Cadoc on the Mere. Something sits in every one. Four will do, the Marches' among them.", "next": "hub"},
 			"bell_first": {"say_if": [
-				["!qd:spire_coal,!qp:bell_spire:rung,!qp:bell_spire:carried", "Mother's eighth, the one that matters. East, to Saltmarket. Marl Pannick's pans want sweeping and her widow wants stopping; do that and Ardel Wick will have a coal for you. The lamp, then the bell at its foot. The door won't hear a peal without it."],
+				["!qd:spire_coal,!qp:bell_spire:rung,!qp:bell_spire:carried", "East, to Saltmarket. Ardel Wick has a coal and a Spire to light. The bell is at its foot."],
 				["!qp:bell_spire:rung,!qp:bell_spire:carried", "The Spire's lit? I can't see it from here; I can hear it, a little. Go down to its foot. That's the bell the door wants. The rest you can take as the road comes."],
 				["", "The Marches' is answered. I heard that one. Now the others, in whatever order the road allows. Any three."],
 			], "next": "hub"},
@@ -344,7 +367,7 @@ const CONV := {
 		"start": [["!qat:the_latch:1", "gone"], ["", "at"]],
 		"nodes": {
 			"at": {"say": "The door hangs in the sky over the dais, shut, its edge a line of nothing against the stars. Under it the latch-stone has a slot the shape of the Ascension Seal. The Seal is warm in your hand.", "who": "", "choices": [
-				{"text": "Latch it. Nothing more goes up, and nothing comes down.", "to": "latched"},
+				{"text": "Latch it. Nothing new goes up, and nothing new comes through.", "to": "latched"},
 				{"text": "Leave it on the latch, for the ones still climbing.", "to": "open"},
 				{"text": "Break the latch on the stone.", "to": "broken"},
 				{"text": "Not yet.", "to": ""},
@@ -447,7 +470,7 @@ const CONV := {
 	},
 	"maud_door": {
 		"name": "Maud's door",
-		"start": [["!qat:three_knocks:2", "gone"], ["", "at"]],
+		"start": [["!qat:three_knocks:2", "gone"], ["elite:hobb", "hobb_gone"], ["", "at"]],
 		"nodes": {
 			"at": {"say": "The bar is down. Three knocks have come and the step is quiet. Close on the other side of the planks, something breathes the way a man does who has walked a long way. Behind you, in the window, Maud is sitting up with the candle, not looking at you. 'If it doesn't say my name,' her letter said, 'I won't lift it.'", "who": "", "choices": [
 				{"text": "Lift the bar. Let him in.", "to": "open"},
@@ -455,10 +478,11 @@ const CONV := {
 				{"text": "Say her name through the door, in her voice: 'Hobb. It's Mam. Say it first.'", "to": "answer"},
 				{"text": "Not yet.", "to": ""},
 			]},
-			"open": {"say": "The bar comes up. He is standing on the step in a coat that was his own, and he looks at the candle and not at you. He walks in past you and lies down on the boards by her fire, where it is warm, and does not move again. Maud covers him. She does not say thank you. She says: he always did sleep like that.", "who": "", "do": "qp:three_knocks:open,qa:three_knocks,att:nan:1", "next": ""},
+			"open": {"say": "The bar comes up. He is standing on the step in a coat that was his own, and he looks at the candle and not at you. He walks in past you and sits down on the boards by her fire, coat over his face. He does not lie down. Maud covers his shoulders. She does not say thank you. She says: he always did sit like that.", "who": "", "do": "qp:three_knocks:open,qa:three_knocks,att:nan:1", "next": ""},
 			"shut": {"say": "You leave the bar down, and sit with your back to the door. It knocks once more and then lies against the wood on the other side. At dawn it is gone. The chalk on the step has been rubbed out by something that did not step over it.", "who": "", "do": "qp:three_knocks:shut,qa:three_knocks", "next": ""},
 			"answer": {"say": "Your voice goes through the planks in an old woman's cadence you did not know you had. 'Hobb. It's Mam. Say it first.' A long wait. Then something says a word, wrongly, and tries again, and gets it. It does not ask to be let in. It stands there until the candle gutters, and goes away down the east road.", "who": "", "do": "qp:three_knocks:answer,qa:three_knocks,att:nan:1", "next": ""},
-			"gone": {"say_if": [["qp:three_knocks:open", "The door is on the latch."], ["qp:three_knocks:answer", "The bar is down, and the step is quiet."], ["", "The bar is down."]], "who": "", "next": ""},
+			"hobb_gone": {"say": "The bar is down. Nothing knocks. You sit the night out against the planks, and the step stays quiet, and in the window Maud trims the candle for nobody on the road. Whatever came down the east road is not coming. She will sit up for it anyway.", "who": "", "do": "qp:three_knocks:gone,qa:three_knocks,att:nan:1", "next": ""},
+			"gone": {"say_if": [["qp:three_knocks:gone", "The bar is down, and the step is quiet."], ["qp:three_knocks:open", "The door is on the latch."], ["qp:three_knocks:answer", "The bar is down, and the step is quiet."], ["", "The bar is down."]], "who": "", "next": ""},
 		},
 	},
 	"ninth_token": {
