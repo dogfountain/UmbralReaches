@@ -77,7 +77,7 @@ func _ready() -> void:
 	_keys("world_map", [KEY_M])                      # the whole Realm on a sheet of parchment (ui/world_map.gd)
 	_button("world_map", JOY_BUTTON_MISC1)           # the Share / Capture button; the Journal's Map page reaches it on any pad
 	_keys("codex", [KEY_J])
-	_keys("tally", [KEY_B])                         # the Count: what the night has cost (ui/tally_panel.gd)
+	_keys("tally", [KEY_P])                         # the Count: what the night has cost (ui/tally_panel.gd); P (B is the rebind test's free key)
 	_button("codex", JOY_BUTTON_DPAD_DOWN)
 	_keys("show_objective", [KEY_Y])                 # hold to see the objective (it shows for 6 s when it changes, then hides)
 	_button("show_objective", JOY_BUTTON_BACK)

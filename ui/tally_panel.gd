@@ -1,5 +1,5 @@
 extends CanvasLayer
-## The Count (B): what the night has cost, on one leather page. Left: the foes put down by kind, the great ones, the
+## The Count (P): what the night has cost, on one leather page. Left: the foes put down by kind, the great ones, the
 ## wanderer's falls, fires kindled, lamps lit, places found, bells answered, camps made and the night it is. Right: the names
 ## the fire remembers (core/story/tally.gd gives every hollowed thing put down a pilgrim's name; the latest fourteen are
 ## listed). Pauses the night while it is read, like the map. After a camp the interact key opens it for six seconds

@@ -30,7 +30,7 @@ A "Make camp" seat stands by every lit fire (`CampSpot`, laid by the Kindling ru
 - Files: `core/world/camp_spot.gd`, `core/world/camp_rite.gd` (class `CampRite`), `core/life/progression/kindling.gd` (lays the seat).
 - Check: the seat's prompt appears at lit fires only, not at the fire's own "Rest" prompt's spot; the camera ray keeps the lens out of walls; the player is restored (process, camera, HUD) on every exit; pausing mid-camp pauses it.
 
-## 6. The Count (B)
+## 6. The Count (P)
 Every hollowed thing put down is counted by kind and given a pilgrim's name (a stable function of its number, the way the Bearers count the dead; titles and names drawn from the valley's own). The Count page lists foes by kind, the great ones fallen, camps made, times hollowed, places found, bells answered of eight, fires burning, lamps lit, how each country regards the wanderer (known / friend / kin), and the latest five names. It pauses the night like the map.
 - Reach it: **B** (rebindable, "The Count"), or the interact key within six seconds after a camp (how a pad reads it).
 - Files: `core/story/tally.gd`, `ui/tally_panel.gd` (new), `autoload/input_setup.gd` (action `tally`), both added by the story director. Saved in `Travel.story["tally"]`.
