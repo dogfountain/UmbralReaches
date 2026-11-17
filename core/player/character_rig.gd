@@ -991,8 +991,7 @@ func _carry_pose(speed: float, _idle: float, dt: float) -> void:
 	_el[1].rotation.x += 0.28 * mid + 0.15 * spr
 	_el[0].rotation.x += 0.5 * spr + 0.15 * mid
 	_sh[0].rotation.x += -sin(_phase) * 0.25 * spr
-	# (no lean here: the coat hangs from the chest, so every lean swings its hem back along the ground; three
-	# stacked at a sprint, 0.39 rad, read as a run on the knees)
+	# (no lean here: the coat hangs from the chest; three leans stacked at a sprint read as a run on the knees)
 	_head.rotation.x += 0.07 * spr
 
 
