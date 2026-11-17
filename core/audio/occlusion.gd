@@ -1,10 +1,10 @@
 extends RefCounted
 ## What stands between the listener and a sound (the open moor against the other side of a hill or a wall). One ray from the camera
-## to the emitter per one-shot, on the world layer only, at most six a physics frame; a sound whose ray is stopped well short of it
+## to the emitter per one-shot, on the world layer only, at most three a physics frame; a sound whose ray is stopped well short of it
 ## is turned down and darkened (Sfx applies both). No class_name. Load by path: const Occlusion := preload("res://core/audio/occlusion.gd")
 
 const NEAR := 6.0                 ## closer than this nothing is occluded
-const BUDGET := 6
+const BUDGET := 3
 static var _frame := -1
 static var _left := 0
 

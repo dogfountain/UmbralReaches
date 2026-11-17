@@ -130,7 +130,7 @@ func _process(dt: float) -> void:
 	var now := Time.get_ticks_msec()
 	_sense_t -= dt
 	if _sense_t <= 0.0:
-		_sense_t = 0.5
+		_sense_t = 1.0
 		_sense(now)
 	while not _hits.is_empty() and now - _hits[0] > 6000:
 		_hits.pop_front()
