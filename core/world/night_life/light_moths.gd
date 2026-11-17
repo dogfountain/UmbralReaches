@@ -62,7 +62,9 @@ func _process(delta: float) -> void:
 	if not Reg.enabled:
 		return
 	var player := get_tree().get_first_node_in_group(Groups.PLAYER) as CharacterBody3D
-	var pp := player.global_position if player != null else Vector3(1e6, 0.0, 1e6)
+	# the drawn position (physics interpolation): a tick position would step the moths against the interpolated body
+	var pxf := player.get_global_transform_interpolated() if player != null else Transform3D(Basis.IDENTITY, Vector3(1e6, 0.0, 1e6))
+	var pp := pxf.origin
 	var speed := player.velocity.length() if player != null else 0.0
 	_calm = _calm + delta if speed < 0.6 else maxf(0.0, _calm - delta * 3.0)
 	_pick -= delta
@@ -99,7 +101,7 @@ func _process(delta: float) -> void:
 	# the wanderer's own lantern calls a few
 	if player != null and _calm > 1.5:
 		var k := clampf((_calm - 1.5) / 4.0, 0.0, 1.0)
-		var lantern := pp + Vector3(0.0, 1.15, 0.0) + player.global_basis.x * -0.35
+		var lantern := pp + Vector3(0.0, 1.15, 0.0) + pxf.basis.x * -0.35
 		for m in PER_PLAYER:
 			var ph2 := float(m) * 1.3
 			var a2 := _t * (1.1 + 0.3 * float(m % 3)) + ph2 * 2.0

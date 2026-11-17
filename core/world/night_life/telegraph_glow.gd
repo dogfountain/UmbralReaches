@@ -63,6 +63,12 @@ func _on_end(enemy: Node, _cast: String, interrupted: bool) -> void:
 	_caster = null
 
 
+## The light follows the caster on the physics tick, so the engine interpolates it with the body it stands under.
+func _physics_process(_delta: float) -> void:
+	if _caster != null and is_instance_valid(_caster) and _dur > 0.0:
+		_light.global_position = _caster.global_position + Vector3(0.0, 0.25, 0.0)
+
+
 func _process(delta: float) -> void:
 	if _caster != null and not is_instance_valid(_caster):
 		_caster = null
@@ -78,6 +84,5 @@ func _process(delta: float) -> void:
 		pulse = 0.65 + 0.35 * sin(_t * 38.0)
 	_light.visible = true
 	_light.light_energy = (0.4 + 2.6 * u * u) * pulse * (1.3 if _cold else 1.0)
-	_light.global_position = _caster.global_position + Vector3(0.0, 0.25, 0.0)
 	if u >= 1.0 and _t > _dur + 0.3:
 		_dur = 0.0
