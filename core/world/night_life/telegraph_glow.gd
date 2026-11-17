@@ -48,6 +48,8 @@ func _on_start(enemy: Node, _cast: String, time: float, interruptible: bool) -> 
 	_cold = interruptible
 	var col := COLD if interruptible else AMBER
 	_light.light_color = col
+	_light.global_position = e.global_position + Vector3(0.0, 0.25, 0.0)
+	_light.reset_physics_interpolation()
 	Vfx.ring(e.global_position, 2.6, Color(col.r * 1.8, col.g * 1.8, col.b * 1.8), time, 0.09)
 
 
@@ -61,6 +63,12 @@ func _on_end(enemy: Node, _cast: String, interrupted: bool) -> void:
 		Vfx.light(p + Vector3(0.0, 1.0, 0.0), COLD, 2.4, 6.0, 0.2, 2)
 	_dur = 0.0
 	_caster = null
+
+
+## The light follows the caster on the physics tick, so the engine interpolates it with the body it stands under.
+func _physics_process(_delta: float) -> void:
+	if _caster != null and is_instance_valid(_caster) and _dur > 0.0:
+		_light.global_position = _caster.global_position + Vector3(0.0, 0.25, 0.0)
 
 
 func _process(delta: float) -> void:
@@ -78,6 +86,5 @@ func _process(delta: float) -> void:
 		pulse = 0.65 + 0.35 * sin(_t * 38.0)
 	_light.visible = true
 	_light.light_energy = (0.4 + 2.6 * u * u) * pulse * (1.3 if _cold else 1.0)
-	_light.global_position = _caster.global_position + Vector3(0.0, 0.25, 0.0)
 	if u >= 1.0 and _t > _dur + 0.3:
 		_dur = 0.0

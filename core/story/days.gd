@@ -7,7 +7,7 @@ extends Node
 
 const MIN_NIGHT_S := 600.0
 
-var _save_t := 0.0
+var _acc := 0.0                 ## playtime not yet written to the story (written once a second: no per-frame dictionary work)
 
 
 static func current() -> int:
@@ -24,7 +24,7 @@ static func age() -> float:
 
 ## Has enough of the night gone for a camp to begin the next one?
 static func due() -> bool:
-	return age() >= MIN_NIGHT_S
+	return age() >= (300.0 if Vows.has("longnight") else MIN_NIGHT_S)
 
 
 ## Begin the next night. True when one passed (it needed MIN_NIGHT_S of play since the last).
@@ -44,4 +44,7 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	if get_tree().paused:
 		return
-	Travel.story["night_age"] = age() + delta
+	_acc += delta
+	if _acc >= 1.0:
+		Travel.story["night_age"] = age() + _acc
+		_acc = 0.0

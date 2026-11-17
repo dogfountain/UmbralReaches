@@ -14,6 +14,7 @@ signal advanced
 signal chosen(index: int)
 signal closed
 
+const Access := preload("res://ui/access.gd")
 const UIType := preload("res://ui/type.gd")
 const TextDirector := preload("res://ui/text_director.gd")
 const Med := preload("res://ui/medieval_style.gd")
@@ -646,6 +647,7 @@ func _subtitles(delta: float) -> void:
 	if td and not td.begin(&"narration", life + 1.0, td.lane_rect(&"sub"), td.is_up(&"narration")):
 		return                                 # the lane is not ours yet (a boss's emote): wait
 	_sub.text = _sub_queue.pop_front()
+	Access.subtitle(_sub)
 	TextDirector.plate(_sub, _sub.text, 960.0, -270.0)
 	_sub.visible_characters = 0
 	_sub_t = life

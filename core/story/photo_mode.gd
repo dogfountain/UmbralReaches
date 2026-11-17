@@ -8,6 +8,7 @@ extends Node
 ## counted in the Count's save (Travel.story["tally"].photos) and the first is written in the Chronicle.
 ## Added by the story director; process_mode ALWAYS (it runs while the tree is paused). Class PhotoMode.
 
+const Access := preload("res://ui/access.gd")
 const SaveDir := preload("res://core/util/save_dir.gd")
 const UiSound := preload("res://ui/ui_sound.gd")
 const Tally := preload("res://core/story/tally.gd")
@@ -194,7 +195,7 @@ func _shoot() -> void:
 	DirAccess.make_dir_recursive_absolute(dir)
 	var file := "umbral_%s_night%d_%03d.png" % [region, Days.current() + 1, n]
 	var err := img.save_png(dir + file)
-	_flash.color.a = 0.55
+	_flash.color.a = 0.55 * Access.flash()
 	var tw := create_tween().set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
 	tw.tween_property(_flash, "color:a", 0.0, 0.45)
 	UiSound.play(self, "shutter")

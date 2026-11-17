@@ -44,6 +44,19 @@ Place quest objects only through the existing quest-world helpers and POIs. List
 3. **Voice.** Grave, plain, a little wry, never modern. The register is in docs/STORY.md and LORE.md, and the canon is there too: eight road bells, the rim's three for the Order, one answered bell opens the door. Never contradict it.
 4. **Documentation.** docs/r39/story_quests_npcs.md and docs/r39/sound.md say for each item: what it is, how to reach or hear it, its files, and what the lead must check.
 
+## No performance cost (Luke, 17 Nov: "remember this must be at no perf cost")
+
+Every addition this round must cost nothing at runtime. The lead measures before and after each merge, using the play-capture regions tour: average and 1% low frame time, worst frame, draw calls and primitives per region, against the regions_a baseline (about 8.5 ms average, 118 fps at a 120 Hz vsync). Anything that regresses is sent back. In practice:
+
+- **Bake, don't compute.** Detail lives in geometry and vertex colour built once at Realm build time (GenCache) or in shader terms that are already paid for. Nothing new is computed per frame.
+- **Pay for what you add.** Added triangles come with LODs and visibility ranges, and are offset by lower far cost: impostors, merged meshes, MultiMesh. Added draw calls are offset by merging. The net count per region must not rise.
+- **Lights.** No new shadowed lights. Unshadowed local lights only within the existing budget (the light pool/director), distance-faded. Far glow comes from emissive cards in one MultiMesh.
+- **Behaviour.** Anything that updates (NPC acts, animals, weather, the score) runs at reduced rates by distance, sleeps off-screen and beyond range, and never allocates per frame.
+- **Audio.** Sound is generated off the main thread and cached. Voices are capped. Nothing is decoded on the main thread mid-play.
+- **No hitches.** Nothing is first-used mid-play without a warm-up behind the loading screen: no shader compile, no mesh build, no texture upload.
+- **Never.** Dynamic resolution stays off, and main.tscn is never rebaked headless.
+- **Document the cost.** Your doc states each item's cost, and how it is kept at zero.
+
 ## Workflow
 
 - **Your branch.** Work in /Users/luke/UmbralReaches/.claude/worktrees/r39-sound (branched from your story work). Run `git merge master` now and before each big item: master has the light team's living night, the opening team's camp, Count, Chronicle, photo mode and horse bond, and the world team's landmarks.

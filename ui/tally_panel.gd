@@ -61,11 +61,11 @@ func _build() -> void:
 	var panel := PanelContainer.new()
 	panel.add_theme_stylebox_override("panel", Med.panel("leather", 40))
 	panel.set_anchors_preset(Control.PRESET_CENTER)
-	panel.custom_minimum_size = Vector2(920, 660)
+	panel.custom_minimum_size = Vector2(920, 700)
 	panel.offset_left = -460.0
 	panel.offset_right = 460.0
-	panel.offset_top = -330.0
-	panel.offset_bottom = 330.0
+	panel.offset_top = -350.0
+	panel.offset_bottom = 350.0
 	_root.add_child(panel)
 	var col := VBoxContainer.new()
 	col.add_theme_constant_override("separation", 6)
@@ -135,9 +135,13 @@ func _fill() -> void:
 	_clear(_left)
 	_clear(_right)
 	_title_l.text = "THE COUNT" if _page == 0 else "THE CHRONICLE"
-	_foot_l.text = "[Q] [E] %s     [%s] or [Esc] close" % ["the Chronicle" if _page == 0 else "the Count", InputSetup.live_label("tally", false, "B")]
+	_title_l.text = ["THE COUNT", "THE CHRONICLE", "THE BELLS"][_page]
+	_foot_l.text = "[Q] [E] page (%d of 3)     [%s] or [Esc] close" % [_page + 1, InputSetup.live_label("tally", false, "B")]
 	if _page == 1:
 		_fill_chronicle()
+		return
+	if _page == 2:
+		_fill_bells()
 		return
 	var d := Tally.data()
 	_head(_left, "PUT DOWN  %d" % Tally.total())
@@ -171,13 +175,22 @@ func _fill() -> void:
 	if ride != "":
 		_row(_right, "%s, your horse" % HorseBond.name_of(ride), "%s, %d km" % [HorseBond.title(ride), roundi(HorseBond.metres(ride) / 1000.0)])
 	_right.add_child(Control.new())
+	_head(_right, "YOUR VOWS")
+	var sworn := Vows.chosen()
+	for v in sworn:
+		_row(_right, String((Vows.DEFS[v] as Array)[2]), String((Vows.DEFS[v] as Array)[1]))
+	if Vows.pending() >= 0:
+		_row(_right, "A vow waits (Remembrance %d)" % int(Vows.TIERS[Vows.pending()]), "")
+	elif sworn.is_empty():
+		_row(_right, "None sworn. The first is at Remembrance 5.", "")
+	_right.add_child(Control.new())
 	_head(_right, "WHO KNOWS YOU")
 	for f: String in ReachState.FACTIONS:
 		var t := ReachState.tier(f)
 		_row(_right, String(ReachState.FACTIONS[f].name).capitalize(), ["known", "friend", "kin"][t] if Slice.full() else "")
 	_right.add_child(Control.new())
 	_head(_right, "THE FIRE REMEMBERS")
-	var names := Tally.latest(5)
+	var names := Tally.latest(4)
 	for n in names:
 		_row(_right, String(n), "")
 	if names.is_empty():
@@ -187,8 +200,32 @@ func _fill() -> void:
 
 
 ## The run as it was written (core/story/chronicle.gd), newest first, in two columns.
+## The eight bells of the Founder: where each hangs, and what has been done (rung where it hangs, carried home, or not yet).
+func _fill_bells() -> void:
+	var got := QuestBook.bells()
+	_head(_left, "THE PEAL")
+	_row(_left, "Bells answered", "%d of %d" % [got, Chains.BELLS.size()])
+	_row(_left, "The door needs", "one")
+	_left.add_child(_label("Every bell after the first takes a hand off the Warden: three in a hundred if rung where it hangs, five if its tongue is carried to the Keg.", 16, DIM))
+	_head(_right, "THE EIGHT")
+	for i in Chains.BELLS.size():
+		var id: String = Chains.BELLS[i]
+		var pick := QuestBook.pick(id)
+		var state := "rung where it hangs" if pick == "rung" else ("carried home" if pick == "carried" else ("taken up" if QuestBook.started(id) else "not yet"))
+		var nm := String((Chains.QUESTS.get(id, {}) as Dictionary).get("name", id))
+		_row(_right, nm, state)
+
+
 func _fill_chronicle() -> void:
 	_head(_left, "NIGHT %d" % (Days.current() + 1))
+	if bool((Travel.story.get("flags", {}) as Dictionary).get("ending_card", false)):
+		var cr := Button.new()
+		cr.text = "Read the credits"
+		Med.style_button(cr, 17, 12, 5)
+		cr.pressed.connect(func() -> void:
+			close()
+			NightPanel.panel(get_tree()).show_credits.call_deferred())
+		_left.add_child(cr)
 	var list := Chronicle.entries()
 	if list.is_empty():
 		_row(_left, "Nothing is written yet.", "")
@@ -268,7 +305,7 @@ func _input(event: InputEvent) -> void:
 	if Time.get_ticks_msec() - _opened_ms < 200:
 		return
 	if event is InputEventKey and event.pressed and not event.is_echo() and (event.physical_keycode in [KEY_Q, KEY_E, KEY_LEFT, KEY_RIGHT]):
-		_page = 1 - _page
+		_page = (_page + (2 if (event.physical_keycode == KEY_Q or event.physical_keycode == KEY_LEFT) else 1)) % 3
 		_fill()
 		get_viewport().set_input_as_handled()
 		return

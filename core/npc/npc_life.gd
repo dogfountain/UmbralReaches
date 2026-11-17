@@ -398,6 +398,12 @@ var _bf: Array[Quaternion] = []      ## on screen when the update came (from)
 var _bt: Array[Quaternion] = []      ## the update's pose (to)
 var _bo := Vector2.ZERO              ## the rig's height offset: from, to
 var _bspan := 0.0                    ## seconds to ease across; 0 = nothing to blend
+var _bp := Vector3.ZERO              ## the rig's position when the update came (act crossfade)
+var _xf_from: Array[Quaternion] = []  ## act crossfade: the pose on screen when the act changed
+var _xf_p := Vector3.ZERO
+var _xf_t := 1.0
+var _xf_dur := 0.3
+var _xf_key := ""
 
 
 func blend_from(rig: DwarfRig) -> void:
@@ -409,6 +415,7 @@ func blend_from(rig: DwarfRig) -> void:
 	for i in n:
 		_bf[i] = sk.get_bone_pose_rotation(i)
 	_bo.x = (rig as Node3D).position.y
+	_bp = (rig as Node3D).position
 
 
 func blend_to(rig: DwarfRig, span: float) -> void:
@@ -431,12 +438,44 @@ func blend_step(rig: DwarfRig, acc: float) -> void:
 	if al >= 1.0:
 		al = 1.0
 		_bspan = 0.0                    # arrived: hold the pose until the next update
-	# smoothstep ease so low-rate NPC poses do not click between updates
-	al = al * al * (3.0 - 2.0 * al)
+	# a third of a smoothstep: enough that the velocity does not jump at each update, little enough that a steady walk
+	# does not pulse at the update rate (a full smoothstep stops and starts the limbs 12 to 30 times a second)
+	al = lerpf(al, al * al * (3.0 - 2.0 * al), 0.3)
 	var sk := rig.skeleton
 	for i in _bf.size():
 		sk.set_bone_pose_rotation(i, _bf[i].slerp(_bt[i], al))
 	(rig as Node3D).position.y = lerpf(_bo.x, _bo.y, al)
+
+
+## ACT CROSSFADE. A pose is a pure function of the act (sitting, kneeling, hammering, a gesture), so the frame an act
+## changes the body jumped to the new pose. Call `xfade_check` right after a pose update (it has the pose from before the
+## update, blend_from's), then `xfade_apply` once: while a change is under way the new pose is eased in from what was on
+## screen over `dur` seconds (slerp, smoothstep weight). The first pose and an unchanged key do nothing.
+func xfade_check(rig: DwarfRig, key: String, dur := 0.3) -> void:
+	if key == _xf_key:
+		return
+	var first := _xf_key == ""
+	_xf_key = key
+	var n := DwarfRig.BONES.size()
+	if first or _bf.size() != n:
+		return
+	_xf_from.resize(n)
+	for i in n:
+		_xf_from[i] = _bf[i]
+	_xf_p = _bp
+	_xf_t = 0.0
+	_xf_dur = maxf(dur, 0.05)
+
+
+func xfade_apply(rig: DwarfRig, dt: float) -> void:
+	if _xf_t >= 1.0:
+		return
+	_xf_t = minf(1.0, _xf_t + dt / _xf_dur)
+	var w := _xf_t * _xf_t * (3.0 - 2.0 * _xf_t)
+	var sk := rig.skeleton
+	for i in _xf_from.size():
+		sk.set_bone_pose_rotation(i, _xf_from[i].slerp(sk.get_bone_pose_rotation(i), w))
+	(rig as Node3D).position = _xf_p.lerp((rig as Node3D).position, w)
 
 
 ## Metres covered by one full stride (two steps) for a leg of length `leg` swinging `swing` rad.

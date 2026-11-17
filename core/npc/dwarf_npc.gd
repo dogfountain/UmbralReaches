@@ -219,10 +219,18 @@ func _process(delta: float) -> void:
 		return
 	_acc += delta
 	if _acc < iv:
+		if life != null:
+			life.blend_step(rig, _acc)           # eased between the low-rate poses, not stepped (npc_life.gd)
 		return
 	var dt := _acc
 	_acc = 0.0
+	if life != null:
+		life.blend_from(rig)
 	animate(dt)
+	if life != null:
+		life.xfade_check(rig, _act if _trip == "" else _trip, 0.28)
+		life.xfade_apply(rig, dt)
+		life.blend_to(rig, iv * 1.08)
 
 
 ## Pose the rig for the current beat (also driven by the tests and the studio shots).

@@ -14,6 +14,9 @@ extends CharacterRig
 ## No class_name (project rule): const BeastRig := preload("res://core/enemy/beast_rig.gd")
 
 const BB := preload("res://core/enemy/beast_body.gd")
+const Smooth := preload("res://core/enemy/pose_smooth.gd")
+## Seconds a change of mode is blended over (pose_smooth.gd): short into a blow, long out of one and into a death.
+const BLEND := {&"idle": 0.24, &"windup": 0.14, &"strike": 0.05, &"stagger": 0.08, &"howl": 0.2, &"death": 0.3}
 const STRIKE_LEN := 0.95
 const STAGGER_LEN := 1.6
 const DEATH_LEN := 2.2
@@ -50,6 +53,10 @@ var _q_air := 0.0
 var _q_land_t := 0.0
 var _q_was_floor := true
 var _q_flinch := 0.0
+var _q_flinch_v := 0.0                            ## a critically damped spring: a blow kicks its speed, it settles without a snap
+var _sm: Smooth                                   ## mode crossfade and tick interpolation (pose_smooth.gd)
+var _sm_frame := -10
+var _R := {}                                      ## the euler pose per bone, reused every tick (no allocation)
 var _q_flinch_side := 0.0
 var _q_dead := false
 var _q_glints: Array = []
@@ -78,6 +85,7 @@ func _build() -> void:
 	_q_b = body.made(opts)
 	add_child(_q_b)
 	_q_sk = _q_b.get("skeleton") as Skeleton3D
+	_sm = Smooth.new(BB.BONES.size(), 2)
 	for n: String in SOCKETS:
 		var s := Node3D.new()
 		s.name = "Socket_" + n
@@ -123,7 +131,9 @@ func animate(vel: Vector3, on_floor: bool, delta: float) -> void:
 		return
 	_t += delta
 	_q_mt += delta
-	_q_flinch = move_toward(_q_flinch, 0.0, delta * 3.0)
+	var sp := Smooth.spring(_q_flinch, _q_flinch_v, 0.0, 14.0, delta)
+	_q_flinch = sp.x
+	_q_flinch_v = sp.y
 	if on_floor and not _q_was_floor:
 		_q_land_t = LAND_LEN
 	_q_was_floor = on_floor
@@ -137,6 +147,8 @@ func animate(vel: Vector3, on_floor: bool, delta: float) -> void:
 
 
 func _set_mode(m: StringName, length := 0.0) -> void:
+	if _sm != null and m != _q_mode:
+		_sm.mode_changed(float(BLEND.get(m, 0.15)))
 	_q_mode = m
 	_q_mt = 0.0
 	_q_mlen = length
@@ -162,13 +174,13 @@ func howl(dur: float) -> void:
 
 
 func flinch(amount: float, side := 0.0) -> void:
-	_q_flinch = clampf(maxf(_q_flinch, amount), 0.0, 1.0)
+	_q_flinch_v += clampf(amount, 0.0, 1.0) * 38.0
 	_q_flinch_side = side
 
 
 func stagger() -> void:
 	if not _q_dead:
-		_q_flinch = 1.0
+		_q_flinch_v += 38.0
 		_set_mode(&"stagger")
 
 
@@ -181,14 +193,28 @@ func collapse(_back := false) -> void:
 
 
 func _process(_delta: float) -> void:
-	if not _q_dead or _q_b == null:
-		set_process(false)
+	if _q_b == null:
+		return
+	_draw_bones()
+	if not _q_dead:
 		return
 	var mi := _q_b.get("mesh_instance") as MeshInstance3D
 	var d := clampf(float(mi.get_instance_shader_parameter(&"dissolve")) * 1.15, 0.0, 1.0)
 	mi.transparency = d
 	for gl: Array in _q_glints:
 		(gl[0] as GeometryInstance3D).transparency = d
+
+
+## The skeleton between the last two committed ticks (bone poses are not physics-interpolated: posed at 60 Hz they
+## would step on a faster screen). A tick that was not posed shows the last pose as it is.
+func _draw_bones() -> void:
+	if _q_sk == null or _sm == null or not _sm.primed:
+		return
+	var live := is_physics_interpolated_and_enabled() and Engine.get_physics_frames() - _sm_frame < 2
+	var f := Engine.get_physics_interpolation_fraction() if live else 1.0
+	for i in _sm.n:
+		_q_sk.set_bone_pose_rotation(i, _sm.sample_q(i, f))
+	_q_sk.set_bone_pose_position(BB.B_ROOT, _sm.sample_v(1, f))
 
 
 func muzzle() -> Vector3:
@@ -204,7 +230,9 @@ func muzzle() -> Vector3:
 # =====================================================================================================
 
 func _pose(dt: float, vel: Vector3) -> void:
-	var R := {}
+	var R := _R
+	R.clear()
+	var rot_z := 0.0
 	var root := Vector3.ZERO
 	var size := maxf(global_basis.get_scale().y, 0.01) if is_inside_tree() else 1.0
 	var speed := Vector2(vel.x, vel.z).length() / size
@@ -298,15 +326,20 @@ func _pose(dt: float, vel: Vector3) -> void:
 			root.y += _crouch(R, 1.0 * fold)
 			_add(R, BB.B_NECK, Vector3(-0.4 * fold, 0, 0))
 			_add(R, BB.B_HEAD, Vector3(0.3 * fold, 0, 0))
-			_q_b.rotation.z = 1.35 * over
+			rot_z = 1.35 * over
 			root.y += 0.12 * over
-	if not _q_dead:
-		_q_b.rotation = Vector3(-_q_flinch * 0.08, 0, _q_flinch * _q_flinch_side * 0.1)
-	for i in BB.BONES.size():
-		var e: Vector3 = R.get(i, Vector3.ZERO)
-		_q_sk.set_bone_pose_rotation(i, Quaternion.from_euler(e))
+	# commit: the mode's pose, crossfaded from the last if the mode just changed (pose_smooth.gd)
+	_sm.raw_v[0] = Vector3(-_q_flinch * 0.08, 0.0, _q_flinch * _q_flinch_side * 0.1) if not _q_dead else Vector3(0.0, 0.0, rot_z)
 	var rest0: Vector3 = (_q_b.get("rests") as Array)[BB.B_ROOT]
-	_q_sk.set_bone_pose_position(BB.B_ROOT, rest0 + root)
+	_sm.raw_v[1] = rest0 + root
+	for i in _sm.n:
+		_sm.raw_q[i] = Quaternion.from_euler(R.get(i, Vector3.ZERO))
+	_sm.commit(dt if dt > 0.0 else 0.0166)
+	_sm_frame = Engine.get_physics_frames()
+	_q_b.rotation = _sm.cur_v[0]
+	for i in _sm.n:
+		_q_sk.set_bone_pose_rotation(i, _sm.cur_q[i])
+	_q_sk.set_bone_pose_position(BB.B_ROOT, _sm.cur_v[1])
 	var bv: Variant = _q_b
 	for gl: Array in _q_glints:
 		(gl[0] as Node3D).position = bv.carry(int(gl[1]), gl[2])

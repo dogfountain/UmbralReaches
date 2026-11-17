@@ -36,10 +36,6 @@ static func info(file: String) -> Dictionary:
 		var bits := String(mi.name).split("__")
 		if bits.size() >= 2 and mi.mesh != null:
 			(d.parts as Array).append({"set": bits[bits.size() - 1], "mesh": mi.mesh, "name": bits[0]})
-	var weather := preload("res://core/world/realm/prop_weather.gd")      # contact dirt, dark undersides, moss on the tops (vertex colour, built once)
-	var foot: float = weather.foot_y((d.parts as Array).map(func(q: Dictionary) -> Mesh: return q.mesh))
-	for q: Dictionary in (d.parts as Array):
-		q.mesh = weather.bake(q.mesh as Mesh, foot)
 	for n in root.find_children("*", "CollisionShape3D", true, false):
 		var cs := n as CollisionShape3D
 		if cs.shape is ConvexPolygonShape3D:

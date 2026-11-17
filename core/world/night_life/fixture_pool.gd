@@ -7,8 +7,8 @@ extends Node3D
 
 const Reg := preload("res://core/world/night_life/night_registry.gd")
 
-const POOL_N := 10
-const RANGE := 42.0
+const POOL_N := 7                          ## lights built; Settings.detail lights 3 / 5 / 7 of them (low, medium, high)
+const RANGE := 34.0
 const TICK := 0.35
 
 var _lights: Array[OmniLight3D] = []
@@ -41,11 +41,12 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	_t += delta
 	var on := Reg.enabled
+	var active: int = [3, 5, 7][clampi(Settings.detail, 0, 2)]
 	_tick -= delta
 	if _tick <= 0.0:
 		_tick = TICK
 		if on:
-			_assign()
+			_assign(active)
 		else:
 			for i in POOL_N:
 				_row[i] = -1
@@ -65,7 +66,7 @@ func _process(delta: float) -> void:
 
 
 ## The nearest rows without a light of their own take the lights; a light keeps its row while that row stays in range.
-func _assign() -> void:
+func _assign(active: int) -> void:
 	var cam := get_viewport().get_camera_3d()
 	if cam == null:
 		return
@@ -79,7 +80,7 @@ func _assign() -> void:
 			best.append([d2, i])
 	best.sort_custom(func(a: Array, b: Array) -> bool: return float(a[0]) < float(b[0]))
 	var want := {}
-	for j in mini(best.size(), POOL_N):
+	for j in mini(best.size(), active):
 		want[int((best[j] as Array)[1])] = true
 	# release lights whose row left the wanted set (they fade down, then are reused)
 	for i in POOL_N:

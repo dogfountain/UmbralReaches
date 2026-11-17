@@ -251,7 +251,9 @@ func _input(event: InputEvent) -> void:
 		return
 	if event is InputEventKey and event.pressed:
 		var k := (event as InputEventKey).physical_keycode
-		if k == KEY_SPACE or k == KEY_HOME:
+		if MapCluster.toggle_key(k):
+			pass
+		elif k == KEY_SPACE or k == KEY_HOME:
 			_recentre()
 		elif k == KEY_EQUAL or k == KEY_KP_ADD or k == KEY_PAGEUP:
 			_zoom_by(1.25, _area.get_center())
@@ -261,6 +263,10 @@ func _input(event: InputEvent) -> void:
 	elif event is InputEventJoypadButton and event.pressed:
 		if (event as InputEventJoypadButton).button_index == JOY_BUTTON_Y and Wayfarer.toggle_pin(get_tree(), _s2w(_area.get_center()), _marks[_hover] if _hover >= 0 and _hover < _marks.size() else {}):
 			_collect()
+		if (event as InputEventJoypadButton).button_index == JOY_BUTTON_LEFT_SHOULDER:
+			MapCluster.toggle_key(KEY_1)                     # the pad's filters: LB tasks, RB fires
+		elif (event as InputEventJoypadButton).button_index == JOY_BUTTON_RIGHT_SHOULDER:
+			MapCluster.toggle_key(KEY_2)
 		if (event as InputEventJoypadButton).button_index == JOY_BUTTON_A:
 			if _hover < 0 or _hover >= _marks.size() or not MapTravel.click(self, _marks[_hover]):
 				_recentre()
@@ -554,7 +560,7 @@ func _bar(c: Control, vs: Vector2) -> void:
 	_forge(c, Rect2(0.0, by, vs.x, BAR_H))
 	var pad := Input.get_connected_joypads().size() > 0 and not _use_mouse
 	var close_k := InputSetup.live_label(ACTION, pad, "M")
-	var txt := "Drag or stick: pan     Wheel or triggers: zoom     Space or A: find yourself     Right-click or Y: set or lift a mark     %s or Esc: close" % close_k
+	var txt := "Drag or stick: pan     Wheel or triggers: zoom     Space or A: find yourself     Right-click or Y: set or lift a mark     1-5: filters     %s or Esc: close" % close_k
 	c.draw_string(_serif, Vector2(34.0, by + 66.0), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Med.BONE_DIM)
 	var lamps := Lamp.tally(get_tree())
 	var x := 34.0
