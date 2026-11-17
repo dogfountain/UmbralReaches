@@ -418,7 +418,7 @@ func _ui(dt: float) -> bool:
 	return true
 
 
-## What a player does at a hub: take the offered task or the turn-in line ("◆", "?"), keep clear of the wares,
+## What a player does at a hub: take the offered task or the turn-in line (the painted offer / hand-in mark), keep clear of the wares,
 ## otherwise the first line; if only wares are left, the last (the way out).
 func _label_of(b: Button) -> String:
 	var t := b.text.strip_edges()
@@ -447,7 +447,7 @@ func _pick_choice(btns: Array) -> int:
 		if _label_of(btns[i]) in _asked:
 			continue
 		var t := _label_of(btns[i])
-		if t.begins_with("?") or t.begins_with("◆"):
+		if String(btns[i].get("mark")) != "":        # a task choice carries its painted mark (dialogue.gd _Choice.mark)
 			return i
 		var low := t.to_lower()
 		var waresy := low.contains("ware") or low.contains("trade") or low.contains("shop") or low.contains("buy") or low.contains("sell")
