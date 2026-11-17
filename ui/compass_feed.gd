@@ -1,5 +1,5 @@
 extends RefCounted
-## What the compass strip shows, and why (docs/r39/compass.md). The old strip drew every beacon, the four nearest fires
+## What the compass strip shows, and why (the compass doc (docs, compass.md)). The old strip drew every beacon, the four nearest fires
 ## and the tracked step all at once: a strip of gold diamonds that said nothing. This is the relevance filter between the
 ## world and the strip. Static and pure: `gather()` reads the tree once (the compass calls it twice a second) and returns
 ## the few candidates worth a mark NOW, each with the range it fades out over; `fold()` merges the ones that would

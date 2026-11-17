@@ -3,7 +3,7 @@ extends Control
 ## of the HUD. 180 degrees of heading across it, ticks every 15, the four winds in Cinzel (north in
 ## lantern gold), and the few marks worth a glance NOW. What is shown is decided by ui/compass_feed.gd (relevance by
 ## kind, range and the wanderer's need; Settings > Display > Compass Detail: Minimal / Standard / Full), see
-## docs/r39/compass.md: the followed step always; danger near; the nearest fire only when one is wanted (Gloom or wounds);
+## the compass doc (docs, compass.md): the followed step always; danger near; the nearest fire only when one is wanted (Gloom or wounds);
 ## quest givers near; far beacons as faint ticks. Marks fade with distance and merge when they overlap.
 ## Added by ui/hud.gd (one line). Reads the tree twice a second, draws every frame; no signals needed.
 ## Hidden while the tree is paused (menus, dialogue) and under the loading screen.
