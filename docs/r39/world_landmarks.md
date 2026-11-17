@@ -276,3 +276,9 @@ cart (loaded, tipped), firewood (chopping block, split-wood rack); sacks keep th
 the zone's id, so neighbouring yards show different mixes and no kind draws more MultiMeshes in a zone than it did. (Extras have 1-3 material parts like the
 modelled ones; a window of extras can differ by a part or two.) Triangles: a variant is 20-150 boxes' worth, built once and shared; instances unchanged.
 **Check.** Two yards side by side (Hearthward's yard and the Smith's) show different crates and carts; counts of draws per zone in the regions tour unchanged.
+
+## Hearthward and town buildings (`lore/cottage_detail.gd`)
+Checked against the brief's list. Already present: roof overhang (0.45 m with gable verge boards), ridge cap with finials, chimney (stone, cap, pot, smoke), door and window frames,
+lintels, sills, fixed shutters, flower boxes, hung lantern, drip stones, garden fence and bed, kit masonry tone patchwork, market stalls/carts/wells (market_props, props above).
+New: a **fascia board** along both eaves and **moss patches** on the roof slopes (three on the damp north side, two on the south). All kit boxes merged into the existing
+roof/beam/leaf meshes: no new draw call, about 10 boxes a cottage at build time (0.7 ms). Check at 5 m: a dark board under the thatch edge; at 50 m: roofs have a mottled tone.

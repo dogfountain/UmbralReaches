@@ -34,6 +34,18 @@ static func dress(L: RefCounted, xf: Transform3D, w: float, d: float, bas: Basis
 	k.box("lore_beam", xf * Vector3(0, ridge + 0.04, 0), Vector3(w + 0.9, 0.13, 0.24), bas, false, 0.6)
 	for s: float in [-1.0, 1.0]:
 		k.box("lore_tstone", xf * Vector3(s * (hw + 0.42), ridge + 0.1, 0), Vector3(0.2, 0.2, 0.2), bas, false, 0.85)
+	# the eaves: a fascia board along each edge of the overhang, and patches of moss on the slopes (the damp side most)
+	var slope := (ridge - H) / hd
+	var ang := atan(slope)
+	for sd: float in [-1.0, 1.0]:
+		var bot := Vector3(0.0, H - 0.45 * slope, sd * (hd + 0.45))
+		var top := Vector3(0.0, ridge, 0.0)
+		var tilt := Basis(Vector3.RIGHT, sd * ang)
+		k.box("lore_beam", xf * (bot + Vector3(0.0, 0.04, 0.0)), Vector3(w + 0.9, 0.1, 0.1), bas * tilt, false, 0.55)
+		for i in (3 if sd < 0.0 else 2):
+			var q := top.lerp(bot, rng.randf_range(0.2, 0.8))
+			q.x = rng.randf_range(-hw * 0.8, hw * 0.8)
+			k.box("lore_leaf", xf * (q + tilt * Vector3.UP * 0.03), Vector3(rng.randf_range(0.5, 1.3), 0.04, rng.randf_range(0.4, 0.9)), bas * tilt * Basis(Vector3.UP, rng.randf_range(-0.4, 0.4)), false, 0.7 + 0.2 * rng.randf())
 	# drip stones along both long walls, a step of laid stones at the back
 	for i in 7:
 		var x := lerpf(-hw + 0.3, hw - 0.3, float(i) / 6.0)
