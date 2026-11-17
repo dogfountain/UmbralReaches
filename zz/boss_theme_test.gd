@@ -16,7 +16,8 @@ func _ready() -> void:
 	for a in OS.get_cmdline_user_args():
 		if a.begins_with("--dump="):
 			dump = a.trim_prefix("--dump=")
-	var lengths := {"thornwarden": 60.0 / 88.0 * 2.0 * 16.0, "bone_abbot": 60.0 / 56.0 * 4.0 * 8.0, "ascended_warden": 60.0 / 72.0 * 3.0 * 12.0}
+	var lengths := {"thornwarden": 60.0 / 88.0 * 2.0 * 16.0, "bone_abbot": 60.0 / 56.0 * 4.0 * 8.0, "ascended_warden": 60.0 / 72.0 * 3.0 * 12.0,
+		"r37_anchoress": 60.0 / 52.0 * 4.0 * 8.0, "r37_hierarch": 60.0 / 66.0 * 4.0 * 8.0}
 	for id: String in Themes.IDS:
 		var sizes: Array = []
 		for layer: String in ["base", "high"]:

@@ -26,6 +26,7 @@ const Music := preload("res://core/life/wildlife/scape_music.gd")
 const UiSoundLib := preload("res://ui/ui_sound.gd")
 const Foley := preload("res://core/vfx/foley.gd")
 const GloomDrone := preload("res://core/world/gloom_drone.gd")
+const AcousticZones := preload("res://core/audio/acoustic_zones.gd")
 
 ## dB each bed gives up at full Gloom (core/world/gloom_world.gd): the small living sounds go first
 const GLOOM_THIN := {"crickets": 17.0, "meadow": 13.0, "leaves": 8.0, "murmur": 14.0, "fen": 6.0, "night": 2.5}
@@ -171,6 +172,10 @@ const ROOMS := {
 	"tavern": {"room_size": 0.36, "damping": 0.65, "wet": 0.11, "spread": 0.7, "predelay_msec": 14.0, "hipass": 0.15},
 	"ossuary": {"room_size": 0.84, "damping": 0.3, "wet": 0.28, "spread": 1.0, "predelay_msec": 48.0, "hipass": 0.1},
 	"rift": {"room_size": 0.93, "damping": 0.45, "wet": 0.17, "spread": 1.0, "predelay_msec": 95.0, "hipass": 0.2},
+	# the sound rework: rooms registered by the places that have them (core/audio/acoustic_zones.gd)
+	"hall": {"room_size": 0.72, "damping": 0.5, "wet": 0.2, "spread": 1.0, "predelay_msec": 60.0, "hipass": 0.15},
+	"cave": {"room_size": 0.88, "damping": 0.32, "wet": 0.26, "spread": 1.0, "predelay_msec": 80.0, "hipass": 0.12},
+	"crypt": {"room_size": 0.55, "damping": 0.4, "wet": 0.22, "spread": 0.8, "predelay_msec": 28.0, "hipass": 0.15},
 }
 ## open-air acoustics by kind of place (used when no room is: blended by the soundscape weights)
 const PLACES := {
@@ -178,16 +183,18 @@ const PLACES := {
 	"wood": {"room_size": 0.45, "damping": 0.85, "wet": 0.07, "spread": 1.0, "predelay_msec": 18.0, "hipass": 0.2},
 	"cliff": {"room_size": 0.82, "damping": 0.4, "wet": 0.12, "spread": 1.0, "predelay_msec": 120.0, "hipass": 0.25},
 	"well": {"room_size": 0.92, "damping": 0.35, "wet": 0.22, "spread": 1.0, "predelay_msec": 70.0, "hipass": 0.15},
+	# the open moor: dry, wide, a thin late tail off the far hills
+	"moor": {"room_size": 0.62, "damping": 0.9, "wet": 0.028, "spread": 1.0, "predelay_msec": 95.0, "hipass": 0.3},
 }
-const SCAPE_PLACE := {"chapel": "open", "ring": "wood", "tally": "open", "village": "open", "heath": "open", "wood": "wood", "fen": "open", "crossing": "cliff", "summit": "cliff",
-	"quarry": "cliff", "holds": "wood", "foundry": "cliff", "moor": "open", "orchard": "wood", "necropolis": "open", "mere": "open",
-	"sorrow": "wood", "plinth": "open", "siege": "open", "stillwater": "open", "anchorholds": "cliff", "salt": "open", "downs": "open",
+const SCAPE_PLACE := {"chapel": "open", "ring": "wood", "tally": "open", "village": "open", "heath": "moor", "wood": "wood", "fen": "open", "crossing": "cliff", "summit": "cliff",
+	"quarry": "cliff", "holds": "wood", "foundry": "cliff", "moor": "moor", "orchard": "wood", "necropolis": "open", "mere": "open",
+	"sorrow": "wood", "plinth": "open", "siege": "open", "stillwater": "open", "anchorholds": "cliff", "salt": "open", "downs": "moor",
 	"well": "well",
-	"fell": "cliff", "lanternwood": "wood", "barrowheath": "open", "reedmere": "open", "fields": "open", "arches": "cliff",
-	"southwood": "wood", "bellfall": "cliff", "nave": "cliff", "cairns": "open", "charnel": "cliff"}
+	"fell": "cliff", "lanternwood": "wood", "barrowheath": "moor", "reedmere": "open", "fields": "open", "arches": "cliff",
+	"southwood": "wood", "bellfall": "cliff", "nave": "cliff", "cairns": "moor", "charnel": "cliff"}
 const ROOM_KEYS := ["room_size", "damping", "spread", "predelay_msec", "hipass"]
 ## outdoor layers indoors: [low-pass cutoff Hz, AmbOut volume dB]
-const MUFFLE := {"": [20000.0, 0.0], "tavern": [700.0, -4.0], "ossuary": [320.0, -16.0], "rift": [20000.0, 0.0]}
+const MUFFLE := {"": [20000.0, 0.0], "tavern": [700.0, -4.0], "ossuary": [320.0, -16.0], "rift": [20000.0, 0.0], "hall": [900.0, -8.0], "cave": [420.0, -14.0], "crypt": [360.0, -12.0]}
 
 var scape := "village"            ## the dominant soundscape at the listener
 var gloom := 0.0                  ## 0..1, set by GloomWorld: thins the small sounds, brings the drone in
@@ -218,6 +225,7 @@ var _room_busy := true
 var _muffle_to := ""
 var _limiter: AudioEffectHardLimiter
 var _master_comp: AudioEffectCompressor
+var hour_mul := {}                ## bed -> multiplier, set once a second by the Soundstage (the night's hours, the eclipse)
 var _music_v := -1.0
 var _drone: AudioStreamPlayer
 
@@ -292,6 +300,9 @@ func _ready() -> void:
 		# r35: a composed theme for each great one (boss_themes.gd); ScapeMusic ducks under it
 		var themes: Node = (load("res://core/life/wildlife/boss_themes.gd") as GDScript).new()
 		add_child(themes)
+		var stage: Node = (load("res://core/audio/soundstage.gd") as GDScript).new()     # cues, the dynamic score, the mix, the night's hours
+		stage.set("ambience", self)
+		add_child(stage)
 	_pick()
 
 
@@ -594,6 +605,9 @@ func _pick() -> void:
 			bed_want["crickets"] = float(bed_want["crickets"]) * (1.0 - 0.85 * rain)
 		if bed_want.has("meadow"):
 			bed_want["meadow"] = float(bed_want["meadow"]) * (1.0 - 0.5 * rain)
+	for hk: String in hour_mul:
+		if bed_want.has(hk):
+			bed_want[hk] = float(bed_want[hk]) * float(hour_mul[hk])
 	for key: String in bed_want:
 		bed_want[key] = clampf(float(bed_want[key]), 0.0, 1.0)
 	scape = best
@@ -607,6 +621,9 @@ static func zone_at(p: Vector3, area: String, best: String) -> String:
 		return "tavern"
 	if area == "ossuary":
 		return "ossuary"
+	var reg := AcousticZones.at(p)                  # a hall, a cave or a crypt some builder registered
+	if reg != "":
+		return reg
 	if Rect2(Vector2(-26, -112) + Endgame.O2, Vector2(52, 100)).has_point(Vector2(p.x, p.z)) and p.y < -2.5:
 		return "rift"
 	return ""

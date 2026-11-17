@@ -866,7 +866,7 @@ func _upgrade() -> void:
 	if rt == null or _sel_uid < 0:
 		return
 	var res := rt.upgrade(_sel_uid, at_fire())
-	UiSound.play(self, "confirm" if res == "" else "back")
+	UiSound.play(self, "equip" if res == "" else "deny")
 	_rebuild()
 	if res != "":
 		_why.text = res
@@ -890,7 +890,7 @@ func _reforge() -> void:
 	var res := rt.reforge(_sel_uid, _reforge_idx, at_fire())
 	if res == "" and n > 1:
 		_reforge_idx = (_reforge_idx + 1) % n       # the next press reforges the next line
-	UiSound.play(self, "confirm" if res == "" else "back")
+	UiSound.play(self, "equip" if res == "" else "deny")
 	_rebuild()
 	if res != "":
 		_why.text = res

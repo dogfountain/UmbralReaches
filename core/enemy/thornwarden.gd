@@ -580,3 +580,9 @@ func voice_family() -> String:
 
 func _hit_sound() -> String:
 	return "wood"
+
+
+## It does not curse the one who cut the heart out. The wood does not forget: it only stops.
+func _die() -> void:
+	BossKit.emote(self, "It does not curse you. It asks nothing. The thorns lie down, and the wood, for a long moment, is only wood.", Color(0.95, 0.8, 0.5))
+	super._die()

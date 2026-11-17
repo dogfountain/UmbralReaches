@@ -6,7 +6,7 @@ extends Node3D
 ##   - the walking network (village_nav.gd), checked against the built world: floors, walls,
 ##     fences, barrels, trunks; villagers only walk its kept edges
 ##   - the people (villager.gd on villager_rig.gd): Hild at Edda's forge, Old Fennick the
-##     lamplighter, Oswin the pilgrim, Nan Wright, Grisel the ash-wife (trader), Wyck the hermit
+##     lamplighter, Joram the pilgrim, Nan Wright, Grisel the ash-wife (trader), Wyck the hermit
 ##     in the Thornwood, Abel the sexton by the Kindlers' Yard; and, as the valley is won back,
 ##     Col Wright, Bet Reed, Wenna Ashby (out of the Ossuary) and Pell (down from the light)
 ##   - the lamplighter's lamps (glass and halo per lamp, no lights), the forge's flare, the
@@ -23,6 +23,7 @@ extends Node3D
 const SELF := "res://core/life/village/village.gd"
 const Cast := preload("res://core/life/village/village_cast.gd")
 const WestCast := preload("res://core/life/village/village_cast_west_marches.gd")      # --- west marches --- Weirford's people
+const WanderCast := preload("res://core/life/village/village_cast_wanderer.gd")        # the Late Ringer's walk islands
 const Travellers := preload("res://core/life/village/village_cast_travellers.gd")       # the road's walkers (docs/far_reaches.md)
 const Towns := preload("res://core/life/village/village_reach_towns.gd")                # --- the towns --- Reedholm, Fallowmere, Lastlight
 const VState := preload("res://core/life/village/village_state.gd")
@@ -177,6 +178,8 @@ func _build() -> void:
 	edges.append_array(WestCast.edges())
 	node_xz.merge(Travellers.NODES)                 # the road's walkers: two islands on the Pilgrims' Road
 	edges.append_array(Travellers.EDGES)
+	node_xz.merge(WanderCast.NODES)                 # the Late Ringer: five small islands where he meets the wanderer
+	edges.append_array(WanderCast.EDGES)
 	node_xz.merge(Towns.NODES)                      # --- the towns --- each its own island
 	edges.append_array(Towns.EDGES)
 	# --- the east marches ---
@@ -384,6 +387,7 @@ static func cast_all() -> Dictionary:
 		_cast_all = Cast.cast().duplicate()
 		_cast_all.merge(WestCast.cast())
 		_cast_all.merge(Travellers.CAST)
+		_cast_all.merge(WanderCast.CAST)           # the Late Ringer: present by his task's step
 		_cast_all.merge(Towns.cast())
 	return _cast_all
 

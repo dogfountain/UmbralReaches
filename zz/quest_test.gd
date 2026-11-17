@@ -7,10 +7,10 @@ extends Node
 ##   data      quest data, every task is started and finished by somebody, every condition and
 ##             action parses, every pickup has a floor spot, the stair's foot is on the network
 ##   tasks     each of the five run start to finish through the real conversations (choices picked
-##             by their words), pickups, Oswin's walk, the hollowed man; both endings where they
+##             by their words), pickups, Joram's walk, the hollowed man; both endings where they
 ##             differ; rewards paid, attitudes moved, outcome props built, objective lines shown
 ##   save      Travel.story survives the save file's encoding; a fresh world side rebuilds the same
-##             outcomes; Oswin's vigil / departure survive a reload
+##             outcomes; Joram's vigil / departure survive a reload
 ##   shops     Grisel's projects and goods (stock, sold out, too poor), the keep's slate (ale, a
 ##             rumour, a round that sets the room cheering)
 ##   keg       songs, dice and an argument play with their acts; every new beat poses without NaNs
@@ -413,7 +413,7 @@ func _forty_first() -> void:
 	print("The Forty-First Stone")
 	var oswin := _v("oswin")
 	await converse(oswin, ["count the waystones", "walk with you"])
-	ok(Book.active("forty_first") and oswin.get("follow") == player, "Oswin falls in behind the wanderer")
+	ok(Book.active("forty_first") and oswin.get("follow") == player, "Joram falls in behind the wanderer")
 	# walk him there: a stand-in leads (the wanderer's controller isn't driven here)
 	var lead := Node3D.new()
 	add_child(lead)
@@ -436,7 +436,7 @@ func _forty_first() -> void:
 	village.set("time_scale", 1.0)
 	await _frames(4)
 	print("    oswin at %s, walked %.1f m" % [oswin.global_position, float(oswin.get("walked"))])
-	ok(Book.step("forty_first") == 1, "Oswin reaches the forty-first stone")
+	ok(Book.step("forty_first") == 1, "Joram reaches the forty-first stone")
 	for i in 300:
 		await get_tree().process_frame
 		if String(oswin.get("act")) == "kneel" and oswin.get("follow") == null:
@@ -469,7 +469,7 @@ func _forty_first() -> void:
 		if _v("oswin") == null:
 			gone = true
 			break
-	ok(gone, "Oswin takes the west road and is gone")
+	ok(gone, "Joram takes the west road and is gone")
 	ok(QWorld.override("oswin", {"home": "x"}).is_empty(), "and stays gone on a reload")
 	await _frames(2)
 	ok((quests.get("props") as Dictionary).has("staff"), "his staff is left on the west road")

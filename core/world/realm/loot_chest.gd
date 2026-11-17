@@ -1,4 +1,5 @@
 extends Interactable
+const CueBank := preload("res://core/audio/cue_bank.gd")
 ## A chest left in one of the valley's places (r31 world pass, core/world/realm/realm_pois.gd).
 ## Open it with E: the lid swings up, a warm breath of motes, and what it holds goes in the satchel.
 ## Each chest opens once per save (Travel.system_state("world_pois").chests[chest_id]); an opened
@@ -169,6 +170,7 @@ func open() -> Array[String]:
 	Events.toast.emit("Opened %s: %s." % [TIER_NAME.get(tier, "the chest"), told])
 	if is_inside_tree():
 		Sfx.play("res://art/audio/ward_chime.wav", global_position, -8.0)
+		CueBank.play_at("chest_open", global_position + Vector3.UP * 0.4, 0.0)       # the lid's creak, the knock, a glint of bell
 		var tw := create_tween()
 		tw.tween_property(_lid, "rotation:x", -1.95, 0.55).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 		_motes.amount_ratio = 1.0
