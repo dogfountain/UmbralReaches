@@ -100,22 +100,23 @@ func _tower(root: Node, i: int, c: Vector2, lo: float, hi: float, rng: RandomNum
 	# deck at 12.2 m
 	var ga := WK.h(c.x - 3.0, c.y - 8.0)
 	k.kit.stairs("stone_big", Vector3(o.x - 3.0, ga + 0.1, o.z - 8.4), Vector3(o.x - 3.0, y0 + 6.0, o.z - 4.4), 1.8, int(ceilf((y0 + 6.0 - ga) / 0.36)), ga - 0.8)
-	k.kit.box("stone_big", o + Vector3(-3.0, 5.8, -4.4), Vector3(3.0, 0.4, 2.0), b, true, 0.9)
+	k.kit.box("stone_big", o + Vector3(0.5, 5.8, -4.9), Vector3(10.0, 0.4, 2.0), b, true, 0.9)
 	k.kit.box("stone_big", o + Vector3(-3.0, 3.0, -4.4), Vector3(0.8, 6.0, 0.8), b, true, 0.85)
-	k.kit.stairs("stone_big", Vector3(o.x - 1.2, y0 + 6.0, o.z - 4.4), Vector3(o.x + 4.0, y0 + 12.2, o.z - 4.4), 1.8, int(ceilf(6.2 / 0.36)), y0 + 5.6)
-	k.kit.box("stone_big", o + Vector3(3.6, 12.0, -3.3), Vector3(2.2, 0.4, 2.2), b, true, 0.9)
-	# the deck: slabs across the top with a hole, a parapet ring in pieces, a fire in a stone ring, the chest
-	k.kit.box("wood_big", o + Vector3(0.0, 12.3, 0.0), Vector3(5.2, 0.3, 4.4), b, true, 0.8)
+	k.kit.box("stone_big", o + Vector3(4.8, 3.0, -5.4), Vector3(0.8, 6.0, 0.8), b, true, 0.85)
+	k.kit.stairs("stone_big", Vector3(o.x + 4.6, y0 + 6.0, o.z - 4.9), Vector3(o.x + 4.6, y0 + 12.0, o.z + 5.0), 1.8, int(ceilf(6.0 / 0.36)), y0 + 5.6)
+	# the deck: slabs across the top, a platform at the stair's head joined to it, a parapet in pieces, a fire in a ring, the chest
+	k.kit.box("wood_big", o + Vector3(0.0, 11.85, 0.0), Vector3(5.2, 0.3, 4.4), b, true, 0.8)
+	k.kit.box("wood_big", o + Vector3(3.9, 11.85, 2.4), Vector3(3.2, 0.3, 5.2), b, true, 0.8)
 	for j in 6:
 		var a := TAU * float(j) / 6.0
-		k.kit.box("stone_big", o + Vector3(cos(a) * 1.2, 12.6, sin(a) * 1.2 + 0.2), Vector3(0.5, 0.35, 0.4), Basis(Vector3.UP, a), false, 0.8)
-	k.fire(o + Vector3(0.0, 12.9, 0.2), 0.8, 1.6)
-	k.chest("climb_tower_%d" % i, "iron", o + Vector3(-1.8, 12.5, 1.4), 0.5, {"grave_ash": 14 + i, "grave_iron": 2, "relic_fragment": 1 if i % 2 == 0 else 0})
+		k.kit.box("stone_big", o + Vector3(cos(a) * 1.2, 12.2, sin(a) * 1.2 + 0.2), Vector3(0.5, 0.35, 0.4), Basis(Vector3.UP, a), false, 0.8)
+	k.fire(o + Vector3(0.0, 12.5, 0.2), 0.8, 1.6)
+	k.chest("climb_tower_%d" % i, "iron", o + Vector3(-1.8, 12.0, 1.4), 0.5, {"grave_ash": 14 + i, "grave_iron": 2, "relic_fragment": 1 if i % 2 == 0 else 0})
 	Dress.rubble(k, o + Vector3(5.0, 0.0, 3.0), 3.0, 12, "ruin_big")
 	Dress.rubble(k, o + Vector3(-4.8, 0.0, 4.2), 2.5, 10, "ruin_big")
 	Dress.strands(k, o + Vector3(-3.2, 11.0, -3.5), o + Vector3(3.2, 11.0, -3.5), 7, 3.0)
 	Dress.banner(k, o + Vector3(-3.0, 11.8, 3.5), Vector3.RIGHT, 1.8, 3.6, Vector3.BACK)
-	k.host.set_meta("find_at", o + Vector3(-1.8, 12.5, 1.4))
+	k.host.set_meta("find_at", o + Vector3(-1.8, 12.0, 1.4))
 	k.commit(150.0)
 
 
