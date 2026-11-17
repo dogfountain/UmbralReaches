@@ -3,7 +3,8 @@ extends CanvasLayer
 ## row per thing inside: an icon framed in its quality colour, the name in that colour, the count.
 ## Hover (or move with W/S) shows the full tooltip beside it (ui/item_tooltip.gd), gear compared
 ## with what you wear. Click a row or press its number to take it; [E] / Take all takes the lot;
-## [Esc] closes. The world does NOT pause (as in WoW): walk away from the bag and it closes.
+## [Esc] (pad B) closes. The window pauses the night while it is open (and gives it back only if it was the one
+## to pause it); a bag that goes away, or a player who is moved from it, closes it.
 ## One per Realm, added by progression.gd; group "loot_window". No class_name.
 
 const GearDB := preload("res://core/items/gear_db.gd")
@@ -317,7 +318,8 @@ func _process(_delta: float) -> void:
 func _input(event: InputEvent) -> void:
 	if not _root.visible:
 		return
-	if event.is_action_pressed("toggle_settings") or event.is_action_pressed("release_mouse"):
+	if event.is_action_pressed("toggle_settings") or event.is_action_pressed("release_mouse") \
+			or (event is InputEventJoypadButton and event.pressed and (event as InputEventJoypadButton).button_index == JOY_BUTTON_B):
 		close()
 		get_viewport().set_input_as_handled()
 		return
