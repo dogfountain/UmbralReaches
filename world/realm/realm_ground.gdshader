@@ -22,6 +22,7 @@ uniform sampler2DArray alb : source_color, filter_linear_mipmap_anisotropic, rep
 uniform sampler2DArray nrm : hint_default_white, filter_linear_mipmap_anisotropic, repeat_enable;
 uniform sampler2D salt_alb : source_color, filter_linear_mipmap_anisotropic, repeat_enable;
 uniform sampler2D salt_nrm : hint_default_white, filter_linear_mipmap_anisotropic, repeat_enable;
+global uniform float wetness;                    // the rain wets the ground (core/world/night_life/weather_life.gd): rougher to smooth, a little darker
 uniform float salt_scale = 0.2;
 uniform vec4 salt_rect = vec4(160.0, 112.0, 258.0, 240.0);     // x0 z0 x1 z1 = RealmLayout.PANS
 uniform vec3 tint = vec3(0.8, 0.88, 1.0);        // cool night grading of the authored colours
@@ -363,6 +364,8 @@ void fragment() {
 	float wet = w[3] * (1.0 - smoothstep(water_y + 0.05, water_y + 0.55, wpos.y));
 	col *= 1.0 - wet * 0.45;
 	rough = mix(rough, 0.18, wet * 0.8);
+	rough = mix(rough, 0.2, wetness * 0.75 * flat_k);   // puddled and glossy: the lamps and the fires show in it
+	col *= 1.0 - wetness * 0.16;
 
 	// crevices and pebble gaps (the layers' baked AO) darken the albedo: dark seams, lit tops
 	col *= mix(1.0 - cavity, 1.0 + cavity * 0.25, ao);

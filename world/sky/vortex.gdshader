@@ -29,6 +29,7 @@ uniform vec3 moon_tint = vec3(1.0); // and turns what is left of it copper
 uniform sampler2D constellations : source_color, hint_default_black, filter_linear, repeat_disable;
 uniform float const_vis = 1.0;
 uniform float aurora = 1.0;         // the veils' strength tonight (0.4 faint .. 1.8 a great night)
+uniform float dawn = 0.0;           // the grey before the morning, low in the east (the last tenth of the night)
 uniform float cloud_cover = 0.0;    // 0 clear .. 1 a deck of cloud (the weather's fronts raise it)
 uniform vec4 fire_glow[6];          // xyz: the direction to a fire on the ground, w: how strongly it lights the cloud above it
 uniform float vistas = 1.0;         // the far ranges and the drain veils (sky_vistas.gdshaderinc); 0 with -- --no-vista-sky (A/B)
@@ -159,7 +160,8 @@ void sky() {
         col += texture(constellations, cuv).rgb * const_vis * HALF_RES_COLOR.a * smoothstep(0.03, 0.2, EYEDIR.y);
         col = mix(col_deep * 0.5, col, smoothstep(-0.05, 0.12, EYEDIR.y)); // horizon falloff
         // moon-silvered haze low on the sky: ridges and towers separate from it
-        col += vec3(0.11, 0.17, 0.29) * exp(-abs(EYEDIR.y) * 9.0);   // a thinner, brighter band: the ridges read dark against it
+        col += vec3(0.11, 0.17, 0.29) * exp(-abs(EYEDIR.y) * 9.0);
+        col += vec3(0.16, 0.13, 0.12) * dawn * exp(-abs(EYEDIR.y) * 8.0) * pow(max(dot(normalize(EYEDIR.xz + vec2(1e-4)), vec2(0.95, 0.3)), 0.0), 2.0);   // a thinner, brighter band: the ridges read dark against it
         // far ranges past the Realm's own mountains (sky_vistas.gdshaderinc), paler on the moon's side
         vec2 hz = normalize(EYEDIR.xz + vec2(1e-4));
         float toward = dot(hz, normalize(md.xz + vec2(1e-4))) * 0.5 + 0.5;

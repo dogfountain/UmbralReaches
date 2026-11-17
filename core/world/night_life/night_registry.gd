@@ -13,6 +13,10 @@ const START_T := 0.1
 static var enabled := true                ## Settings.night_life, mirrored once a second by NightLife
 static var clock := START_T               ## 0 .. 1
 static var moon_gain := 1.0               ## the moon's phase: its light scales by this (0.6 at a new moon, 1 at full; sky_life.gd)
+static var haze := 0.0                    ## 0..1 mist and rain in the air: far cards swell into halos (weather_life.gd)
+static var rain := 0.0                    ## 0..1 rain falling: fires gutter and spit
+static var gust := 0.0                    ## wind with its gusts: fires lean and flicker harder
+static var flash := 0.0                   ## 0..1 lightning: every landmark flares for the flash
 static var gain_mul := 1.0                ## the whole landmark set's brightness: an eclipse raises it, the dark makes them shine
 static var pos := PackedVector3Array()    ## where the light is (a metre or so above the ground)
 static var ground := PackedFloat32Array() ## the ground's y under it (the pool)
@@ -101,7 +105,8 @@ static func shimmer(i: int, t: float) -> float:
 	var ph: float = phase[i]
 	match int(kind[i]):
 		Kind.FIRE:
-			return 0.86 + 0.09 * sin(t * 7.3 + ph) + 0.05 * sin(t * 17.1 + ph * 2.0)
+			var wind := 1.0 + 0.9 * gust
+			return 0.86 - 0.08 * rain + (0.09 * sin(t * 7.3 + ph) + 0.05 * sin(t * 17.1 + ph * 2.0)) * wind
 		Kind.MYSTERY:
 			return 0.55 + 0.45 * (0.5 + 0.5 * sin(t * 0.9 + ph)) * (0.7 + 0.3 * sin(t * 0.23 + ph * 3.0))
 		Kind.COLD:

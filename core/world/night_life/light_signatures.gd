@@ -224,11 +224,11 @@ func _draw() -> void:
 		var k := int(Reg.kind[i])
 		var col := Reg.colour(k)
 		var sh := Reg.shimmer(i, t)
-		var g: float = Reg.gain[i] * gm * (1.0 + Reg.boost[i])
+		var g: float = Reg.gain[i] * gm * (1.0 + Reg.boost[i] + 0.9 * Reg.flash)
 		if d > NEAR_OFF and d < FAR_FADE_B and nc < MAX_CARDS:
 			var a := smoothstep(NEAR_OFF, NEAR_ON, d) * (1.0 - smoothstep(FAR_FADE_A, FAR_FADE_B, d)) * g * sh
 			if a > 0.01:
-				var s := d * ANGLE * (1.25 if k == Reg.Kind.FIRE or k == Reg.Kind.TOWER else (0.8 if k == Reg.Kind.WINDOW else 1.0))
+				var s := d * ANGLE * (1.0 + 0.7 * Reg.haze) * (1.25 if k == Reg.Kind.FIRE or k == Reg.Kind.TOWER else (0.8 if k == Reg.Kind.WINDOW else 1.0))
 				var bob := Vector3.ZERO
 				if k == Reg.Kind.MYSTERY:
 					bob = Vector3(sin(t * 0.37 + Reg.phase[i]) * 0.6, sin(t * 0.61 + Reg.phase[i] * 2.0) * 0.7, cos(t * 0.29 + Reg.phase[i]) * 0.6)

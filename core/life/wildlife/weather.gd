@@ -138,7 +138,9 @@ func setup(root: Node, seed_v: int) -> void:
 	name = "Weather"
 	_rng.seed = seed_v
 	off = "--scape-off" in OS.get_cmdline_user_args()
-	_cycle_i = 0
+	# each night opens on another front: the night count is saved, so a reload brings the same weather (night 0: clear, as ever)
+	_cycle_i = (int(Travel.story.get("night_no", 0)) * 5) % CYCLE.size()
+	front = CYCLE[_cycle_i]
 	_front_t = _rng.randf_range(60.0, 100.0)
 	var we := root.get_node_or_null("WorldEnvironment") as WorldEnvironment
 	if we != null:

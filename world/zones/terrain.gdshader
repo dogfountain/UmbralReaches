@@ -2,6 +2,7 @@ shader_type spatial;
 render_mode diffuse_burley, specular_schlick_ggx;
 // Slope-blended terrain: mossy ground on flats, striated rock on cliffs (triplanar).
 
+global uniform float wetness;
 uniform sampler2D ground_albedo : source_color, filter_linear_mipmap_anisotropic, repeat_enable;
 uniform sampler2D ground_normal : hint_normal, filter_linear_mipmap_anisotropic, repeat_enable;
 uniform sampler2D rock_albedo : source_color, filter_linear_mipmap_anisotropic, repeat_enable;
@@ -81,9 +82,9 @@ void fragment() {
 	NORMAL = normalize((VIEW_MATRIX * vec4(n_ws, 0.0)).xyz);
 
 	float cavity = 1.0 - smoothstep(0.22, 0.78, gn_ts.z);
-	ALBEDO *= 1.0 - cavity * 0.32;
+	ALBEDO *= (1.0 - cavity * 0.32) * (1.0 - wetness * 0.14);
 	float wet = smoothstep(0.72, 0.96, flatness) * (1.0 - cavity);
-	ROUGHNESS = mix(0.88, 0.42, wet);
+	ROUGHNESS = mix(mix(0.88, 0.42, wet), 0.22, wetness * 0.7);
 	float fres = pow(1.0 - clamp(dot(NORMAL, VIEW), 0.0, 1.0), 2.6);
 	EMISSION = rim_color * rim_strength * fres;
 }

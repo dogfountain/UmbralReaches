@@ -34,6 +34,7 @@ const Tells := preload("res://core/world/night_life/telegraph_glow.gd")
 const Wanderer := preload("res://core/world/night_life/wanderer_life.gd")
 const Folk := preload("res://core/life/folk/folk_stage.gd")
 const Sky := preload("res://core/world/night_life/sky_life.gd")
+const Wx := preload("res://core/world/night_life/weather_life.gd")
 
 var _poll := 0.0
 
@@ -65,6 +66,9 @@ func _ready() -> void:
 	var sky := Sky.new()
 	sky.env = course.env
 	_add(sky, "SkyLife")
+	var wx := Wx.new()
+	wx.env = course.env
+	_add(wx, "WeatherLife")
 	_add(Surge.new(), "KindlingSurge")
 	_add(Moths.new(), "LightMoths")
 	_add(Banks.new(), "FogBanks")
