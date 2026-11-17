@@ -66,7 +66,7 @@ const QUESTS := {
 				"text": "Read the sticks on the porch's board: who owed, and what ({n}/{of} read)",
 				"clues": [
 					{"key": "lark", "at": Vector2(-174.0, 291.0), "prop": "page", "name": "a stick cut LARK", "text": "A stick cut LARK, the notches thin: Cobb's father paid short eleven winters running. Under it, in the Order's clerk-hand: forgiven by the reeve, not by the Order."},
-					{"key": "strips", "at": Vector2(-180.5, 290.5), "name": "a stick of the far strips", "text": "A stick with no name, only a strip's number. Each year's notch is a little deeper than the last, as if somebody pressed harder to keep the count from sliding off. The last is cut through the wood."},
+					{"key": "strips", "at": Vector2(-179.5, 290.5), "name": "a stick of the far strips", "text": "A stick with no name, only a strip's number. Each year's notch is a little deeper than the last, as if somebody pressed harder to keep the count from sliding off. The last is cut through the wood."},
 					{"key": "penn", "at": Vector2(-177.5, 295.5), "prop": "page", "name": "a stick cut PENN", "text": "A stick cut PENN, ALDOUS. Eleven winters of tithe paid in full, and a twelfth in a different hand, the reeve's own, a little crooked: OWED. Seed corn, nine bushels, lent to the far strips against a harvest that did not come. His own line, in his own hand."},
 				]},
 			{"kind": "place", "text": "Read the roll out at the tithe board, and decide whether Penn's own line is read with it"},
@@ -75,7 +75,7 @@ const QUESTS := {
 		"alt": {"full": {4: "Tell Reeve Penn the roll was read in full"}, "strike": {4: "Tell Reeve Penn his line is struck"}},
 		"reward": {"ash": 16, "items": {"relic_fragment": 1}},
 		"choose": [{"slot": "focus", "rarity": 1}, {"slot": "vestment", "rarity": 1}],
-		"leaves": {"full": {"at": Vector2(-175.0, 293.5), "prop": "lantern_lit"}, "strike": {"at": Vector2(-175.0, 293.5), "prop": "slate"}},
+		"leaves": {"full": {"at": Vector2(-173.8, 294.3), "prop": "lantern_lit"}, "strike": {"at": Vector2(-173.8, 294.3), "prop": "slate"}},
 		"outcome": {
 			"full": "Penn read the roll in the porch that night, strip by strip, name by name, and his own at the last in his own voice. Brother Wystan stood at the barn door with his spade. At the last name, something in the far strips lay down. Penn left a lamp lit on the board for the rest of the night, and the porch has not been dark since.",
 			"strike": "You scored the reeve's line through with the clerk's knife. Penn read the roll without it, strip by strip, name by name. At the last name something in the far strips lay down, a breath later than it should. Penn wiped the slate on the board with his sleeve and went to bed, and slept, and did not thank you.",
@@ -127,7 +127,7 @@ const QUESTS := {
 				"things": [
 					{"key": "west", "at": Vector2(343.4, 54.0), "prop": "lantern", "name": "the west wick", "verb": "Light", "text": "The west wick takes. The road to the pans, and the carters who will not come, light up under it."},
 					{"key": "south", "at": Vector2(347.4, 59.5), "prop": "lantern", "name": "the south wick", "verb": "Light", "text": "The south wick takes, a low yellow. For the Nave, and everyone who held a candle in it."},
-					{"key": "east", "at": Vector2(351.6, 57.5), "prop": "lantern", "name": "the east wick", "verb": "Light", "text": "The east wick takes, and leans hard toward the shut gate, as if something on the other side were drawing on it."},
+					{"key": "east", "at": Vector2(349.5, 57.0), "prop": "lantern", "name": "the east wick", "verb": "Light", "text": "The east wick takes, and leans hard toward the shut gate, as if something on the other side were drawing on it."},
 				],
 				"order": ["west", "south", "east"],
 				"wrong": "The wick gutters and the whole tower dims a breath. Isolde's voice, from above and a long way off: 'The road comes from the west.' Begin again.",

@@ -76,7 +76,7 @@ const QUESTS := {
 				"text": "Take the burners' marks east into the Southwood, past the ruin where the clamps still smoke ({n}/{of})",
 				"marks": [
 					{"at": Vector2(148.0, 306.0), "text": "A charcoal X on an oak, shoulder-high, and another on the next. The burners marked the way in so the cart could find its way out."},
-					{"at": Vector2(158.0, 318.0), "text": "A hazel wand set upright in the leaf-mould, a rag knotted on it, the knot a burner's. Somebody has re-tied the rag since. The rag is new."},
+					{"at": Vector2(158.9, 318.4), "text": "A hazel wand set upright in the leaf-mould, a rag knotted on it, the knot a burner's. Somebody has re-tied the rag since. The rag is new."},
 					{"at": Vector2(168.0, 331.0), "text": "The burners' ruin. A clamp still smokes, banked under turf and left. The marks run through it without turning and out the far side, the way a man walks who has already decided."},
 					{"at": Vector2(196.0, 346.0), "text": "A boot, charred through at the toe, set neat at the foot of an oak with its laces tied. Nobody is in it. It faces the hollow."},
 					{"at": Vector2(214.0, 356.0), "text": "The marks end at a stone as high as a door, bristling with nails. A light in a window in the trunk behind it. The last X is cut in the stone itself."},

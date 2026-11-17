@@ -75,6 +75,7 @@ static func prepare(v: Node3D) -> void:
 
 
 static func _spot(nav: RefCounted, near: Vector2, r := 0.3) -> Vector3:
+	var sp: PhysicsDirectSpaceState3D = nav.get("_space")
 	for ring: float in [0.0, 0.5, 1.0, 1.6, 2.4, 3.4, 4.6, 6.0]:
 		var n := 1 if ring == 0.0 else 12
 		for i in n:
@@ -85,11 +86,18 @@ static func _spot(nav: RefCounted, near: Vector2, r := 0.3) -> Vector3:
 			if p == Vector3.INF:
 				continue
 			# on the floor people walk on, not on top of a tomb or a wall
-			var walk_y: float = RealmLayout.ground(nav.get("_space"), x, z)
+			var walk_y: float = RealmLayout.ground(sp, x, z)
 			# (a plinth standing in the shallows is the floor there: the ground under it is the river bed)
 			var wl := RealmLayout.water_level_at(x, z)
 			if p.y - walk_y > 0.6 and (is_nan(wl) or walk_y >= wl):
 				continue
+			# nothing under it: the designed land lies below a raised floor here (the summit's dais, 11 m up; the
+			# sky chain's mooring stone): the latch-stone stood in the void under the dais, out of reach
+			if sp != null and sp.intersect_ray(PhysicsRayQueryParameters3D.create(p + Vector3.UP * 0.4, p + Vector3.DOWN * 0.6, Layers.WORLD)).is_empty():
+				var top := sp.intersect_ray(PhysicsRayQueryParameters3D.create(Vector3(x, 120.0, z), Vector3(x, -60.0, z), Layers.WORLD))
+				if top.is_empty() or (top.normal as Vector3).y < 0.7:
+					continue
+				p = top.position
 			if r > 0.35:
 				var ok := true
 				for j in 4:

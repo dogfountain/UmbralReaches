@@ -91,7 +91,7 @@ const ER_ROPE := {"name": "The Rope Rung Right", "giver": "maudlin", "zone": "ea
 			"text": "Touch the four ropes from the bottom up, as the Order rang them down: the lowest first, and the highest last",
 			"things": [
 				{"key": "seven", "at": Vector2(293.0, 127.5), "prop": "mark", "name": "the rope marked SEVEN", "verb": "Ring", "text": "The seventh rope takes your weight and hums once, flat, like a held breath. Somewhere out on the water someone rests his hands."},
-				{"key": "five", "at": Vector2(297.0, 131.5), "prop": "mark", "name": "the rope marked FIVE", "verb": "Ring", "text": "The fifth rope rings, a hand's breadth higher in the note."},
+				{"key": "five", "at": Vector2(297.6, 131.8), "prop": "mark", "name": "the rope marked FIVE", "verb": "Ring", "text": "The fifth rope rings, a hand's breadth higher in the note."},
 				{"key": "three", "at": Vector2(302.0, 135.0), "prop": "mark", "name": "the rope marked THREE", "verb": "Ring", "text": "The third rope. The note climbs, and the shore listens, and the water in the Nave begins to still."},
 				{"key": "one", "at": Vector2(306.5, 138.5), "prop": "mark", "name": "the rope marked ONE", "verb": "Ring", "text": "The first rope, the highest, rung last for the first time in nine winters. The peal goes up the water and does not come back."},
 			],

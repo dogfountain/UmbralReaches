@@ -55,7 +55,7 @@ const COAL_ARDEL := {"quest": "spire_coal", "step": 0, "near": Vector2(218.0, 98
 	"say": "A coal from the hamlet's fire, in an iron dish with a handle worn smooth by Ardel's own hand. It burns steady. It wants a wick. Go."}
 const PAGE_A := {"quest": "anchor_names", "step": 0, "near": Vector2(184.0, -98.0), "kind": "slate", "name": "a cell-slate", "verb": "Read",
 	"say": "A slate propped against a cell door, scree up to its sill. A name that is not Wren's, and a count: ELEVEN DAYS. The eleventh is scratched twice, as if the hand was shaking."}
-const PAGE_B := {"quest": "anchor_names", "step": 0, "near": Vector2(222.0, -100.0), "kind": "slate", "name": "a cell-slate", "verb": "Read",
+const PAGE_B := {"quest": "anchor_names", "step": 0, "near": Vector2(219.9, -102.1), "kind": "slate", "name": "a cell-slate", "verb": "Read",
 	"say": "A slate in the lower cells, face down in the dust. WREN OF SALTMARKET. SEVEN DAYS, AND THEN I HEARD THE BELL. Under it, in a harder hand: she did not hear it. There was no bell."}
 const PAGE_C := {"quest": "anchor_names", "step": 0, "near": Vector2(204.0, -102.0), "kind": "slate", "name": "a cell-slate", "verb": "Read",
 	"say": "The last slate, at the foot of the chapel steps, the day-count run on past the slate's edge onto the stone. Whoever cut it did not stop. The wall is cut with days."}
