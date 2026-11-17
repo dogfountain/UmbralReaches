@@ -1577,11 +1577,12 @@ const VIEW_OPTS := {
 	"ossuary": {"at": Vector2(-8.0, 170.0), "min": 15.0, "max": 60.0, "tgy": -8.0, "los": false, "ring": false,
 		"eyes": [Vector3(-40.0, 7.4, 140.0)]},
 	"quarry": {"min": 14.0, "max": 45.0, "ty": 5.0},
-	"rift": {"at": Vector2(310.0, -65.0), "min": 30.0, "max": 80.0, "tgy": -4.0, "los": false},
+	"rift": {"at": Vector2(310.0, -70.0), "min": 45.0, "max": 95.0, "tgy": 27.0, "los": true, "h": 4.0},   # (the crossing and the dais over the chasm: the floor, 50 m down, read as a dark slope)
 	"summit": {"at": Vector2(310.0, -103.9), "tgy": 30.5, "ring": false,
 		"eyes": [Vector3(310.0, 27.4, -70.0)], "eye_ring": [Vector3(310.0, 29.4, -103.9), 24.0, 29.4]},
-	"thornwood": {"max": 70.0},
+	"thornwood": {"max": 70.0, "h": 7.0},
 	"well": {"at": Vector2(72.0, 204.0), "min": 24.0, "max": 60.0, "tgy": 0.0, "los": false},
+	"kingsbarrows": {"h": 7.0},                    # (from eye height a barrow's mound filled the frame: its shell has no collider)
 	"oak": {"min": 28.0, "max": 60.0, "ty": 9.0},
 	"cairns": {"ty": 8.0},
 	"plinth": {"min": 16.0, "ty": 5.0},
@@ -1734,7 +1735,7 @@ func _stand_views(at: Vector2, opts: Dictionary, count := 2, h := 2.0) -> Array:
 ## The two clearest night views of a region (_stand_views round its landmark).
 func _region_views(r: Dictionary) -> Array:
 	var spec := _view_spec(r)
-	return _stand_views(spec.at, spec)
+	return _stand_views(spec.at, spec, 2, float(spec.get("h", 2.0)))
 
 
 func _s_regions(from: int, to: int) -> void:
@@ -1882,6 +1883,8 @@ func _s_places() -> void:
 		var tg := _gp(c2.x, c2.y, 2.0)
 		# the settlement from the ways and open ground 9-26 m out, at eye height (_stand_views: clear of walls, rock, roofs and branches)
 		var pv := _stand_views(c2, {"min": 9.0, "max": 26.0, "ty": 2.0}, 1, 1.8)
+		if pv.is_empty():
+			pv = _stand_views(c2, {"min": 12.0, "max": 45.0, "ty": 0.0, "los": false}, 1, 5.0)     # a pit or a crowded yard: from further, a little up
 		if pv.is_empty():
 			_fail("no usable camera spot for place " + String(sp[0]))
 			continue
