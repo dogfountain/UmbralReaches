@@ -90,15 +90,20 @@ func _ready() -> void:
 ## The actions the Controls page lets the player rebind: [label, action]. Settings (Esc / F2 / Menu) and the
 ## developer keys (F8, F9) are fixed.
 const REBINDABLE := [
-	["Move forward", "move_forward"], ["Move back", "move_back"], ["Move left", "move_left"], ["Move right", "move_right"],
-	["Sprint", "sprint"], ["Jump", "jump"], ["Slide", "slide"], ["Dodge roll", "dodge"],
-	["Lock on", "lock_on"], ["Next target", "target_next"], ["Staff strike", "staff_strike"], ["Guard / parry", "guard"],
-	["Kindle / talk / use", "interact"], ["Call your horse", "mount"],
-	["Skill 1 (bolt)", "skill_bolt"], ["Skill 2 (lance)", "skill_lance"], ["Skill 3 (nova)", "skill_nova"],
-	["Skill 4 (ward)", "skill_ward"], ["Skill 5 (step)", "skill_step"],
-	["Show objective (hold)", "show_objective"], ["Character", "inventory"], ["Gear", "gear"], ["Kindling", "kindling"], ["Journal", "codex"], ["Tasks", "quest_log"], ["World map", "world_map"], ["Minimap", "minimap"],
-	["Fullscreen", "fullscreen"], ["Colour grade", "toggle_grade"], ["Stats overlay", "toggle_debug"],
+	["Move Forward", "move_forward"], ["Move Back", "move_back"], ["Move Left", "move_left"], ["Move Right", "move_right"],
+	["Sprint", "sprint"], ["Jump", "jump"], ["Slide", "slide"], ["Dodge Roll", "dodge"],
+	["Lock On", "lock_on"], ["Next Target", "target_next"], ["Staff Strike", "staff_strike"], ["Guard / Parry", "guard"],
+	["Kindle / Talk / Use", "interact"], ["Call Your Horse", "mount"],
+	["Skill 1 (Bolt)", "skill_bolt"], ["Skill 2 (Lance)", "skill_lance"], ["Skill 3 (Nova)", "skill_nova"],
+	["Skill 4 (Ward)", "skill_ward"], ["Skill 5 (Step)", "skill_step"],
+	["Show Objective (Hold)", "show_objective"], ["Character", "inventory"], ["Gear", "gear"], ["Kindling", "kindling"], ["Journal", "codex"], ["Tasks", "quest_log"], ["World Map", "world_map"], ["Minimap", "minimap"],
+	["Fullscreen", "fullscreen"], ["Colour Grade", "toggle_grade"], ["Stats Overlay", "toggle_debug"],
 ]
+## Keys the menus read themselves (pages Q / E, tabs 1-4, the cursor on W / S and the arrows, the Gear page's
+## U Y R X F V): refused for an action that does not already have them by default, so a rebind cannot make a
+## key do two things inside a menu. (A key an action ships with stays rebindable to that action.)
+const MENU_KEYS := [KEY_Q, KEY_E, KEY_1, KEY_2, KEY_3, KEY_4, KEY_W, KEY_S, KEY_UP, KEY_DOWN, KEY_LEFT, KEY_RIGHT,
+	KEY_U, KEY_Y, KEY_R, KEY_X, KEY_F, KEY_V]
 ## Keys that cannot be bound: Esc is Settings and cancels the rebind itself.
 const RESERVED_KEYS := [KEY_ESCAPE, KEY_F2, KEY_F8, KEY_F9]
 
@@ -195,6 +200,8 @@ func refusal(action: String, ev: InputEvent) -> String:
 		return "That cannot be bound."
 	if ev is InputEventKey and int(d.c) in RESERVED_KEYS:
 		return "%s is reserved." % OS.get_keycode_string(int(d.c) as Key)
+	if ev is InputEventKey and int(d.c) in MENU_KEYS and not _default_has(action, ev):
+		return "%s is used inside the menus." % OS.get_keycode_string(int(d.c) as Key)
 	for r: Array in REBINDABLE:
 		var other: String = r[1]
 		if other == action or not InputMap.has_action(other):
@@ -207,6 +214,13 @@ func refusal(action: String, ev: InputEvent) -> String:
 			if _same(e, ev):
 				return "%s is reserved." % event_name(ev)
 	return ""
+
+
+func _default_has(action: String, ev: InputEvent) -> bool:
+	for e: InputEvent in _defaults.get(action, []):
+		if _same(e, ev):
+			return true
+	return false
 
 
 ## Rebind `action`'s first `slot` event to `ev` (it replaces that event, keeping the order: the hotbar and the
@@ -252,6 +266,10 @@ func _replace(action: String, slot: String, ev: InputEvent) -> void:
 		evs[at] = ev
 	else:
 		evs.append(ev)
+	if slot == "pad":
+		# a pad button bound here replaces the default trigger / stick too: the skill's LT would still fire it
+		# after being rebound to a button (and show in the Controls page as nothing)
+		evs = evs.filter(func(e: InputEvent) -> bool: return not (e is InputEventJoypadMotion))
 	InputMap.action_erase_events(action)
 	for e in evs:
 		InputMap.action_add_event(action, e)
@@ -298,7 +316,8 @@ static func event_name(ev: InputEvent) -> String:
 const PAD_NAMES := {JOY_BUTTON_A: "A", JOY_BUTTON_B: "B", JOY_BUTTON_X: "X", JOY_BUTTON_Y: "Y",
 	JOY_BUTTON_BACK: "View", JOY_BUTTON_START: "Menu", JOY_BUTTON_LEFT_STICK: "L3", JOY_BUTTON_RIGHT_STICK: "R3",
 	JOY_BUTTON_LEFT_SHOULDER: "LB", JOY_BUTTON_RIGHT_SHOULDER: "RB", JOY_BUTTON_DPAD_UP: "D-pad up",
-	JOY_BUTTON_DPAD_DOWN: "D-pad down", JOY_BUTTON_DPAD_LEFT: "D-pad left", JOY_BUTTON_DPAD_RIGHT: "D-pad right"}
+	JOY_BUTTON_DPAD_DOWN: "D-pad down", JOY_BUTTON_DPAD_LEFT: "D-pad left", JOY_BUTTON_DPAD_RIGHT: "D-pad right",
+	JOY_BUTTON_MISC1: "Share"}
 
 
 func _ensure(action: String) -> void:
