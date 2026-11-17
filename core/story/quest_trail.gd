@@ -28,7 +28,10 @@ const QuestTrack := preload("res://core/story/quest_track.gd")
 
 const LOOK := 150.0                ## a checkpoint is at most this far ahead along the route; the place shows only nearer
 const REACH := 20.0                ## this close to a checkpoint (along the way), it jumps on to the next
+const ON_PLACE := 8.0              ## a checkpoint this close to the place is the place
+const LEAD := 30.0                 ## ... at least this far ahead (round a tight bend the next in-line point was 2 m on: it flickered)
 const CORRIDOR := 5.0              ## the sight-line to it keeps within this of the route on the way
+const HOLD := 12.0                 ## a checkpoint already shown holds while its sight-line keeps within this (no creeping back on a curve)
 const DENSE := 3.0                 ## the route resampled this finely
 const STRAY := 14.0                ## further than this off the route, it is made again
 const MOVED := 8.0                 ## the place moved this much: made again
@@ -304,19 +307,21 @@ func _aim(here: Vector3) -> void:
 	var at := Vector2(here.x, here.z)
 	# the checkpoint holds until the wanderer is within REACH of it (or has passed it, or the way to it is no longer in
 	# line): Destiny's waypoint stays put and then jumps on; it never creeps ahead step by step
-	if _gi > _idx and _gi < n and _rs[_gi] - _sp > REACH and _in_line(at, _gi):
+	if _gi > _idx and _gi < n and _rs[_gi] - _sp > REACH and _in_line(at, _gi, HOLD):
 		if _gi >= last:
 			guide = Vector3.INF
 		return
 	var best := mini(_idx + 1, last)
 	var j := best + 1
 	while j < n and _rs[j] - _sp <= LOOK:
-		if not _in_line(at, j):
+		if not _in_line(at, j, CORRIDOR):
 			break
 		best = j
 		j += 1
-	if best >= last:
-		guide = Vector3.INF                         # the last straight: the mark is on the place
+	while best < last and _rs[best] - _sp < LEAD:
+		best += 1                                   # a tight bend: the checkpoint goes round it (it is seen through walls)
+	if best >= last or (_goal != Vector3.INF and _rp[best].distance_to(Vector2(_goal.x, _goal.z)) < ON_PLACE):
+		guide = Vector3.INF                         # the last straight (or a checkpoint at the place's foot): the mark is on the place
 		_gi = last
 		return
 	if best != _gi or guide == Vector3.INF:
@@ -324,10 +329,10 @@ func _aim(here: Vector3) -> void:
 		guide = Vector3(_rp[best].x, _seat(best, here) + HOVER, _rp[best].y)
 
 
-## Does the straight line from the wanderer to dense point j keep within CORRIDOR of the route on the way?
-func _in_line(at: Vector2, j: int) -> bool:
+## Does the straight line from the wanderer to dense point j keep within `corridor` m of the route on the way?
+func _in_line(at: Vector2, j: int, corridor: float) -> bool:
 	for k in range(_idx + 1, j):
-		if Geometry2D.get_closest_point_to_segment(_rp[k], at, _rp[j]).distance_to(_rp[k]) > CORRIDOR:
+		if Geometry2D.get_closest_point_to_segment(_rp[k], at, _rp[j]).distance_to(_rp[k]) > corridor:
 			return false
 	return true
 
