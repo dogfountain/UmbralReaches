@@ -105,6 +105,9 @@ func _find_pair(rng: RandomNumberGenerator, skip: Array) -> Array:
 			plen += path[k - 1].distance_to(path[k])
 		if path.size() < 3 or plen < straight * 1.5 or plen - straight < 4.0 or plen > 45.0:
 			continue
+		if not _path_open(space, path):
+			seen["shut"] = int(seen.get("shut", 0)) + 1
+			continue                                   # through a shut door or a sealed gate the mesh does not know
 		seen.path += 1
 		var dup := false
 		for s: Array in skip:
@@ -114,6 +117,24 @@ func _find_pair(rng: RandomNumberGenerator, skip: Array) -> Array:
 			return [a, b, plen, straight]
 	print("NAV pair search came up empty: ", seen)
 	return []
+
+
+## Is the mesh's way open in the world? A body-high probe every half metre along it (the mesh is baked with every
+## door open: the Fen's postern shut on a fresh save, the henge's ward seal) finds nothing but the ground.
+func _path_open(space: PhysicsDirectSpaceState3D, path: PackedVector3Array) -> bool:
+	var q := PhysicsShapeQueryParameters3D.new()
+	var s := SphereShape3D.new()
+	s.radius = Enemy.CAPSULE_R + 0.1                # a foe's body, and a hand: a path that brushes a shut gate is shut
+	q.shape = s
+	q.collision_mask = Layers.WORLD
+	for k in range(1, path.size()):
+		var n := maxi(1, ceili(path[k - 1].distance_to(path[k]) / 0.5))
+		for j in n:
+			q.transform = Transform3D(Basis.IDENTITY, path[k - 1].lerp(path[k], float(j) / float(n)) + Vector3.UP * 1.0)
+			for hit: Dictionary in space.intersect_shape(q, 4):
+				if (hit.collider as Node).name != "TerrainBody":
+					return false
+	return true
 
 
 func _spawn(at: Vector3) -> Enemy:
