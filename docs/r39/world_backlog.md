@@ -14,17 +14,20 @@ Branch r39-world2, worktree /Users/luke/UmbralReaches/.claude/worktrees/r39-worl
 - Reviewed and found already at the bar (no change): tavern dwarves (braids with rings, belt, pouch, knife, patches, bracers: dwarf_rig.gd),
   common enemies (ribs, stitches, bandages, girdles, rags, glands: enemy_body.gd). Adding more there would be noise, not depth.
 
+## Done in the continuation (each its own commit)
+- Merge of master over the lead's revert (world files kept from r39-world2)
+- Trees and undergrowth: baked bark, burls, rootlets, new oak/pine/birch/deadwood variants, undergrowth variants (tree_bark.gd, tree_surf.gd split)
+- Rocks: strata bands and lichen in vertex colour, scar facets (rock_kit.gd + shader)
+- Acoustic zones for every interior (WK.acoustic) and per-crown tree fade_end
+- Ruins: capped debris, carved band, crown stones (oss_kit.gd); props: variants as per-zone windows (no extra draws)
+- Cottages: eave fascia and roof moss; masonry edge wear; crown value clumps; bark material specular
+
 ## Not done (precise)
-1. Trees and flora: bark/root/deadwood variants in tree_gen.gd (new snag variants need placement table entries in flora_tables.gd); the
-   far-leaf dither belongs to the light seat. No change made.
-2. Rocks and cliffs: RockKit facet pass / strata (rock_kit.gd, cached meshes: free at runtime). No change made.
-3. Horizon cards / mountains (B7 rest): the far plane is 420 m; the terrain ring already carries the silhouette; ridge cards would sit
-   inside the fog. Left.
-4. Ground litter layer (B8 rest): flora already has `litter`; a ground-shader litter map adds a fetch (a cost), left.
-5. Stalls, fences, wells, carts beyond the +1 variant each (site_props_more.gd has builders for ropes, tipped, lying, lid, stool, rack
-   that are not wired: each is one more MultiMesh per zone).
-6. Ruins kits: enable OssKit.debris_max / relief for ruin kits game-wide (off by default now: build cost).
-7. B11+: the critique items past B10 (docs/r39/3_world_models_textures.md): region palettes in the grade (light seat), bark specular.
+1. Far-leaf dither itself (alpha-to-coverage in realm_foliage.gdshader) belongs to the light seat; tree_gen supplies `fade_end` per crown.
+2. Horizon cards / mountains (B7 rest): the far plane is 420 m and the ring already carries the silhouette.
+3. Ground litter map + layer (T6) and masonry detail-normal layering (T3): each adds a shader fetch (a cost), left.
+4. Stalls, fences, wells beyond what exists; decals (T7); texture-array packing (T10); hitch warm-up (lead).
+5. Water edges beyond the docks/bridges/fords already built.
 
 ## Per-pass cost statement (triangles / draws, and what pays for it)
 See docs/r39/world_landmarks.md ("Third pass", "Fix pass"). Summary: landmarks add about 8 material draws each in their own frustum only;
