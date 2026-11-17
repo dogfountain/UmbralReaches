@@ -360,7 +360,9 @@ func _enqueue_toast(text: String, kind: StringName) -> void:
 				drop = i
 				break
 		if drop < 0:
-			return
+			if kind == &"quiet":
+				return                   # a quiet line never pushes a real one out (the Journal has it anyway)
+			drop = 0                     # a real toast replaces the oldest waiting one: it has waited longest and is the stalest
 		_toast_q.remove_at(drop)
 	_toast_q.append({"text": text, "kind": kind})
 
