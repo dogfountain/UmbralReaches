@@ -21,6 +21,7 @@ const Labels := preload("res://ui/world_map_labels.gd")
 const Glyphs := preload("res://ui/world_map_glyphs.gd")
 const Med := preload("res://ui/medieval_style.gd")
 const MapTravel := preload("res://ui/world_map_travel.gd")
+const MapUtil := preload("res://ui/world_map_util.gd")
 const MapCluster := preload("res://ui/world_map_cluster.gd")
 const Danger := preload("res://core/life/encounters/danger.gd")
 
@@ -233,6 +234,8 @@ func _input(event: InputEvent) -> void:
 			elif mb.position.distance_to(_press_at) < 6.0 and _hover >= 0 and _hover < _marks.size():
 				MapTravel.click(self, _marks[_hover])
 			_drag = mb.pressed
+		elif mb.pressed and mb.button_index == MOUSE_BUTTON_RIGHT and Wayfarer.toggle_pin(get_tree(), _s2w(mb.position), _marks[_hover] if _hover >= 0 and _hover < _marks.size() else {}):
+			_collect()
 		elif mb.pressed and mb.button_index == MOUSE_BUTTON_WHEEL_UP:
 			_zoom_by(1.16, mb.position)
 		elif mb.pressed and mb.button_index == MOUSE_BUTTON_WHEEL_DOWN:
@@ -256,6 +259,8 @@ func _input(event: InputEvent) -> void:
 			_zoom_by(0.8, _area.get_center())
 		get_viewport().set_input_as_handled()
 	elif event is InputEventJoypadButton and event.pressed:
+		if (event as InputEventJoypadButton).button_index == JOY_BUTTON_Y and Wayfarer.toggle_pin(get_tree(), _s2w(_area.get_center()), _marks[_hover] if _hover >= 0 and _hover < _marks.size() else {}):
+			_collect()
 		if (event as InputEventJoypadButton).button_index == JOY_BUTTON_A:
 			if _hover < 0 or _hover >= _marks.size() or not MapTravel.click(self, _marks[_hover]):
 				_recentre()
@@ -461,6 +466,7 @@ func _collect() -> void:
 		_marks.append({"at": mat, "kind": kind, "name": label if label != "" else note.capitalize(), "note": note if label != "" else "",
 			"radius": float(m3.get_meta(&"map_radius", 0.0))})
 	_marks.append_array(MapTravel.posts(tree))
+	_marks.append_array(Wayfarer.pin_marks())
 	if _you != Vector2.INF:
 		_here = LoreDB.place_name(String(RealmLayout.region_at(_you.x, _you.y).get("id", "")))
 		_marks.append({"at": _you, "kind": "you", "name": "You", "note": _here})
@@ -507,6 +513,7 @@ func paint(c: Control) -> void:
 	_labels.layout(_zoom, _zoom_min, _seen)
 	_labels.draw(c, _zoom, _w2s, _area)
 	_guide(c)
+	Wayfarer.paint_trail(c, _w2s, edge)
 	_cl = MapCluster.fold(_marks, _w2s, edge)
 	for i in _marks.size():
 		var m := _marks[i]
@@ -547,7 +554,7 @@ func _bar(c: Control, vs: Vector2) -> void:
 	_forge(c, Rect2(0.0, by, vs.x, BAR_H))
 	var pad := Input.get_connected_joypads().size() > 0 and not _use_mouse
 	var close_k := InputSetup.live_label(ACTION, pad, "M")
-	var txt := "Drag or stick: pan     Wheel or triggers: zoom     Space or A: find yourself     %s or Esc: close" % close_k
+	var txt := "Drag or stick: pan     Wheel or triggers: zoom     Space or A: find yourself     Right-click or Y: set or lift a mark     %s or Esc: close" % close_k
 	c.draw_string(_serif, Vector2(34.0, by + 66.0), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Med.BONE_DIM)
 	var lamps := Lamp.tally(get_tree())
 	var x := 34.0
@@ -768,9 +775,9 @@ func _compute() -> void:
 			var q := Vector2(ox, oz) + Vector2(rng.randf_range(-1.0, 1.0), rng.randf_range(-1.0, 1.0))
 			if block[int((q.x - SHEET.position.x) / FEAT) + int((q.y - SHEET.position.y) / FEAT) * fw] == 0:
 				dead.append(q)
-	peaks = _sorted_z(peaks)
-	hills = _sorted_z(hills)
-	trees = _sorted_z(trees)
+	peaks = MapUtil.sorted_z(peaks)
+	hills = MapUtil.sorted_z(hills)
+	trees = MapUtil.sorted_z(trees)
 	data["peaks"] = peaks
 	data["hills"] = hills
 	data["trees"] = trees
@@ -780,12 +787,6 @@ func _compute() -> void:
 	data["mounds"] = _mounds(rng)
 	data["cov"] = _coverage()
 	_data = data
-
-
-func _sorted_z(a: PackedVector3Array) -> PackedVector3Array:
-	var arr: Array = Array(a)
-	arr.sort_custom(func(p: Vector3, q: Vector3) -> bool: return p.y < q.y)
-	return PackedVector3Array(arr)
 
 
 func _stamp(block: PackedByteArray, fw: int, fh: int, at: Vector2, r_m: float) -> void:
@@ -800,35 +801,14 @@ func _stamp(block: PackedByteArray, fw: int, fh: int, at: Vector2, r_m: float) -
 
 ## Water and the pit as two soft channels: blurred so the shader can find a smooth shore.
 func _feature_image(water: PackedFloat32Array, pit: PackedFloat32Array, fw: int, fh: int) -> Image:
-	var wv := _blur(_blur(water, fw, fh, 2), fw, fh, 2)
-	var pv := _blur(_blur(pit, fw, fh, 2), fw, fh, 2)
+	var wv := MapUtil.blur(MapUtil.blur(water, fw, fh, 2), fw, fh, 2)
+	var pv := MapUtil.blur(MapUtil.blur(pit, fw, fh, 2), fw, fh, 2)
 	var bytes := PackedByteArray()
 	bytes.resize(fw * fh * 2)
 	for i in fw * fh:
 		bytes[i * 2] = int(clampf(wv[i], 0.0, 1.0) * 255.0)
 		bytes[i * 2 + 1] = int(clampf(pv[i], 0.0, 1.0) * 255.0)
 	return Image.create_from_data(fw, fh, false, Image.FORMAT_RG8, bytes)
-
-
-func _blur(a: PackedFloat32Array, w: int, h: int, r: int) -> PackedFloat32Array:
-	var tmp := PackedFloat32Array()
-	tmp.resize(w * h)
-	var out := PackedFloat32Array()
-	out.resize(w * h)
-	var inv := 1.0 / float(2 * r + 1)
-	for j in h:
-		for i in w:
-			var s := 0.0
-			for k in range(-r, r + 1):
-				s += a[j * w + clampi(i + k, 0, w - 1)]
-			tmp[j * w + i] = s * inv
-	for j in h:
-		for i in w:
-			var s2 := 0.0
-			for k in range(-r, r + 1):
-				s2 += tmp[clampi(j + k, 0, h - 1) * w + i]
-			out[j * w + i] = s2 * inv
-	return out
 
 
 func _wash_image(b: Rect2) -> Image:

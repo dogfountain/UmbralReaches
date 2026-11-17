@@ -9,6 +9,7 @@ extends CanvasLayer
 ##   Events.fire_travelled(from_fire, to_fire) when the flight lands (brazier node names).
 
 const Flight := preload("res://core/world/fire_flight.gd")
+const Danger := preload("res://core/life/encounters/danger.gd")
 const UIType := preload("res://ui/type.gd")
 const FIGHT_R := 18.0                    ## Stamina.FIGHT_R: an awake foe this close and the road is shut
 const INK := Color(0.93, 0.88, 0.8)
@@ -183,6 +184,7 @@ func _rebuild() -> void:
 		var d := b.global_position.distance_to(from.global_position)
 		var where := region_name(b)
 		var txt := "%s   ·   %s   ·   %d m" % [b.display_name(), where, roundi(d)] if where != "" else "%s   ·   %d m" % [b.display_name(), roundi(d)]
+		txt += "   ·   " + Danger.plate(b.global_position)
 		if not b.lit:
 			txt += "   (cold)"
 		var btn := _button(_list, txt, b.lit and why == "")
