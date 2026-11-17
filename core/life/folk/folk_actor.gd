@@ -89,6 +89,12 @@ func _t_init() -> void:
 
 
 ## Awake: processing and visible. Asleep: nothing runs (the stage wakes people within range).
+## The wanderer's position as the stage last shared it (villager_fidgets.wave reads this, as it does a villager's).
+func _player_pos() -> Vector3:
+	var p: Variant = ctx.get("player", Vector3.INF)
+	return p if p is Vector3 else Vector3.INF
+
+
 func set_awake(on: bool) -> void:
 	awake = on
 	visible = on and not held
@@ -179,11 +185,6 @@ func _overlays(dt: float) -> void:
 		wave_t = maxf(0.0, wave_t - dt)
 	if nod_t > 0.0:
 		nod_t = maxf(0.0, nod_t - dt)
-
-
-## (villager_fidgets.gd's wave asks the villager where the wanderer is)
-func _player_pos() -> Vector3:
-	return ctx.get("player", Vector3.INF)
 
 
 func start_wave(secs := 2.6) -> void:

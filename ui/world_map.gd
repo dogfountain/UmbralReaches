@@ -172,7 +172,7 @@ func open(warming := false) -> void:
 	_recentre()
 	_root.visible = true
 	_hover = -1
-	UiSound.play(self, "tab")
+	UiSound.play(self, "map_open")
 	set_process(true)
 
 
@@ -185,7 +185,7 @@ func close() -> void:
 	get_tree().paused = false
 	if _was_captured:
 		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
-	UiSound.play(self, "back")
+	UiSound.play(self, "map_close")
 
 
 ## Another screen took the night over while the map was up (or the pause was lifted from outside):

@@ -215,6 +215,7 @@ func _hit_sound() -> String:
 func _die() -> void:
 	marks = maxi(marks, 1)
 	_end_plates(false)
+	BossKit.emote(self, "\"One thousand and ninety-one.\" The count is finished, and he does not curse you. He sets the crozier down, and, for the first time in nine winters, is not counting.", Color(0.9, 0.85, 0.7))
 	super._die()
 	var bid := String(get_meta(&"boss_id", ""))
 	if bid == "":

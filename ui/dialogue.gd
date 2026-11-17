@@ -53,6 +53,9 @@ var _buttons: Array[Button] = []
 var _t := 0.0
 var _voice_p: AudioStreamPlayer
 var _voices := {}                          ## speaker name -> voice profile (set_voice)
+var _solemn := false                      ## a grave line (a death, a grave, a confession): the babble slows, drops and softens
+## words that make a line grave (the babble voices stay babble; only their pace, pitch and level follow the matter)
+const SOLEMN := ["dead", "died", "death", "grave", "buried", "burial", "mourn", "weep", "wept", "tears", "forgive", "sorry", "sin", "hollow", "lost", "gone", "mother", "father", "nine winters", "never came back", "did not come back", "went up", "the night"]
 var _cur_voice := {}
 var _syl: Array = []                       ## [character index, pitch mult, dB] per syllable of the line
 var _syl_i := 0
@@ -352,6 +355,7 @@ func line(speaker: String, text: String, choices: Array[String] = [], marks: Arr
 	_cur_voice = _voices.get(speaker, {})
 	if _cur_voice.is_empty():
 		_cur_voice = Voice.profile("dwarf", hash(speaker))
+	_solemn = _is_solemn(text)
 	_plan_syllables(_text.get_parsed_text())
 	_shown = 0.0
 	_text.visible_characters = 0
@@ -588,13 +592,23 @@ func _voice_tick() -> void:
 	if _syl_i >= _syl.size():
 		return
 	var now := Time.get_ticks_msec() * 0.001
-	var gap := 0.055 / float(_cur_voice.get("pace", 1.0))
+	var gap := 0.055 / float(_cur_voice.get("pace", 1.0)) * (1.7 if _solemn else 1.0)
 	while _syl_i < _syl.size() and int(_syl[_syl_i][0]) <= int(_shown):
 		var s: Array = _syl[_syl_i]
 		_syl_i += 1
 		if now - _syl_last >= gap:
 			_syl_last = now
-			Voice.syllable(_voice_p, _cur_voice, float(s[1]), float(s[2]))
+			Voice.syllable(_voice_p, _cur_voice, float(s[1]) * (0.93 if _solemn else 1.0), float(s[2]) - (2.5 if _solemn else 0.0))
+
+
+## A line is grave when two of the grave words are in it, or one and it trails off.
+func _is_solemn(text: String) -> bool:
+	var t := text.to_lower()
+	var n := 0
+	for w: String in SOLEMN:
+		if t.contains(w):
+			n += 1
+	return n >= 2 or (n >= 1 and (t.ends_with("...") or t.ends_with("\u2026")))
 
 
 func _voice_stop() -> void:

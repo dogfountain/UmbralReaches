@@ -198,7 +198,7 @@ func _shoot() -> void:
 	_flash.color.a = 0.55 * Access.flash()
 	var tw := create_tween().set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
 	tw.tween_property(_flash, "color:a", 0.0, 0.45)
-	UiSound.play(self, "confirm")
+	UiSound.play(self, "shutter")
 	if err == OK:
 		Events.toast.emit("Kept: photos/%s" % file)
 		Chronicle.write("photo:first", "photo", "You set the lantern down and kept a view of the night.")

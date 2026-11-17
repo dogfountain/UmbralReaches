@@ -3,13 +3,13 @@ extends Node3D
 ## its people stand; "Quests" in group "quests". From quest_book.gd's state it keeps the world true:
 ##   - pickups (quest_pickup.gd) for the step that wants them: Edda's tongs, the name-slates, the
 ##     Keg's mugs, Father Harrow's lantern; taking one reads it out (subtitles) and moves the task on
-##   - Oswin's walk to the forty-first waystone (head of the north lane): he follows the wanderer (villager.gd `follow`) off
+##   - Joram's walk to the forty-first waystone (head of the north lane): he follows the wanderer (villager.gd `follow`) off
 ##     the walking network, waits when left behind, kneels at the stone; after the choice he keeps a
 ##     vigil there for good, or takes the west road and is gone
 ##   - Father Harrow: a hollowed man who wakes over his lantern in the fen and falls on step 1
 ##   - outcomes left standing in the village: the tongs at the forge or back on Edda's stone, three
 ##     carved names in the Kindlers' Yard, a mug of ale by the green's fire, the lantern on the
-##     Keg's bar (lit if Ostrin was told the truth), Oswin's staff on the west road
+##     Keg's bar (lit if Ostrin was told the truth), Joram's staff on the west road
 ## Spots are floor points found near the data's xz at load (prepare(), clear and dry), so nothing
 ## floats or sinks. Ticks at 4 Hz (one distance check per live piece).
 ## Load by path: const QuestWorld := preload("res://core/story/quest_world.gd")
@@ -31,13 +31,13 @@ var pickups := {}                 ## key -> pickup node
 var props := {}                   ## outcome id -> holder
 var hollow: Node3D                ## Father Harrow while he stands
 var _tick := 0.0
-var _leaving: Node3D              ## Oswin taking the west road
+var _leaving: Node3D              ## Joram taking the west road
 var _leave_t := 0.0
 
 
 # --- before the people spawn ------------------------------------------------------------------------
 
-## Find the floor spots and add the forty-first stone (north_lane's head) to the walking network (as a lone node: Oswin is
+## Find the floor spots and add the forty-first stone (north_lane's head) to the walking network (as a lone node: Joram is
 ## placed there, never routed).
 static func prepare(v: Node3D) -> void:
 	spots.clear()
@@ -120,7 +120,7 @@ static func override(id: String, d: Dictionary) -> Dictionary:
 	return d
 
 
-## Oswin keeping his vigil at the forty-first stone (he chose to go on believing).
+## Joram keeping his vigil at the forty-first stone (he chose to go on believing).
 static func vigil(d: Dictionary) -> Dictionary:
 	var o := d.duplicate(true)
 	var stone: Vector2 = Chains.ESCORT.stone
@@ -139,7 +139,7 @@ static func vigil(d: Dictionary) -> Dictionary:
 
 func _ready() -> void:
 	add_to_group("quests")
-	# the forty-first waystone stands whether or not anybody walks Oswin to it
+	# the forty-first waystone stands whether or not anybody walks Joram to it
 	var ws: Vector3 = spots.get("waystone", Vector3.INF)
 	if ws != Vector3.INF:
 		var st: Vector3 = spots.get("stair", ws)
@@ -166,7 +166,7 @@ func _player() -> Node3D:
 	return get_tree().get_first_node_in_group(Groups.PLAYER) as Node3D
 
 
-## Bring the world in line with the tasks' state (pickups, Oswin, outcome props).
+## Bring the world in line with the tasks' state (pickups, Joram, outcome props).
 func sync() -> void:
 	if not is_inside_tree():
 		return
@@ -273,7 +273,7 @@ func _narrate(s: String) -> void:
 		(ui as Object).call("narrate", [s])
 
 
-# --- Oswin's walk -------------------------------------------------------------------------------------
+# --- Joram's walk -------------------------------------------------------------------------------------
 
 func _sync_oswin() -> void:
 	var o := _villager("oswin")
@@ -313,7 +313,7 @@ func _sync_oswin() -> void:
 			_leave_t = 0.0
 
 
-const KNEEL_R := 0.8          ## m from the stone (xz) at which Oswin kneels
+const KNEEL_R := 0.8          ## m from the stone (xz) at which Joram kneels
 const KNEEL_STUCK_S := 3.0    ## or after this long without closing on it
 var _esc_best := INF
 var _esc_stuck := 0.0
@@ -325,7 +325,7 @@ func _oswin_waits(o: Node3D) -> void:
 	var w := bool(o.get("waiting"))
 	if w and not _esc_waited:
 		_esc_waited = true
-		_narrate("Oswin stops on the road. \"I will wait here. Go on, I will keep.\"")
+		_narrate("Joram stops on the road. \"I will wait here. Go on, I will keep.\"")
 	elif not w:
 		_esc_waited = false
 
@@ -361,7 +361,7 @@ func _process(delta: float) -> void:
 		var o := _villager("oswin")
 		if o and spots.get("stair", Vector3.INF) != Vector3.INF and Vector2(o.global_position.x - stone.x, o.global_position.z - stone.z).length() < float(Chains.ESCORT.reach):
 			Book.advance("forty_first")
-			_narrate("Oswin stops at the stone. He touches it with both hands. \"Forty-one.\"")
+			_narrate("Joram stops at the stone. He touches it with both hands. \"Forty-one.\"")
 		elif o:
 			_oswin_waits(o)
 	elif Book.active("forty_first") and Book.step("forty_first") == 1:

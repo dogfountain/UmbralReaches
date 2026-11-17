@@ -2,7 +2,7 @@ extends Node
 ## Renders for the tasks, the shop and the Keg's scenes (windowed, real world):
 ##   HOME=<scratch>/home godot --path . res://zz/quest_shot.tscn -- --phase=before|after
 ## before: a fresh save (the keep met, no tasks). after: the five tasks finished (tongs back on the
-## stone, names in the Yard, the mug by the fire, the lantern lit on the bar, Oswin's vigil), plus
+## stone, names in the Yard, the mug by the fire, the lantern lit on the bar, Joram's vigil), plus
 ## the shop, the ledger and a task conversation. -> shots/agentE_<what>_<phase>.png
 ## Never writes the save (Travel._busy, the village in a sandbox) and exits with OS.kill.
 

@@ -1,4 +1,5 @@
 extends Node
+const CueBank := preload("res://core/audio/cue_bank.gd")
 ## The Chronicle: the run told as it happened. Every turning point is written down once, with the night it fell on, in the
 ## game's own voice: a seal broken, a great one fallen, a bell answered, a country first walked, a level of Remembrance, a
 ## fall into the dark, a horse bought, the first ride on the Ember Road, a night turned at camp. Kept in Travel.story["chronicle"]
@@ -45,6 +46,9 @@ static func write(key: String, kind: String, text: String) -> void:
 	list.append({"n": Days.current() + 1, "k": kind, "t": text})
 	while list.size() > KEEP:
 		list.pop_front()
+	var tree := Engine.get_main_loop() as SceneTree
+	if tree != null and tree.current_scene != null and key != "begin":
+		CueBank.play(tree.current_scene, "ui_chronicle", -3.0)       # a quill's scratch and one small bell: the night wrote a line
 	Travel.save_soon()
 
 

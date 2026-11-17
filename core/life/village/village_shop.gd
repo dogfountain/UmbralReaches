@@ -55,7 +55,7 @@ const GOODS := {
 const RUMOURS := [
 	["!q:edda_tongs", "Hild's been asking after her grandmother's tongs. Abel trims Edda's candles in the Kindlers' Yard. Ask her."],
 	["!q:slow_way", "Ostrin's father went down the fen with a lantern, after his wife. Some say the lantern's still down there. Some say he is."],
-	["!q:forty_first", "Oswin counts waystones in his sleep. Forty, he says. He wants the forty-first before he goes up. Somebody should walk him."],
+	["!q:forty_first", "Joram counts waystones in his sleep. Forty, he says. He wants the forty-first before he goes up. Somebody should walk him."],
 	["!q:names_yard", "Abel won't carve a number on a stone. Says the Order left the names lying about the valley on slates, and he wants them."],
 	["!q:keg_thief", "Somebody's been at the back keg after I bank the fire. If you hear who, I'm buying."],
 	["!v:oil", "Grisel will trade you lamp oil for grave ash. Fennick's round gets longer. So does his complaining."],

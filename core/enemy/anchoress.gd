@@ -157,6 +157,11 @@ func _physics_process(delta: float) -> void:
 		_sig = 0
 		_busy = 0.0
 		BossKit.transition(self, "The lantern flares. The last prayer is the loudest.", Color(2.6, 1.0, 0.3))
+		match QuestBook.pick("vow_cell"):                    # what was brought to the wall is remembered in her last prayer
+			"bread":
+				BossKit.emote(self, "She lowers the lantern a hand's breadth. She has not eaten so well in nine winters.", Color(0.95, 0.85, 0.6))
+			"name":
+				BossKit.emote(self, "\"Here,\" she says, to the dark, and for a moment the prayer is only a woman talking to herself.", Color(0.95, 0.85, 0.6))
 		walk_speed *= 1.15
 	_knot_t = maxf(0.0, _knot_t - delta)
 	weak_open = _knot_t > 0.0

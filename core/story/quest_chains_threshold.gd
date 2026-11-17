@@ -4,7 +4,7 @@ extends RefCounted
 ## THRESHOLD_CHAPEL in QUESTS and ORDER (the `rift` ledger chapter, after the crossing's tasks) and nothing else: there
 ## are no pickups (the reward is the secret's own reliquary and the page cut into the kneeling stone).
 ##
-##   threshold_chapel  The Pilgrims' Chapel (Oswin)  Oswin was told at the first fire of a chapel the pilgrims cut
+##   threshold_chapel  The Pilgrims' Chapel (Joram)  Joram was told at the first fire of a chapel the pilgrims cut
 ##                                                    where the light falls into the starwater; the player goes down the
 ##                                                    Pilgrims' Stair round the crossing's third tower and the quay, through the falling light, and opens the reliquary
 ## Chapel: the chamber's middle is ChapelKit ORIGIN + 3 m into the wall: (-17.4, -12, -36.85). The reliquary is the
@@ -13,7 +13,7 @@ extends RefCounted
 
 const CHAPEL := Vector2(-17.4, -36.85) + Endgame.O2       ## (the Threshold stands in the far north-east: Endgame)
 
-const THRESHOLD_CHAPEL := {"name": "The Pilgrims' Chapel", "giver": "oswin", "where": "Oswin, a pilgrim, at Hearthward", "zone": "rift",
+const THRESHOLD_CHAPEL := {"name": "The Pilgrims' Chapel", "giver": "oswin", "where": "Joram, a pilgrim, at Hearthward", "zone": "rift",
 	"offer": true,
 	"text": "They told us at the first fire the pilgrims cut a chapel where the light falls into the starwater. Not the Order's, theirs. There is a stair wound round the third tower of the crossing, down to the water, and a quay along the wall. The light comes down across the door like a curtain, and you walk through it. What they carried down they left on the stone. Go and see it's still there. Leave a candle.",
 	"steps": [
@@ -21,11 +21,11 @@ const THRESHOLD_CHAPEL := {"name": "The Pilgrims' Chapel", "giver": "oswin", "wh
 			"text": "Take the stair round the crossing's third tower down to the starwater, follow the quay, and step through the light into the chapel"},
 		{"kind": "cond", "cond": "secret:looted:last_landing", "at": CHAPEL, "label": "The pilgrims' reliquary", "past": "The reliquary is already open.",
 			"text": "Open the pilgrims' reliquary, and read the kneeling stone"},
-		{"kind": "turnin", "who": "oswin", "text": "Tell Oswin what the chapel holds"},
+		{"kind": "turnin", "who": "oswin", "text": "Tell Joram what the chapel holds"},
 	],
 	"reward": {"ash": 22, "items": {"relic_fragment": 1}},
 	"choose": [{"slot": "lantern", "rarity": 2}, {"slot": "focus", "rarity": 2}, {"slot": "girdle", "rarity": 2}],
-	"outcome": {"": "Oswin held the page a long time and did not read it aloud. \"They left their names,\" he said. \"I thought there would be more light.\""}}
+	"outcome": {"": "Joram held the page a long time and did not read it aloud. \"They left their names,\" he said. \"I thought there would be more light.\""}}
 
 const QUESTS := {"threshold_chapel": THRESHOLD_CHAPEL}
 const ORDER := ["threshold_chapel"]

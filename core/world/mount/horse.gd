@@ -1,4 +1,5 @@
 extends Interactable
+const CueBank := preload("res://core/audio/cue_bank.gd")
 ## r36 a horse (core/world/mount): a skinned glTF (art/models/horse_*.glb, built by
 ## tools/blender/horse_build.py) posed by horse_rig.gd from the gait phase, a state, and the ride. Stands at its
 ## hitching post (or where it was left) grazing; [E] buys it there, rides it once owned; [E] while
@@ -285,6 +286,7 @@ func drive(p: Player, wish: Vector3, sprint: bool, dt: float) -> void:
 		var up := HorseBond.add(breed, speed * dt)
 		if up > 0:
 			Events.toast.emit(HorseBond.saying(breed))
+			CueBank.play_at("horse_bond", global_position + Vector3.UP * 1.4, 0.0)        # a warm nicker and one soft bell: it knows you better
 	var wading := RealmLand.in_water(global_position.x, global_position.z)
 	if wading and not bool(_d.get("wade", false)):
 		want = minf(want, float(_d.walk))
@@ -729,6 +731,8 @@ func call_to(who: Node3D) -> bool:
 	at_post = false
 	_gather = 0.0
 	Foley.horse_sfx("snort", global_position + Vector3.UP * 1.3, -8.0, pow(float(_d.get("heft", 1.0)), -0.3))
+	CueBank.play_at("whistle", who.global_position + Vector3.UP * 1.6, 0.0)           # the wanderer's two-note whistle
+	CueBank.play_at("horse_nicker", global_position + Vector3.UP * 1.3, 0.0, pow(float(_d.get("heft", 1.0)), -0.3))     # and the horse answers
 	return true
 
 

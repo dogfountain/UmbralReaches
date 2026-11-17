@@ -117,7 +117,7 @@ const DEFS := {
 		"desc": "Iron off the jaws of Edda's tongs, drawn out on Hild's anvil and shrunk onto your staff. It rings when it strikes stone.",
 		"text": "Worn: Rift Step recovers 20% sooner, and you land with the iron's ring: every foe within 2 m of where you arrive takes a Mark."},
 	"charm_waystone": {"name": "Chip of the First Waystone", "kind": "charm", "shape": "waystone", "tint": Color(0.7, 0.68, 0.6),
-		"desc": "A flake of the first stone the pilgrims set on the road. Oswin says every road in the valley is measured from it, and every light along it.",
+		"desc": "A flake of the first stone the pilgrims set on the road. Joram says every road in the valley is measured from it, and every light along it.",
 		"text": "Worn: Lantern Ward and Umbral Well hold 1.5 s longer."},
 	"charm_chalk": {"name": "Nan's Chalk", "kind": "charm", "shape": "chalk", "tint": Color(0.94, 0.92, 0.86),
 		"desc": "The stub Nan chalks the Keg's slate with. Nobody has ever argued with one of her tallies twice.",
