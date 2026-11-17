@@ -22,6 +22,10 @@ var lights := 0
 var fires := 0
 var chests := 0
 var _fire_mesh: QuadMesh
+var _fl: Array[Transform3D] = []        ## flame cards of this kit (one MultiMesh at commit: a fire costs no node and no draw of its own)
+var _hl := {}                           ## halo size (x10) -> Array[Transform3D]
+static var light_used := 0              ## every light the wonders add counts here; past LIGHT_CAP only the glow cards and glass remain (the light budget)
+const LIGHT_CAP := 72
 
 
 func setup(root: Node, nm: String, seed_n: int) -> void:
@@ -235,34 +239,47 @@ func window(base: Vector3, along: Vector3, out: Vector3, w: float, ht: float) ->
 
 ## A fire: two flame cards, a halo and one small unshadowed light (it fades out past ~90 m so far fires cost nothing
 ## but the two cards and a halo). `s` scales it (1 = a brazier, 3 = a tower's cresset).
-func fire(at: Vector3, s := 1.0, energy := 2.2, light := true) -> Array[Node3D]:
+func fire(at: Vector3, s := 1.0, energy := 2.2, light := true, own := false) -> Array[Node3D]:
 	var made: Array[Node3D] = []
 	if _fire_mesh == null:
 		_fire_mesh = QuadMesh.new()
 		_fire_mesh.size = Vector2(0.075, 0.17)
 	for i in 2:
-		var mi := MeshInstance3D.new()
-		mi.name = "Flame"
-		mi.mesh = _fire_mesh
-		mi.material_override = OssKit.mat("flame")
-		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		host.add_child(mi)
-		made.append(mi)
-		mi.position = at + Vector3(0.18 * s * (float(i) - 0.5), 0.5 * s, 0.12 * s * (0.5 - float(i)))
-		mi.scale = Vector3(7.0, 6.0 + float(i), 7.0) * s
-	var hm := MeshInstance3D.new()
-	hm.name = "FireHalo"
-	var hq := QuadMesh.new()
-	hq.size = Vector2(5.0, 5.0) * s
-	hm.mesh = hq
-	hm.material_override = OssKit.mat("halo")
-	hm.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	host.add_child(hm)
-	made.append(hm)
-	hm.position = at + Vector3.UP * (0.55 * s)
+		var pos := at + Vector3(0.18 * s * (float(i) - 0.5), 0.5 * s, 0.12 * s * (0.5 - float(i)))
+		var sc := Vector3(7.0, 6.0 + float(i), 7.0) * s
+		if own:
+			var mi := MeshInstance3D.new()
+			mi.name = "Flame"
+			mi.mesh = _fire_mesh
+			mi.material_override = OssKit.mat("flame")
+			mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			host.add_child(mi)
+			made.append(mi)
+			mi.position = pos
+			mi.scale = sc
+		else:
+			_fl.append(Transform3D(Basis.from_scale(sc), pos))
+	var hp := at + Vector3.UP * (0.55 * s)
+	if own:
+		var hm := MeshInstance3D.new()
+		hm.name = "FireHalo"
+		var hq := QuadMesh.new()
+		hq.size = Vector2(5.0, 5.0) * s
+		hm.mesh = hq
+		hm.material_override = OssKit.mat("halo")
+		hm.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		host.add_child(hm)
+		made.append(hm)
+		hm.position = hp
+	else:
+		var key := roundi(s * 10.0)
+		if not _hl.has(key):
+			_hl[key] = []
+		(_hl[key] as Array).append(Transform3D(Basis.IDENTITY, hp))
 	fires += 1
-	if not light:
+	if not light or light_used >= LIGHT_CAP:
 		return made
+	light_used += 1
 	var l := OmniLight3D.new()
 	l.name = "FireLight"
 	l.light_color = FIRE_COL
@@ -286,6 +303,9 @@ func fire(at: Vector3, s := 1.0, energy := 2.2, light := true) -> Array[Node3D]:
 
 ## A small lantern light with no flame card (a lit window's spill, a hung lamp). Fades out past 45 m.
 func lamp(at: Vector3, col := Color(1.0, 0.7, 0.4), energy := 1.0, rng_m := 6.0) -> OmniLight3D:
+	if light_used >= LIGHT_CAP:
+		return null                       # over the light budget: no light (the glass and the flame cards still glow)
+	light_used += 1
 	var l := OmniLight3D.new()
 	l.name = "LampLight"
 	l.light_color = col
@@ -329,6 +349,29 @@ func beacon(at: Vector3, col: Color, radius := 1.0, ceiling := 9.0, reach := 0.0
 ## colossal landmarks pass 0 and are never culled by range.
 func commit(range_end := 0.0) -> int:
 	var n := kit.commit(host, host.name + "Body")
+	# flames and halos: one MultiMesh each (per halo size) for the whole kit
+	if not _fl.is_empty():
+		var fm := OssKit.multimesh(_fire_mesh, _fl, OssKit.mat("flame"), false)
+		fm.name = "Flames"
+		host.add_child(fm)
+		n += 1
+	for key: int in _hl:
+		var hq := QuadMesh.new()
+		hq.size = Vector2(5.0, 5.0) * (float(key) / 10.0)
+		var hm := OssKit.multimesh(hq, _hl[key], OssKit.mat("halo"), false)
+		hm.name = "FireHalos"
+		host.add_child(hm)
+		n += 1
+	# a big mesh gets LODs (cached, build time): its relief and ornament cost less the farther it is
+	for ch in host.get_children():
+		var mi := ch as MeshInstance3D
+		if mi != null and mi.mesh is ArrayMesh and String(mi.name).begins_with("Mesh_"):
+			var am := mi.mesh as ArrayMesh
+			var verts := 0
+			for sidx in am.get_surface_count():
+				verts += (am.surface_get_arrays(sidx)[Mesh.ARRAY_VERTEX] as PackedVector3Array).size()
+			if verts > 18000:
+				mi.mesh = MeshChunks.with_lods(am)
 	if range_end > 0.0:
 		for ch in host.get_children():
 			if ch is MeshInstance3D or ch is MultiMeshInstance3D:

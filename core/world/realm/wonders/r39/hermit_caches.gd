@@ -128,4 +128,4 @@ func _cache(root: Node, i: int, p: Vector2, lo: float, hi: float, rng: RandomNum
 	Dress.strands(k, pole + Vector3.UP * 6.8, pole + Vector3.UP * 6.8 + rx * -1.1, 3, 1.2)
 	if kind != 0:
 		Dress.camp(k, c + rx * 2.2 + rz * 4.2, yaw, false)
-	k.commit(220.0)
+	k.commit(150.0)

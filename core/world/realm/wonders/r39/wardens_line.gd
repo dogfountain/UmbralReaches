@@ -143,7 +143,7 @@ func _tower(no: int, c: Vector2, glo: float, ghi: float) -> void:
 	for i in 3:
 		var ang := float(i) * TAU / 3.0
 		k.tube("iron", cc + Vector3(cos(ang) * 1.0, 0.0, sin(ang) * 1.0), cc + Vector3(cos(ang) * 0.5, 1.05, sin(ang) * 0.5), 0.1, 0.1, 4, false, 0.6)
-	var flames: Array[Node3D] = k.fire(cc + Vector3.UP * 1.1, 2.8, 4.6)
+	var flames: Array[Node3D] = k.fire(cc + Vector3.UP * 1.1, 2.8, 4.6, true, true)
 	var pilot := k.lamp(cc + Vector3.UP * 1.6, Color(0.55, 0.75, 1.0), 0.8, 8.0)
 	var pg := MeshInstance3D.new()
 	var sm := SphereMesh.new()

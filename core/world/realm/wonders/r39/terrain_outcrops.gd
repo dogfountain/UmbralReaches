@@ -28,6 +28,7 @@ func _run(root: Node) -> void:
 	for reg: Dictionary in RealmLayout.REGIONS:
 		biome[String(reg.id)] = String(reg.get("biome", ""))
 	var placed := 0
+	var groups := {}                                  ## mesh -> {cell -> [Transform3D]}: one MultiMesh per (mesh, 96 m cell), not a draw per rock
 	var mb := RealmReaches.MARCH_BOUNDS
 	var gz := -138.0
 	while gz < 390.0 and placed < MAX:
@@ -54,8 +55,37 @@ func _run(root: Node) -> void:
 			var sz: Vector3 = SIZES[rng.randi() % SIZES.size()]
 			var mesh := RockKit.cliff(rng.randi() % 8, sz, style)
 			var xf := Transform3D(Basis(Vector3.UP, atan2(down.x, down.y)), Vector3(p.x, h - 0.5, p.y))
-			RockKit.spawn(host, mesh, xf, true, 170.0)
+			_add(host, mesh, xf, groups)
 			Flora.tree_clear.append([p, sz.x * 0.55 + 2.0])
 			placed += 1
 		gz += 12.0
+	for mesh: Mesh in groups:
+		for cell: Vector2i in (groups[mesh] as Dictionary):
+			var xs: Array = (groups[mesh] as Dictionary)[cell]
+			var mmi := OssKit.multimesh(mesh, xs, null, true)
+			mmi.name = "Outcrops_%d_%d" % [cell.x, cell.y]
+			mmi.material_override = null
+			mmi.visibility_range_end = 150.0
+			mmi.visibility_range_end_margin = 20.0
+			mmi.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
+			host.add_child(mmi)
 	print("WONDER terrain_outcrops: %d scarp faces" % placed)
+
+
+## A rock: its collision body now (a convex shape on the WORLD layer, no mesh), its picture into the (mesh, cell) group.
+func _add(host: Node3D, mesh: Mesh, xf: Transform3D, groups: Dictionary) -> void:
+	var body := StaticBody3D.new()
+	body.name = "OutcropBody"
+	body.collision_layer = 1
+	body.collision_mask = 0
+	var cs := CollisionShape3D.new()
+	cs.shape = RockKit.collision_shape(mesh)
+	body.add_child(cs)
+	host.add_child(body)
+	body.transform = xf
+	if not groups.has(mesh):
+		groups[mesh] = {}
+	var cell := Vector2i(floori(xf.origin.x / 96.0), floori(xf.origin.z / 96.0))
+	if not (groups[mesh] as Dictionary).has(cell):
+		(groups[mesh] as Dictionary)[cell] = []
+	((groups[mesh] as Dictionary)[cell] as Array).append(xf)

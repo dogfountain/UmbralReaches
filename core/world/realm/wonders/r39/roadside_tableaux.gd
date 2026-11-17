@@ -4,7 +4,7 @@ extends RefCounted
 ## with offerings and a candle, a gibbet with its cage and a lantern, a toll post whose keeper is gone, an abandoned camp,
 ## a pilgrims' cairn hung with lanterns. Found by walking every way (RealmLayout.PATHS) every ~75 m and standing a scene
 ## 8-13 m off it on flat, dry, unclaimed ground (WK.span / WK.taken), 60 m apart at least; the kind follows a hash of the
-## spot. Each scene is its own kit (one set of meshes, faded at 200 m), reserves its ground, carries its own light
+## spot. Each scene is its own kit (one set of meshes, faded at 140 m), reserves its ground, carries its own light
 ## (a lantern or a fire with a distance fade), and a third of them hold a small chest. Build-time only.
 
 const WK := preload("res://core/world/realm/wonders/r39/wonder_kit.gd")
@@ -74,7 +74,7 @@ func _try(root: Node, c: Vector2, t: Vector2, n: int, ids: Array, rng: RandomNum
 		3: _toll(k, o, b, yaw, n)
 		4: _camp(k, o, b, yaw, n)
 		_: _cairn(k, o, b, yaw)
-	k.commit(200.0)
+	k.commit(140.0)
 	return true
 
 
