@@ -1335,7 +1335,7 @@ static func _under_cell(rng: RandomNumberGenerator, items: Dictionary, out: Arra
 				lane = _near_lane(xf * mesh_aabb(id))
 			var col := _tint(rng, 0.14 if code != 2 else 0.05)
 			if tinted:
-				col = Color(col.r * tint.r, col.g * tint.g, col.b * tint.b, 1.0) * (preload("res://core/world/realm/flora_signature.gd").flower_tint(px, pz) if code == 2 else Color.WHITE)      # flowers take the region's own hue
+				col = Color(col.r * tint.r, col.g * tint.g, col.b * tint.b, 1.0)
 			if lane:
 				out.append([id, xf, col, lane, sp])        # the lane check after the pass
 			else:
