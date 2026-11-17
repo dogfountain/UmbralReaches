@@ -5,6 +5,7 @@ extends CanvasLayer
 ##            bond); the tack to buy (shoes, barding, a saddle lantern, larger and deep saddlebags), each with its cost and why not.
 ##   Saddlebags  materials moved between the satchel and the bags (what is in the bags is safe: a fall into the dark does not
 ##            drop it). The capacity grows with the tack. The bags belong to the breed, and are opened at any post.
+##   Race     (the Hearthward rail only) four courses, your best, the rivals' pace and the Cup (core/world/mount/horse_race.gd).
 ##   Courier  the parcels this post gives (core/world/mount/courier.gd), their gold times, your best, and the whole board.
 ## Pauses the night while it is open. Built hidden at the start (no first-use cost) and filled when opened. Load by path.
 
@@ -15,12 +16,14 @@ const Profile := preload("res://core/util/profile.gd")
 const Med := preload("res://ui/medieval_style.gd")
 const MenuGate := preload("res://ui/menu_gate.gd")
 const UiSound := preload("res://ui/ui_sound.gd")
+const RaceData := preload("res://core/world/mount/horse_race_data.gd")
+const Tally := preload("res://core/story/tally.gd")
 
 const INK := Color(0.93, 0.87, 0.74)
 const DIM := Color(0.74, 0.66, 0.52)
 const GILT := Color(1.0, 0.78, 0.4)
 const WARN := Color(1.0, 0.5, 0.4)
-const PAGES := ["Care", "Saddlebags", "Courier"]
+const PAGES := ["Care", "Saddlebags", "Courier", "Race"]
 const MATERIALS := ["grave_ash", "ember_shard", "ash_bloom", "grave_iron", "relic_fragment"]
 
 var _open := false
@@ -165,6 +168,8 @@ func _fill() -> void:
 			first = _bags()
 		2:
 			first = _courier()
+		3:
+			first = _race()
 	if first != null:
 		first.grab_focus.call_deferred()
 
@@ -283,6 +288,41 @@ func _courier() -> Control:
 	for id: String in Courier.ROUTES:
 		var best2 := float(Profile.best.get(id, 0.0))
 		_body.add_child(_label("%s   %s" % [Courier.route_name(id), Courier.fmt(best2) if best2 > 0.0 else "no time yet"], 16, INK if best2 > 0.0 else DIM))
+	return first
+
+
+func _race() -> Control:
+	Profile.ensure()
+	var race := get_tree().get_first_node_in_group(&"horse_race") as HorseRace
+	var first: Control = null
+	if _breed != "palfrey" or race == null:
+		_body.add_child(_label("The racing is run from the Hearthward rail. Ride to the stable-yard on your own horse and come to the rail.", 18, INK))
+		return null
+	var why := race.why_not()
+	_body.add_child(_label("THE HEARTHWARD RACES", 20, GILT))
+	_body.add_child(_label("Three riders and you, round the gates in order. Fennick calls the start. Mount your own horse and stand at the rail; leave the line before the call and you lose two seconds. The Ember Road is shut while you race. A first win on each course pays a purse; all four win the Hearthward Cup.", 16, DIM))
+	if why != "":
+		_body.add_child(_label(why, 17, WARN))
+	for id: String in RaceData.ORDER:
+		var cid := id
+		var c: Dictionary = RaceData.COURSES[cid]
+		var best := float(Profile.best.get(HorseRace.best_key(cid), 0.0))
+		var won := HorseRace.won().has(cid)
+		var row := VBoxContainer.new()
+		_body.add_child(row)
+		var b := _button(row, "%s   best %s%s" % [String(c.name), Courier.fmt(best) if best > 0.0 else "none", "   won" if won else ""], why == "", func() -> void:
+			var w := race.begin(cid)
+			if w != "":
+				Events.toast.emit(w)
+			else:
+				close())
+		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		row.add_child(_label(String(c.line), 15, DIM))
+		if first == null and why == "":
+			first = b
+	var d := Tally.data()
+	_body.add_child(Med.rule())
+	_body.add_child(_label("Races run %d, won %d.%s" % [int(d.get("races", 0)), int(d.get("race_wins", 0)), "   The Hearthward Cup is yours." if bool(Travel.story.get("race", {}).get("cup", false)) else ""], 17, INK))
 	return first
 
 

@@ -174,6 +174,8 @@ func _fill() -> void:
 	var ride: String = String(Travel.system_state("stable").get("ride", ""))
 	if ride != "":
 		_row(_right, "%s, your horse" % HorseBond.name_of(ride), "%s, %d km" % [HorseBond.title(ride), roundi(HorseBond.metres(ride) / 1000.0)])
+	if int(d.get("races", 0)) > 0:
+		_row(_right, "Races run, won", "%d, %d" % [int(d.get("races", 0)), int(d.get("race_wins", 0))])
 	_right.add_child(Control.new())
 	_head(_right, "YOUR VOWS")
 	var sworn := Vows.chosen()

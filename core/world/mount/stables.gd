@@ -8,8 +8,10 @@ const ScalePilot := preload("res://core/world/realm/scale_pilot.gd")
 const Horse := preload("res://core/world/mount/horse.gd")
 const HorseBond := preload("res://core/world/mount/horse_bond.gd")
 const PostSpot := preload("res://core/world/mount/post_spot.gd")
+const RaceField := preload("res://core/world/mount/horse_race_field.gd")
 
 var horses := {}                 ## breed -> horse node
+var rivals: Array[Node3D] = []   ## the Hearthward race's parked rivals (horse_race.gd wakes them)
 
 
 static func build(host: Node3D) -> void:
@@ -42,6 +44,8 @@ func _ready() -> void:
 		host.add_child(h)
 		horses[b] = h
 		_restore_left(h, b, space)
+		if b == "palfrey":
+			rivals = RaceField.build(host, g)
 
 
 ## A hitching rail: two posts and a bar, and a pin on the map.
