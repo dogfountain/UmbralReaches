@@ -28,6 +28,7 @@ const FIRE_LIGHT := Color(1.0, 0.52, 0.18)         ## a kindled fire throws a de
 const MAP_LIT := Color(1.0, 0.62, 0.3)
 const MAP_COLD := Color(0.5, 0.48, 0.52)
 ## Emissive caps: lit coals peak at 1.6 (were 4.0), so they stay gold-orange under AgX, not a white blob
+const StaffSfx := preload("res://core/vfx/staff_sfx.gd")
 const COAL_GLOW := 0.85
 
 
@@ -230,7 +231,13 @@ func _set_lit(on: bool, animate: bool) -> void:
 		_coal_mat.emission_energy_multiplier = COAL_GLOW if on else 0.35
 	if _crackle:
 		if on:
+			_crackle.volume_db = -30.0 if animate else 0.0
 			_crackle.play()
+			if animate:
+				# kindled in front of you (not a fire already burning when the night loads): the fire catches with a
+				# whoosh (the staff's fire roar, pitched down, prewarmed) and the crackle swells in over ~0.8 s
+				StaffSfx.play("lance_fire", global_position + Vector3.UP * 0.6, -9.0, 0.6, 0.03)
+				create_tween().tween_property(_crackle, "volume_db", 0.0, 0.8).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 		else:
 			_crackle.stop()
 
