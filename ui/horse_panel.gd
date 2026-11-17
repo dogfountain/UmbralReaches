@@ -16,6 +16,7 @@ const Profile := preload("res://core/util/profile.gd")
 const Med := preload("res://ui/medieval_style.gd")
 const MenuGate := preload("res://ui/menu_gate.gd")
 const UiSound := preload("res://ui/ui_sound.gd")
+const Foot := preload("res://ui/foot_hint.gd")
 const RaceData := preload("res://core/world/mount/horse_race_data.gd")
 const Tally := preload("res://core/story/tally.gd")
 
@@ -85,7 +86,7 @@ func _build() -> void:
 	_body.add_theme_constant_override("separation", 5)
 	scroll.add_child(_body)
 	col.add_child(Med.rule())
-	_foot = _label("[Q] [E] page     [Esc] leave", 15, DIM)
+	_foot = _label("[Q] [E] page     [Esc] leave", 15, DIM)           # rewritten for the device when the panel fills
 	_foot.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	col.add_child(_foot)
 
@@ -152,6 +153,7 @@ func _clear(box: Node) -> void:
 func _fill() -> void:
 	_clear(_tabs)
 	_clear(_body)
+	_foot.text = "%s     %s     d-pad and A: choose" % [Foot.page(), Foot.leave()] if Settings.using_pad else "%s     %s" % [Foot.page(), Foot.leave()]
 	var d: Dictionary = DB.BREEDS[_breed]
 	_title.text = ("%s, the %s" % [HorseBond.name_of(_breed), String(d.name)]) if _owned() else String(d.name)
 	for i in PAGES.size():

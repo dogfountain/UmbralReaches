@@ -8,6 +8,7 @@ extends CanvasLayer
 const Tally := preload("res://core/story/tally.gd")
 const Days := preload("res://core/story/days.gd")
 const PAGES := 4
+const Foot := preload("res://ui/foot_hint.gd")
 const QuestBook := preload("res://core/story/quest_book.gd")
 const Chains := preload("res://core/story/quest_chains.gd")
 const Med := preload("res://ui/medieval_style.gd")
@@ -136,7 +137,7 @@ func _fill() -> void:
 	_clear(_left)
 	_clear(_right)
 	_title_l.text = ["THE COUNT", "THE CHRONICLE", "THE BELLS", "THE LONG NIGHT"][_page]
-	_foot_l.text = "[Q] [E] or LB RB: page (%d of %d)     [%s] or [Esc] close" % [_page + 1, PAGES, InputSetup.live_label("tally", false, "B")]
+	_foot_l.text = "%s (%d of %d)     %s" % [Foot.page(), _page + 1, PAGES, Foot.leave("tally", "B")]
 	if _page == 1:
 		_fill_chronicle()
 		return

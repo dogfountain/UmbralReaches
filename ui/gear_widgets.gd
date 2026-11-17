@@ -102,10 +102,18 @@ static func action(name: String, key: String, cb: Callable) -> Button:
 	col.add_child(sub)
 	b.set_meta(&"name", nm)
 	b.set_meta(&"sub", sub)
+	b.set_meta(&"key", kc.get_child(0))
+	b.set_meta(&"keys", [key, String(PAD_KEYS.get(key, key))])
 	return b
 
 
+## The pad's face for each key chip on the Gear page (gear_panel.gd `_input`): keys U Y R X are Raise, Reforge, Line and Salvage.
+const PAD_KEYS := {"U": "X", "Y": "Y", "R": "View", "X": "R3"}
+
+
 static func set_action(b: Button, name: String, sub: String) -> void:
+	if b.has_meta(&"key"):
+		(b.get_meta(&"key") as Label).text = String((b.get_meta(&"keys") as Array)[1 if Settings.using_pad else 0])      # the chip names the key on the device in hand
 	(b.get_meta(&"name") as Label).text = name
 	(b.get_meta(&"sub") as Label).text = sub
 	var disabled := b.disabled

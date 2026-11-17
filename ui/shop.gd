@@ -255,7 +255,7 @@ func _refresh_hint() -> void:
 	if Settings.using_pad:
 		_hint.text = "[D-pad] choose / wares, sell, buy back     [%s] buy / sell     [B] leave" % Interactable.prompt_key()
 	else:
-		_hint.text = "[W/S] choose     [A/D] wares, sell, buy back     [%s] buy / sell     [Esc] leave" % Interactable.prompt_key()
+		_hint.text = "[W/S] choose     [A/D] wares, sell, buy back     [%s] buy / sell     [Esc] leave" % Interactable.prompt_key() if not Settings.using_pad else "[D-pad] choose and change tab     [A] buy / sell     [B] leave"
 
 
 func close() -> void:

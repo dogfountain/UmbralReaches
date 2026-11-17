@@ -348,7 +348,7 @@ func _foot_refresh() -> void:
 	if _foot == null:
 		return
 	var move := " ".join(["move_forward", "move_left", "move_back", "move_right"].map(func(a: String) -> String: return InputSetup.live_label(a, false, "?")))
-	_foot.text = "[%s] choose      [%s] or click: kindle      [Q] [E] page      [%s] or [Esc] leave" % [move, InputSetup.live_label("jump", false, "Space"), InputSetup.live_label("kindling", false, "K")]
+	_foot.text = "[%s] choose      [%s] or click: kindle      [Q] [E] page      [%s] or [Esc] leave" % [move, InputSetup.live_label("jump", false, "Space"), InputSetup.live_label("kindling", false, "K")] if not Settings.using_pad else "[D-pad] choose      [A] kindle      [LB] [RB] page      [B] leave"
 
 
 func open_menu(_from_fire := false, tab := "") -> void:

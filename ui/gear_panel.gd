@@ -444,6 +444,21 @@ func _input(event: InputEvent) -> void:
 			_:
 				return
 		get_viewport().set_input_as_handled()
+	elif event is InputEventJoypadButton and event.pressed:       # the pad: X raise, Y reforge, View line, R3 salvage, L3 filter (LB and RB page the character screen)
+		match (event as InputEventJoypadButton).button_index:
+			JOY_BUTTON_X:
+				_upgrade()
+			JOY_BUTTON_Y:
+				_reforge()
+			JOY_BUTTON_BACK:
+				_next_line()
+			JOY_BUTTON_RIGHT_STICK:
+				_salvage()
+			JOY_BUTTON_LEFT_STICK:
+				_cycle_filter()
+			_:
+				return
+		get_viewport().set_input_as_handled()
 
 
 # --- contents -----------------------------------------------------------------------------------
