@@ -59,9 +59,12 @@ var ambience_volume := 0.7
 var music_volume := 0.7             ## the generative night music (scape_music.gd) on its own bus
 var voices_volume := 0.9            ## the creatures' and bosses' voices (the Voices bus, under Effects)
 var ui_volume := 0.8                ## every interface cue (the UI bus, under Effects)
+var world_volume := 0.9            ## the world's own sounds the rework added (doors, chests, pickups, fires, small life; the World bus, under Effects)
+var combat_volume := 0.9           ## the combat layer (hurts, parries, schools, tells; the Combat bus, under Effects)
+var stingers_volume := 0.85        ## stingers, boss intros and deaths, the eclipse, the camp (the Stingers bus)
 var score_intensity := 0.8          ## the dynamic score's stems (the Score bus, under Music): tension, combat, aftermath, the acts' beds
 const BUSES := ["SFX", "Ambience", "Music"]
-const SUB_BUSES := {"UI": "SFX", "Score": "Music"}        ## created here, sent to their parent bus (Voices is made by Ambience)
+const SUB_BUSES := {"UI": "SFX", "Score": "Music", "World": "SFX", "Combat": "SFX", "Stingers": "Master"}        ## created here, sent to their parent bus (Voices is made by Ambience)
 
 
 func _ready() -> void:
@@ -129,6 +132,9 @@ func load_settings() -> void:
 	voices_volume = clampf(_v(cfg, "audio", "voices", voices_volume), 0.0, 1.0)
 	ui_volume = clampf(_v(cfg, "audio", "ui", ui_volume), 0.0, 1.0)
 	score_intensity = clampf(_v(cfg, "audio", "score", score_intensity), 0.0, 1.0)
+	world_volume = clampf(_v(cfg, "audio", "world", world_volume), 0.0, 1.0)
+	combat_volume = clampf(_v(cfg, "audio", "combat", combat_volume), 0.0, 1.0)
+	stingers_volume = clampf(_v(cfg, "audio", "stingers", stingers_volume), 0.0, 1.0)
 	bindings = _clean_bindings(cfg.get_value("input", "bindings", {}))
 	var mp := matching_preset()       # the saved fields win over the stored index: a file that matches no preset is Custom
 	if mp >= 0:
@@ -203,6 +209,9 @@ func save_settings() -> void:
 	cfg.set_value("audio", "voices", voices_volume)
 	cfg.set_value("audio", "ui", ui_volume)
 	cfg.set_value("audio", "score", score_intensity)
+	cfg.set_value("audio", "world", world_volume)
+	cfg.set_value("audio", "combat", combat_volume)
+	cfg.set_value("audio", "stingers", stingers_volume)
 	cfg.set_value("input", "bindings", bindings)
 	# write a temp file and rename it over the old one: quitting mid-write never leaves half a file
 	var tmp := PATH + ".tmp"
@@ -232,7 +241,7 @@ func _ensure_buses() -> void:
 
 
 func apply_audio() -> void:
-	var vols := {"Master": master_volume, "SFX": sfx_volume, "Ambience": ambience_volume, "Music": music_volume, "Voices": voices_volume, "UI": ui_volume, "Score": score_intensity}
+	var vols := {"Master": master_volume, "SFX": sfx_volume, "Ambience": ambience_volume, "Music": music_volume, "Voices": voices_volume, "UI": ui_volume, "Score": score_intensity, "World": world_volume, "Combat": combat_volume, "Stingers": stingers_volume}
 	for b: String in vols:
 		var i := AudioServer.get_bus_index(b)
 		if i >= 0:
@@ -300,6 +309,9 @@ func reset_defaults() -> void:
 	voices_volume = 0.9
 	ui_volume = 0.8
 	score_intensity = 0.8
+	world_volume = 0.9
+	combat_volume = 0.9
+	stingers_volume = 0.85
 	apply_preset(1)
 
 

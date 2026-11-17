@@ -245,10 +245,29 @@ static func stream(id: String) -> AudioStreamWAV:
 	return null
 
 
-static func _bus(id: String) -> StringName:
-	if id.begins_with("ui_") and AudioServer.get_bus_index("UI") >= 0:
-		return &"UI"
+const STINGER_PREFIX := ["boss_", "stinger_", "eclipse_", "camp_", "beacon_"]
+const COMBAT_PREFIX := ["hurt_", "parry_", "block_", "crit_", "school_", "kill_", "tell_", "dodge_", "gloom_heart", "land_", "gear_"]
+
+
+## The bus a cue plays on: the interface on UI, stingers on Stingers, the combat layer on Combat, everything else of the world's on World.
+static func bus_of(id: String) -> StringName:
+	var b := "World"
+	if id.begins_with("ui_"):
+		b = "UI"
+	else:
+		for p: String in STINGER_PREFIX:
+			if id.begins_with(p):
+				b = "Stingers"
+		for p2: String in COMBAT_PREFIX:
+			if id.begins_with(p2):
+				b = "Combat"
+	if AudioServer.get_bus_index(b) >= 0:
+		return StringName(b)
 	return &"SFX" if AudioServer.get_bus_index("SFX") >= 0 else &"Master"
+
+
+static func _bus(id: String) -> StringName:
+	return bus_of(id)
 
 
 ## A cue now, non-positional (interface, the wanderer's own body, stingers). `db` is added to the cue's own level.

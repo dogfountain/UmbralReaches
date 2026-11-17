@@ -30,6 +30,7 @@ var _boss: Node = null
 var _boss_id := ""
 var _boss_phase := 0
 var _room := ""
+var _fight := false
 var _e_state := 0                   ## 0 none, 1 warned, 2 totality, 3 returned
 var _tick := 0.0
 var _moth_t := 4.0
@@ -221,6 +222,7 @@ func _process(dt: float) -> void:
 		return
 	_tick = 0.25
 	_poll_boss()
+	_poll_fight()
 	_poll_eclipse()
 	_poll_room()
 	_moths(0.25)
@@ -244,6 +246,17 @@ func _poll_room() -> void:
 		CueBank.play_at("door_open", pl.global_position + Vector3.UP, -6.0, 1.0 if z == "tavern" else 0.8)
 	else:
 		CueBank.play_at("door_close", pl.global_position + Vector3.UP, -6.0, 1.0 if was == "tavern" else 0.8)
+
+
+## A fight ducks the ambience a little (the beds step back so the blows read), and lets it back a few seconds after.
+func _poll_fight() -> void:
+	var sd := get_tree().get_first_node_in_group(&"score_director") as ScoreDirector
+	var fighting := sd != null and sd.combat > 0.5
+	if fighting and not _fight and _gate("fightduck", 5.0):
+		var md := _mix()
+		if md != null:
+			md.duck_ambience(-3.0, 6.0, 3.0)
+	_fight = fighting
 
 
 func _poll_boss() -> void:
