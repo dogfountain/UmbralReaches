@@ -11,6 +11,7 @@ extends RefCounted
 ## House style (docs/LORE.md): terse, concrete, dark. Load by path.
 
 const WestTalk := preload("res://core/life/village/village_talk_west_marches.gd")    # --- west marches --- Weirford's conversations
+const WanderCast := preload("res://core/life/village/village_cast_wanderer.gd")      # the Late Ringer
 const StoryCast := preload("res://core/life/village/village_cast_story.gd")      # the story's five
 const Travellers := preload("res://core/life/village/village_cast_travellers.gd")    # the road's walkers
 const EastVillage := preload("res://core/life/village/village_east_marches.gd")   ## the east marches: Saltmarket's talk
@@ -513,6 +514,8 @@ const CONV := {
 	"penn": Towns.CONV["penn"], "hesper": Towns.CONV["hesper"], "cobb": Towns.CONV["cobb"], "dilly": Towns.CONV["dilly"], "wystan": Towns.CONV["wystan"],
 	"vell": Towns.CONV["vell"], "isolde": Towns.CONV["isolde"], "coyle": Towns.CONV["coyle"], "fenn": Towns.CONV["fenn"], "wat": Towns.CONV["wat"],
 	"maudlin": Towns.CONV["maudlin"],
+	# --- the Late Ringer ---
+	"iorweth_1": WanderCast.CONV["iorweth_1"], "iorweth_2": WanderCast.CONV["iorweth_2"], "iorweth_3": WanderCast.CONV["iorweth_3"], "iorweth_4": WanderCast.CONV["iorweth_4"], "iorweth_5": WanderCast.CONV["iorweth_5"],
 	# --- the story's five ---
 	"perrin": StoryCast.CONV["perrin"], "odile": StoryCast.CONV["odile"], "ione": StoryCast.CONV["ione"], "lowe": StoryCast.CONV["lowe"], "tamsin": StoryCast.CONV["tamsin"],
 }
