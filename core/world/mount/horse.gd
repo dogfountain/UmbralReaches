@@ -98,7 +98,7 @@ func interact_text() -> String:
 	if rider != null:
 		return "[%s]  Get down" % k
 	if not owned():
-		return "[%s]  Buy the %s  (%d grave ash)" % [k, String(_d.name), int(_d.cost)]
+		return "[%s]  Buy the %s  (%d grave ash: trots %d, gallops %d m/s; you sprint 7)" % [k, String(_d.name), int(_d.cost), roundi(float(_d.trot)), roundi(float(_d.gallop))]
 	return "[%s]  Ride the %s" % [k, String(_d.name)]
 
 

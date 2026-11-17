@@ -55,3 +55,15 @@ static func click(map: Node, m: Dictionary) -> bool:
 	map.close()
 	FireRoad.travel(from, dest)
 	return true
+
+
+## The hitching posts as pins (kind "horse"): where each breed is sold. They are known from the first night (the
+## villagers say where the stables are), so fog does not hide them.
+static func posts(tree: SceneTree) -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
+	for n in tree.get_nodes_in_group(&"hitching_post"):
+		var p := n as Node3D
+		if p != null and p.is_inside_tree():
+			out.append({"at": Vector2(p.global_position.x, p.global_position.z), "kind": "horse",
+				"name": String(p.get_meta(&"map_label", "A hitching post")), "note": "Horses are kept here, for grave ash"})
+	return out

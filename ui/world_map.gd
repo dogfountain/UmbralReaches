@@ -460,6 +460,7 @@ func _collect() -> void:
 			"quest_target": "Where your task leads", "rare": "Something rare keeps here"}[kind] as String
 		_marks.append({"at": mat, "kind": kind, "name": label if label != "" else note.capitalize(), "note": note if label != "" else "",
 			"radius": float(m3.get_meta(&"map_radius", 0.0))})
+	_marks.append_array(MapTravel.posts(tree))
 	if _you != Vector2.INF:
 		_here = LoreDB.place_name(String(RealmLayout.region_at(_you.x, _you.y).get("id", "")))
 		_marks.append({"at": _you, "kind": "you", "name": "You", "note": _here})
