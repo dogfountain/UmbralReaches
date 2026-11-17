@@ -435,6 +435,7 @@ class Gen:
 			var q := ((p - c) / rad).length()
 			var occ := clampf(0.38 + 0.62 * pow(clampf(q, 0.0, 1.0), 0.8), 0.3, 1.0)
 			occ *= clampf(0.82 + 0.18 * (p.y - c.y) / rad.y, 0.6, 1.1)
+			occ *= 0.86 + 0.28 * noise(p * 0.3 + Vector3(5, 1, 3))      # lit clumps and shaded hollows: value structure inside the crown
 			var j := 0.9 + 0.2 * noise(p * 0.7)
 			var top := clampf((p.y - c.y) / rad.y, 0.0, 1.0)      # the sunlit tops lean yellow-green, the core cool blue-green
 			return Color(tint.r * occ * j * (1.0 + 0.16 * top), tint.g * occ * j * (1.0 + 0.05 * top), tint.b * occ * (2.0 - j) * (1.0 - 0.14 * top))

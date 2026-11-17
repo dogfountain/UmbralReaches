@@ -282,3 +282,9 @@ Checked against the brief's list. Already present: roof overhang (0.45 m with ga
 lintels, sills, fixed shutters, flower boxes, hung lantern, drip stones, garden fence and bed, kit masonry tone patchwork, market stalls/carts/wells (market_props, props above).
 New: a **fascia board** along both eaves and **moss patches** on the roof slopes (three on the damp north side, two on the south). All kit boxes merged into the existing
 roof/beam/leaf meshes: no new draw call, about 10 boxes a cottage at build time (0.7 ms). Check at 5 m: a dark board under the thatch edge; at 50 m: roofs have a mottled tone.
+
+## Critique items 1-2 (masonry edges, crown value structure)
+**OssKit boxes** (`oss_kit.gd`): the eased arris faces are lifted 15 % (they catch the light; vertex colour clamps at 1, so darker stones gain most) and the arris is a touch
+larger (up to 4 cm, was 3); per-block tone jitter widened from +-5 % to 0.90-1.03. Same triangles, same draws, bake only. Check at 5 m: block edges read, no checker grid.
+**Crowns** (`tree_gen.gd crown_cards`): large lit clumps and shaded hollows (+-14 % value at a 3 m scale) over the existing core/top gradient; bake only, no cost.
+Check at 50 m: a crown is no longer one flat value.

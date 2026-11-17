@@ -198,7 +198,7 @@ func box(key: String, c: Vector3, size: Vector3, b := Basis.IDENTITY, solid := t
 	# small, uneven arris (1-3 cm, never a fixed 4.5 cm chamfer): real dressed stone is eased, not milled
 	var rb := float(absi(hash(Vector3i((c * 37.0).round()))) % 1000) / 1000.0
 	var ch := 0.0 if mn < 0.09 else minf(mn * 0.08, BEVEL * (0.3 + 0.7 * rb))
-	var jit := 0.93 + 0.1 * float(absi(hash(Vector3i((c * 20.0).round()))) % 1000) / 1000.0
+	var jit := 0.9 + 0.13 * float(absi(hash(Vector3i((c * 20.0).round()))) % 1000) / 1000.0
 	var ybot := c.y - absf(ex.y) * h.x - absf(ey.y) * h.y - absf(ez.y) * h.z
 	var upright := ey.y > 0.95
 	var st := _tool(key)
@@ -210,6 +210,7 @@ func box(key: String, c: Vector3, size: Vector3, b := Basis.IDENTITY, solid := t
 		_face(st, c + ey * (s * h.y), ex * hc.x, ez * hc.z, ey * s, sh, ybot, false)
 	if ch <= 0.0:
 		return
+	sh *= 1.15                         # worn edges: the eased arris catches the light (vertex colour clamps at 1, so only the darker stones gain)
 	for sa: float in [-1.0, 1.0]:
 		for sb: float in [-1.0, 1.0]:
 			# vertical arrises (x/z), then the x/y and y/z ones
@@ -230,7 +231,7 @@ func box(key: String, c: Vector3, size: Vector3, b := Basis.IDENTITY, solid := t
 				_tri3(st, a, bb, cc, (ex * sa + ey * sb + ez * sc).normalized(), sh, ybot)
 
 
-const BEVEL := 0.03
+const BEVEL := 0.04
 var candle_lights := true   ## commit() puts a small warm light at each cluster of candles (a few metres apart, at most 28), so a crypt's candles light the stone round them
 var _cluster_pts: Array[Vector3] = []
 const FLOOR_LIFT := 0.015         ## floor slabs stand this much proud of the masonry they sit on (no coplanar tops)
