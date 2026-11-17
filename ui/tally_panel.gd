@@ -135,9 +135,13 @@ func _fill() -> void:
 	_clear(_left)
 	_clear(_right)
 	_title_l.text = "THE COUNT" if _page == 0 else "THE CHRONICLE"
-	_foot_l.text = "[Q] [E] %s     [%s] or [Esc] close" % ["the Chronicle" if _page == 0 else "the Count", InputSetup.live_label("tally", false, "B")]
+	_title_l.text = ["THE COUNT", "THE CHRONICLE", "THE BELLS"][_page]
+	_foot_l.text = "[Q] [E] page (%d of 3)     [%s] or [Esc] close" % [_page + 1, InputSetup.live_label("tally", false, "B")]
 	if _page == 1:
 		_fill_chronicle()
+		return
+	if _page == 2:
+		_fill_bells()
 		return
 	var d := Tally.data()
 	_head(_left, "PUT DOWN  %d" % Tally.total())
@@ -196,6 +200,22 @@ func _fill() -> void:
 
 
 ## The run as it was written (core/story/chronicle.gd), newest first, in two columns.
+## The eight bells of the Founder: where each hangs, and what has been done (rung where it hangs, carried home, or not yet).
+func _fill_bells() -> void:
+	var got := QuestBook.bells()
+	_head(_left, "THE PEAL")
+	_row(_left, "Bells answered", "%d of %d" % [got, Chains.BELLS.size()])
+	_row(_left, "The door needs", "one")
+	_left.add_child(_label("Every bell after the first takes a hand off the Warden: three in a hundred if rung where it hangs, five if its tongue is carried to the Keg.", 16, DIM))
+	_head(_right, "THE EIGHT")
+	for i in Chains.BELLS.size():
+		var id: String = Chains.BELLS[i]
+		var pick := QuestBook.pick(id)
+		var state := "rung where it hangs" if pick == "rung" else ("carried home" if pick == "carried" else ("taken up" if QuestBook.started(id) else "not yet"))
+		var nm := String((Chains.QUESTS.get(id, {}) as Dictionary).get("name", id))
+		_row(_right, nm, state)
+
+
 func _fill_chronicle() -> void:
 	_head(_left, "NIGHT %d" % (Days.current() + 1))
 	var list := Chronicle.entries()
@@ -277,7 +297,7 @@ func _input(event: InputEvent) -> void:
 	if Time.get_ticks_msec() - _opened_ms < 200:
 		return
 	if event is InputEventKey and event.pressed and not event.is_echo() and (event.physical_keycode in [KEY_Q, KEY_E, KEY_LEFT, KEY_RIGHT]):
-		_page = 1 - _page
+		_page = (_page + (2 if (event.physical_keycode == KEY_Q or event.physical_keycode == KEY_LEFT) else 1)) % 3
 		_fill()
 		get_viewport().set_input_as_handled()
 		return

@@ -35,7 +35,8 @@ static func note(tree: SceneTree, b: Brazier) -> String:
 		return "A lit fire: a stop on the Ember Road (take it from beside a lit fire)"
 	if o == b:
 		return "The fire you stand by"
-	return "Click to ride the Ember Road here, from %s" % o.display_name()
+	var t := FireRoad.toll(o.global_position.distance_to(b.global_position))
+	return "Click to ride the Ember Road here, from %s (%s)" % [o.display_name(), "free" if t == 0 else "%d grave ash" % t]
 
 
 ## A click (or confirm) on mark `m` of the map: a lit fire other than this one carries the wanderer. True when it acted.
@@ -56,8 +57,11 @@ static func click(map: Node, m: Dictionary) -> bool:
 		return true
 	if from == dest:
 		return true
+	var n := FireRoad.toll(from.global_position.distance_to(dest.global_position))
 	map.close()
-	FireRoad.travel(from, dest)
+	if FireRoad.travel(from, dest) != null and n > 0:
+		Travel.items["grave_ash"] = Travel.count("grave_ash") - n
+		Events.toast.emit("The road keeps %d grave ash." % n)
 	return true
 
 

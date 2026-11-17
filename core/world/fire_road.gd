@@ -186,7 +186,7 @@ func _rebuild() -> void:
 		var d := b.global_position.distance_to(from.global_position)
 		var where := region_name(b)
 		var txt := "%s   ·   %s   ·   %d m" % [b.display_name(), where, roundi(d)] if where != "" else "%s   ·   %d m" % [b.display_name(), roundi(d)]
-		txt += "   ·   " + Danger.plate(b.global_position)
+		txt += "   ·   " + Danger.plate(b.global_position) + "   ·   " + ("free" if toll(d) == 0 else "%d ash" % toll(d))
 		if not b.lit:
 			txt += "   (cold)"
 		var btn := _button(_list, txt, b.lit and why == "")
@@ -210,10 +210,21 @@ static func region_name(b: Brazier) -> String:
 	return String(RealmLayout.region_at(b.global_position.x, b.global_position.z).get("name", ""))
 
 
+## What the road asks of a wanderer: a grave ash a sixty metres (1 to 15), never more than she carries; the vow of the Ember Road
+## waives it. A fire that asks and finds an empty hand carries her anyway.
+static func toll(dist: float) -> int:
+	if Vows.has("emberroad"):
+		return 0
+	return mini(clampi(roundi(dist / 60.0), 1, 15), Travel.count("grave_ash"))
+
+
 func _go(b: Brazier) -> void:
 	var a := from
+	var n := toll(a.global_position.distance_to(b.global_position))
 	close()
-	travel(a, b)
+	if travel(a, b) != null and n > 0:
+		Travel.items["grave_ash"] = Travel.count("grave_ash") - n
+		Events.toast.emit("The road keeps %d grave ash." % n)
 
 
 func _unhandled_input(event: InputEvent) -> void:
