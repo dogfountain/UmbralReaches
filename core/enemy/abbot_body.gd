@@ -39,6 +39,7 @@ func _body_v(mb: Variant) -> void:
 		_ab_claw(mb, side, side == 0)
 	_ab_crozier(mb)
 	_ab_cord(mb)
+	_ab_ornament(mb)
 
 
 func _ab_robe(mb: Variant) -> void:
@@ -289,3 +290,28 @@ func _layout_glints() -> void:
 	for cd: Array in _ab_candles():
 		glints.append([B_CHEST, (cd[0] as Vector3) + Vector3(0, float(cd[1]) + 0.016 * k, 0), 0.008 * k, FLAME])
 
+
+## Tertiary forms: wax run down the mantle from the candles, gilt thread bands down the robe's flanks, a chain of small
+## vertebrae over the mantle's rim with a reliquary medal, bone studs on the hood's rolled rim, tattered grave-ribbons
+## hanging from the belt.
+func _ab_ornament(mb: Variant) -> void:
+	mb.bind(B_CHEST)
+	for cd: Array in _ab_candles():
+		var b: Vector3 = cd[0]
+		mb.tube(PackedVector3Array([b + Vector3(0.01 * k, 0.0, 0.0), b + Vector3(0.012 * k, -0.06 * k, 0.01 * k), b + Vector3(0.012 * k, -0.1 * k, 0.012 * k)]), _pf([0.007, 0.006, 0.01], k), 4, WAX.darkened(0.06), DwarfMesh.MAT_LINEN, {"lumps": 0.1})
+	var c := Vector3(0, 1.33, 0.0) * k
+	for i in 16:
+		var a := lerpf(-2.6, 2.6, float(i) / 15.0)
+		mb.blob(c + Vector3(sin(a) * 0.34, -0.012, -cos(a) * 0.26) * k, Vector3(0.016, 0.012, 0.012) * k, Basis(Vector3.UP, -a), WAX.darkened(0.15), DwarfMesh.MAT_LINEN, {"lumps": 0.2, "rings": 4, "segs": 6})
+	mb.blob(c + Vector3(0, -0.06, -0.28) * k, Vector3(0.03, 0.04, 0.01) * k, Basis.IDENTITY, GILT, DwarfMesh.MAT_METAL, {"lumps": 0.0, "rings": 5, "segs": 10})
+	mb.bind(B_SPINE)
+	for ang: float in [-1.0, 1.0, -2.2, 2.2]:
+		var band := PackedVector3Array()
+		for y: float in [0.8, 0.62, 0.45, 0.3, 0.16]:
+			var r := (0.2 + (0.8 - y) * 0.3) * k
+			band.append(Vector3(sin(ang) * r, y * k, 0.015 * k - cos(ang) * r))
+		mb.tube(band, _pf(_rep(0.012, band.size()), k), 5, GILT.darkened(0.25), DwarfMesh.MAT_METAL, {"squash": Vector2(1.0, 0.25), "ref": Vector3(sin(ang), 0.0, -cos(ang)), "lumps": 0.0})
+	for i in 5:
+		var x := -0.12 + 0.06 * float(i)
+		var top := Vector3(x, P - 0.01 * k, -0.17 * k)
+		mb.tube(PackedVector3Array([top, top + Vector3(0.0, -0.12 * k, -0.01 * k), top + Vector3(0.01 * k, -0.25 * k - 0.03 * k * float(i % 2), 0.0)]), _pf([0.012, 0.01, 0.003], k), 4, CORD.darkened(0.2), DwarfMesh.MAT_CLOTH, {"squash": Vector2(1.0, 0.3), "ref": Vector3.FORWARD, "lumps": 0.1})
