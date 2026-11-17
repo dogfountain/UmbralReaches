@@ -100,11 +100,16 @@ func _release_lock() -> void:
 		_lock_mark.visible = false
 
 
+## A foe that burrowed or sank leaves Groups.ENEMY, loses its collision and hides: it cannot be held.
+func _lockable(e: Enemy) -> bool:
+	return e.is_in_group(Groups.ENEMY) and e.visible and e.collision_layer != 0
+
+
 ## r33: the remembered target when it is still a fair pick (alive, in range, in sight).
 
 func _remembered_target() -> Enemy:
 	var t := current_target() as Enemy
-	if t == null or not is_instance_valid(t) or not t.is_alive():
+	if t == null or not is_instance_valid(t) or not t.is_alive() or not _lockable(t):
 		return null
 	if player.global_position.distance_to(t.global_position) > Player.LOCK_RANGE:
 		return null
@@ -204,7 +209,7 @@ func _lock_tick(delta: float) -> void:
 	player._kick_lock = maxf(0.0, player._kick_lock - delta)
 	if player._lock == null:
 		return
-	if not is_instance_valid(player._lock) or not player._lock.is_alive():
+	if not is_instance_valid(player._lock) or not player._lock.is_alive() or not _lockable(player._lock):
 		var nxt := _pick_target(0)
 		if nxt:
 			_set_lock(nxt)
