@@ -33,3 +33,12 @@ Tick as done. Each item: committed, lint clean, doc entry in docs/r39/sound.md o
 - [x] 3 every named person has a task (seven new favours); audit table in story_depth.md
 - [x] 4 barks name only real ids; static check in zz/sound_rework_test
 - [x] 5 horse whistle and nicker; Wardens' beacons heard through their toasts; boss phase cues verified to fire on `phase` change; Late Ringer's sixth station
+
+## Fourth wave (lead's order) - all ticked
+- [x] family voices: windup, stagger, flee
+- [x] solemn babble tone
+- [x] Oswin renamed to Joram (ids unchanged, no save migration needed)
+- [x] critique walk-through: P0 bell canon, P0 peal scene, P1 Aurel's voice, P1 premise shown, P1 boss 1/2 moral weight, P1 Anchoress / Crown woven in, P1 landmarks and readables, P2 ending, P2 lore dependence, P2 Deeper Night warning, P3 keep as the only exposition channel (barks), sound P1 bell motif / themes / voices, P2 babble tone, P2 place sounds, P3 silence; world meaning: the Crowns / Rift / Summit now have readables and the Rim's Three
+## What to do next if resumed
+- More regional depth: the Rift's rim and the summit's approach have readables and the Late Ringer but no dedicated long task of their own; the Saints' Quarry, Foundry and Crowns now have one each.
+- UI-owned items from the critique (the guide's default, the keep's hub length) need the UI seat.

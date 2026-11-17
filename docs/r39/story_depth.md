@@ -110,3 +110,12 @@ Audit of the casts (village_cast*, towns, east marches, travellers, the Keg's pa
 Relationships: each new task's outcomes and the barks name a neighbour (Bet and Nan, Gwyn and Dorrit, Tansy and Marra, Gorse and Siany, Perrin and Odile, Ione and Iorweth, Lowe and Tamsin, Agathe and Cadoc), and
 six more two-person scenes were added. `zz/sound_rework_test` now fails on any bark or scene that names a task, pick, boss or speaker that does not exist (all barks that did were corrected: Ysolt's `moor_shrine:wick`, Cadoc's `mere_light:aldous`).
 **Check:** the seven new tasks' floors (Reeds' cottage, Weirford's mill and stables, the weir track, the east road, Reedholm's landing, Fallowmere's barn strips) and that Bet, Dorrit, Gwyn, Gorse and Wystan are in the cast at the time their tasks are offered.
+
+## Fourth wave: the critique's remaining items
+
+- **Three more long tasks** (`quest_chains_regions2.gd`, eight steps each, clues / tracks / lantern walk / vigil / a choice, a light or stone left): **The Rim's Three** (Brannoc; the Crowns: Hope, Patience and Homecoming, a coal brought down from the last, where three bells belong: stay, come down, be recast), **The 4001st Step** (Jory; the Saints' Quarry: the brothers' last block, laid as the step before the first, broken, or left for the brother), **The Cold Tenor** (Elspeth; the Founder's Pits and Hild's forge: Edda's fire and the Founder's furnace made one for a night, and what the tenor is for).
+- **Aurel and the Anchoress answer more of what was done:** his phase II line changes with three bells answered, his last words with the name written in the roll; the Anchoress's last prayer remembers bread and the name said at the wall. The Thornwarden and the Abbot now die without cursing (the moral weight of the first two kills).
+- **The Deeper Night's warning** is in the keep's voice (director.gd `bell_note`): it says it is not a punishment but the valley asking whether you would walk it again.
+- **The pilgrim Oswin is now Joram** in every name, line, task and the lore; his id stays `oswin`, so no save key or flag moves. The collision list in LORE.md is Osric / Ostrin and Hesk / Hild / Hobb / Harrow.
+- **Solemn babble:** a grave line (two of the grave words, or one and a trailing ellipsis) slows, drops and softens the speaker's babble (`dialogue.gd`); the voices stay babble.
+- **Creature voices:** windup, stagger and flee layers added for all fifteen families (`family_voices.gd`).
