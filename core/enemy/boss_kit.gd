@@ -449,6 +449,25 @@ static func absorb(e: Enemy, dmg: float, from: Node, floor_hp: float) -> float:
 	return dmg
 
 
+## take_hit on a foe whose processing is off: a boss held by its arena (walked out of) takes nothing
+## (false); a sleeping foe wakes for the blow (true), or a kill from range would leave a frozen corpse
+## (its dissolve tween pauses with the node).
+static func wake_for_hit(e: Enemy) -> bool:
+	if e.has_meta(&"arena_held"):
+		return false
+	e.wake()
+	return true
+
+
+## A Rift Step through a boss must not chain-stun it: the stagger cooldown holds, and a leap in the
+## air is left alone. True when the riposte may land (the cooldown is then spent).
+static func riposte_ok(e: Enemy) -> bool:
+	if e._stagger_cd > 0.0 or e._state == Enemy.AIRBORNE:
+		return false
+	e._stagger_cd = Enemy.STAGGER_CD
+	return true
+
+
 ## One clear cue for every blow a boss turns completely (a rooted, mounded or ascended intermission):
 ## a spark where the blow lands, a ringing note, a "warded" text, and (once per window) a line saying
 ## what to do instead. The caller also sets the `ward_hint` meta, which locks the boss bar.

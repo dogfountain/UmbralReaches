@@ -350,12 +350,7 @@ func _limb(socket_name: String, n_name: String, mesh: Mesh, at: Vector3, skin: M
 func take_hit(dmg: float, from: Node = null) -> void:
 	if _state == DEAD:
 		return
-	if process_mode == Node.PROCESS_MODE_DISABLED:
-		# a held boss (walked out of its arena) takes nothing; a sleeping foe wakes for the blow, or a
-		# kill from range would leave a frozen corpse (its dissolve tween pauses with the node)
-		if has_meta(&"arena_held"):
-			return
-		wake()
+	if process_mode == Node.PROCESS_MODE_DISABLED and not BossKit.wake_for_hit(self): return
 	if from != null and (from is Player or from is MagicBolt or from.is_in_group(Groups.PLAYER)):
 		_peel_t = WARD_PEEL                      # the wanderer hit it: she is the one to fight now
 	if _evading:
@@ -732,8 +727,7 @@ func is_alive() -> bool:
 
 
 func shove(v: Vector3) -> void:
-	v *= (0.35 if boss else 1.0) / maxf(mass, 0.2)       # as knockback(): a great one shrugs it off, a heavy one barely moves
-	_knock = Vector3(v.x, 0.0, v.z)
+	_knock = Vector3(v.x, 0.0, v.z) * (0.35 if boss else 1.0) / maxf(mass, 0.2)   # as knockback()
 	if is_on_floor() and not _ballistic:
 		velocity.y = 2.4
 
@@ -1911,12 +1905,7 @@ func _player() -> Player:
 func riposted() -> void:
 	if _state == DEAD:
 		return
-	if boss:
-		# a Rift Step through a boss's zone must not chain-stun it: honour the stagger cooldown, and
-		# leave a leap in the air alone
-		if _stagger_cd > 0.0 or _state == AIRBORNE:
-			return
-		_stagger_cd = STAGGER_CD
+	if boss and not BossKit.riposte_ok(self): return
 	if not boss:
 		cancel_moves()
 	_combo_left = 0
