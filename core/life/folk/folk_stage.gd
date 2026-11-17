@@ -37,6 +37,7 @@ var _regard_t := 0.0
 var _props: Array[Node3D] = []
 var _ready_world := false
 var _alarm_end := 0.0
+var _pets: Node3D
 static var _net_tex: ImageTexture
 
 
@@ -44,6 +45,10 @@ func _ready() -> void:
 	top_level = true
 	global_transform = Transform3D.IDENTITY
 	_defs = _definitions()
+	_pets = (load("res://core/life/folk/pets.gd") as GDScript).new() as Node3D
+	_pets.name = "Pets"
+	_pets.set("ctx", ctx)
+	add_child(_pets)
 	Events.gloom_tide.connect(_on_tide)
 
 
@@ -122,6 +127,7 @@ func _process(delta: float) -> void:
 ## behind the loading cover on a first run).
 func _build_step(delta: float) -> void:
 	if _built >= _defs.size():
+		ctx["ready"] = true
 		return
 	if not _ready_world:
 		_wait += delta
@@ -232,6 +238,7 @@ func _refresh() -> void:
 	var pp := cam.global_position if cam != null else Vector3.INF
 	var player := get_tree().get_first_node_in_group(Groups.PLAYER) as Node3D
 	ctx["player"] = player.global_position if player != null else Vector3.INF
+	ctx["player_speed"] = (player as CharacterBody3D).velocity.length() if player is CharacterBody3D else 0.0
 	ctx["eclipse"] = clampf((Reg.gain_mul - 1.0) / 0.55, 0.0, 1.0)
 	_regard_t -= TICK
 	if _regard_t <= 0.0:
