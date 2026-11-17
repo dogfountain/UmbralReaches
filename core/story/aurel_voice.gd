@@ -12,6 +12,7 @@ extends Node
 ## Added by the story director. No class_name.
 
 const BellVoice := preload("res://core/story/bell_voice.gd")
+const Voice := preload("res://core/npc/npc_voice.gd")
 const QuestBook := preload("res://core/story/quest_book.gd")
 const QuestDB := preload("res://core/story/quest_db.gd")
 const Story := preload("res://core/story/story.gd")
@@ -54,6 +55,8 @@ var story: Story
 var _since := 0.0
 var _pending: Array[String] = []
 var _idle_t := 0.0
+var _spk: AudioStreamPlayer
+var _prof: Dictionary = {}
 
 
 func _ready() -> void:
@@ -117,6 +120,21 @@ func _process(delta: float) -> void:
 	_since = 0.0
 	story.ui.narrate(["Aurel: \"%s\"" % String(LINES[id])])
 	BellVoice.ring(self, -12.0, -12.0, 0.2)
+	_babble(String(LINES[id]))
+
+
+## His voice is the same babble every voice in the valley has (docs/DECISIONS.md), an old man's, pitched down under the tolled bell:
+## a few syllables a clause, spaced by the line's own punctuation.
+func _babble(line: String) -> void:
+	if _spk == null:
+		_spk = Voice.speaker2d(self)
+		_prof = Voice.profile("old_man", 4041)
+		_prof["pitch"] = 0.62
+	var t := 0.5
+	for clause: String in line.replace("...", ". ").split(". "):
+		var n := clampi(clause.split(" ").size() / 3, 1, 4)
+		get_tree().create_timer(t, true).timeout.connect(func() -> void: Voice.say(_spk, _prof, n, 0.4, false, -4.0))
+		t += 0.55 + 0.3 * float(n)
 
 
 func _boss_playing() -> bool:

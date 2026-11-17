@@ -199,6 +199,26 @@ const CONV := {
 				["qp:forty_days:carried", "There's a tin door on a cord on your staff. I won't ask. One of that company's still on the Stair, they say. I don't know whose."],
 				["qp:forty_days:buried", "The Ninth Company's buried at Aldo's root, Wyck says. Late. Forty days late. They got there."],
 				["", "Wyck counts the Stair's dead of an evening. He has stopped saying the number."],
+			], "next": "end_4s"},
+			# the story's long tasks: what the road, the roll, the horn, the wall and the third stone came to
+			"end_4s": {"say_if": [
+				["qp:aurel_edicts:follow", "Perrin the scribe burned his copy-book the night the sky stopped. 'And then I follow,' he says, at the fire. 'He did.' I've told him it was your doing. He says it was the clause's."],
+				["qp:aurel_edicts:scratch", "Perrin took the scratched stone hard. Then he sat down and began to copy the third edict, from memory, in a clean hand. I don't ask who for."],
+				["qp:aurel_edicts:leave", "Perrin has stopped copying. He sits with the book shut. Says he's been told what the stone says, and it was the thing he was afraid of, and it is a great relief."],
+				["qp:lamp_road:stair", "The road's lit, west to east, every lamp leaning at the mountain. Odile Frane walks it at dusk with an empty oil-can. Says it's the longest argument she's ever won."],
+				["qp:lamp_road:home", "The road's lit, west to east, every lamp turned to Hearthward. First pilgrim down it last night wept at the Stair-foot post. Odile said that's what it's for."],
+				["qp:name_on_roll:entered", "There's a line in the Tally cut in a hand nobody knows. Ione Marsh says it's the wanderer's. I said I'd never heard of a thing like that. She said, neither had she. She's kept the tin door."],
+				["qp:name_on_roll:mother", "Ione Marsh stood at the Tally post a long while, her mother's name above hers. Then she went and slept in a bed, which she hasn't, she says, since she was five."],
+				["", "Ione Marsh keeps her fire small in the glade. Says it's all right if nobody comes."],
+			], "next": "end_4t"},
+			"end_4t": {"say_if": [
+				["qp:horn_end:sung", "They say the Siege Lines are quiet. The note in the skull stopped, the way a note should: on its last line. Lowe sleeps now. Out loud."],
+				["qp:horn_end:left", "The skull's still singing, past the Lines. Lowe has set a second stool by the first. They say it's the loveliest noise in the valley. They say it's not meant to stop."],
+				["qp:horn_end:broke", "Somebody broke the Speaking Crown's horn. It still sounds, thin and cracked. Cantor Lowe's said he can hear what the note was for now. He can't say it."],
+				["qp:vow_cell:bread", "Tamsin Hale's bread is taken every night up the cliff road. She's never been thanked in words. She keeps a polished chain-link on a nail by her oven."],
+				["qp:vow_cell:name", "Somebody said the Anchoress's name through her wall, and she said it back. They're saying it in the Anchorholds. Tamsin has taken to saying it, softly, when she kneads."],
+				["qp:vow_cell:break", "The Anchoress's wall is down. Tamsin leaves the bread in the open now. Some mornings it's gone. Some mornings there's a stone on the cloth, to say it was seen."],
+				["", "Out past the Lines a cantor and a baker still keep their small vigils. I don't think they're done."],
 			], "next": "end_4c"},
 			# r36 Act II: what the bells say about the night (all eight, then the ones left where they hung)
 			"end_4c": {"say_if": [
