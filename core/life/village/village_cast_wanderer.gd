@@ -8,17 +8,17 @@ extends RefCounted
 ##   iorweth_2  the Kindlers' Yard gate                        step 0: remembers ringing
 ##   iorweth_3  the Spire's foot, by the shut-out bell        steps 2-4: the bell he could not ring
 ##   iorweth_4  the Crossing's foot                            steps 5-7: the last bell's stone
-##   iorweth_5  Hearthward's green                             steps 8-9 and after: home
+##   iorweth_5  Hearthward's green                             steps 8-9: home; iorweth_6 after: at Ione Marsh's fire in the Glade
 
 const NODES := {
 	"iw1_a": Vector2(30.0, 64.0), "iw1_b": Vector2(38.0, 65.0),
 	"iw2_a": Vector2(-72.0, 44.0), "iw2_b": Vector2(-78.0, 42.0),
 	"iw3_a": Vector2(236.0, 19.0), "iw3_b": Vector2(244.0, 21.0),
 	"iw4_a": Vector2(310.0, -48.0), "iw4_b": Vector2(316.0, -48.0),
-	"iw5_a": Vector2(6.0, 44.0), "iw5_b": Vector2(10.0, 44.0),
+	"iw5_a": Vector2(6.0, 44.0), "iw5_b": Vector2(10.0, 44.0), "iw6_a": Vector2(-34.0, 14.0), "iw6_b": Vector2(-38.0, 12.0),
 }
 
-const EDGES := [["iw1_a", "iw1_b"], ["iw2_a", "iw2_b"], ["iw3_a", "iw3_b"], ["iw4_a", "iw4_b"], ["iw5_a", "iw5_b"]]
+const EDGES := [["iw1_a", "iw1_b"], ["iw2_a", "iw2_b"], ["iw3_a", "iw3_b"], ["iw4_a", "iw4_b"], ["iw5_a", "iw5_b"], ["iw6_a", "iw6_b"]]
 
 const CAST := {
 	"iorweth_1": {"name": "Iorweth", "title": "A late pilgrim with a bell-rope round his waist", "when": "kindled:1,!q:last_ringer,!qd:last_ringer", "camp": "outpost",
@@ -49,13 +49,20 @@ const CAST := {
 		"schedule": {"dusk": "wait", "work": "wait", "midnight": "wait", "late": "wait"},
 		"routines": {"wait": [{"act": "look_up", "at": "iw4_a", "face": Vector2(0.0, -104.0) + Endgame.O2, "t": [8.0, 12.0]},
 			{"act": "idle", "at": "iw4_b", "face": Vector2(0.0, -104.0) + Endgame.O2, "t": [5.0, 8.0]}, {"act": "kneel", "at": "iw4_a", "face": Vector2(0.0, -104.0) + Endgame.O2, "t": [10.0, 16.0]}]}},
-	"iorweth_5": {"name": "Iorweth", "title": "A late pilgrim with a bell-rope round his waist", "when": "qat:last_ringer:8|qat:last_ringer:9|qd:last_ringer", "camp": "outpost",
+	"iorweth_5": {"name": "Iorweth", "title": "A late pilgrim with a bell-rope round his waist", "when": "qat:last_ringer:8|qat:last_ringer:9", "camp": "outpost",
 		"rig": {"seed": 6707, "sex": "m", "age": "adult", "garment": "robe", "hood": true, "r": "staff", "l": "lantern", "girth": 0.92,
 			"cloth": Color(0.3, 0.3, 0.32), "cloth2": Color(0.4, 0.37, 0.32), "hair_c": Color(0.5, 0.46, 0.4), "skin": Color(0.74, 0.58, 0.46), "leather": Color(0.34, 0.22, 0.12)},
 		"home": "iw5_a", "speed": 0.8, "fearless": true,
 		"schedule": {"dusk": "wait", "work": "wait", "midnight": "wait", "late": "wait"},
 		"routines": {"wait": [{"act": "look_up", "at": "iw5_a", "face": Vector2(0.0, -104.0) + Endgame.O2, "t": [8.0, 12.0]},
 			{"act": "idle", "at": "iw5_b", "face": Vector2(0.0, -104.0) + Endgame.O2, "t": [5.0, 8.0]}, {"act": "kneel", "at": "iw5_a", "face": Vector2(0.0, -104.0) + Endgame.O2, "t": [10.0, 16.0]}]}},
+	"iorweth_6": {"name": "Iorweth", "title": "Iorweth, sitting at Ione Marsh's fire", "when": "qd:last_ringer", "camp": "outpost",
+		"rig": {"seed": 6707, "sex": "m", "age": "adult", "garment": "robe", "hood": true, "r": "staff", "l": "lantern", "girth": 0.92,
+			"cloth": Color(0.3, 0.3, 0.32), "cloth2": Color(0.4, 0.37, 0.32), "hair_c": Color(0.5, 0.46, 0.4), "skin": Color(0.74, 0.58, 0.46), "leather": Color(0.34, 0.22, 0.12)},
+		"home": "iw6_a", "speed": 0.8, "fearless": true,
+		"schedule": {"dusk": "wait", "work": "wait", "midnight": "wait", "late": "wait"},
+		"routines": {"wait": [{"act": "look_up", "at": "iw6_a", "face": Vector2(0.0, -104.0) + Endgame.O2, "t": [8.0, 12.0]},
+			{"act": "idle", "at": "iw6_b", "face": Vector2(0.0, -104.0) + Endgame.O2, "t": [5.0, 8.0]}, {"act": "kneel", "at": "iw6_a", "face": Vector2(0.0, -104.0) + Endgame.O2, "t": [10.0, 16.0]}]}},
 }
 
 const CONV := {
@@ -109,5 +116,17 @@ const CONV := {
 			{"text": "Goodbye.", "to": ""},
 		]},
 		"who": {"say": "Thank you for walking the Stair behind me. I did not know you were there. You were very quiet.", "next": "hub"},
+	}},
+	"iorweth_6": {"name": "Iorweth", "start": [["!met:iorweth_6", "meet"], ["", "hub"]], "nodes": {
+		"meet": {"say": "Sit. It is her fire. She said I might use it. It is the first time anyone has said I might use anything in nine winters.", "next": "meet2"},
+		"meet2": {"say": "She did not know me. I did not know her. We sat across the fire from each other until the kettle boiled, and then she said: you have my father's hands. I said: I should like to hear about him. She said: so should I.", "do": "met:iorweth_6", "next": "hub"},
+		"hub": {"say_if": [
+			["qp:last_ringer:ring", "I told her about the bell, and who rang it, and in what order. She did not say she forgave me. She asked if I would show her the rope. I did. She tied the twelfth knot."],
+			["qp:last_ringer:his", "I told her I rang it myself, the right way up, at the Crossing. She said that was a good sound to have made. It is a thing I will remember when I have forgotten the rest."],
+			["", "I am mending her kettle. It was always going to be a kettle, in the end. Ringers are only men who know how to mend things that are meant to be heard."]], "choices": [
+			{"text": "Are you well?", "to": "well", "once": true},
+			{"text": "Goodbye.", "to": ""},
+		]},
+		"well": {"say": "I am warm. That is the whole of what I know about it. I think a man who is warm is a man who may sit down. I have sat down. It is very large, sitting down.", "next": "hub"},
 	}},
 }
