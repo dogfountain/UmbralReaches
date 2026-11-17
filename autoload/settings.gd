@@ -57,7 +57,11 @@ var master_volume := 0.9            # linear 0..1, per bus (see apply_audio)
 var sfx_volume := 0.85
 var ambience_volume := 0.7
 var music_volume := 0.7             ## the generative night music (scape_music.gd) on its own bus
+var voices_volume := 0.9            ## the creatures' and bosses' voices (the Voices bus, under Effects)
+var ui_volume := 0.8                ## every interface cue (the UI bus, under Effects)
+var score_intensity := 0.8          ## the dynamic score's stems (the Score bus, under Music): tension, combat, aftermath, the acts' beds
 const BUSES := ["SFX", "Ambience", "Music"]
+const SUB_BUSES := {"UI": "SFX", "Score": "Music"}        ## created here, sent to their parent bus (Voices is made by Ambience)
 
 
 func _ready() -> void:
@@ -122,6 +126,9 @@ func load_settings() -> void:
 	sfx_volume = clampf(_v(cfg, "audio", "sfx", sfx_volume), 0.0, 1.0)
 	ambience_volume = clampf(_v(cfg, "audio", "ambience", ambience_volume), 0.0, 1.0)
 	music_volume = clampf(_v(cfg, "audio", "music", music_volume), 0.0, 1.0)
+	voices_volume = clampf(_v(cfg, "audio", "voices", voices_volume), 0.0, 1.0)
+	ui_volume = clampf(_v(cfg, "audio", "ui", ui_volume), 0.0, 1.0)
+	score_intensity = clampf(_v(cfg, "audio", "score", score_intensity), 0.0, 1.0)
 	bindings = _clean_bindings(cfg.get_value("input", "bindings", {}))
 	var mp := matching_preset()       # the saved fields win over the stored index: a file that matches no preset is Custom
 	if mp >= 0:
@@ -193,6 +200,9 @@ func save_settings() -> void:
 	cfg.set_value("audio", "sfx", sfx_volume)
 	cfg.set_value("audio", "ambience", ambience_volume)
 	cfg.set_value("audio", "music", music_volume)
+	cfg.set_value("audio", "voices", voices_volume)
+	cfg.set_value("audio", "ui", ui_volume)
+	cfg.set_value("audio", "score", score_intensity)
 	cfg.set_value("input", "bindings", bindings)
 	# write a temp file and rename it over the old one: quitting mid-write never leaves half a file
 	var tmp := PATH + ".tmp"
@@ -213,10 +223,16 @@ func _ensure_buses() -> void:
 			var i := AudioServer.bus_count - 1
 			AudioServer.set_bus_name(i, b)
 			AudioServer.set_bus_send(i, "Master")
+	for b2: String in SUB_BUSES:
+		if AudioServer.get_bus_index(b2) == -1:
+			AudioServer.add_bus()
+			var j := AudioServer.bus_count - 1
+			AudioServer.set_bus_name(j, b2)
+			AudioServer.set_bus_send(j, String(SUB_BUSES[b2]))
 
 
 func apply_audio() -> void:
-	var vols := {"Master": master_volume, "SFX": sfx_volume, "Ambience": ambience_volume, "Music": music_volume}
+	var vols := {"Master": master_volume, "SFX": sfx_volume, "Ambience": ambience_volume, "Music": music_volume, "Voices": voices_volume, "UI": ui_volume, "Score": score_intensity}
 	for b: String in vols:
 		var i := AudioServer.get_bus_index(b)
 		if i >= 0:
@@ -281,6 +297,9 @@ func reset_defaults() -> void:
 	sfx_volume = 0.85
 	ambience_volume = 0.7
 	music_volume = 0.7
+	voices_volume = 0.9
+	ui_volume = 0.8
+	score_intensity = 0.8
 	apply_preset(1)
 
 

@@ -15,6 +15,7 @@ extends RefCounted
 ##   - `--sfx-trace` prints every one-shot ("SFX <ms> <name> <dB> d=<m>") for mix debugging
 
 const FoleyLib := preload("res://core/vfx/foley.gd")
+const Occlusion := preload("res://core/audio/occlusion.gd")
 
 static var _streams := {}
 
@@ -64,13 +65,15 @@ static func _fire(s: AudioStream, at: Vector3, volume_db: float, pitch: float, j
 	_recent[key] = [now, reps, at]
 	if _recent.size() > 256:
 		_recent.clear()
-	var db := volume_db - STACK_DB * float(mini(reps, 4))
+	var occ := Occlusion.db(cam, at)             # a hill or a wall between: quieter and duller
+	var db := volume_db - STACK_DB * float(mini(reps, 4)) - occ
 	var p := _voice(tree.current_scene, now)
 	if p == null:
 		return
 	p.stream = s
 	if s.resource_path.begins_with("res://art/audio/kit/"):
 		pitch = pow(maxf(pitch, 0.1), 0.4)        # the kit's takes are rendered with their weight: a call site's 0.5 only darkens them a little
+	p.attenuation_filter_cutoff_hz = 3800.0 if occ <= 0.0 else 1600.0
 	p.pitch_scale = maxf(pitch * randf_range(1.0 - jitter, 1.0 + jitter), 0.05)
 	p.global_position = at
 	_rise(p, db)

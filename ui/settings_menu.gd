@@ -249,7 +249,9 @@ func _build_graphics(p: VBoxContainer) -> void:
 func _build_audio(p: VBoxContainer) -> void:
 	_head(p, "VOLUME")
 	for spec: Array in [["Master", "master_volume", "Everything at once"], ["Effects", "sfx_volume", "Spells, blows, footsteps, voices"],
-			["Ambience", "ambience_volume", "Wind, rain, wildlife, fires"], ["Music", "music_volume", "The night's quiet music, which rises with danger"]]:
+			["Ambience", "ambience_volume", "Wind, rain, wildlife, fires"], ["Music", "music_volume", "The night's quiet music, which rises with danger"],
+			["Score", "score_intensity", "The orchestra under the music: tension, combat, aftermath, each act's bed"],
+			["Voices", "voices_volume", "The creatures' and the great ones' voices"], ["Interface", "ui_volume", "Menus, the map, the Count, the shutter"]]:
 		var row := _row(p, spec[0], spec[2])
 		var sl := _slider(row, 0.0, 1.0, 0.05)
 		var lab := _value_label(row)

@@ -441,7 +441,7 @@ func buy(id: String) -> bool:
 			r = Shop.buy(who, id, get_tree())
 	_say(String(r.say))
 	if bool(r.ok):
-		UiSound.play(self, "confirm")
+		UiSound.play(self, "buy")
 		bought.append(id)
 		var keep := String(rows[sel].id) if sel < rows.size() else ""
 		_refresh()
