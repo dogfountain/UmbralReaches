@@ -50,6 +50,7 @@ var _aim: Control
 var _gloom_label: Label
 var _card_req := 0
 var _air_t := 0.0
+const HudRest := preload("res://ui/hud_rest.gd")
 const HudPrefs := preload("res://ui/hud_prefs.gd")
 const Hints := preload("res://ui/hints.gd")
 const TextDirector := preload("res://ui/text_director.gd")
@@ -171,21 +172,30 @@ func _ready() -> void:
 	if Settings.has_signal("input_device_changed"):
 		Settings.connect("input_device_changed", _on_device)
 
+	var rest := Control.new()                    # the gauges that rest in immersion mode (ui/hud_rest.gd)
+	rest.name = "Gauges"
+	rest.set_anchors_preset(Control.PRESET_FULL_RECT)
+	rest.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(rest)
 	var bar := Hotbar.new()
 	bar.name = "Hotbar"
 	bar.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
 	bar.offset_top = -136
 	bar.offset_bottom = -30
-	root.add_child(bar)
+	rest.add_child(bar)
 	root.add_child(load("res://core/story/objective_line.gd").new())   # objective lines (core/story, story agent)
 	_compass = load("res://ui/compass.gd").new()
 	root.add_child(_compass)                                           # heading strip + beacon/brazier markers (ENS art pass)
 	root.add_child(load("res://ui/waypoint.gd").new())                 # the guide's mark over the next step's place (core/story/guide.gd)
 	_minimap = load("res://ui/minimap.gd").new()
-	root.add_child(_minimap)                                           # round minimap, bottom right; N: near / wide / off (r32)
-	root.add_child(load("res://ui/xp_bar.gd").new())                   # r33: XP strip along the bottom, once XP exists
-	root.add_child(load("res://ui/unit_frames.gd").new())              # r33: player / target / boss frames, cast bar
+	rest.add_child(_minimap)                                           # round minimap, bottom right; N: near / wide / off (r32)
+	rest.add_child(load("res://ui/xp_bar.gd").new())                   # r33: XP strip along the bottom, once XP exists
+	rest.add_child(load("res://ui/unit_frames.gd").new())              # r33: player / target / boss frames, cast bar
 	root.add_child(load("res://ui/combat_text.gd").new())              # r33: the wanderer's side of a fight, as text
+	var hr := HudRest.new()
+	hr.name = "HudRest"
+	add_child(hr)
+	hr.setup(rest, _compass)
 
 	_debug = _label(root, "", 18, QUIET, HORIZONTAL_ALIGNMENT_RIGHT)
 	_debug.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)

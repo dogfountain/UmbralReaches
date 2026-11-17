@@ -347,6 +347,11 @@ func _build_hud(p: VBoxContainer) -> void:
 		HudPrefs.save())
 	op.set_pressed_no_signal(HudPrefs.opening)
 	_hud_checks[op] = "opening"
+	var im := _check(p, "HUD Rests While Exploring", "The wanderer's frame, the spell bar, the XP strip and the minimap fade out while the night is quiet and come back the moment something hunts you, you cast, or a bar runs low. The objective, the waypoint and the prompts stay", func(v: bool) -> void:
+		HudPrefs.immersion = v
+		HudPrefs.save())
+	im.set_pressed_no_signal(HudPrefs.immersion)
+	_hud_checks[im] = "immersion"
 	var row := _row(p, "Control Prompts", "The one-line hints that appear the first time a control matters (a ledge, a foe in range...), shown again")
 	var again := Button.new()
 	again.text = "Show Again"
