@@ -48,6 +48,8 @@ func _on_start(enemy: Node, _cast: String, time: float, interruptible: bool) -> 
 	_cold = interruptible
 	var col := COLD if interruptible else AMBER
 	_light.light_color = col
+	_light.global_position = e.global_position + Vector3(0.0, 0.25, 0.0)
+	_light.reset_physics_interpolation()
 	Vfx.ring(e.global_position, 2.6, Color(col.r * 1.8, col.g * 1.8, col.b * 1.8), time, 0.09)
 
 
