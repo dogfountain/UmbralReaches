@@ -20,7 +20,7 @@ no mid-play builds), documented.
 - [x] 9. Boss arenas: five palettes, three phases each, set-piece lights on the rim, the phase mark, the moon dimmed
 - [x] 10. Palette: grass and leaf desaturated with a value shoulder, the grade's green saturation eased, region grade by biome, canopy near-fade narrowed
 - [ ] 11. The far-leaf dither: the engine's visibility-range dither (FADE_SELF on every ranged mesh, atmosphere.gd) is a coarse screen-door pattern over 6 to 10 m; the foliage shader now thins the near-camera dither (1.6 to 1.1 m) but a per-instance shader fade for tree crowns (as the undergrowth's `fade_end`) is the real fix: it needs tree_gen to set `fade_end` per crown MultiMesh (world seat: core/world/realm/flora)
-- [ ] 12. Owls and bats reacting to light (they are the wildlife's shader creatures with their own state machines in life_birds.gd / life_director.gd: a "draw to a lit fire" state is the next step)
+- [x] 12. Bats come to every lit fire (fire_bats.gd, one draw call, the bat orbit shader); owls reacting to light remain (the wildlife's own state machine in life_birds.gd: a "draw to a lit fire" state is the next step)
 - [ ] 13. Crows at boss arenas (LifePlace.crow_roosts takes graves and the henge: add the arenas' rims)
 - [ ] 14. Dog and cat meshes of their own (the pets wear the wildlife's fox body, scaled)
 - [ ] 15. Voxel ruins albedo and light response (the black kit boxes: a world-seat material job)

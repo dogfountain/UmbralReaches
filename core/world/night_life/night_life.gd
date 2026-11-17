@@ -39,6 +39,7 @@ const Vfxl := preload("res://core/world/night_life/vfx_library.gd")
 const Arena := preload("res://core/world/night_life/arena_light.gd")
 const Rooms := preload("res://core/world/night_life/interior_light.gd")
 const Grade := preload("res://core/world/night_life/region_grade.gd")
+const Bats := preload("res://core/world/night_life/fire_bats.gd")
 
 var _poll := 0.0
 
@@ -79,6 +80,7 @@ func _ready() -> void:
 	_add(al, "ArenaLight")
 	_add(Rooms.new(), "InteriorLight")
 	_add(Grade.new(), "RegionGrade")
+	_add(Bats.new(), "FireBats")
 	_add(Surge.new(), "KindlingSurge")
 	_add(Moths.new(), "LightMoths")
 	_add(Banks.new(), "FogBanks")

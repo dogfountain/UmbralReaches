@@ -161,3 +161,11 @@ written to cost nothing at rest. Each entry gives: what, where to see it, what t
 Always on, cheap: LightSignatures (2 draws, 16 Hz loop), FixturePool (3/5/7 unshadowed lights by detail), FogBanks (8 alpha quads, none on low), LightMoths (1 draw), MoonCourse, SkyLife, RegionGrade (uniform writes).
 Event or condition only: weather_life (wet), vfx_library, arena_light, hit_reads, telegraph_glow, kindling_surge, interior_light. Folk and pets: awake only within 80 m, posed at the villagers' distance rates.
 Never mid-play: no mesh, texture or shader is first built after the loading start-up (the constellation and glint textures are generated at attach; the folk rigs are a GenCache hit after the first run).
+
+
+## 20. Bats at the fires (fire_bats.gd)
+- **What.** Every lit brazier in the night registry gathers four bats that circle high over its glow (up to twenty fires); a fire kindled in the dark draws its own within seconds. The wildlife's bat body and its orbit shader do all the
+  flying (the instance origin is the fire, the radius, speed, tilt and phase are in its custom data): one draw call, no script per bat.
+- **See / film.** The spawn brazier at night from 40 m, a newly kindled fire (bats arrive within four seconds), the vista from the south-east hill (specks wheeling over the fires).
+- **Cost.** One MultiMesh of 80 instances, written once as a fire is found; a registry scan every four seconds; visible within 160 m.
+- **Files.** core/world/night_life/fire_bats.gd.
