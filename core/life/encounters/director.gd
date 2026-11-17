@@ -387,29 +387,42 @@ func _wave(pos: Vector3) -> void:
 	var region := Tiers.region_id(pos)
 	var pool: Array = Tiers.REGION_POOL.get(region, ["wretch", "crawler"])
 	var base := randf() * TAU
-	var made := 0
+	var spots: Array[Vector3] = []
 	for i in want * 10:                     # (water, ways, lips, rocks and sites refuse many tries: a pack still comes)
-		if made >= want:
+		if spots.size() >= want:
 			break
 		var a := base + randf_range(-0.9, 0.9) + float(i % 2) * PI
 		var d := randf_range(19.0, 28.0)
 		var spot := _ground_at(pos + Vector3(cos(a) * d, 0.0, sin(a) * d), pos.y + 30.0)
-		if spot == Vector3.INF or not spot_ok(spot):
-			continue
-		var kind := String(pool[(made + _waves) % pool.size()])
-		var e := _make(kind, spot, tier, "deeper" if ng() > 0 else "tideborn")
-		if e == null:
-			continue
-		e.set_meta(&"enc_hunter", true)
-		e.set_meta(&"enc_spawn", spot)            # where it rose (tests judge that ground: it is walking at you by now)
-		e.chase_range = 70.0
-		e.hunt_leash = 999.0
-		e.sleep_range = 90.0
-		e.home = pos
-		hunters.append(e)
-		made += 1
-	if made > 0 and _waves == 1:
+		if spot != Vector3.INF and spot_ok(spot):
+			spots.append(spot)
+	if spots.is_empty():
+		return
+	if _waves == 1:
 		Events.toast.emit("Something is coming through the dark.")
+	# one hunter a frame, as the ambushes rise (frame pacing: 2-5 foes built in one frame was an 8-15 ms hitch)
+	var look := "deeper" if ng() > 0 else "tideborn"
+	var wave := _waves
+	for k in spots.size():
+		if k > 0:
+			await get_tree().process_frame
+			if not is_inside_tree() or not tide_on:
+				return
+		_hunter(String(pool[(k + wave) % pool.size()]), spots[k], tier, look, pos)
+
+
+## One of a Gloom-tide wave: it walks at the wanderer from where it rose.
+func _hunter(kind: String, spot: Vector3, tier: int, look: String, pos: Vector3) -> void:
+	var e := _make(kind, spot, tier, look)
+	if e == null:
+		return
+	e.set_meta(&"enc_hunter", true)
+	e.set_meta(&"enc_spawn", spot)            # where it rose (tests judge that ground: it is walking at you by now)
+	e.chase_range = 70.0
+	e.hunt_leash = 999.0
+	e.sleep_range = 90.0
+	e.home = pos
+	hunters.append(e)
 
 
 # --- ambushes -----------------------------------------------------------------------------------
@@ -633,7 +646,7 @@ func _on_killed(e: Node) -> void:
 	for m in get_tree().get_nodes_in_group(Groups.ENEMY):
 		if (m as Node).get_meta(&"summoned_by", "") == "elite_" + id:
 			_unmake(m as Enemy)
-	Travel.save_game()
+	Travel.save_next()                         # a breath after the kill, not in its frame
 
 
 # --- notes, the board, the bell -----------------------------------------------------------------
@@ -808,7 +821,9 @@ func begin_deeper_night(reload: bool) -> void:
 		var path := get_tree().current_scene.scene_file_path if get_tree().current_scene else ""
 		if path != "":
 			await get_tree().create_timer(2.5).timeout
-			Travel.go(path, RealmLayout.PLAYER_START, RealmLayout.start_yaw(), _player)
+			var p := get_tree().get_first_node_in_group(Groups.PLAYER) if is_inside_tree() else null
+			if p != null:                       # re-found after the wait (the one held from before may be gone)
+				Travel.go(path, RealmLayout.PLAYER_START, RealmLayout.start_yaw(), p)
 
 
 func _on_boss(boss: Node, _title: String) -> void:

@@ -9,6 +9,7 @@ extends RefCounted
 ##   CodexStore.record_read("rd_way_12")      -> true the first time
 ##   CodexStore.discover("road")              -> true the first time
 
+const SaveDir := preload("res://core/util/save_dir.gd")
 const DEFAULT_PATH := "user://codex.cfg"
 const VERSION := 1
 
@@ -78,7 +79,7 @@ static func save() -> void:
 	cfg.set_value("codex", "read", read)
 	cfg.set_value("codex", "places", places)
 	cfg.set_value("codex", "n", _n)
-	var err := cfg.save(path)
+	var err := SaveDir.save_atomic(cfg, path)   # through a temp file: a crash mid-write keeps the old journal
 	if err != OK:
 		push_warning("Codex: could not save %s (%s)" % [path, err])
 

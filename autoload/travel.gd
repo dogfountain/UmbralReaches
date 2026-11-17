@@ -78,10 +78,10 @@ func _ready() -> void:
 	Events.brazier_kindled.connect(func(_b: Node3D) -> void: save_soon())
 	Events.seal_broken.connect(func(id: String) -> void:
 		seals_broken[id] = true
-		save_game())
+		save_next())
 	Events.boss_slain.connect(func(id: String) -> void:
 		bosses_slain[id] = true
-		save_game())
+		save_next())
 	_fade_layer = CanvasLayer.new()
 	_fade_layer.process_mode = Node.PROCESS_MODE_ALWAYS
 	_fade_layer.layer = 80
@@ -206,6 +206,8 @@ func _remember_kindles() -> void:
 	var path := scene.scene_file_path
 	if path.is_empty():
 		return
+	if scene.has_meta(&"realm_built") and not scene.has_meta(&"realm_done") and lit_by_path.has(path):
+		return                                  # the Realm is still building its fires: a save now (quitting on the loading screen) would keep only the few built so far
 	var names := PackedStringArray()
 	for node in _braziers(scene):
 		if (node as Brazier).lit:
@@ -340,6 +342,13 @@ func save_soon() -> void:
 	get_tree().create_timer(0.6, true, false, true).timeout.connect(func() -> void:
 		_save_queued = false
 		save_game())
+
+
+## High-stakes moments (a boss slain, a seal broken, an elite's bounty): saved a breath later, not in the
+## kill's own frame (the whole save is built and written on the main thread, on top of the death and the
+## banner). 0.05 s, unscaled, so a kill's slow-motion does not stretch it; quitting inside it still saves.
+func save_next() -> void:
+	get_tree().create_timer(0.05, true, false, true).timeout.connect(save_game)
 
 
 ## Low-stakes changes (kill ash): ride whatever save comes next (kindle, rest, area change, quit),
