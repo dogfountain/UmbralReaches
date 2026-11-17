@@ -9,7 +9,7 @@ Tick as done. Branch r39-opening. Rules: no Godot, lint clean, small commits, no
 - [x] 5 Progression (vows, curve, Long Ledger, gear-gap hint, enemy plates all done): level-up choices (perks per path), skill/gear vs danger review, recommended levels everywhere, endgame loop (Deeper Night)
 - [x] 6 Night summary screen + ending credits reading the Chronicle
 - [x] 7 Fast-travel network UI + bell/peal tracking in the journal
-- [~] 8 Accessibility (shake/flash/subtitles/palette done; presets exist; remap parity not changed) and settings
+- [x] 8 Accessibility (shake/flash/subtitles/palette, presets, remap parity: triggers + protected menu buttons) and settings
 - [~] 9 UX (new panels consistent; older menus not audited) pass across menus/HUD
 - [x] 10 Save migrations + corrupted-save fallback
 - [ ] 11+ remaining critique items (docs/r39 critique)
@@ -18,5 +18,5 @@ Tick as done. Branch r39-opening. Rules: no Godot, lint clean, small commits, no
 (see opening_systems.md; add here as found)
 
 ## Not done / next
-- controller remapping parity; full audit of older menus (enemy plates done)
+- full audit of older menus (UX pass)
 - Cross-team: enemy/VFX seat route telegraph colours through Access.telegraph and flashes through Access.flash; story seat may add lines to chronicle/ember_trace pools

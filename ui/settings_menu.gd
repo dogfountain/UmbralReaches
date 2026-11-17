@@ -413,7 +413,7 @@ func _build_hud(p: VBoxContainer) -> void:
 ## pad column); Esc cancels. A key or button that already does something else is refused, with the message below.
 ## Saved in settings.cfg (Settings.bindings) and applied by InputSetup on boot.
 func _build_bindings(p: VBoxContainer) -> void:
-	_bind_msg = _label("Click a button, then press the new key.", DIM, 16)
+	_bind_msg = _label("Click a button (or press A on it), then press the new key, button or trigger. LB, RB and the d-pad stay the menus' own.", DIM, 16)
 	_bind_msg.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	p.add_child(_bind_msg)
 	var head := HBoxContainer.new()
@@ -473,7 +473,7 @@ func _refresh_binds() -> void:
 func _begin_listen(action: String, slot: String) -> void:
 	_listen = "%s|%s" % [action, slot]
 	_listen_ms = Time.get_ticks_msec()
-	_bind_msg.text = "Press the new %s for %s. %s cancels." % ["key or mouse button" if slot == "key" else "controller button", InputSetup.label_of(action), "Esc" if slot == "key" else "Menu"]
+	_bind_msg.text = "Press the new %s for %s. %s cancels." % ["key or mouse button" if slot == "key" else "controller button or trigger", InputSetup.label_of(action), "Esc" if slot == "key" else "Menu"]
 	_refresh_binds()
 
 
@@ -506,6 +506,8 @@ func _listen_input(event: InputEvent) -> void:
 		ev = event
 	elif event is InputEventJoypadButton and event.pressed and slot == "pad":
 		ev = event
+	elif event is InputEventJoypadMotion and slot == "pad" and InputSetup.is_trigger(event as InputEventJoypadMotion) and (event as InputEventJoypadMotion).axis_value > 0.7:
+		ev = event                                  # a trigger is an answer too (the pad's LT and RT bind like buttons)
 	if ev == null:
 		return
 	get_viewport().set_input_as_handled()
@@ -517,6 +519,10 @@ func _listen_input(event: InputEvent) -> void:
 	elif ev is InputEventMouseButton:
 		copy = InputEventMouseButton.new()
 		(copy as InputEventMouseButton).button_index = (ev as InputEventMouseButton).button_index
+	elif ev is InputEventJoypadMotion:
+		copy = InputEventJoypadMotion.new()
+		(copy as InputEventJoypadMotion).axis = (ev as InputEventJoypadMotion).axis
+		(copy as InputEventJoypadMotion).axis_value = 1.0
 	else:
 		copy = InputEventJoypadButton.new()
 		(copy as InputEventJoypadButton).button_index = (ev as InputEventJoypadButton).button_index
