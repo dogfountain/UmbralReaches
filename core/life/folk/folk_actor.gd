@@ -34,7 +34,7 @@ var has_goal := false
 var speed := 1.0                          ## top speed toward it (m/s)
 var act := "stand"
 var face := INF                           ## yaw to hold when standing (INF: keep it)
-var look_at := Vector3.INF                ## a world point the head follows (INF: the wanderer if near, else idle looks)
+var look_pt := Vector3.INF                ## a world point the head follows (INF: the wanderer if near, else idle looks)
 var phase := 0.0                          ## the act's own parameter (a counted second, a stroke)
 
 # state
@@ -197,7 +197,7 @@ func start_nod() -> void:
 
 ## The head's target (yaw, pitch in head space), eased, with the wanderer drawing the eye when near and in front.
 func gaze(dt: float) -> Vector2:
-	var tgt := look_at
+	var tgt := look_pt
 	if tgt == Vector3.INF:
 		var pp: Vector3 = ctx.get("player", Vector3.INF)
 		if pp != Vector3.INF and pp.distance_to(global_position) < 6.0 and (pp - global_position).normalized().dot(-global_basis.z) > -0.2:
