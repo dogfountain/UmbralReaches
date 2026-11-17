@@ -113,7 +113,7 @@ func interact(_by: Node) -> void:
 	Travel.give(item_id, 1)
 	var st := Travel.system_state("progression")
 	var worn := (st.get("worn", []) as Array).has(item_id)
-	Events.toast.emit("%s. %s" % [ItemDB.def(item_id).name, "You wear it." if worn else "Your cords are full: wear it from the Kindling [K]."])
+	Events.toast.emit("%s. %s" % [ItemDB.def(item_id).name, "You wear it." if worn else "Your cords are full: wear it from the Kindling [%s]." % InputSetup.live_label("kindling", Settings.using_pad, "K")])
 	remove_from_group(Groups.INTERACTABLE)
 	Vfx.burst(global_position + Vector3.UP * 0.55, Color(2.4, 1.6, 0.8), {"count": 30, "life": 0.6, "speed": Vector2(1.0, 3.5), "size": 0.04, "gravity": -2.0, "trail": 0.06})
 	Sfx.play("res://art/audio/ward_chime.wav", global_position, -6.0, 1.3)

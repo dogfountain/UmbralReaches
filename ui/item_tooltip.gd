@@ -14,6 +14,7 @@ extends RefCounted
 ## green / red deltas against what the slot holds now (the gear page shows that beside the worn piece).
 
 const GearDB := preload("res://core/items/gear_db.gd")
+const BbArt := preload("res://ui/bb_art.gd")
 const GearStats := preload("res://core/items/gear_stats.gd")
 const LootDB := preload("res://core/items/loot_db.gd")
 
@@ -41,7 +42,7 @@ static func _esc(t: String) -> String:
 static func pips(tier: int) -> String:
 	var n := GearDB.TIERS
 	var col := GOLD if tier >= n else QUIET
-	return "[font_size=17]%s[/font_size]" % (_c(col, "●".repeat(tier)) + _c(Color(GREY, 0.55), "○".repeat(n - tier)))
+	return BbArt.row("disc", tier, 15, col) + BbArt.row("ring", n - tier, 15, Color(GREY, 0.55))
 
 
 ## A divider between blocks: a marker the card splits on (ui/item_card.gd); `plain()` turns it into a BBCode rule.
@@ -125,7 +126,7 @@ static func piece(p: Dictionary, cur: Dictionary = {}, st: Dictionary = {}, opts
 		if pg:
 			lines.append("[font_size=15]%s[/font_size]" % _c(QUIET, "Raised %d / %d" % [lv, GearDB.max_level(p)]))
 		else:
-			lines.append(_c(QUIET, "Raised %d of %d" % [lv, GearDB.max_level(p)]) + "  " + _c(GOLD, "●".repeat(lv)) + _c(Color(GREY, 0.55), "○".repeat(GearDB.max_level(p) - lv)))
+			lines.append(_c(QUIET, "Raised %d of %d" % [lv, GearDB.max_level(p)]) + "  " + BbArt.row("disc", lv, 14, GOLD) + BbArt.row("ring", GearDB.max_level(p) - lv, 14, Color(GREY, 0.55)))
 	var fl := GearDB.flavour(p)
 	if fl != "":
 		lines.append(_hr())

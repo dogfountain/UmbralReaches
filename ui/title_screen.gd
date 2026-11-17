@@ -43,6 +43,15 @@ static func wanted() -> bool:
 	return true
 
 
+var _keys_hint: Label
+
+
+## The title's foot: the keyboard's keys, or the pad's buttons while the last input was a pad.
+func _refresh_keys() -> void:
+	if _keys_hint != null:
+		_keys_hint.text = "[D-pad] choose      [A] select      [B] back" if Settings.using_pad else "[W / S] choose      [Enter] select      [Esc] back"
+
+
 func _ready() -> void:
 	layer = 125
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -116,7 +125,10 @@ func _ready() -> void:
 	_note = _label("", 20, Med.BONE_DIM, UIType.body(), true)
 	_title_col.add_child(_gap(10))
 	_title_col.add_child(_note)
-	var keys := _label("[W / S] choose      [Enter] select      [Esc] back", 16, Med.BONE_DIM, UIType.body(), true)
+	var keys := _label("", 16, Med.BONE_DIM, UIType.body(), true)
+	_keys_hint = keys
+	_refresh_keys()
+	Settings.input_device_changed.connect(func(_pad: bool) -> void: _refresh_keys())
 	keys.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
 	keys.offset_top = -86
 	keys.offset_bottom = -56
@@ -399,10 +411,12 @@ func _open_slots(mode: String) -> void:
 	_rebuild_slots()
 
 
-func _rebuild_slots() -> void:
+## `keep` is the slot whose button keeps the focus (the armed one, so the second press lands on it, not on slot 1).
+func _rebuild_slots(keep := 0) -> void:
 	_clear(_slots)
 	_note.text = "Choose a slot to continue." if _mode == "continue" else "Choose a slot for a new game."
 	var first: Button = null
+	var kept: Button = null
 	for n in range(1, Travel.SLOTS + 1):
 		var info: Dictionary = Travel.slot_summary(n)
 		var occupied := bool(info.exists)
@@ -415,8 +429,12 @@ func _rebuild_slots() -> void:
 		b.disabled = _mode == "continue" and not occupied
 		if first == null and not b.disabled:
 			first = b
+		if n == keep and not b.disabled:
+			kept = b
 	_button(_slots, "Back", _show_main, 22)
-	if first:
+	if kept:
+		_focus_later(kept)
+	elif first:
 		_focus_later(first)
 
 
@@ -430,11 +448,11 @@ func _slot_pressed(n: int) -> void:
 		_choose(n, true)                                     # the second press: wipe it
 	else:
 		_armed = n
-		_rebuild_slots()
+		_rebuild_slots(n)
 		get_tree().create_timer(4.0, true).timeout.connect(func() -> void:
 			if _armed == n and is_inside_tree() and not _done:
 				_armed = -1
-				_rebuild_slots())
+				_rebuild_slots(n))
 
 
 func _choose(n: int, fresh: bool) -> void:

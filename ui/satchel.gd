@@ -169,27 +169,27 @@ func _build() -> void:
 	_count.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	head.add_child(_count)
 	# lore hook: the Journal (ui/codex.gd, group "codex") opens from here too
-	var journal := _link("Journal  [J]", func() -> void:
+	var journal := _link("Journal  [%s]" % InputSetup.live_label("codex", Settings.using_pad, "J"), func() -> void:
 		var cx := get_tree().get_first_node_in_group("codex")
 		if cx:
 			close_menu()
 			cx.call("open_book"))
 	head.add_child(journal)
 	# r33 loot: the gear panel (action "gear"; its key read from the InputMap)
-	var gear_b := _link("Gear  [%s]" % GearRuntime._gear_key(), func() -> void:
+	var gear_b := _link("Gear  [%s]" % InputSetup.live_label("gear", Settings.using_pad, "O"), func() -> void:
 		var gp := get_tree().get_first_node_in_group("gear_panel")
 		if gp:
 			close_menu()
 			gp.call("open_menu"))
 	head.add_child(gear_b)
 	# progression hook: the Kindling ([K]; ash is spent at a lit fire)
-	var kindling := _link("Kindling  [K]", func() -> void:
+	var kindling := _link("Kindling  [%s]" % InputSetup.live_label("kindling", Settings.using_pad, "K"), func() -> void:
 		var g := get_tree().get_first_node_in_group("growth")
 		if g:
 			close_menu()
 			g.call("open_menu"))
 	head.add_child(kindling)
-	head.add_child(_link("Close  [Tab]", close_menu))
+	head.add_child(_link("Close  [%s]" % InputSetup.live_label("inventory", Settings.using_pad, "Tab"), close_menu))
 	col.add_child(Med.rule())
 	var body := HBoxContainer.new()
 	body.add_theme_constant_override("separation", 22)
@@ -327,8 +327,8 @@ func _input(event: InputEvent) -> void:
 	if _cs() != null and (hosted or not _root.visible):
 		if not _root.visible:
 			return                              # the character screen opens and closes it
-		if event.is_action_pressed("inventory") or event.is_action_pressed("toggle_settings") or event.is_action_pressed("release_mouse"):
-			return
+		if (event.is_action_pressed("inventory") and not event is InputEventJoypadButton) or event.is_action_pressed("toggle_settings") or event.is_action_pressed("release_mouse"):
+			return                              # (the pad's d-pad moves the cursor in here, it is not the menu key)
 	elif event.is_action_pressed("inventory"):
 		if _root.visible:
 			close_menu()

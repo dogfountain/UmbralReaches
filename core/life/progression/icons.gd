@@ -359,11 +359,11 @@ static func item(ci: CanvasItem, id: String, c: Vector2, u: float) -> bool:
 static func note(id: String) -> String:
 	if String(ItemDB.def(id).kind) == "core":
 		var cur := DB.core_of(Travel.system_state("progression"))
-		return "\n\nIn the orb now." if cur == id else "\n\nNot in the orb. Set it at a kindled fire: Kindling [K], Staff."
+		return "\n\nIn the orb now." if cur == id else "\n\nNot in the orb. Set it at a kindled fire: Kindling [%s], Staff." % InputSetup.live_label("kindling", Settings.using_pad, "K")
 	if String(ItemDB.def(id).kind) != "charm":
 		return ""
 	var st := Travel.system_state("progression")
 	var w := DB.worn(st)
 	if w.has(id):
-		return "\n\nWorn (%d of %d cords). Take it off in the Kindling [K]." % [w.size(), DB.slots(st)]
-	return "\n\nNot worn (%d of %d cords). Wear it from the Kindling [K]." % [w.size(), DB.slots(st)]
+		return "\n\nWorn (%d of %d cords). Take it off in the Kindling [%s]." % [w.size(), DB.slots(st), InputSetup.live_label("kindling", Settings.using_pad, "K")]
+	return "\n\nNot worn (%d of %d cords). Wear it from the Kindling [%s]." % [w.size(), DB.slots(st), InputSetup.live_label("kindling", Settings.using_pad, "K")]

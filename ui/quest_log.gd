@@ -408,7 +408,21 @@ func _fill() -> void:
 	_empty.visible = ids.is_empty()
 	if not hosted:
 		_panel.offset_bottom = _panel.offset_top + (_tall if not ids.is_empty() else 0.0)    # shrinks to its content
-	_hint.text = "[↑↓] choose      [T] track      [X] abandon      [L] close" if Book.active(sel) else ("[↑↓] choose      [T] track      [L] close" if sel == Book.MAIN else ("[↑↓] choose      [L] close" if not ids.is_empty() else "[L] close"))
+	_hint.text = _hint_text(Book.active(sel), sel == Book.MAIN, not ids.is_empty())
+
+
+## The foot: what the keys (or the pad's buttons) do here, named as they are bound now.
+func _hint_text(active: bool, is_main: bool, any: bool) -> String:
+	var pad := Settings.using_pad
+	var parts := PackedStringArray()
+	if any:
+		parts.append("[%s] choose" % ("D-pad" if pad else "Up / Down"))
+	if active or is_main:
+		parts.append("[%s] track" % ("Y" if pad else "T"))
+	if active:
+		parts.append("[%s] abandon" % "X")
+	parts.append("[%s] close" % ("B" if pad else InputSetup.live_label(ACTION, false, "L")))
+	return "      ".join(parts)
 
 
 ## One task in the list: its painted mark, the name, and who set it and where, in a button that takes a gilt frame
@@ -549,7 +563,7 @@ func _fill_detail() -> void:
 			var stp := Chains.step(sel, si)
 			var st := _lbl(19, INK if si == cur else Color(0.62, 0.6, 0.56), false)
 			var ico := QuestMarks.lore_art("done") if si < cur else QuestMarks.task_art(String(stp.kind))
-			var lead := "" if ico != null else ("  ›  " if si == cur else "  ✓  ")
+			var lead := ""                            # (every step has painted art; no glyph stands in for it)
 			st.text = lead + Chains.step_text(sel, si, Book.q(sel) if si == cur else {})
 			if si < cur and String(stp.kind) in Chains.COUNTED:
 				st.text = lead + String(stp.text).replace(" ({n}/{of})", "")

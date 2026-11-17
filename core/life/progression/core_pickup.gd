@@ -11,7 +11,7 @@ func interact(_by: Node) -> void:
 	var had := String(Travel.system_state("progression").get("core", ""))
 	Travel.give(item_id, 1)
 	if had != "":
-		Events.toast.emit("%s. Set it in the orb at a kindled fire: Kindling [K], Staff." % ItemDB.def(item_id).name)
+		Events.toast.emit("%s. Set it in the orb at a kindled fire: Kindling [%s], Staff." % [ItemDB.def(item_id).name, InputSetup.live_label("kindling", Settings.using_pad, "K")])
 	remove_from_group(Groups.INTERACTABLE)
 	var tint: Color = ItemDB.def(item_id).get("tint", Color.WHITE)
 	Vfx.burst(global_position + Vector3.UP * 0.55, Color(tint.r * 2.6, tint.g * 2.6, tint.b * 2.6), {"count": 40, "life": 0.7, "speed": Vector2(1.0, 4.0), "size": 0.045, "gravity": -2.0, "trail": 0.07})

@@ -16,6 +16,7 @@ extends CanvasLayer
 ## "character_screen"; built by world/main.gd. Load by path (no class_name).
 
 const UIType := preload("res://ui/type.gd")
+const MenuGate := preload("res://ui/menu_gate.gd")
 const UiSound := preload("res://ui/ui_sound.gd")
 const W := preload("res://ui/gear_widgets.gd")
 
@@ -63,6 +64,7 @@ func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	add_to_group(&"character_screen")
 	_build()
+	Settings.input_device_changed.connect(func(_pad: bool) -> void: _hint_refresh())
 	_root.visible = false
 	_backdrop = CanvasLayer.new()
 	_backdrop.name = "Backdrop"
@@ -92,7 +94,10 @@ func _hint_refresh() -> void:
 		if InputSetup.slot_of(ev) == "key":
 			names.append(InputSetup.event_name(ev))
 	var close_keys := " / ".join(names if not names.is_empty() else PackedStringArray(["Tab"]))
-	for h: Array in [["1-4", "Tabs"], ["Q  E", "Pages"], [close_keys, "Close"]]:
+	var rows: Array = [["1-4", "Tabs"], ["Q  E", "Pages"], [close_keys, "Close"]]
+	if Settings.using_pad:
+		rows = [["LT  RT", "Tabs"], ["LB  RB", "Pages"], ["B", "Close"]]
+	for h: Array in rows:
 		var one := HBoxContainer.new()
 		one.add_theme_constant_override("separation", 6)
 		one.add_child(W.badge(String(h[0]), 17))
@@ -105,6 +110,8 @@ func _hint_refresh() -> void:
 ## Open at `top` (a tab id) and `page` (a page id). A page you were not sent to is the tab's first, not a stale
 ## page left from an hour ago (switching tabs while it is open keeps each tab's page).
 func open_at(top: String, page := "", from_fire := false) -> void:
+	if MenuGate.blocked(self):
+		return                                   # hollowing: the respawn does not wait for a window
 	_hint_refresh()
 	var ti := _tab_index(top)
 	if ti < 0:
@@ -268,13 +275,16 @@ func _input(event: InputEvent) -> void:
 		return
 	if event.is_echo():
 		return
-	if event.is_action_pressed("inventory") or event.is_action_pressed("toggle_settings") or event.is_action_pressed("release_mouse") \
-			or (event is InputEventJoypadButton and event.pressed and (event as InputEventJoypadButton).button_index == JOY_BUTTON_B):
+	# Open, the pad's d-pad navigates (ui_*): its menu bindings (up = inventory, the others the jumps) are for
+	# the closed night only, so a joypad button never closes the screen or jumps a page from in here.
+	var on_pad := event is InputEventJoypadButton
+	if (event.is_action_pressed("inventory") and not on_pad) or event.is_action_pressed("toggle_settings") or event.is_action_pressed("release_mouse") \
+			or (on_pad and event.pressed and (event as InputEventJoypadButton).button_index == JOY_BUTTON_B):
 		close()
 		get_viewport().set_input_as_handled()
 		return
 	for j: Array in JUMPS:
-		if InputMap.has_action(j[0]) and event.is_action_pressed(j[0]):
+		if not on_pad and InputMap.has_action(j[0]) and event.is_action_pressed(j[0]):
 			var here := showing()
 			if here[0] == j[1] and (j[2] == "" or here[1] == j[2]):
 				close()

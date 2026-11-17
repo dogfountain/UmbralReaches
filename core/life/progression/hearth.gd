@@ -258,7 +258,7 @@ func give_memory(n: int, why: String) -> void:
 	last_gain = n
 	last_why = why
 	if after > before:
-		Events.toast.emit("Something comes back to you. Remembrance %d: a step on the Paths [K]." % after)
+		Events.toast.emit("Something comes back to you. Remembrance %d: a step on the Paths [%s]." % [after, InputSetup.live_label("kindling", Settings.using_pad, "K")])
 		_ding()
 		leveled_up.emit(after, free_points())
 		Travel.save_soon()

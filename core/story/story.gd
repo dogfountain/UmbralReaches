@@ -247,11 +247,13 @@ func _show(node_id: String) -> void:
 		if is_instance_valid(guide) and guide.answer() != "" and not _conv in ["keep", "brannoc"]:
 			choices.insert(maxi(0, choices.size() - 1), {"text": GuideLines.ASK, "to": "#guide", "key": "guide:ask"})
 	var labels: Array[String] = []
+	var marks: Array[String] = []
 	for ch: Dictionary in choices:
 		labels.append(QuestBook.label(String(ch.text), String(ch.get("do", ""))))
+		marks.append(QuestBook.task_mark(ch))
 	ui.set_meta("choices", choices)
 	ui.call("set_mood", QuestBook.att(_conv))
-	ui.line(String(n.get("who", (DialogueDB.CONV[_conv] as Dictionary).name)), DialogueDB.text_of(n, ws), labels)
+	ui.line(String(n.get("who", (DialogueDB.CONV[_conv] as Dictionary).name)), DialogueDB.text_of(n, ws), labels, marks)
 	_speaking(true)
 
 

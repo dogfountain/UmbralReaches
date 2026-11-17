@@ -429,9 +429,18 @@ static func add_att(npc: String, n: int) -> void:
 	save()
 
 
-## A choice's label as the box shows it: one that sets a task going is marked with the task diamond.
-static func label(text: String, actions: String) -> String:
-	return ("◆  " + text) if actions.contains("qs:") else text
+## A choice's text as the box shows it. The task mark is not in the text: `task_mark` says which painted mark
+## (the dialogue paints it in the button), so nothing tests the string for a glyph.
+static func label(text: String, _actions: String) -> String:
+	return text
+
+
+## The painted mark a choice carries: the choice's own `task` flag for the offered / handed-in lines the givers
+## add, "offer" (the available-task mark) for one that sets a task going, else "".
+static func task_mark(ch: Dictionary) -> String:
+	if ch.has("task"):
+		return String(ch.task)
+	return "offer" if String(ch.get("do", "")).contains("qs:") else ""
 
 
 ## Give a reward {ash, items: {id: n}, charm: id, else: {id: n}} (a charm only if ItemDB knows it and the wanderer does

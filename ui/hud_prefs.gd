@@ -31,6 +31,18 @@ static var card_request := 0           ## bumped by the settings menu: the HUD s
 static var _loaded := false
 
 
+## Every choice back to its default (Settings' Reset to Defaults), saved.
+static func reset() -> void:
+	ensure()
+	for k: String in track:
+		track[k] = true
+	combat_text = true
+	unit_frames = true
+	enemy_plates = false
+	guide = true
+	save()
+
+
 ## The next ensure() reads the slot's file again (a new night, another slot, an erased save).
 static func forget() -> void:
 	_loaded = false

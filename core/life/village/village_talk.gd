@@ -122,7 +122,7 @@ func _show(id: String) -> void:
 			if bool(ch.get("once", false)) and _picked(ch):
 				continue
 			_choices.append(ch)
-	# r33: an offered task's mark becomes a line in the hub ("◆ name" / "? name": the accept and
+	# r33: an offered task's mark becomes a line in the hub (the available / hand-in mark: the accept and
 	# turn-in screens, ui/quest_offer.gd, open when the conversation ends)
 	if id == "hub":
 		_choices = QuestGiver.merge(_choices, conv, get_tree())
@@ -130,12 +130,14 @@ func _show(id: String) -> void:
 			# a guided first act: anyone can be asked the way (core/story/guide.gd), before the goodbye
 			_choices.insert(maxi(0, _choices.size() - 1), {"text": GuideLines.ASK, "to": "#guide"})
 	var labels: Array[String] = []
+	var marks: Array[String] = []
 	for ch2: Dictionary in _choices:
 		labels.append(QuestBook.label(String(ch2.text), String(ch2.get("do", ""))))
+		marks.append(QuestBook.task_mark(ch2))
 	var text := _text(n)
 	said.append("%s: %s" % [conv, text])
 	ui.call("set_mood", QuestBook.att(conv))
-	ui.call("line", String(DB.CONV[conv].name), text, labels)
+	ui.call("line", String(DB.CONV[conv].name), text, labels, marks)
 	if is_instance_valid(who):
 		who.set("speaking", true)
 

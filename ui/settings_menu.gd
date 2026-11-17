@@ -12,6 +12,7 @@ const TABS := ["Display", "Graphics", "Audio", "Controls"]
 const UIType := preload("res://ui/type.gd")
 const UiSound := preload("res://ui/ui_sound.gd")
 const HudPrefs := preload("res://ui/hud_prefs.gd")
+const MenuGate := preload("res://ui/menu_gate.gd")
 
 var _font: Font
 var _root: Control
@@ -53,6 +54,8 @@ var _stick_slider: HSlider
 var _stick_label: Label
 var _hint_line: Label
 var _erase_btn: Button
+var _reset_btn: Button
+var _hud_checks := {}                ## CheckButton -> the HudPrefs choice it shows ("unit_frames", ... or "track:quests"), for a reset
 var _bind_btns := {}                 ## "action|slot" -> Button
 var _bind_msg: Label
 var _listen := ""                   ## the "action|slot" waiting for a key
@@ -179,6 +182,7 @@ func _build_display(p: VBoxContainer) -> void:
 	_pace_note = _label("", DIM, 16)
 	_pace_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	p.add_child(_pace_note)
+	_build_hud_look(p)
 
 
 func _build_graphics(p: VBoxContainer) -> void:
@@ -295,9 +299,9 @@ func _build_controls(p: VBoxContainer) -> void:
 	p.add_child(_label("Fixed: Look  mouse / right stick   ·   Settings  Esc / F2 / Menu   ·   Character tabs  1 - 4, Q E", DIM, 16))
 
 
-## r33: the HUD's own choices (ui/hud_prefs.gd, saved in hud.cfg): the unit frames, the floating combat
-## text, what the minimap tracks (WoW's tracking menu), and the controls card on demand.
-func _build_hud(p: VBoxContainer) -> void:
+## The HUD's own look (Unit Frames, Combat Text, plates, Text Scale): on the Display page, with the rest of
+## what the screen shows. What guides the player (Guidance, Control Prompts, Minimap Tracking) stays with Controls.
+func _build_hud_look(p: VBoxContainer) -> void:
 	HudPrefs.ensure()
 	p.add_child(_spacer(6))
 	_head(p, "HEADS-UP DISPLAY")
@@ -305,18 +309,17 @@ func _build_hud(p: VBoxContainer) -> void:
 		HudPrefs.unit_frames = v
 		HudPrefs.save())
 	uf.set_pressed_no_signal(HudPrefs.unit_frames)
+	_hud_checks[uf] = "unit_frames"
 	var ct := _check(p, "Combat Text", "The wounds a blow opens and a kill closes, at your shoulder", func(v: bool) -> void:
 		HudPrefs.combat_text = v
 		HudPrefs.save())
 	ct.set_pressed_no_signal(HudPrefs.combat_text)
+	_hud_checks[ct] = "combat_text"
 	var plates := _check(p, "Enemy Health Bars & Plates", "Off: only the foe you are locked on to shows its bar and frame. On: a health bar over every foe, and the target frame for any foe you strike.", func(v: bool) -> void:
 		HudPrefs.enemy_plates = v
 		HudPrefs.save())
 	plates.set_pressed_no_signal(HudPrefs.enemy_plates)
-	var gd := _check(p, "Guidance", "A new game's first act: the next step kept on screen and announced, the controls named the first time they matter, and Hearthward's people pointing the way. Off: none of it. The followed task, its mark and the trail are always on", func(v: bool) -> void:
-		HudPrefs.guide = v
-		HudPrefs.save())
-	gd.set_pressed_no_signal(HudPrefs.guide)
+	_hud_checks[plates] = "enemy_plates"
 	var trow := _row(p, "Text Scale", "The size of the objective, toasts, lessons and subtitles")
 	_tscale_slider = _slider(trow, 0.85, 1.5, 0.05)
 	_tscale_label = _value_label(trow)
@@ -326,6 +329,19 @@ func _build_hud(p: VBoxContainer) -> void:
 			return
 		Settings.text_scale = v
 		Settings.apply())
+
+
+## r33: the HUD's guidance choices (ui/hud_prefs.gd, saved in hud.cfg): Guidance, what the minimap tracks (WoW's
+## tracking menu), and the controls card on demand. (The look of the HUD is on Display: _build_hud_look.)
+func _build_hud(p: VBoxContainer) -> void:
+	HudPrefs.ensure()
+	p.add_child(_spacer(6))
+	_head(p, "GUIDANCE")
+	var gd := _check(p, "Guidance", "A new game's first act: the next step kept on screen and announced, the controls named the first time they matter, and Hearthward's people pointing the way. Off: none of it. The followed task, its mark and the trail are always on", func(v: bool) -> void:
+		HudPrefs.guide = v
+		HudPrefs.save())
+	gd.set_pressed_no_signal(HudPrefs.guide)
+	_hud_checks[gd] = "guide"
 	var row := _row(p, "Control Prompts", "The one-line hints that appear the first time a control matters (a ledge, a foe in range...), shown again")
 	var again := Button.new()
 	again.text = "Show Again"
@@ -343,23 +359,7 @@ func _build_hud(p: VBoxContainer) -> void:
 		var cb := _check(p, String(HudPrefs.TRACK_NAMES.get(k, k.capitalize())), "Shown on the minimap", func(v: bool) -> void:
 			HudPrefs.set_track(key, v))
 		cb.set_pressed_no_signal(bool(HudPrefs.track.get(k, true)))
-
-
-## [label, actions (their bindings are shown), keyboard text when none is in the InputMap, pad text
-## to use instead of the InputMap's]
-const KEY_ROWS := [
-	["Move", [], "W A S D", "Left stick"], ["Look", [], "Mouse", "Right stick"],
-	["Sprint", ["sprint"], "", "L3 (toggles)"], ["Jump", ["jump"], "", ""], ["Slide", ["slide"], "", ""],
-	["Dodge roll", ["dodge"], "", "B (slow or locked on)"], ["Lock on", ["lock_on"], "", ""], ["Next target", ["target_next"], "T", "Flick the stick, locked"],
-	["Staff strike (hold: heavy)", ["staff_strike"], "", "RT up close"], ["Guard / parry", ["guard"], "", "B held, locked on"],
-	["Kindle / talk / use", ["interact"], "", ""],
-	["Skills 1  ·  2", ["skill_bolt", "skill_lance"], "", ""], ["Skills 3  ·  4  ·  5", ["skill_nova", "skill_ward", "skill_step"], "", ""],
-	["Character (Wanderer, Kindling, Pack, Journal)", ["inventory"], "", ""], ["Its tabs  ·  pages", [], "1 - 4  ·  Q E", "LT RT  ·  LB RB"],
-	["Straight to Gear  ·  Kindling", ["gear", "kindling"], "O  ·  K", ""], ["Straight to Journal  ·  Tasks", ["codex", "quest_log"], "J  ·  L", ""],
-	["World map  ·  Minimap", ["world_map", "minimap"], "M  ·  N", "Share"],
-	["Settings", ["toggle_settings"], "", ""], ["Fullscreen", ["fullscreen"], "", "-"],
-	["Colour grade", ["toggle_grade"], "", "-"], ["Stats overlay", ["toggle_debug"], "", "-"],
-]
+		_hud_checks[cb] = "track:" + k
 
 
 ## the bindings are editable. Click a button, press the new key / mouse button (or controller button for the
@@ -426,7 +426,7 @@ func _refresh_binds() -> void:
 func _begin_listen(action: String, slot: String) -> void:
 	_listen = "%s|%s" % [action, slot]
 	_listen_ms = Time.get_ticks_msec()
-	_bind_msg.text = "Press the new %s for %s. Esc cancels." % ["key or mouse button" if slot == "key" else "controller button", InputSetup.label_of(action)]
+	_bind_msg.text = "Press the new %s for %s. %s cancels." % ["key or mouse button" if slot == "key" else "controller button", InputSetup.label_of(action), "Esc" if slot == "key" else "Menu"]
 	_refresh_binds()
 
 
@@ -436,6 +436,12 @@ func _listen_input(event: InputEvent) -> void:
 	var action: String = parts[0]
 	var slot: String = parts[1]
 	var ev: InputEvent = null
+	if event is InputEventJoypadButton and event.pressed and (event as InputEventJoypadButton).button_index == JOY_BUTTON_START:
+		_listen = ""                             # Menu is fixed (it opens Settings): on a pad it is the way out of a rebind
+		_bind_msg.text = "Cancelled."
+		_refresh_binds()
+		get_viewport().set_input_as_handled()
+		return
 	if event is InputEventKey and event.pressed and not event.echo:
 		if (event as InputEventKey).physical_keycode == KEY_ESCAPE:
 			_listen = ""
@@ -444,7 +450,7 @@ func _listen_input(event: InputEvent) -> void:
 			get_viewport().set_input_as_handled()
 			return
 		if slot == "pad":
-			_bind_msg.text = "That is a keyboard key. Press a controller button, or Esc."
+			_bind_msg.text = "That is a keyboard key. Press a controller button, or Menu to cancel."
 			get_viewport().set_input_as_handled()
 			return
 		ev = event
@@ -478,31 +484,6 @@ func _listen_input(event: InputEvent) -> void:
 	_refresh_binds()
 
 
-func _keys_text(actions: Array, fallback: String) -> String:
-	var parts := PackedStringArray()
-	for act: String in actions:
-		if not InputMap.has_action(act):
-			continue
-		var mine := PackedStringArray()
-		for ev in InputMap.action_get_events(act):
-			if ev is InputEventKey:
-				var kc := (ev as InputEventKey).physical_keycode
-				if kc == KEY_NONE:
-					kc = (ev as InputEventKey).keycode
-				mine.append(OS.get_keycode_string(kc))
-			elif ev is InputEventMouseButton:
-				mine.append(String({MOUSE_BUTTON_LEFT: "LMB", MOUSE_BUTTON_RIGHT: "RMB", MOUSE_BUTTON_MIDDLE: "MMB"}.get((ev as InputEventMouseButton).button_index, "Mouse")))
-		if not mine.is_empty():
-			parts.append(" / ".join(mine))
-	return fallback if parts.is_empty() else "  ·  ".join(parts)
-
-
-const PAD_NAMES := {JOY_BUTTON_A: "A", JOY_BUTTON_B: "B", JOY_BUTTON_X: "X", JOY_BUTTON_Y: "Y",
-	JOY_BUTTON_BACK: "View", JOY_BUTTON_START: "Menu", JOY_BUTTON_LEFT_STICK: "L3", JOY_BUTTON_RIGHT_STICK: "R3",
-	JOY_BUTTON_LEFT_SHOULDER: "LB", JOY_BUTTON_RIGHT_SHOULDER: "RB", JOY_BUTTON_DPAD_UP: "D-pad up",
-	JOY_BUTTON_DPAD_DOWN: "D-pad down", JOY_BUTTON_DPAD_LEFT: "D-pad left", JOY_BUTTON_DPAD_RIGHT: "D-pad right"}
-
-
 func _pad_text(actions: Array, fallback: String) -> String:
 	if fallback != "":
 		return fallback
@@ -513,7 +494,7 @@ func _pad_text(actions: Array, fallback: String) -> String:
 		for ev in InputMap.action_get_events(act):
 			if ev is InputEventJoypadButton:
 				var bi := (ev as InputEventJoypadButton).button_index
-				parts.append(String(PAD_NAMES.get(bi, "Button %d" % bi)))
+				parts.append(InputSetup.event_name(ev))
 				break
 			if ev is InputEventJoypadMotion:
 				var ax := (ev as InputEventJoypadMotion).axis
@@ -522,9 +503,22 @@ func _pad_text(actions: Array, fallback: String) -> String:
 	return "  ·  ".join(parts) if not parts.is_empty() else "-"
 
 
+const RESET_TEXT := "Reset to Defaults"
+const RESET_ASK := "Reset everything?"
+const ERASE_TEXT := "Erase Saved Progress"
+const ERASE_ASK := "Erase everything?"
+const QUIT_TEXT := "Quit Game"
+const QUIT_ASK := "Quit the game?"
+
+
 func _erase_lapse() -> void:
-	if is_instance_valid(_erase_btn) and _erase_btn.text.begins_with("Confirm"):
-		_erase_btn.text = "Erase Saved Progress"
+	if is_instance_valid(_erase_btn) and _erase_btn.text == ERASE_ASK:
+		_erase_btn.text = ERASE_TEXT
+
+
+func _reset_lapse() -> void:
+	if is_instance_valid(_reset_btn) and _reset_btn.text == RESET_ASK:
+		_reset_btn.text = RESET_TEXT
 
 
 ## The hint line follows the focused control (pad / keys); the mouse uses the tooltips.
@@ -544,16 +538,26 @@ func _footer() -> HBoxContainer:
 	var f := HBoxContainer.new()
 	f.add_theme_constant_override("separation", 14)
 	var reset := _foot_btn("Reset to Defaults", false)
-	reset.pressed.connect(func() -> void:
-		Settings.reset_defaults()
-		_refresh()
-		Events.toast.emit("Settings reset to defaults"))
+	_reset_btn = reset
+	reset.tooltip_text = "Puts back every setting on every page: display, graphics, audio, view, your keys and buttons, and the HUD choices. Saved progress is kept."
+	reset.pressed.connect(func() -> void:       # two-step like Erase: it wipes the keys and buttons you set
+		if reset.text == RESET_ASK:
+			Settings.reset_defaults()
+			HudPrefs.reset()
+			reset.text = RESET_TEXT
+			_listen = ""
+			_refresh()
+			_refresh_binds()
+			Events.toast.emit("Settings reset to defaults")
+		else:
+			reset.text = RESET_ASK
+			get_tree().create_timer(4.0, true).timeout.connect(_reset_lapse))
 	f.add_child(reset)
-	var erase := _foot_btn("Erase Saved Progress", false)
+	var erase := _foot_btn(ERASE_TEXT, false)
 	_erase_btn = erase
 	erase.tooltip_text = "Deletes the save and the Journal, and returns you to the title. Settings are kept."
 	erase.pressed.connect(func() -> void:           # two-step so a stray click cannot wipe a run
-		if erase.text.begins_with("Confirm"):
+		if erase.text == ERASE_ASK:
 			Travel.erase_save()
 			erase.text = "Erased"
 			erase.disabled = true
@@ -561,29 +565,34 @@ func _footer() -> HBoxContainer:
 			Events.toast.emit("Progress erased. Returning to the title.")
 			get_tree().create_timer(0.8, true).timeout.connect(Travel.to_title)
 		else:
-			erase.text = "Confirm: erase everything?"
+			erase.text = ERASE_ASK
 			# the confirm lapses by itself: a stray press later cannot finish what this one began
 			get_tree().create_timer(4.0, true).timeout.connect(_erase_lapse))   # a method: no lambda capture to outlive the button
 	f.add_child(erase)
 	erase.visible = not on_title
-	var quit_btn := _foot_btn("Quit Game", false)
+	var quit_btn := _foot_btn(QUIT_TEXT, false)
 	quit_btn.tooltip_text = "Saves and closes the game."
 	quit_btn.pressed.connect(func() -> void:
-		if quit_btn.text.begins_with("Really"):
+		if quit_btn.text == QUIT_ASK:
 			Settings.flush()
 			Travel.save_now()
 			Travel.leaving = true
 			get_tree().quit()
 		else:
-			quit_btn.text = "Really quit?"
+			quit_btn.text = QUIT_ASK
 			get_tree().create_timer(3.0, true).timeout.connect(func() -> void:
 				if is_instance_valid(quit_btn):
-					quit_btn.text = "Quit Game"))
+					quit_btn.text = QUIT_TEXT))
 	f.add_child(quit_btn)
 	var fill := Control.new()
 	fill.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	f.add_child(fill)
-	var close_btn := _foot_btn("Close  (Esc)", true)
+	var close_btn := _foot_btn("", true)
+	var name_close := func() -> void: close_btn.text = "Close  (%s)" % ("B" if Settings.using_pad else "Esc")
+	name_close.call()
+	Settings.input_device_changed.connect(func(_pad: bool) -> void:
+		if is_instance_valid(close_btn):
+			name_close.call())
 	close_btn.pressed.connect(close)
 	f.add_child(close_btn)
 	return f
@@ -722,7 +731,22 @@ func _custom() -> void:
 	_preset_option.select(m if m >= 0 else Settings.PRESET_NAMES.size())
 
 
+## The HUD checks follow HudPrefs (a reset changes them from here).
+func _refresh_hud_checks() -> void:
+	for cb: CheckButton in _hud_checks:
+		var what: String = _hud_checks[cb]
+		var on := true
+		match what:
+			"unit_frames": on = HudPrefs.unit_frames
+			"combat_text": on = HudPrefs.combat_text
+			"enemy_plates": on = HudPrefs.enemy_plates
+			"guide": on = HudPrefs.guide
+			_: on = bool(HudPrefs.track.get(what.trim_prefix("track:"), true))
+		cb.set_pressed_no_signal(on)
+
+
 func _refresh() -> void:
+	_refresh_hud_checks()
 	_refreshing = true
 	_fullscreen_btn.button_pressed = Settings.fullscreen
 	_res_option.select(Settings.window_size_index)
@@ -880,6 +904,8 @@ func _input(event: InputEvent) -> void:
 
 
 func open() -> void:
+	if not on_title and MenuGate.blocked(self):
+		return                                   # hollowing: the respawn does not wait for a window
 	_refresh()
 	_root.visible = true
 	_was_captured = Input.mouse_mode == Input.MOUSE_MODE_CAPTURED
