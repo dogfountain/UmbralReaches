@@ -353,6 +353,11 @@ void fragment() {
 		vec3 rock_n = normalize(wnrm + rn * normal_strength * 1.1);
 		// ash country rock is basalt-dark
 		rc *= mix(1.0, 0.55, w[4]);
+		if (fz > 0.5) {
+			// the far walls (the Crowns at 400 m): pale ledges and dark crevice streaks keyed to height, in the far path only
+			float ledge = sin(wpos.y * 0.45 + vnoise(wpos.xz * 0.03) * 6.0);
+			rc *= mix(0.8, 1.18, smoothstep(-0.3, 0.7, ledge));
+		}
 		col = mix(rc, col, flat_k);
 		n_ws = normalize(mix(rock_n, gn, flat_k));
 		rough = mix(rr, rough, flat_k);

@@ -149,9 +149,10 @@ void fragment() {
 	// camera collides with the world only): cards dither away inside ~1.6 m of the camera. In a
 	// directional shadow pass the "camera" is far off, so shadows are untouched.
 	float cam_d = distance(wpos, CAMERA_POSITION_WORLD);
-	if (cam_d < near_fade) {
+	float nf = wpos.y > CAMERA_POSITION_WORLD.y + 1.5 ? near_fade * 2.5 : near_fade;     // cards overhead (the camera under a crown) clear out to 4 m: the wood opens up
+	if (cam_d < nf) {
 		float ign = fract(52.9829189 * fract(dot(FRAGCOORD.xy, vec2(0.06711056, 0.00583715))));
-		if (smoothstep(near_fade * 0.35, near_fade, cam_d) < ign) {
+		if (smoothstep(nf * 0.35, nf, cam_d) < ign) {
 			discard;
 		}
 	}

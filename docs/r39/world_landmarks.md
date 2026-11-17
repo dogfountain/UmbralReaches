@@ -319,3 +319,12 @@ gets reeds (the flora's own fen reed mesh), half-sunk mossy shore stones (one Ro
 **Cost.** Built once at Realm build time: about 25,000 water-grid lookups (array reads, no noise) and 1-7 terrain-grid reads per point, tens of milliseconds, no cache needed. Per 64 m cell with a shore: 3 draws (one reed MultiMesh at 90 m,
 one stone MultiMesh at 70 m, one wet-band mesh at 80 m, all dither-faded), so draws rise only where there is water and only inside those ranges; reeds are the flora's existing cards (a few hundred triangles per clump, instanced).
 This is the one item this round whose draws rise (about 3 per shore cell in view); offset: none, bounded by the ranges. Check at the fen and the river: reeds and wet mud at every bank, stones at the edge, nothing across a ford, dock or road.
+
+## Critique walk-down (3_world_models_textures.md, top to bottom)
+- Section 1 benches and scarps, outcrops: done in the earlier pass (`terrain_benches`, outcrops). **The Crowns wall**: `realm_ground.gdshader`, far cliff branch only (`fz > 0.5`): pale ledges and dark crevice streaks keyed to height
+  (one `sin` and one `vnoise` per far cliff pixel, inside the far path that already skips the layer fetches: net cheaper than the near path; no new fetch). Check the vista from the south-east: the wall has horizontal bands.
+- **Sightlines under crowns**: `realm_foliage.gdshader`: cards above the camera (more than 1.5 m over it) dither out to 4 m instead of 1.6 m, so a camera under a crown sees the wood; cards at eye level keep 1.6 m. One compare per card pixel.
+- Section 5 masonry grid, jitter, edge wear: done (edge lift, wider tone, 4 cm arris, patchwork, moss; scale tiers earlier). Dark masonry: albedo lifted (ruin, ruin_big, dark). Bark specular: done. Tree crown value: done.
+  Leaf dither/alpha-to-coverage: the light seat's. Ground litter map (T6) and masonry detail normal (T3): not done, each adds a fetch; T4/T5 (moss/dirt masks, prop vertex AO) were already in (`_grime`, `prop_weather`).
+- Section 2 fullness: tree variants, undergrowth variants (grass tint and height, heather, tallgrass), props windows, yards, shorelines. Per-region signature props (B3) were earlier.
+- Not done: T7 decals, T8 tree impostors, T10 texture-array packing (the critique's own low priority), the hitch warm-up (lead).
