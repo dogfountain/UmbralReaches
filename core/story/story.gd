@@ -34,6 +34,7 @@ const Tally := preload("res://core/story/tally.gd")
 const Days := preload("res://core/story/days.gd")
 const TallyPanel := preload("res://ui/tally_panel.gd")
 const FirstHour := preload("res://core/story/first_hour.gd")
+const Chronicle := preload("res://core/story/chronicle.gd")
 const HudPrefsOpen := preload("res://ui/hud_prefs.gd")
 
 signal objectives_changed
@@ -80,6 +81,7 @@ func _ready() -> void:
 	add_child(Days.new())
 	add_child(TallyPanel.new())
 	add_child(FirstHour.new())
+	add_child(Chronicle.new())
 	track = QuestTrack.new()
 	add_child(track)
 	trail = QuestTrail.new()

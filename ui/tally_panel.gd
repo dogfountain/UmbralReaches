@@ -13,6 +13,7 @@ const Med := preload("res://ui/medieval_style.gd")
 const UIType := preload("res://ui/type.gd")
 const ReachState := preload("res://core/world/night/reach_state.gd")
 const HorseBond := preload("res://core/world/mount/horse_bond.gd")
+const Chronicle := preload("res://core/story/chronicle.gd")
 const MenuGate := preload("res://ui/menu_gate.gd")
 const UiSound := preload("res://ui/ui_sound.gd")
 
@@ -27,6 +28,9 @@ var _root: Control
 var _left: VBoxContainer
 var _right: VBoxContainer
 var _opened_ms := 0
+var _page := 0                        ## 0 the Count, 1 the Chronicle
+var _title_l: Label
+var _foot_l: Label
 
 
 static func arm_after_camp(tree: SceneTree) -> void:
@@ -68,6 +72,7 @@ func _build() -> void:
 	panel.add_child(col)
 	var title := Label.new()
 	title.text = "THE COUNT"
+	_title_l = title
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	Med.gilt(title, 34)
 	col.add_child(title)
@@ -88,7 +93,8 @@ func _build() -> void:
 	_right.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	cols.add_child(_right)
 	col.add_child(Med.rule())
-	var foot := _label("[%s] or [Esc] close" % InputSetup.live_label("tally", false, "B"), 15, DIM)
+	var foot := _label("", 15, DIM)
+	_foot_l = foot
 	foot.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	col.add_child(foot)
 
@@ -128,6 +134,11 @@ func _clear(box: VBoxContainer) -> void:
 func _fill() -> void:
 	_clear(_left)
 	_clear(_right)
+	_title_l.text = "THE COUNT" if _page == 0 else "THE CHRONICLE"
+	_foot_l.text = "[Q] [E] %s     [%s] or [Esc] close" % ["the Chronicle" if _page == 0 else "the Count", InputSetup.live_label("tally", false, "B")]
+	if _page == 1:
+		_fill_chronicle()
+		return
 	var d := Tally.data()
 	_head(_left, "PUT DOWN  %d" % Tally.total())
 	var rows := Tally.by_kind()
@@ -175,6 +186,29 @@ func _fill() -> void:
 		_row(_right, "and %d more" % (Tally.total() - names.size()), "")
 
 
+## The run as it was written (core/story/chronicle.gd), newest first, in two columns.
+func _fill_chronicle() -> void:
+	_head(_left, "NIGHT %d" % (Days.current() + 1))
+	var list := Chronicle.entries()
+	if list.is_empty():
+		_row(_left, "Nothing is written yet.", "")
+		return
+	_head(_right, "WHAT THE FIRE KEPT")
+	var shown := 0
+	for i in range(list.size() - 1, -1, -1):
+		if shown >= 16:
+			break
+		var e: Dictionary = list[i]
+		var box := _left if shown < 8 else _right
+		var l := _label("Night %d.  %s" % [int(e.get("n", 1)), String(e.get("t", ""))], 17, INK)
+		l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		l.custom_minimum_size.x = 400.0
+		box.add_child(l)
+		shown += 1
+	if list.size() > shown:
+		_row(_right, "and %d earlier lines" % (list.size() - shown), "")
+
+
 func _lit(group: StringName) -> int:
 	var n := 0
 	for b in get_tree().get_nodes_in_group(group):
@@ -197,6 +231,7 @@ func open() -> void:
 		return
 	_open = true
 	_opened_ms = Time.get_ticks_msec()
+	_page = 0
 	_armed_until = 0
 	_was_captured = Input.mouse_mode == Input.MOUSE_MODE_CAPTURED
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
@@ -231,6 +266,11 @@ func _input(event: InputEvent) -> void:
 			get_viewport().set_input_as_handled()
 		return
 	if Time.get_ticks_msec() - _opened_ms < 200:
+		return
+	if event is InputEventKey and event.pressed and not event.is_echo() and (event.physical_keycode in [KEY_Q, KEY_E, KEY_LEFT, KEY_RIGHT]):
+		_page = 1 - _page
+		_fill()
+		get_viewport().set_input_as_handled()
 		return
 	if event.is_action_pressed("toggle_settings") or event.is_action_pressed("release_mouse") or event.is_action_pressed("interact") \
 			or (event is InputEventJoypadButton and event.pressed and (event as InputEventJoypadButton).button_index == JOY_BUTTON_B):
