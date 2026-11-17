@@ -76,6 +76,7 @@ func _stroke(p: Player, from: Vector3, fwd: Vector3, reach: float, half: float, 
 	var f := Vector3(fwd.x, 0.0, fwd.z).normalized()
 	var cosv := cos(deg_to_rad(half))
 	var n := 0
+	var space := p.get_world_3d().direct_space_state
 	for node in p.get_tree().get_nodes_in_group(Groups.ENEMY):
 		var e := node as Enemy
 		if e == null or not e.is_alive():
@@ -87,6 +88,8 @@ func _stroke(p: Player, from: Vector3, fwd: Vector3, reach: float, half: float, 
 		var dist := d.length()
 		if dist > reach or (dist > 0.5 and d.normalized().dot(f) < cosv):
 			continue
+		if not line_clear(space, from + Vector3.UP * 1.1, e):
+			continue                          # a bell does not ring through a wall
 		var had := e.marks
 		var hit := dmg + (0.5 * float(had) if r >= 2 else 0.0)
 		if e.boss and r >= 3:

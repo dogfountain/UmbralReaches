@@ -42,6 +42,7 @@ func cast(book: SkillBook, _charge: float) -> bool:
 ## Bone Reliquary · Implosion: drag and mark everything in PULL_R, detonate 0.35 s later.
 func _implode(p: Player) -> void:
 	var feet := p.global_position
+	var space := p.get_world_3d().direct_space_state
 	for node in p.get_tree().get_nodes_in_group(Groups.ENEMY):
 		var e := node as Enemy
 		if e == null or not e.is_alive():
@@ -53,6 +54,8 @@ func _implode(p: Player) -> void:
 		var dist := d.length()
 		if dist > PULL_R or dist < 0.3:
 			continue
+		if not line_clear(space, feet + Vector3.UP * 1.1, e):
+			continue                          # nor a wall
 		e.add_mark(1)
 		e.shove(d / dist * PULL * clampf(dist / PULL_R + 0.35, 0.0, 1.0))
 	SpellFx.implosion(feet, PULL_R)
@@ -78,6 +81,7 @@ func _detonate(p: Player) -> void:
 	var r2 := RADIUS * RADIUS
 	var detonated: Array = []
 	var marks_total := 0
+	var space := p.get_world_3d().direct_space_state
 	for node in tree.get_nodes_in_group(Groups.ENEMY):
 		var e := node as Enemy
 		if e == null or not e.is_alive():
@@ -88,6 +92,8 @@ func _detonate(p: Player) -> void:
 		d.y = 0.0
 		if d.length_squared() > r2:
 			continue
+		if not line_clear(space, p.global_position + Vector3.UP * 1.1, e):
+			continue                          # the ring does not pass stone
 		var dist := d.length()
 		var away := d / dist if dist > 0.05 else -p.global_basis.z
 		var marks := e.take_marks()

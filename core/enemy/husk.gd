@@ -157,7 +157,7 @@ func _special_frame(_delta: float) -> void:
 		var along := rel.x * _charge_dir.x + rel.z * _charge_dir.z
 		var side := absf(rel.x * -_charge_dir.z + rel.z * _charge_dir.x)
 		var reached := run.x * _charge_dir.x + run.z * _charge_dir.z >= along - 1.0
-		if side <= 0.85 and along >= -0.3 and along <= _charge_len and reached and absf(dy) < 1.8:
+		if side <= 0.85 and along >= -0.3 and along <= _charge_len and reached and absf(dy) < 1.8 and _strike_clear(_p):
 			_charge_hit = true
 			if _p.is_evading():
 				_p.on_evaded(self)

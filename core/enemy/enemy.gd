@@ -350,6 +350,7 @@ func _limb(socket_name: String, n_name: String, mesh: Mesh, at: Vector3, skin: M
 func take_hit(dmg: float, from: Node = null) -> void:
 	if _state == DEAD:
 		return
+	if process_mode == Node.PROCESS_MODE_DISABLED and not BossKit.wake_for_hit(self): return
 	if from != null and (from is Player or from is MagicBolt or from.is_in_group(Groups.PLAYER)):
 		_peel_t = WARD_PEEL                      # the wanderer hit it: she is the one to fight now
 	if _evading:
@@ -396,9 +397,9 @@ func take_hit(dmg: float, from: Node = null) -> void:
 	var big := dmg >= 3.0
 	BossKit.hit_feel(self, dmg, weak)
 	HitText.pop(global_position + Vector3.UP * (hp_bar_y + 0.35), _dmg_text(dmg), HIT_BIG if big else HIT_COL, big)
-	_hitstop = 2 if dmg < 1.5 else (4 if dmg < 3.0 else 6)
+	_hitstop = maxi(_hitstop, 2 if dmg < 1.5 else (4 if dmg < 3.0 else 6))   # (BossKit.hit_feel may have set a longer one)
 	if hp <= 0.001:
-		_hitstop = 6
+		_hitstop = maxi(_hitstop, 6)
 	_refresh_hp(true)
 	EnemyAudio.hit(_hit_sound(), at, dmg, -2.0)
 	if hp > 0.001:
@@ -726,7 +727,7 @@ func is_alive() -> bool:
 
 
 func shove(v: Vector3) -> void:
-	_knock = Vector3(v.x, 0.0, v.z)
+	_knock = Vector3(v.x, 0.0, v.z) * (0.35 if boss else 1.0) / maxf(mass, 0.2)   # as knockback()
 	if is_on_floor() and not _ballistic:
 		velocity.y = 2.4
 
@@ -1342,7 +1343,7 @@ func _move_ballistic(delta: float) -> void:
 		velocity.z *= 0.25
 	if _state == AIRBORNE and not _pounced and _p != null:
 		var reach := _p.global_position - global_position
-		if reach.length_squared() < 1.7 * 1.7:
+		if reach.length_squared() < 1.7 * 1.7 and _strike_clear(_p):
 			_pounced = true
 			if _p.is_evading():
 				_p.on_evaded(self)
@@ -1904,6 +1905,7 @@ func _player() -> Player:
 func riposted() -> void:
 	if _state == DEAD:
 		return
+	if boss and not BossKit.riposte_ok(self): return
 	if not boss:
 		cancel_moves()
 	_combo_left = 0

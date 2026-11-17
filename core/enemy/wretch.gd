@@ -19,7 +19,7 @@ func _init() -> void:
 	role = &"flanker"
 	combo_max = 2
 	combo_chance = 0.35
-	combo_windup = 0.32
+	combo_windup = 0.35
 	feint_chance = 0.22
 
 

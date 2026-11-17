@@ -18,12 +18,13 @@ func _physics_process(delta: float) -> void:
 	_tick -= delta
 	if _tick <= 0.0:
 		_tick = 1.0
+		var space := get_world_3d().direct_space_state
 		for node in get_tree().get_nodes_in_group(Groups.ENEMY):
 			var e := node as Enemy
 			if e == null or not e.is_alive():
 				continue
 			var d := e.global_position - global_position
-			if Vector2(d.x, d.z).length() <= _r and absf(d.y) < 2.5:
+			if Vector2(d.x, d.z).length() <= _r and absf(d.y) < 2.5 and Skill.line_clear(space, global_position + Vector3.UP * 1.1, e):
 				e.add_mark(1)
 	if _life <= 0.0:
 		queue_free()

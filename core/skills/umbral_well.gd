@@ -113,12 +113,13 @@ func _physics_process(delta: float) -> void:
 
 func _held() -> Array:
 	var out: Array = []
+	var space := get_world_3d().direct_space_state
 	for node in get_tree().get_nodes_in_group(Groups.ENEMY):
 		var e := node as Node3D
 		if e == null or (e.has_method("is_alive") and not e.call("is_alive")):
 			continue
 		var d := e.global_position - global_position
-		if Vector2(d.x, d.z).length() <= radius and absf(d.y) < 3.0:
+		if Vector2(d.x, d.z).length() <= radius and absf(d.y) < 3.0 and Skill.line_clear(space, global_position + Vector3.UP * 0.6, e):
 			out.append(e)
 	return out
 
