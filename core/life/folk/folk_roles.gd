@@ -16,6 +16,7 @@ extends RefCounted
 ## Every person: a wave at the wanderer in front and near (more often the better the village regards him), a nod to
 ## anyone passing, the eclipse (a look up, a hand to the chest), and the alarm (everyone runs for the Keg). Static.
 const Cast := preload("res://core/life/village/village_cast.gd")
+const More := preload("res://core/life/folk/folk_more.gd")
 
 const GREEN := Vector2(0.0, 33.0)          ## the green round the spawn brazier
 const RING := 4.3                          ## the children's ring
@@ -67,6 +68,8 @@ static func tick(a: Variant, dt: float) -> void:
 			a.has_goal = false
 		"talk_a", "talk_b":
 			_talker(a, dt)
+		"drunk", "woodcutter", "smith", "lamplighter", "shepherd", "priest":
+			More.tick(a, dt)
 		"kid":
 			pass                                     # the game moves the children (Roles.game, run by the stage)
 

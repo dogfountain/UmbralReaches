@@ -20,7 +20,7 @@ enum { FOLLOW, SIT, SNIFF, BARK, GREET, HIDE, ROOF, GROOM, STRETCH, LEAP, STARE 
 const SLEEP_R := 130.0
 const GAIT_K := 2.6                        ## gait radians per metre (the fox's)
 const BARK_R := 28.0
-const DOGS := ["watchman", "porter", "talk_b"]       ## whose dogs they are (folk ids)
+const DOGS := ["watchman", "porter", "talk_b", "shepherd"]       ## whose dogs they are (folk ids)
 
 var ctx: Dictionary = {}
 var _mm: MultiMeshInstance3D

@@ -26,11 +26,12 @@ const COVERED := {
 	"fog_banks.gd": "material on a MultiMesh (show)",
 	"weather_life.gd": "material on a MultiMesh (show); its drip and steam bursts are night_fx presets",
 	"vfx_library.gd": "column_material on a quad (show); every burst is a night_fx preset",
-	"folk_stage.gd": "log_material and net_material (show)",
+	"folk_stage.gd": "log_material, net_material and iron_material (show)",
 	"pets.gd": "the fox creature material, one instance (show)",
 	"fire_bats.gd": "the bat orbit material, one instance (show)",
 	"night_fx.gd": "every preset in every colour (show)",
 	"hit_reads.gd": "night_fx presets",
+	"folk_more.gd": "night_fx presets (chips, spark)",
 	"kindling_surge.gd": "night_fx presets",
 	"mystery_lights.gd": "night_fx presets",
 	"telegraph_glow.gd": "night_fx presets",
@@ -80,6 +81,14 @@ static func show(host: Node3D, c: Vector3, right: Vector3, fwd: Vector3) -> Arra
 	host.add_child(net)
 	net.global_position = c + up * 0.3 - right * 5.2
 	out.append(net)
+	var anvil := MeshInstance3D.new()
+	var bx := BoxMesh.new()
+	bx.size = Vector3(0.28, 0.2, 0.62)
+	anvil.mesh = bx
+	anvil.material_override = Stage.iron_material()
+	host.add_child(anvil)
+	anvil.global_position = c + up * 0.5 - right * 6.2
+	out.append(anvil)
 	# a dog or a cat (the fox body) and a bat: each creature group with one instance
 	var at := 0.0
 	for kind: String in ["fox", "bat"]:

@@ -63,7 +63,7 @@ func _vert(p: Vector3, n: Vector3, uv: Vector2, col: Color, mat: int, ao := 1.0)
 ## lantern's glow hung by the feet).
 const TIP := {"hammer": [0.28, 0.045], "tongs": [0.36, 0.0], "pole": [1.8, 0.0], "staff": [-1.05, 0.0], "crook": [-1.05, 0.0],
 	"spade": [1.16, 0.0], "axe": [0.52, 0.1], "sword": [0.83, 0.0], "scoop": [0.28, 0.0], "lantern": [0.0, 0.2], "candle": [0.135, 0.0],
-	"broom": [1.5, 0.0], "bucket": [0.0, 0.34], "sack": [0.0, 0.4], "fiddle": [0.26, 0.0], "bow": [0.62, 0.0], "torch": [0.6, 0.0]}
+	"broom": [1.5, 0.0], "bucket": [0.0, 0.34], "sack": [0.0, 0.4], "fiddle": [0.26, 0.0], "bow": [0.62, 0.0], "torch": [0.6, 0.0], "jug": [0.0, 0.17]}
 
 
 static func tool_tips(rig: Variant) -> void:

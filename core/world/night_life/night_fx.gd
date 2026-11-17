@@ -29,6 +29,8 @@ const PRESETS := {
 	"reach": {"count": 5, "life": 1.2, "speed": Vector2(0.6, 1.8), "size": 0.05, "gravity": 0.7, "spread": 25.0, "damping": 0.6},
 	"drip": {"count": 2, "life": 0.6, "speed": Vector2(0.05, 0.3), "size": 0.025, "gravity": 9.0, "spread": 10.0},
 	"breath": {"count": 5, "life": 1.2, "speed": Vector2(0.15, 0.4), "size": 0.12, "gravity": -0.15, "spread": 25.0},
+	"chips": {"count": 8, "life": 0.6, "speed": Vector2(1.0, 3.0), "size": 0.04, "gravity": 8.0, "spread": 70.0, "damping": 1.0},
+	"spark": {"count": 8, "life": 0.45, "speed": Vector2(1.5, 4.5), "size": 0.03, "gravity": 7.0, "spread": 80.0, "damping": 0.8},
 	"dust": {"count": 14, "life": 0.9, "speed": Vector2(0.6, 2.2), "size": 0.28, "gravity": -0.3, "spread": 160.0, "damping": 1.6},
 	"steam": {"count": 8, "life": 1.4, "speed": Vector2(0.3, 0.9), "size": 0.22, "gravity": -0.6, "spread": 40.0},
 }
@@ -42,7 +44,7 @@ const FIXED := {
 	"found": [Color(0.5, 0.9, 1.7)], "snap": [Color(1.6, 1.9, 2.4)], "fizzle": [Color(2.0, 0.4, 0.3)],
 	"scar": [Color(2.6, 0.9, 0.3)], "shard": [Color(1.1, 0.7, 1.6)], "shaken": [Color(1.6, 0.4, 0.35)], "reson": [Color(1.2, 0.6, 2.6)],
 	"surge": [Color(2.4, 1.6, 0.8)], "mark": [Color(1.4, 0.6, 3.0)], "pickup": [Color(2.2, 1.7, 0.7)], "level": [Color(2.4, 1.8, 0.7)],
-	"reach": [Color(2.0, 0.9, 0.3)], "drip": [Color(0.7, 0.82, 1.0, 0.8)], "steam": [Color(0.8, 0.82, 0.88, 0.45)], "dust": [Color(0.4, 0.36, 0.32, 0.55)], "breath": [Color(0.8, 0.85, 0.95, 0.35)],
+	"reach": [Color(2.0, 0.9, 0.3)], "drip": [Color(0.7, 0.82, 1.0, 0.8)], "steam": [Color(0.8, 0.82, 0.88, 0.45)], "dust": [Color(0.4, 0.36, 0.32, 0.55)], "chips": [Color(0.55, 0.4, 0.26, 0.9)], "spark": [Color(2.4, 1.4, 0.5)], "breath": [Color(0.8, 0.85, 0.95, 0.35)],
 }
 
 
