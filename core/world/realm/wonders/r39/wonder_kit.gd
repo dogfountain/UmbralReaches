@@ -524,6 +524,15 @@ const KIT_PATH := "res://core/world/realm/wonders/r39/wonder_kit.gd"
 const GenCache := preload("res://core/world/realm/gen_cache.gd")
 
 
+## A signature of the ground round `c` (49 heights, 5 cm): part of a kit's cache key, so a changed terrain rebuilds it.
+static func tsig(c: Vector2, r: float) -> String:
+	var a := PackedFloat32Array()
+	for i in range(-3, 4):
+		for j in range(-3, 4):
+			a.append(snappedf(h(c.x + r * float(i) / 3.0, c.y + r * float(j) / 3.0), 0.05))
+	return str(a).md5_text()
+
+
 ## The cache key for a builder: its script path, the placement it was given (anything that changes the picture) and the sources.
 static func fp(builder: String, params: Variant) -> String:
 	var sal := "%d_%d_%d_%d" % [GenCache.salt(builder), GenCache.salt(KIT_PATH), GenCache.salt("res://world/areas/ossuary/oss_kit.gd"), GenCache.salt("res://core/world/realm/wonders/r39/wonder_dress.gd")]

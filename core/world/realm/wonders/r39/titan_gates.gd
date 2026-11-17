@@ -9,6 +9,7 @@ extends RefCounted
 ##   - one fire and a lit pair of eyes each (a light with a fade), the site reserved (nothing grows or is placed there)
 ## Built once, a kit per gate pair so each culls on its own.
 
+const SELF := "res://core/world/realm/wonders/r39/titan_gates.gd"
 const WK := preload("res://core/world/realm/wonders/r39/wonder_kit.gd")
 const Dress := preload("res://core/world/realm/wonders/r39/wonder_dress.gd")
 
@@ -31,14 +32,23 @@ func _gate(root: Node, r: Dictionary) -> void:
 	k.setup(root, "TitanGate_" + String(r.id), 8100 + int(absf(c.x)))
 	var title: String = {"henge": "The Thorn Wardens", "hierarch": "The Siege Wardens", "anchorhold": "The Anchor Wardens"}.get(String(r.id), "The Wardens")
 	k.poi("titan_gate_" + String(r.id), title, "two wardens of stone, and what they were set to keep out", WK.region_at(gate))
-	var base := gate + dir * 13.0
+	# 30 m outside the gate, clear of the arena's seal guards and camps (their sites): nudged out 14 m at a time if a site is there
+	var off := 30.0
+	for t in 3:
+		var bp := gate + dir * off
+		if not WK.site_hit(Rect2(bp - Vector2(10.0, 10.0), Vector2(20.0, 20.0)), 2.0):
+			break
+		off += 14.0
+	var base := gate + dir * off
 	var yaw := atan2(dir.x, dir.y)
 	for s: float in [-1.0, 1.0]:
 		var p := base + side * (7.0 * s)
-		_titan(k, p, dir, side, s)
 		WK.reserve("titan_gate_%s_%d" % [String(r.id), int(s)], p, Vector2(5.0, 5.0), yaw, WK.h(p.x, p.y) - 2.0, WK.h(p.x, p.y) + 24.0)
-	_avenue(k, base, dir, side, String(r.id))
-	var n := k.commit(0.0)
+	if not k.cached(WK.fp(SELF, [String(r.id), base, WK.tsig(base, 60.0)])):
+		for s: float in [-1.0, 1.0]:
+			_titan(k, base + side * (7.0 * s), dir, side, s)
+		_avenue(k, base, dir, side, String(r.id))
+	var n: int = k.commit(0.0)
 	print("WONDER titan_gate %s at %s: %d meshes, %d fires" % [String(r.id), base, n, k.fires])
 
 
@@ -47,11 +57,11 @@ func _gate(root: Node, r: Dictionary) -> void:
 ## last hundred feet to an arena are architecture, so the fight is foreshadowed by its place.
 func _avenue(k, base: Vector2, dir: Vector2, side: Vector2, id: String) -> void:
 	for i in 5:
-		var at := base + dir * (13.0 + 12.0 * float(i))
+		var at := base + dir * (14.0 + 12.0 * float(i))
 		var h := 9.0 - 1.0 * float(i)
 		for s: float in [-1.0, 1.0]:
 			var p := at + side * (7.0 * s)
-			if WK.wet(p.x, p.y):
+			if WK.wet(p.x, p.y) or WK.site_hit(Rect2(p - Vector2(2.0, 2.0), Vector2(4.0, 4.0)), 1.0):
 				continue
 			var g := WK.h(p.x, p.y)
 			var b := Basis(Vector3(side.x, 0.0, side.y), Vector3.UP, Vector3(dir.x, 0.0, dir.y))

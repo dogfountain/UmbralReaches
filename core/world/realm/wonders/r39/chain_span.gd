@@ -15,6 +15,7 @@ const WK := preload("res://core/world/realm/wonders/r39/wonder_kit.gd")
 const Dress := preload("res://core/world/realm/wonders/r39/wonder_dress.gd")
 
 const ALLOW := ["greyfell", "lanternwood", "kingsbarrows", "reedmere", "fallow", "arches", "southwood", "bellfall", "lastlight", "nave", "cairns"]
+const SELF := "res://core/world/realm/wonders/r39/chain_span.gd"
 const LEN := 56.0
 const SAG := 2.4
 
@@ -31,42 +32,33 @@ static func build(root: Node) -> void:
 
 
 func _run(root: Node) -> void:
-	var rng := RandomNumberGenerator.new()
-	rng.seed = 7311
-	var best_s := -INF
+	# five hand-chosen crossings in the Far Reaches (a centre and a bearing each), tried in order: the first whose two ends are
+	# dry wins, else the one with the deepest gulf between dry ends, else the first (the pylons simply stand taller)
+	var tries: Array = [[Vector2(-330.0, 20.0), 1.2], [Vector2(330.0, 160.0), 0.4], [Vector2(-340.0, 330.0), 0.3], [Vector2(150.0, 340.0), 0.0], [Vector2(-200.0, 340.0), 0.8]]
 	var best := {}
-	for q in 70:
-		var c := Vector2(rng.randf_range(-362.0, 362.0), rng.randf_range(-140.0, 390.0))
-		if Rect2(-262.0, -152.0, 524.0, 394.0).has_point(c):
-			continue
-		for di in 8:
-			var ang := float(di) * PI * 0.25 + 0.2
-			var dv := Vector2(cos(ang), sin(ang))
-			var pa := c - dv * (LEN * 0.5)
-			var pb := c + dv * (LEN * 0.5)
-			if not RealmLayout.BOUNDS.grow(-16.0).has_point(pa) or not RealmLayout.BOUNDS.grow(-16.0).has_point(pb):
-				continue
-			var ha := WK.h(pa.x, pa.y)
-			var hb := WK.h(pb.x, pb.y)
-			if WK.wet(pa.x, pa.y) or WK.wet(pb.x, pb.y):
-				continue
-			var mn := INF
-			for i in range(1, 14):
-				var p := pa.lerp(pb, float(i) / 14.0)
-				mn = minf(mn, WK.h(p.x, p.y))
-			var sc := minf(ha, hb) - mn - absf(ha - hb) * 0.8
-			if sc <= best_s:
-				continue
-			if WK.taken(c, Vector2(LEN * 0.5 + 10.0, 7.0), ang, ALLOW, 6.0):
-				continue
+	var best_s := -INF
+	for tr: Array in tries:
+		var c: Vector2 = tr[0]
+		var ang: float = tr[1]
+		var dv := Vector2(cos(ang), sin(ang))
+		var pa := c - dv * (LEN * 0.5)
+		var pb := c + dv * (LEN * 0.5)
+		var dry := 0
+		if not WK.wet(pa.x, pa.y) and RealmLayout.BOUNDS.grow(-12.0).has_point(pa):
+			dry += 1
+		if not WK.wet(pb.x, pb.y) and RealmLayout.BOUNDS.grow(-12.0).has_point(pb):
+			dry += 1
+		var mn := INF
+		for i in range(1, 8):
+			var p := pa.lerp(pb, float(i) / 8.0)
+			mn = minf(mn, WK.h(p.x, p.y))
+		var sc := float(dry) * 100.0 + minf(WK.h(pa.x, pa.y), WK.h(pb.x, pb.y)) - mn - (50.0 if WK.site_hit(Rect2(c - Vector2(34.0, 34.0), Vector2(68.0, 68.0)), 0.0) else 0.0)
+		if dry == 2 and not WK.site_hit(Rect2(c - Vector2(34.0, 34.0), Vector2(68.0, 68.0)), 0.0):
+			best = {"pos": c, "ang": ang}
+			break
+		if sc > best_s:
 			best_s = sc
 			best = {"pos": c, "ang": ang}
-	if best.is_empty():
-		var f := WK.find_any([Vector2(-330.0, 20.0), Vector2(-330.0, 120.0), Vector2(330.0, 150.0), Vector2(160.0, 330.0), Vector2(-120.0, 340.0)], Vector2(LEN * 0.5 + 10.0, 7.0), [0.0, PI * 0.5, PI * 0.25, -PI * 0.25], ALLOW, 6.0)
-		if f.is_empty():
-			push_warning("WONDER chain_span: no ground for it in the Far Reaches")
-			return
-		best = {"pos": f.pos, "ang": f.yaw}
 	var c: Vector2 = best.pos
 	var ang := float(best.ang)
 	var dv := Vector2(cos(ang), sin(ang))
@@ -81,14 +73,15 @@ func _run(root: Node) -> void:
 	var reg := WK.region_at(c)
 	k.poi("chain_span", "The Chain Span", "the keeper lit the midspan lamp for travellers, and is still there", reg if reg != "" else "greyfell")
 	WK.reserve("wonder_chain_span", c, Vector2(LEN * 0.5 + 12.0, 8.0), ang, minf(WK.h(pa.x, pa.y), WK.h(pb.x, pb.y)) - 8.0, yd + 12.0)
-	_pylon(a - d * 0.0, true)
-	_pylon(a + d * LEN, false)
-	_deck()
-	_cables()
-	_midspan()
-	_toll_hut()
-	_dress()
-	var n := k.commit()
+	if not k.cached(WK.fp(SELF, [c, ang, yd, WK.tsig(c, 40.0)])):
+		_pylon(a - d * 0.0, true)
+		_pylon(a + d * LEN, false)
+		_deck()
+		_cables()
+		_midspan()
+		_toll_hut()
+		_dress()
+	var n: int = k.commit()
 	print("WONDER chain_span at %s deck %.1f: %d meshes, %d fires, %d lights, %d chests" % [c, yd, n, k.fires, k.lights, k.chests])
 
 

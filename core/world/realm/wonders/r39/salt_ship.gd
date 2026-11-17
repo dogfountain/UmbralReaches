@@ -17,6 +17,7 @@ const Dress := preload("res://core/world/realm/wonders/r39/wonder_dress.gd")
 
 const CANDS := [Vector2(214.0, 196.0), Vector2(196.0, 214.0), Vector2(232.0, 170.0), Vector2(240.0, 220.0), Vector2(188.0, 176.0)]
 const HALF := Vector2(14.0, 28.0)
+const SELF := "res://core/world/realm/wonders/r39/salt_ship.gd"
 const N := 22
 const HALF_LEN := 22.0
 const LEVELS := 4
@@ -26,6 +27,7 @@ const PITCH := -0.05
 var k: WK
 var base := Vector3.ZERO
 var rot := Basis.IDENTITY
+var lvl := 0.0
 var _drop := {}
 
 
@@ -54,10 +56,7 @@ func _w(x: float, y: float, z: float) -> Vector3:
 
 func _run(root: Node) -> void:
 	# the footprint is long along z; the yaw options turn it every which way across the flats
-	var f := WK.find_any(CANDS, HALF, [0.0, PI * 0.5, PI * 0.25, -PI * 0.25, PI * 0.75], ["saltpans"], 3.0)
-	if f.is_empty():
-		push_warning("WONDER salt_ship: no room on the pans")
-		return
+	var f := WK.place(CANDS, HALF, [0.0, PI * 0.5, PI * 0.25, -PI * 0.25], 3.0)
 	var yaw := float(f.yaw)
 	var mid: Vector2 = f.pos
 	# the ship's z axis lies along the footprint's long side
@@ -69,18 +68,21 @@ func _run(root: Node) -> void:
 		for sx: float in [-1.0, 0.0, 1.0]:
 			var sec := _sec(s, 0.0)
 			low = minf(low, (rot * Vector3(sx * sec.x, sec.y, s * HALF_LEN)).y)
-	base = Vector3(mid.x, float(f.lo) + 0.15 - low, mid.y)
-	WK.reserve("wonder_salt_ship", mid, HALF, yaw, float(f.lo), float(f.hi) + 18.0)
+	lvl = (float(f.lo) + float(f.hi)) * 0.5
+	base = Vector3(mid.x, lvl + 0.15 - low, mid.y)
+	WorldLanes.register_terrace("wonder_salt_ship", mid, 31.0, lvl)          # the flats are levelled under the hull (the stamp), so the ship never floats or sinks
+	WK.reserve("wonder_salt_ship_site", mid, HALF, yaw, lvl - 1.0, lvl + 18.0)
 	k = WK.new()
 	k.setup(root, "SaltShip", 5233)
 	k.poi("salt_ship", "The Salt Ship", "the tide went out and the lamps were left burning", "saltpans")
-	_hull()
-	_deck()
-	_stern()
-	_mast()
-	_drifts(mid)
-	_dress(mid)
-	var n := k.commit()
+	if not k.cached(WK.fp(SELF, [mid, yaw, lvl])):
+		_hull()
+		_deck()
+		_stern()
+		_mast()
+		_drifts(mid)
+		_dress(mid)
+	var n: int = k.commit()
 	k.far(150.0, 0.25, Color(0.55, 0.56, 0.6))
 	k.beacon(_w(0.0, 14.0, -21.0), Color(1.0, 0.7, 0.42), 1.2, 10.0, 360.0)
 	print("WONDER salt_ship at %s datum %.1f: %d meshes, %d fires, %d lights, %d chests" % [mid, base.y, n, k.fires, k.lights, k.chests])
@@ -189,14 +191,14 @@ func _deck() -> void:
 	out2.y = 0.0
 	out2 = out2.normalized()
 	var foot := br + out2 * 9.0
-	var gh := WK.h(foot.x, foot.z)
+	var gh := lvl
 	k.kit.stairs("wood_big", Vector3(foot.x, gh + 0.1, foot.z), Vector3(br.x - out2.x * 0.6, br.y, br.z - out2.z * 0.6), 2.2, maxi(6, int(ceilf((br.y - gh) / 0.36))), gh - 0.8)
 	# timber shores on the high side
 	for zi in 4:
 		var s := -0.5 + 0.33 * float(zi)
 		var hp := _pt(int((s + 1.0) * 0.5 * float(N)), 2, 1.0)
 		var gp := hp + rot * Vector3(4.2, 0.0, 0.0)
-		var gg := WK.h(gp.x, gp.z)
+		var gg := lvl
 		k.beam("wood_big", hp, Vector3(gp.x, gg + 0.3, gp.z), 0.45, 0.45, false, 0.65)
 
 
@@ -259,7 +261,7 @@ func _drifts(mid: Vector2) -> void:
 		var sx := -1.0 if rng.randf() < 0.65 else 1.0
 		var sec := _sec(s, 0.2)
 		var p := _w(sx * (sec.x + rng.randf_range(0.6, 3.4)), 0.0, s * HALF_LEN)
-		var g := WK.h(p.x, p.z)
+		var g := lvl
 		var sz := Vector3(rng.randf_range(1.6, 4.4), rng.randf_range(0.7, 1.9), rng.randf_range(1.4, 3.2))
 		k.kit.box("chalk", Vector3(p.x, g + sz.y * 0.3, p.z), sz, Basis(Vector3.UP, rng.randf() * TAU) * Basis(Vector3.RIGHT, rng.randf_range(-0.2, 0.2)), false, 0.9 + 0.1 * rng.randf())
 	var _m := mid
@@ -284,10 +286,10 @@ func _dress(mid: Vector2) -> void:
 	Dress.crate(k, _w(-2.9, _yd(-0.3), -6.8), -0.3, 0.85)
 	var bow := _pt(N, LEVELS - 1, 1.0)
 	var gp := Vector3(bow.x + rot.z.x * 4.0, 0.0, bow.z + rot.z.z * 4.0)
-	Dress.chain(k, bow, Vector3(gp.x, WK.h(gp.x, gp.z) + 0.4, gp.z), 0.7, 0.22, 10)                                         # the anchor cable
-	k.tube("iron", Vector3(gp.x, WK.h(gp.x, gp.z) + 0.2, gp.z), Vector3(gp.x, WK.h(gp.x, gp.z) + 2.4, gp.z), 0.14, 0.12, 5, false, 0.6)
-	k.beam("iron", Vector3(gp.x - 1.0, WK.h(gp.x, gp.z) + 0.3, gp.z), Vector3(gp.x + 1.0, WK.h(gp.x, gp.z) + 0.3, gp.z), 0.2, 0.2, false, 0.6)
+	Dress.chain(k, bow, Vector3(gp.x, lvl + 0.4, gp.z), 0.7, 0.22, 10)                                         # the anchor cable
+	k.tube("iron", Vector3(gp.x, lvl + 0.2, gp.z), Vector3(gp.x, lvl + 2.4, gp.z), 0.14, 0.12, 5, false, 0.6)
+	k.beam("iron", Vector3(gp.x - 1.0, lvl + 0.3, gp.z), Vector3(gp.x + 1.0, lvl + 0.3, gp.z), 0.2, 0.2, false, 0.6)
 	var low := _w(0.0, 0.0, -3.0)
-	Dress.rubble(k, Vector3(mid.x, WK.h(mid.x, mid.y), mid.y), 18.0, 26, "chalk")
+	Dress.rubble(k, Vector3(mid.x, lvl, mid.y), 18.0, 26, "chalk")
 	Dress.strands(k, _pt(8, LEVELS, -1.0), _pt(14, LEVELS, -1.0), 6, 2.2, "wood_big")
 	var _l := low

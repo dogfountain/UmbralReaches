@@ -19,6 +19,7 @@ const Dress := preload("res://core/world/realm/wonders/r39/wonder_dress.gd")
 
 const CANDS := [Vector2(170.0, 340.0), Vector2(130.0, 352.0), Vector2(214.0, 350.0), Vector2(150.0, 298.0), Vector2(236.0, 316.0)]
 const RAD := 26.0
+const SELF := "res://core/world/realm/wonders/r39/hollow_king.gd"
 const DOOR := 0.0                       ## the doorway's bearing (+x)
 ## the trunk's profile: [height, radius]
 const PROFILE := [[0.0, 8.2], [3.0, 7.0], [10.0, 5.9], [20.0, 5.1], [30.0, 4.5], [38.0, 4.0], [44.0, 3.2]]
@@ -47,23 +48,21 @@ func _p(ang: float, rad: float, y: float) -> Vector3:
 
 
 func _run(root: Node) -> void:
-	var f := WK.find_any(CANDS, Vector2(RAD, RAD), [0.0], ["southwood"], 5.0)
-	if f.is_empty():
-		push_warning("WONDER hollow_king: no room in the Southwood")
-		return
+	var f := WK.place(CANDS, Vector2(RAD, RAD), [0.0], 6.0)
 	c = f.pos
 	gy = lerpf(float(f.lo), float(f.hi), 0.5)
 	WorldLanes.register_terrace("wonder_hollow_king", c, RAD, gy)
 	k = WK.new()
 	k.setup(root, "HollowKing", 4417)
 	k.poi("hollow_king", "The Hollow King", "it died standing, and something lit it", "southwood")
-	_trunk()
-	_roots()
-	_houses()
-	_stair()
-	_crown()
-	_dress()
-	var n := k.commit()
+	if not k.cached(WK.fp(SELF, [c, gy, WK.tsig(c, 26.0)])):
+		_trunk()
+		_roots()
+		_houses()
+		_stair()
+		_crown()
+		_dress()
+	var n: int = k.commit()
 	k.beacon(_p(0.0, 0.0, 42.0), Color(1.0, 0.7, 0.4), 1.6, 12.0, 400.0)
 	print("WONDER hollow_king at %s ground %.1f: %d meshes, %d fires, %d lights, %d chests" % [c, gy, n, k.fires, k.lights, k.chests])
 

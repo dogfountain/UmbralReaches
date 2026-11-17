@@ -13,7 +13,8 @@ extends RefCounted
 const WK := preload("res://core/world/realm/wonders/r39/wonder_kit.gd")
 const Dress := preload("res://core/world/realm/wonders/r39/wonder_dress.gd")
 
-const CANDS := [Vector2(-326.0, 118.0), Vector2(-326.0, 196.0), Vector2(-318.0, 150.0), Vector2(-30.0, 350.0), Vector2(40.0, 360.0)]
+const CANDS := [Vector2(150.0, 338.0), Vector2(-100.0, 342.0), Vector2(-292.0, 130.0), Vector2(170.0, 322.0)]
+const SELF := "res://core/world/realm/wonders/r39/the_sleeper.gd"
 const HALF := Vector2(37.0, 49.0)               ## the footprint's half extents in the body's frame (x across with the arm, z along)
 const CEN := Vector2(18.0, 5.0)                 ## where that footprint's middle lies in the body's frame
 const W := 11.0                                 ## the torso's half width
@@ -62,10 +63,7 @@ func _flight(key: String, a: Vector3, b: Vector3, width: float, base: float) -> 
 
 
 func _run(root: Node) -> void:
-	var f := WK.find_any(CANDS, HALF, [0.0, PI * 0.25, PI * 0.5, PI * 0.75, PI, PI * 1.25, PI * 1.5, PI * 1.75], ["kingsbarrows", "arches"], 9.0)
-	if f.is_empty():
-		push_warning("WONDER the_sleeper: no room in the Far Reaches")
-		return
+	var f := WK.place(CANDS, HALF, [0.0, PI * 0.5, PI, PI * 1.5], 9.0)
 	var fy := float(f.yaw)
 	yaw = -fy                                      # the footprint's x axis is (cos, sin) in (x, z): a turn about +y by -yaw
 	rot = Basis(Vector3.UP, yaw)
@@ -75,14 +73,15 @@ func _run(root: Node) -> void:
 	y0 = float(f.hi) + 0.4
 	k = WK.new()
 	k.setup(root, "TheSleeper", 3901)
-	k.poi("sleeper", "The Sleeper", "it lay down to sleep, and its heart never went out", "kingsbarrows")
+	k.poi("sleeper", "The Sleeper", "it lay down to sleep, and its heart never went out", WK.region_at(mid) if WK.region_at(mid) != "" else "kingsbarrows")
 	WK.reserve("wonder_sleeper", mid, HALF, fy, float(f.lo), float(f.hi) + 16.0)
-	_legs()
-	_torso()
-	_arms()
-	_head()
-	_dress()
-	var n := k.commit()
+	if not k.cached(WK.fp(SELF, [mid, fy, y0, WK.tsig(mid, 60.0)])):
+		_legs()
+		_torso()
+		_arms()
+		_head()
+		_dress()
+	var n: int = k.commit()
 	k.beacon(_p(0.0, 14.0, 40.0), Color(1.0, 0.72, 0.42), 1.4, 14.0, 380.0)
 	print("WONDER the_sleeper at %s yaw %.2f datum %.1f: %d meshes, %d fires, %d lights, %d chests" % [mid, yaw, y0, n, k.fires, k.lights, k.chests])
 
