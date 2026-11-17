@@ -330,8 +330,11 @@ func _begin() -> void:
 
 
 func _on_killed(e: Node) -> void:
-	if not _active or e != _boss:
+	if (not _active and not _held) or e != _boss:
 		return
+	if _held:
+		_held = false                       # slain while held (a bolt in flight): finish the fight properly
+		_freeze(false)
 	_active = false
 	_hide_bar()
 	_open_gates()
@@ -419,8 +422,11 @@ func _freeze(on: bool) -> void:
 			if not _held_modes.has(id):
 				_held_modes[id] = n.process_mode
 			n.process_mode = Node.PROCESS_MODE_DISABLED
+			if n == _boss:
+				n.set_meta(&"arena_held", true)      # Enemy.take_hit ignores blows while held
 		elif _held_modes.has(id):
 			n.process_mode = int(_held_modes[id]) as Node.ProcessMode
+			n.remove_meta(&"arena_held")
 	if not on:
 		_held_modes.clear()
 
