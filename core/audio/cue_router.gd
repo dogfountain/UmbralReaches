@@ -29,6 +29,7 @@ var _last := {}                     ## throttle key -> msec
 var _boss: Node = null
 var _boss_id := ""
 var _boss_phase := 0
+var _room := ""
 var _e_state := 0                   ## 0 none, 1 warned, 2 totality, 3 returned
 var _tick := 0.0
 var _moth_t := 4.0
@@ -201,8 +202,27 @@ func _process(dt: float) -> void:
 	_tick = 0.25
 	_poll_boss()
 	_poll_eclipse()
+	_poll_room()
 	_moths(0.25)
 	_fog(0.25)
+
+
+## Crossing into a room (the tavern, a hall, a cave, a crypt) is a door: a creak and a latch behind, the other way a thud.
+func _poll_room() -> void:
+	if ambience == null:
+		return
+	var z := ambience.reverb_zone
+	if z == _room:
+		return
+	var was := _room
+	_room = z
+	var pl := _player()
+	if pl == null or was == "rift" or z == "rift" or not _gate("door", 2.0):
+		return
+	if z != "":
+		CueBank.play_at("door_open", pl.global_position + Vector3.UP, -6.0, 1.0 if z == "tavern" else 0.8)
+	else:
+		CueBank.play_at("door_close", pl.global_position + Vector3.UP, -6.0, 1.0 if was == "tavern" else 0.8)
 
 
 func _poll_boss() -> void:

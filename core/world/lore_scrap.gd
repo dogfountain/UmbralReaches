@@ -1,5 +1,6 @@
 class_name LoreScrap
 extends Interactable
+const CueBank := preload("res://core/audio/cue_bank.gd")
 ## A short inscription. One toast. E to read.
 
 
@@ -22,6 +23,7 @@ func interact_text() -> String:
 
 func interact(_by: Node) -> void:
 	_read = true
+	CueBank.play(self, "ui_page", 0.0)             # a leaf turned: the reading panel opens
 	if body != "":
 		Events.toast.emit(body)
 
