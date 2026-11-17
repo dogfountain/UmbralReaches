@@ -73,6 +73,37 @@ func _body_v(mb: Variant) -> void:
 	mb.ring(horn[4], Vector2(0.325, 0.325), 0.022, 0.03, facing, BRONZE.lightened(0.15), DwarfMesh.MAT_METAL, 28)
 	mb.blob(c + Vector3(0, 0.14, -0.035), Vector3(0.1, 0.03, 0.1), facing, HOLLOW, DwarfMesh.MAT_METAL, {"lumps": 0.0, "rings": 5, "segs": 12})
 
+	_ornament(mb)
+
+
+## Tertiary forms: bronze bands and studs on the cope, a chain at the waist with hung bells, lichen on the shoulders and fists,
+## chips knocked from the hem, a cord of prayer-flags round the horn's throat.
+func _ornament(mb: Variant) -> void:
+	mb.bind(B_CHEST)
+	for y: float in [0.92, 0.64]:
+		var r := 0.41 + (1.08 - y) * 0.25
+		mb.ring(Vector3(0, y, 0.02), Vector2(r + 0.012, r + 0.012), 0.016, 0.05, Basis.IDENTITY, BRONZE, DwarfMesh.MAT_METAL, 30)
+	for i in 14:
+		var a := TAU * float(i) / 14.0 + 0.2
+		var r := 0.42 + 0.02
+		mb.blob(Vector3(sin(a) * r, 0.92, 0.02 - cos(a) * r), Vector3(0.022, 0.022, 0.02), Basis.IDENTITY, BRONZE.lightened(0.15), DwarfMesh.MAT_METAL, {"lumps": 0.0, "rings": 4, "segs": 8})
+	for i in 5:
+		var a := TAU * float(i) / 5.0 + 0.9
+		var r := 0.48
+		mb.tube(PackedVector3Array([Vector3(sin(a) * r, 0.66, 0.02 - cos(a) * r), Vector3(sin(a) * (r + 0.02), 0.58, 0.02 - cos(a) * (r + 0.02))]), _pf([0.006, 0.004], 1.0), 4, BRONZE, DwarfMesh.MAT_METAL, {"lumps": 0.0})
+		mb.blob(Vector3(sin(a) * (r + 0.02), 0.55, 0.02 - cos(a) * (r + 0.02)), Vector3(0.026, 0.034, 0.026), Basis.IDENTITY, BRONZE, DwarfMesh.MAT_METAL, {"lumps": 0.0, "rings": 5, "segs": 8})
+	var lichen := Color(0.34, 0.42, 0.26)
+	for s: float in [-1.0, 1.0]:
+		mb.blob(Vector3(s * 0.26, 1.25, -0.04), Vector3(0.1, 0.03, 0.08), Basis(Vector3.BACK, s * 0.3), lichen, DwarfMesh.MAT_CLOTH, {"lumps": 0.4, "rings": 4, "segs": 8})
+		mb.blob(Vector3(s * 0.12, 1.28, 0.1), Vector3(0.06, 0.025, 0.05), Basis.IDENTITY, lichen, DwarfMesh.MAT_CLOTH, {"lumps": 0.4, "rings": 4, "segs": 8})
+		mb.blob(Vector3(s * 0.38, 0.55, 0.1), Vector3(0.06, 0.12, 0.04), Basis.IDENTITY, STONE_D.darkened(0.25), DwarfMesh.MAT_LINEN, {"lumps": 0.4, "rings": 4, "segs": 8})    # a chip out of the hem
+	mb.bind(B_HEAD)
+	var c := hc
+	for i in 6:
+		var a := TAU * float(i) / 6.0
+		var p := c + Vector3(sin(a) * 0.12, 0.0, 0.02 + cos(a) * 0.1)
+		mb.tube(PackedVector3Array([p, p + Vector3(0.0, -0.1, 0.0), p + Vector3(sin(a) * 0.02, -0.17, 0.0)]), _pf([0.008, 0.007, 0.003], 1.0), 4, CRACK.darkened(0.3), DwarfMesh.MAT_CLOTH, {"lumps": 0.0})
+
 
 func _layout_glints() -> void:
 	glints.append([B_HEAD, hc + Vector3(0, 0.2, -0.06), 0.07, VOICE])

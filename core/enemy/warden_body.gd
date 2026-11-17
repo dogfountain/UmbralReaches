@@ -60,6 +60,36 @@ func _body_v(mb: Variant) -> void:
 		_sleeve_v(mb, side, 0.07, 0.17, IVORY, 0.85)
 		_hand_b(mb, side, false, GOLD.lightened(0.2), DwarfMesh.MAT_METAL, 1.1, 0.009)
 
+	_ornament(mb)
+
+
+## Tertiary forms: tassels on the collar, a second ring of beads on the mandorla, gold embroidery down the robe's flanks,
+## a hem of small bells, and gold plates over the shoulders.
+func _ornament(mb: Variant) -> void:
+	mb.bind(B_CHEST)
+	for i in 7:
+		var x := -0.15 + 0.05 * float(i)
+		var ln := 0.12 + 0.05 * absf(sin(float(i) * 1.9))
+		mb.tube(PackedVector3Array([Vector3(x, 1.43, -0.175), Vector3(x, 1.43 - ln * 0.5, -0.19), Vector3(x, 1.43 - ln, -0.19)]), _pf([0.011, 0.009, 0.004], 1.0), 5, GOLD, DwarfMesh.MAT_METAL, {"lumps": 0.0})
+		mb.blob(Vector3(x, 1.43 - ln - 0.01, -0.19), Vector3(0.011, 0.014, 0.011), Basis.IDENTITY, GOLD.lightened(0.2), DwarfMesh.MAT_METAL, {"lumps": 0.0, "rings": 4, "segs": 8})
+	for s: float in [-1.0, 1.0]:
+		mb.blob(Vector3(s * 0.27, 1.5, 0.0), Vector3(0.1, 0.035, 0.09), Basis(Vector3.BACK, s * 0.4), GOLD, DwarfMesh.MAT_METAL, {"lumps": 0.02, "rings": 5, "segs": 12})     # shoulder plates
+	mb.bind(B_SPINE)
+	for ang: float in [-0.9, 0.9, -2.2, 2.2]:
+		var band := PackedVector3Array()
+		for y: float in [1.2, 1.0, 0.8, 0.6, 0.42, 0.28]:
+			var r := _bell_r(y) + 0.007
+			band.append(Vector3(sin(ang) * r, y, -cos(ang) * r))
+		mb.tube(band, _pf(_rep(0.016, band.size()), 1.0), 5, GOLD.darkened(0.1), DwarfMesh.MAT_METAL, {"squash": Vector2(1.0, 0.25), "ref": Vector3(sin(ang), 0.0, -cos(ang)), "lumps": 0.0})
+	for i in 16:
+		var a := TAU * float(i) / 16.0 + 0.1
+		var r := _bell_r(0.1) + 0.012
+		mb.blob(Vector3(sin(a) * r, 0.085, -cos(a) * r), Vector3(0.014, 0.022, 0.014), Basis.IDENTITY, GOLD.lightened(0.25), DwarfMesh.MAT_METAL, {"lumps": 0.0, "rings": 4, "segs": 8})    # hem bells
+	var mc := Vector3(0, 1.74, 0.2)
+	for i in 24:
+		var a := TAU * float(i) / 24.0
+		mb.blob(mc + Vector3(sin(a) * 0.46, cos(a) * 0.58, 0.0), Vector3(0.016, 0.016, 0.016), Basis.IDENTITY, GOLD.lightened(0.3), DwarfMesh.MAT_METAL, {"lumps": 0.0, "rings": 4, "segs": 8})
+
 
 func _bell_r(y: float) -> float:
 	var t := clampf((1.02 - y) / 0.98, 0.0, 1.0) * float(BELL.size() - 1)
