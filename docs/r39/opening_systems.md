@@ -150,10 +150,13 @@ On the open map, keys 1 to 5 (LB and RB on a pad for tasks and fires) hide or sh
 **Cost.** A two-second timer that reads two or three dictionary entries and returns at once while the door is open; with it shut, a loop over at most four bounties. No node per bounty, no UI until the Count is opened, no per-frame work.
 **Checks.** Set `Travel.story["flags"]["ending_seen"] = true`; within two seconds the toast and, in the Count page 4, three bounties. Put down enough of the hollowed (or `Tally.data()["total"] += 100` through the harness): "Ledger: ... +30 grave ash, +2 ember shards, 1 mark". Reach 3 marks: a rank toast and Chronicle line. Fall during a "clean" bounty: "The ledger strikes a bounty". Ring the cracked bell (or `Travel.systems["encounters"]["ng"] = 1`) and camp: four bounties with larger counts. **Debug.** `Travel.story["ledger"] = {"marks": 14, "night": -1, "done": 9, "list": []}` shows the Door-Warden rank approaching.
 
+### 30. Gear-gap hint and enemy plates
+**Gear gap.** On ground rated Even or worse, when the average item level of the four slots (an empty slot counts nought) is six or more behind what a pawn of that ground's level calls for (8 plus its level), the place plate under the minimap dial gets a second small line ("Gear behind: item level 14, ground like this wants 27", or "No gear worn: ..."), and the deadly-country warning toast says it too. Never in a town or a gentle country. Files: `core/life/encounters/gear_gap.gd`, `danger.gd` (`gear_note`), `ui/minimap.gd`. **Enemy plates.** The sub-line of an enemy frame no longer shows a tier name ("Night", "Deep Night"): a pawn shows "Lv 12  Perilous" (the same Haven, Gentle, Even, Perilous, Deadly words as the place plate, rated against the wanderer's level); one with no level of its own shows the first level of its tier's band; a great one shows "Lv ??". Files: `ui/unit_frames.gd` (`_subline`), `danger.gd` (`rate`, also the plate's own threshold now). **Cost.** The wanderer's level is read at most twice a second (it was read on each call), the gear note on the minimap's place scan (twice a second at most), nothing else. **Checks.** Strip your gear (or stand in the Thornwood at level 3 with a common piece) and open the minimap: the amber line under the tier tab; wear better gear and it goes. Target a husk in the Barrows: "Lv 17  Even" (or whatever your level makes of it), no tier name anywhere.
+
 ### The curve, written down (progression review)
 - **XP**: level L to L+1 costs 60 + 20 L (cap 30 = 10,500 XP); a full night's sources total about 13,600 (DECISIONS, 15 Nov). Vows at 5, 10, 15, 20, 25, 30 (about 400, 1,600, 3,500, 6,100, 8,600 and 10,500 XP cumulative with the cap).
 - **Danger**: a plain pawn's plate level is `LEVEL_BAND[tier] + step + 1`, bands 1, 4, 9, 14, 19, 24, 28 for tiers 0 to 6; a tier is the region's base plus bosses felled (`Tiers.night_depth`). Boss level is the pawn's plus 2 (`Danger.BOSS_RANK`). The plate now says so (Haven, Gentle, Even, Perilous, Deadly; Deadly is 5 or more above the wanderer).
-- **Gear**: item level is 8 + 7 x rarity (0 to 4) + 3 x raise level, +3 set, +4 named, +6 legend (`GearDB.item_level`): a common piece 8, a legend about 36 plus raises. Item level changes nothing by itself (tooltips compare it), so power is the Paths, the spells, the vows and the sets: there is no gear gate. A gear-gap hint on the plate (item level against the tier's pawn level) is the next step and was not built.
+- **Gear**: item level is 8 + 7 x rarity (0 to 4) + 3 x raise level, +3 set, +4 named, +6 legend (`GearDB.item_level`): a common piece 8, a legend about 36 plus raises. Item level changes nothing by itself (tooltips compare it), so power is the Paths, the spells, the vows and the sets: there is no gear gate. The gear-gap hint (section 30) compares item level with 8 plus the pawn's level.
 - **Where it sags or spikes** (from the first critique, still true): the world hardens by bosses felled, not by the wanderer's level, so a boss-beeline player meets tier-6 plates at the summit with a level in the high teens; the plate and the danger warning now say so before the walk, the vows give a choice every five levels and the toll and tithe make falling cost something.
 
 ### Debug routes for the lead
@@ -166,13 +169,12 @@ On the open map, keys 1 to 5 (LB and RB on a pad for tasks and fires) hide or sh
 - Comfort: Settings > Interface > Comfort (hud.cfg `[access]`).
 
 ### Not done in this round (honest list)
-A gear-gap hint; controller remapping parity; the full UX consistency pass over every older menu (the new panels were built to one pattern: keyboard, pad buttons with focus, empty states and a footer). The brief's perf rule was kept by construction, not measured.
+Controller remapping parity; the full UX consistency pass over every older menu (the new panels were built to one pattern: keyboard, pad buttons with focus, empty states and a footer). The brief's perf rule was kept by construction, not measured.
 
 ## Data and content the lead should hand to the other agents (not edited here)
 - Story: Brannoc's `far_work` is gated on `peal:4`; open a Reach errand or a word in Hearthward in Act I (barks in `guide_lines.gd`); give one bell a home in a Reach so the Outliers touch the peal; quest endings that send the wanderer to a stable ("a horse would help" tasks) and a line in villagers' talk about the Count and the camp.
 - World: waystation hitching posts on the long roads (HorseDB has one post per breed; a second post for the same breed needs a data row); a seat prop for the camp (the interaction works without a model).
 - Light: nothing new casts light; a warm vignette is a plain rectangle.
-- Enemy plates still show tier names in `ui/unit_frames.gd:610`.
 
 ## What to test first (in this order)
 1. Boot a new game: shot plays, skip works, HUD arrives, first objective and waypoint appear.

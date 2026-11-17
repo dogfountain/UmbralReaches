@@ -33,6 +33,7 @@ extends Control
 
 const Afflict := preload("res://core/skills/afflict.gd")
 const Tiers := preload("res://core/life/encounters/tiers.gd")
+const Danger := preload("res://core/life/encounters/danger.gd")
 const Elites := preload("res://core/life/encounters/elites.gd")
 const Guardians := preload("res://core/life/encounters/guardians.gd")
 const EncHud := preload("res://core/life/encounters/encounter_hud.gd")
@@ -602,12 +603,12 @@ func _name_of(e: Node) -> String:
 func _subline(e: Node, rank: String) -> String:
 	var parts := PackedStringArray()
 	var lv := _level_of(e)
+	if lv < 1 and lv != -1 and e.has_meta(&"enc_tier"):
+		lv = int(Tiers.LEVEL_BAND[clampi(int(e.get_meta(&"enc_tier")), 0, Tiers.LEVEL_BAND.size() - 1)]) + 1       # no level of its own: the first level of its tier's band, not a tier name
 	if lv >= 1:
-		parts.append("Lv %d" % lv)
+		parts.append("Lv %d  %s" % [lv, String(Danger.NAMES[Danger.rate(lv)]) if rank != "boss" else Danger.NAMES[Danger.rate(lv - Danger.BOSS_RANK)]])
 	elif lv == -1 and e.has_method("level"):
 		parts.append("Lv ??")                                    # a boss: beyond counting
-	elif e.has_meta(&"enc_tier"):
-		parts.append(String(Tiers.info(int(e.get_meta(&"enc_tier"))).get("name", "")))
 	if e.has_meta(&"enc_umbral"):
 		parts.append("Umbral")
 	if e.has_method("is_evading") and bool(e.call("is_evading")):

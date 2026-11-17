@@ -87,6 +87,7 @@ var _origin := Vector2.ZERO              ## world xz of the map image's (0, 0)
 var _size_m := Vector2.ONE
 var _region := ""
 var _tier := ""
+var _gear := ""                          ## the gear-gap hint under the plate (danger.gd gear_note)
 var _tier_i := 0
 var _clock := ""
 var _moon: Node3D
@@ -289,6 +290,7 @@ func _scan_place() -> void:
 	_region = String(r.get("name", ""))
 	_tier_i = Danger.band(_you) if _region != "" else 0
 	_tier = Danger.plate(_you) if _region != "" else ""
+	_gear = Danger.gear_note(_you) if _region != "" else ""
 	_clock = ""
 	var ck := get_tree().get_first_node_in_group(&"night_clock")
 	if ck and ck.has_method("clock_text"):
@@ -433,6 +435,10 @@ func _draw_place(c: Vector2, r: float) -> void:
 		var tw := _font.get_string_size(_tier, HORIZONTAL_ALIGNMENT_LEFT, -1, 14).x
 		Forge.tab(self, Rect2(c.x - tw * 0.5 - 10.0, top + 34.0, tw + 20.0, 22.0))
 		draw_string(_font, Vector2(c.x - tw * 0.5, top + 50.0), _tier, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(col, 0.9))
+		if _gear != "":                                           # the gear is behind the ground's call: a hint under the plate
+			var gw := _font.get_string_size(_gear, HORIZONTAL_ALIGNMENT_LEFT, -1, 13).x
+			Forge.tab(self, Rect2(c.x - gw * 0.5 - 10.0, top + 58.0, gw + 20.0, 20.0))
+			draw_string(_font, Vector2(c.x - gw * 0.5, top + 72.0), _gear, HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color(Danger.color(3), 0.95))
 
 
 ## r33: the moon on the rim, toward where it hangs (the zone's Moon light), a pale disc and crescent.
