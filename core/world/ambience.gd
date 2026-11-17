@@ -23,6 +23,7 @@ extends Node
 const ScapeSynth := preload("res://core/life/wildlife/scape_synth.gd")
 const LifeSynth := preload("res://core/life/wildlife/life_synth.gd")
 const Music := preload("res://core/life/wildlife/scape_music.gd")
+const UiSoundLib := preload("res://ui/ui_sound.gd")
 const Foley := preload("res://core/vfx/foley.gd")
 const GloomDrone := preload("res://core/world/gloom_drone.gd")
 
@@ -33,6 +34,12 @@ const GLOOM_DRONE_DB := [-52.0, -19.0]    ## the drone's level at the first sign
 const FADE := 2.5                 ## seconds for a bed to come fully in or out
 const BASE_DB := -6.0
 const OUT_BUS := &"AmbOut"        ## outdoor layers: muffled indoors, sends to Ambience
+## Ducking, dB: the music sits lower under a paused menu and lower again under a conversation (the beds have
+## their own pause duck, `_duck`); the Ambience bus (spots, rooms) goes down with a conversation. Tweened.
+const DUCK_PAUSE := {&"Music": -5.0, &"Ambience": 0.0}
+const DUCK_TALK := {&"Music": -4.0, &"Ambience": -3.0}
+const DUCKED_BUSES: Array[String] = ["Music", "Ambience"]
+const DUCK_RATE := 12.0               ## dB a second
 const MUSIC_BUS := &"Music"       ## the generative music (scape_music.gd): its own level, no room reverb
 const VOICES_BUS := &"Voices"     ## creature voices (enemy_audio.gd): compressed a little, then into SFX (and its reverb)
 
@@ -194,6 +201,8 @@ var _spot_voices: Array[AudioStreamPlayer3D] = []
 var _spot_i := 0
 var _rng := RandomNumberGenerator.new()
 var _verbs := {}                  ## bus name -> AudioEffectReverb we added
+var _amps := {}                   ## bus name -> AudioEffectAmplify we added (the ducking)
+var _talking := false             ## a dialogue box is up (checked on the 0.25 s tick)
 var _lowpass: AudioEffectLowPassFilter
 var _room_goal: Dictionary = PLACES["open"]   ## reverb settings the buses ease toward (a room, or the blended place)
 var _room_busy := true
@@ -289,6 +298,7 @@ func _exit_tree() -> void:
 	ScapeSynth._cache.clear()
 	LifeSynth._cache.clear()
 	Sfx.release()
+	UiSoundLib.release()
 	GloomDrone.release()
 	# leave the buses as Settings made them
 	for bus: String in _verbs:
@@ -299,6 +309,14 @@ func _exit_tree() -> void:
 			if AudioServer.get_bus_effect(bi, i) == _verbs[bus]:
 				AudioServer.remove_bus_effect(bi, i)
 	_verbs.clear()
+	for bus: String in _amps:
+		var bi := AudioServer.get_bus_index(bus)
+		if bi < 0:
+			continue
+		for i in range(AudioServer.get_bus_effect_count(bi) - 1, -1, -1):
+			if AudioServer.get_bus_effect(bi, i) == _amps[bus]:
+				AudioServer.remove_bus_effect(bi, i)
+	_amps.clear()
 	if _limiter != null:
 		var mi := AudioServer.get_bus_index("Master")
 		for i in range(AudioServer.get_bus_effect_count(mi) - 1, -1, -1):
@@ -392,6 +410,13 @@ func _make_buses() -> void:
 	AudioServer.set_bus_effect_enabled(oi, AudioServer.get_bus_effect_count(oi) - 1, false)
 	if off:
 		return
+	for bus: String in DUCKED_BUSES:                 # a gain stage per ducked bus (Settings owns the bus volumes)
+		var bi := AudioServer.get_bus_index(bus)
+		if bi < 0:
+			continue
+		var amp := AudioEffectAmplify.new()
+		AudioServer.add_bus_effect(bi, amp)
+		_amps[bus] = amp
 	for bus: String in ["SFX", "Ambience"]:
 		var bi := AudioServer.get_bus_index(bus)
 		if bi < 0:
@@ -410,9 +435,11 @@ var _duck := 0.0                                ## dB the beds sit lower while t
 
 func _process(delta: float) -> void:
 	_duck = move_toward(_duck, -9.0 if get_tree().paused else 0.0, delta * 30.0)
+	_duck_buses(delta)
 	_t -= delta
 	if _t <= 0.0:
 		_t = 0.25
+		_talking = get_tree().get_first_node_in_group(&"dialogue_open") != null      # the box is in it while it is up
 		_pick()
 		_music_level()
 	for key: String in _players:
@@ -442,6 +469,16 @@ func _process(delta: float) -> void:
 	_gloom_drone()
 	if not off:
 		_spots(delta)
+
+
+## Eases each ducked bus's gain stage toward what the pause and a conversation ask of it.
+func _duck_buses(delta: float) -> void:
+	var paused := get_tree().paused
+	for bus: String in _amps:
+		var amp := _amps[bus] as AudioEffectAmplify
+		var want := (float(DUCK_PAUSE[bus]) if paused else 0.0) + (float(DUCK_TALK[bus]) if _talking else 0.0)
+		if amp.volume_db != want:
+			amp.volume_db = move_toward(amp.volume_db, want, delta * DUCK_RATE)
 
 
 ## The drone under the night: silent until the Gloom is real, then a level that climbs with it. It rides the

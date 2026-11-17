@@ -20,6 +20,7 @@ const HearthDB := preload("res://core/life/progression/hearth_db.gd")
 const PathsDB := preload("res://core/life/progression/paths_db.gd")
 const VState := preload("res://core/life/village/village_state.gd")
 const SID := "hearth"
+const UiSound := preload("res://ui/ui_sound.gd")
 const DB := preload("res://core/life/progression/upgrade_db.gd")
 const SVC_FLAG := {"smith": "svc_smith", "herbs": "svc_herbs", "bells": "svc_bells", "beacon": "svc_beacon"}
 const LevelDB := preload("res://core/life/progression/level.gd")
@@ -271,7 +272,7 @@ func _ding() -> void:
 	if pl == null or not pl.is_inside_tree():
 		return
 	Vfx.burst(pl.global_position + Vector3(0, 0.2, 0), Color(2.4, 1.7, 0.8), {"count": 60, "life": 1.4, "speed": Vector2(1.5, 4.0), "size": 0.05, "gravity": -1.2, "radius": 0.5})
-	Sfx.play("res://art/audio/ward_chime.wav", pl.global_position, -2.0, 0.5)   # a lower note than the ward, chest and horse use
+	UiSound.play(self, "level_up")        # its own rising run (the ward chime is the chest's, the pickups' and the kindling's cue)
 
 
 func why_not_path(id: String) -> String:

@@ -41,6 +41,8 @@ const MORE_KIN := ["res://core/enemy/bulwark.gd", "res://core/enemy/chanter.gd",
 ## The great ones: their own materials (boss_pbr) and parts, shown once so a pull compiles nothing.
 const PanelWarm := preload("res://ui/panel_warm.gd")
 const LootWarm := preload("res://ui/loot_warm.gd")
+const Foley := preload("res://core/vfx/foley.gd")
+const FOLEY_PER_FRAME := 3
 const PauseScope := preload("res://core/world/pause_scope.gd")
 const WarmAttackKit := preload("res://core/enemy/attack_kit.gd")
 const WarmBossKit := preload("res://core/enemy/boss_kit.gd")
@@ -95,6 +97,7 @@ var _pw: PanelWarm                ## opens each big panel once under the cover
 var _fx_frames := -1
 var _combat_shown := false
 var _sounds_done := false
+var _foley_done := false           ## every footfall, hoof, cloth and horse take is built (a few a frame in settle)
 var _steady := 0
 var _paces: Array[float] = []      ## the last frame times in "steady"
 
@@ -217,7 +220,9 @@ func _process(delta: float) -> void:
 				(load("res://core/vfx/synth.gd") as GDScript).call("prewarm")
 			_stage.text = "Settling the night"
 			_target = BUILD_SHARE + 0.04
-			if zone.has_meta("post_done") or _phase_t > 8.0:
+			if not _foley_done:
+				_foley_done = Foley.prewarm(FOLEY_PER_FRAME)       # spread over frames: the screen keeps animating
+			if (zone.has_meta("post_done") and _foley_done) or _phase_t > 8.0:
 				_next("warm")
 		"warm":
 			_stage.text = "Warming the world"
