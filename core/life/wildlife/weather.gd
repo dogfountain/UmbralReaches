@@ -634,9 +634,10 @@ func _banks_step(dt: float) -> void:
 			p = Vector3(p.x - wind_dir.x * r.size.x * 0.9, p.y, p.z - wind_dir.z * r.size.y * 0.9)
 			p.x = clampf(p.x, r.position.x, r.end.x)
 			p.z = clampf(p.z, r.position.y, r.end.y)
+			p.y = RL.height_at(p.x, p.z) + 1.3      # (it kept the height it left at and floated metres off the new ground for seconds)
 		# it settles low in hollows and thins over rises
 		var h := RL.height_at(p.x, p.z)
-		p.y = lerpf(p.y, h + 1.3, clampf(dt * 0.3, 0.0, 1.0))
+		p.y = lerpf(p.y, h + 1.3, clampf(dt * 0.8, 0.0, 1.0))
 		fv.position = p
 		var rise := clampf((h - float(b.get("h0", h))) * 0.08, -0.3, 0.4)
 		if not b.has("h0"):
