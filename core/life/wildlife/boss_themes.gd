@@ -46,6 +46,7 @@ func _ready() -> void:
 	_high = _player("ThemeHigh")
 	if Events.has_signal("boss_engaged"):
 		Events.boss_engaged.connect(_on_engaged)
+	Events.hollowed.connect(func() -> void: _want = 0.0)       # fall in the fight and the theme fades now, not after the teleport
 	if Events.has_signal("boss_slain"):
 		Events.boss_slain.connect(func(_id: String) -> void: _want = 0.0)
 

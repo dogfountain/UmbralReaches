@@ -13,6 +13,7 @@ extends Node
 ## Load by path (no class_name).
 
 const ScapeSynth := preload("res://core/life/wildlife/scape_synth.gd")
+const StaffSfx := preload("res://core/vfx/staff_sfx.gd")
 
 ## the whole layer, relative to its voices' levels. Was -9: renders of real moments put the pads at
 ## -47..-50 dBFS and the lyre at -42 under beds at -25..-33, i.e. never heard (critique D, r29).
@@ -46,6 +47,7 @@ var _boss: Node = null
 var _braziers: Array = []
 var _scan_t := 0.0
 var _seen := 0                    ## consecutive senses with something hostile near
+var _calm_until := 0                ## msec: after a hollowing nothing near counts as danger (the foes are left behind)
 var _clear := 0                   ## consecutive senses with nothing near
 var near_names: Array = []        ## what made it danger (tests, debug)
 ## r33 world: each region plays in its own key (the explore and rest phrases shift by this many
@@ -71,6 +73,22 @@ func _ready() -> void:
 	if Events.has_signal("boss_slain"):
 		Events.boss_slain.connect(func(_id: String) -> void:
 			_boss = null)
+	Events.hollowed.connect(_on_hollowed)
+
+
+## Being hollowed: a low toll (a prewarmed staff sound, pitched down), and the danger music lets go at once
+## (explore: the rest music follows if the fire you wake at is lit) rather than staying "danger" over the fade.
+func _on_hollowed() -> void:
+	var pl := get_tree().get_first_node_in_group(Groups.PLAYER) as Node3D if is_inside_tree() else null
+	if pl != null:
+		StaffSfx.play("well_collapse", pl.global_position + Vector3.UP, -3.0, 0.55, 0.02)
+	_boss = null
+	boss = false
+	_seen = 0
+	_clear = 99
+	_calm_until = Time.get_ticks_msec() + 6000
+	state = "explore"
+	intensity = minf(intensity, 0.4)
 
 
 func _player(s: AudioStream, nm: String) -> AudioStreamPlayer:
@@ -152,12 +170,12 @@ func _sense() -> void:
 				near += 1
 				near_names.append(String(n3.name))
 		# a boss fight lasts while the boss stands within reach of you
-		boss = _boss != null and is_instance_valid(_boss) and _boss.is_inside_tree() and not _boss.is_queued_for_deletion() \
+		boss = Time.get_ticks_msec() >= _calm_until and _boss != null and is_instance_valid(_boss) and _boss.is_inside_tree() and not _boss.is_queued_for_deletion() \
 			and _boss is Node3D and (_boss as Node3D).global_position.distance_to(p) < 60.0
 		if not boss:
 			_boss = null if _boss != null and not is_instance_valid(_boss) else _boss
 		# hysteresis: a second of something near before the music turns, two of quiet before it lets go
-		if near > 0:
+		if near > 0 and Time.get_ticks_msec() >= _calm_until:
 			_seen += 1
 			_clear = 0
 		else:
