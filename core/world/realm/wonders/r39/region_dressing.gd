@@ -17,6 +17,7 @@ extends RefCounted
 ## flat, dry, unclaimed ground (WK.span / WK.taken), 9 m off every way, 4-40 props per region by area. Build-time only.
 ## No class_name.
 
+const SELF := "res://core/world/realm/wonders/r39/region_dressing.gd"
 const WK := preload("res://core/world/realm/wonders/r39/wonder_kit.gd")
 const Dress := preload("res://core/world/realm/wonders/r39/wonder_dress.gd")
 
@@ -57,13 +58,13 @@ func _run(root: Node) -> void:
 		var cells := {}
 		var placed := 0
 		var tries := 0
-		while placed < want and tries < want * 14:
+		while placed < want and tries < want * 5:
 			tries += 1
 			var c := Vector2(rng.randf_range(r.position.x + 8.0, r.end.x - 8.0), rng.randf_range(r.position.y + 8.0, r.end.y - 8.0))
 			if RealmLayout.path_dist(c) < 9.0:
 				continue
 			var sp := WK.span(c, Vector2(2.5, 2.5), 0.0)
-			if sp.x == INF or sp.y - sp.x > 1.0 or WK.taken(c, Vector2(2.5, 2.5), 0.0, ids, 3.0):
+			if sp.x == INF or sp.y - sp.x > 1.0 or WK.site_hit(Rect2(c - Vector2(3.0, 3.0), Vector2(6.0, 6.0)), 1.0):
 				continue
 			var key := Vector2i(floori(c.x / 96.0), floori(c.y / 96.0))
 			if not cells.has(key):
@@ -73,9 +74,10 @@ func _run(root: Node) -> void:
 		for key: Vector2i in cells:
 			var k := WK.new()
 			k.setup(root, "Sig_%s_%d_%d" % [id, key.x, key.y], 5200 + key.x * 31 + key.y)
-			for it: Array in (cells[key] as Array):
-				var c: Vector2 = it[0]
-				_prop(k, String(it[2]), Vector3(c.x, float(it[1]), c.y), float(it[3]))
+			if not k.cached(WK.fp(SELF, [id, key, cells[key]])):
+				for it: Array in (cells[key] as Array):
+					var c: Vector2 = it[0]
+					_prop(k, String(it[2]), Vector3(c.x, float(it[1]), c.y), float(it[3]))
 			k.commit(140.0)
 		total += placed
 	print("WONDER region_dressing: %d signature props" % total)

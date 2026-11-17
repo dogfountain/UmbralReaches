@@ -8,6 +8,7 @@ extends RefCounted
 ## lanes and the ways, outside every registered site. Scenes are built per 56 m cell (one kit, a handful of meshes and one flame MultiMesh for all its scenes), faded
 ## at 120 m; nothing is solid except fences and stands' bodies are not needed (nothing blocks a lane). Build-time only.
 
+const SELF := "res://core/world/realm/settlement_yards.gd"
 const WK := preload("res://core/world/realm/wonders/r39/wonder_kit.gd")
 const Dress := preload("res://core/world/realm/wonders/r39/wonder_dress.gd")
 const Zones := preload("res://core/world/realm/dress_zones.gd")
@@ -39,7 +40,7 @@ func _run(root: Node) -> void:
 		var want: int = t[2]
 		var n := 0
 		var tries := 0
-		while n < want and tries < want * 40:
+		while n < want and tries < want * 24:
 			tries += 1
 			var a := rng.randf() * TAU
 			var p := c + Vector2(cos(a), sin(a)) * sqrt(rng.randf()) * r * 0.95
@@ -59,8 +60,9 @@ func _run(root: Node) -> void:
 	for key: Vector2i in cells:
 		var k := WK.new()
 		k.setup(root, "Yards_%d_%d" % [key.x, key.y], 9400 + key.x * 17 + key.y)
-		for sc: Array in (cells[key] as Array):
-			_scene(k, String(sc[1]), sc[0] as Vector3, float(sc[2]))
+		if not k.cached(WK.fp(SELF, [key, cells[key]])):
+			for sc: Array in (cells[key] as Array):
+				_scene(k, String(sc[1]), sc[0] as Vector3, float(sc[2]))
 		k.commit(120.0)
 	print("REALM yards: %d scenes in %d towns, %d kits" % [total, TOWNS.size(), cells.size()])
 
