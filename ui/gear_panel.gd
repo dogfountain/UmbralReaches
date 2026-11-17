@@ -509,7 +509,7 @@ func _rebuild() -> void:
 	_dress_extras(st)
 	for s: String in _chips:
 		(_chips[s] as Button).button_pressed = s == _filter
-	_sort_btn.text = "Sort: %s    [V]" % SORTS[_sort]
+	_sort_btn.text = "Sort: %s" % SORTS[_sort] + ("" if Settings.using_pad else "    [V]")
 	# sets
 	var counts := GearStats.set_counts(st)
 	var sets := PackedStringArray()

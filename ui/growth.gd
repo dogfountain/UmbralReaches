@@ -706,7 +706,7 @@ func _page_loadout() -> void:
 		c.line = "[%s]" % DB.SLOT_KEYS[i + 1]
 		c.look = "owned" if i + 1 == _slot_pick else "open"
 		row.add_child(c)
-	_heading("Known spells", "Rift Bolt always holds [LMB]")
+	_heading("Known spells", "Rift Bolt always holds [%s]" % InputSetup.live_label("skill_bolt", Settings.using_pad, "LMB"))
 	var grid := GridContainer.new()
 	grid.columns = 4
 	grid.add_theme_constant_override("h_separation", 10)
