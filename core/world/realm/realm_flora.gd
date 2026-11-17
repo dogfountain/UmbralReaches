@@ -625,6 +625,8 @@ static func _place_trees(space: PhysicsDirectSpaceState3D, rng_main: RandomNumbe
 	for sp: String in order:
 		var spacing: float = TREE_SPACING[sp]
 		var ids := TreeGen.ids(sp)
+		if sp == "snag":
+			ids.erase("snag_2")                       # the charred one belongs to the rift (below); the rest are the plain deadwood
 		for ci in cands.size():
 			var c: Vector2 = cands[ci]
 			var lk: Array = clk[ci]
@@ -658,8 +660,6 @@ static func _place_trees(space: PhysicsDirectSpaceState3D, rng_main: RandomNumbe
 				id = "willow_2"                       # the fen's willows are mostly dead (the mere's nearly all)
 			if (sp == "snag" and _rate({"ash": 1.0}, w) > 0.3) or Scorch.charred(at):
 				id = "snag_2"                         # scorched at the rift
-			elif sp == "snag" and id == "snag_2" and rng.randf() < 0.7:
-				id = "snag_%d" % rng.randi_range(0, 1)
 			var d: Dictionary = TreeGen.kind(id)
 			var spread: float = d.spread
 			var st: Array = STYLE[sp]

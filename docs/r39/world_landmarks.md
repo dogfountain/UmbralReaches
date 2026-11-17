@@ -205,3 +205,26 @@ six scripts did not parse. What changed, by construction:
 - Per-item build cost on a hit: Sleeper, tree, ship, towers, span, gates: one cache read each (milliseconds); halls and caves: one read each;
   region props, yards, finds, docks, roadside, caches: one read per cell or scene. On a miss (first run, or after an edit of that builder):
   the box counts above x 70 microseconds, once.
+
+# Fourth pass: game-wide model depth (world seat, continuation)
+
+## Trees and undergrowth (`tree_gen.gd`, `tree_bark.gd`, `tree_surf.gd`)
+**What.** Every tall trunk now carries baked bark: furrows that meander up the trunk (radius and vertex normal, 18-20 sides on the
+big trunks instead of 14), per-style shading in vertex colour (oak: deep furrows with lichen on the ridges; birch: smooth pale bark with
+dark scarred patches; pine: broad plates; dead wood: weathered grey with stripped, warmer patches), burls on oaks and willows, a rootlet
+forking off every other root flare. Logs and stumps get the same bark. Five new variant families so no wood repeats: oak 4 -> 6, pine 3 -> 5,
+birch 3 -> 4, deadwood 3 -> 6 (v3 lightning-split trunk, v4 tall bare spike leaning hard with limb stubs, v5 squat rotten tree with shelf fungi;
+`snag_2` stays the rift's charred tree). Undergrowth: grass 2 -> 4 (taller, straw-tinted, denser tufts), tallgrass 1 -> 2, flowers 2 -> 4,
+heather 1 -> 2, fern 2 -> 3, shrub 2 -> 3, bramble 2 -> 3, mushrooms 2 -> 3, logs 2 -> 3, stumps 2 -> 3.
+**Where.** Any wood: the old forest (around the Hearthward, x -60..140 z 20..200), the fen willows, the moors; deadwood in the old forest,
+fen, ash, ruins and crag (rates unchanged). Stand 5 m from an oak or pine trunk and look along the bark; look at a birch from 10 m.
+**Cost: nothing at runtime.** The detail is geometry and vertex colour in the cached mesh (GenCache, keyed on `tree_gen.gd`'s source hash;
+bump the rev comment on the TreeBark preload when `tree_bark.gd` changes). Trees were already per-chunk MultiMeshes with at most two kinds
+per 32 m chunk (`_variant(..., per = 2)`) and one kind per 24 m undergrowth chunk, so **more variants do not add draw calls**: they vary
+the wood from chunk to chunk. Triangles: an oak trunk goes from about 280 to about 400 near triangles (the old tree is 1.5-4 k), a pine
+trunk from about 140 to about 470, a birch trunk about 150 -> 360; the existing LOD generator (25 / 60 degrees) strips them with
+distance and the **@far trees skip the bark entirely** (same rng draws, so the far tree is still the same tree). Cold build: about 15 more
+kinds at ~25 ms once (cache); warm build: a few more small meshes read from disk.
+**Check.** 5 m: ridged bark that catches the moon, no seam down the trunk (the ring is periodic), no gap where a burl or rootlet meets the
+trunk, lichen patches on the oaks. 50 m: no change in silhouette, no pop at the 38 m far swap. A deadwood spike leaning at the old forest's
+edge reads as a different tree from a split one. Draw calls per region unchanged.
