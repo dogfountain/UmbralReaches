@@ -58,7 +58,7 @@ static func _fire(s: AudioStream, at: Vector3, volume_db: float, pitch: float, j
 	if cam != null and cam.global_position.distance_squared_to(at) > (MAX_D + 2.0) * (MAX_D + 2.0):
 		return
 	var now := Time.get_ticks_msec()
-	var key := _limit_key(s)
+	var key: Variant = _limit_key(s)
 	var rec: Array = _recent.get(key, [-100000, 0, at])
 	var reps := int(rec[1]) + 1 if now - int(rec[0]) < int(STACK_S * 1000.0) and (rec[2] as Vector3).distance_to(at) < 4.0 else 0
 	_recent[key] = [now, reps, at]
