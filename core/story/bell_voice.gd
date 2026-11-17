@@ -19,7 +19,7 @@ static var _stream: AudioStreamWAV = null
 static func warm() -> void:
 	if _task >= 0 or not _bytes.is_empty():
 		return
-	_task = WorkerThreadPool.add_task(BellVoice._render)
+	_task = WorkerThreadPool.add_task(_render)
 
 
 static func release() -> void:
@@ -81,7 +81,7 @@ static func ring(host: Node, semitones := 0.0, db := -8.0, delay := 0.0) -> void
 	if host == null or not host.is_inside_tree():
 		return
 	if delay > 0.0:
-		host.get_tree().create_timer(delay, true).timeout.connect(func() -> void: BellVoice.ring(host, semitones, db, 0.0))
+		host.get_tree().create_timer(delay, true).timeout.connect(func() -> void: ring(host, semitones, db, 0.0))
 		return
 	var s := _wav()
 	if s == null:

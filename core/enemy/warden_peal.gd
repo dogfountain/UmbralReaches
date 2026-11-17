@@ -18,7 +18,7 @@ const FIRST := 3.2                    ## after the wake line
 
 
 static func hold_factor(carried: int, rung: int, per_carried: float) -> float:
-	return clampf(1.0 - per_carried * float(carried) - RING_HOLD * float(rung), 0.4, 1.0)
+	return clampf(1.0 - per_carried * float(carried) - RING_HOLD * float(rung), 0.6, 1.0)
 
 
 static func scene(boss: Node, carried: int, rung: int, attuned: bool, words: Array) -> void:
