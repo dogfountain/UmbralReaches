@@ -18,6 +18,7 @@ const Library := preload("res://core/world/night_life/vfx_library.gd")
 const Arena := preload("res://core/world/night_life/arena_light.gd")
 const Stage := preload("res://core/life/folk/folk_stage.gd")
 const Kit := preload("res://core/life/wildlife/life_kit.gd")
+const WorldWarm := preload("res://core/world/night_life/world_warm.gd")
 
 ## file (basename) -> how it is covered
 const COVERED := {
@@ -27,7 +28,8 @@ const COVERED := {
 	"weather_life.gd": "material on a MultiMesh (show); its drip and steam bursts are night_fx presets",
 	"vfx_library.gd": "column_material on a quad (show); every burst is a night_fx preset",
 	"folk_stage.gd": "log_material, net_material and iron_material (show)",
-	"pets.gd": "the fox creature material, one instance (show)",
+	"pets.gd": "the dog and cat creature materials, one instance each (show)",
+	"world_warm.gd": "the world kits, rock styles, water, bark and foliage materials (show)",
 	"fire_bats.gd": "the bat orbit material, one instance (show)",
 	"night_fx.gd": "every preset in every colour (show)",
 	"hit_reads.gd": "night_fx presets",
@@ -91,15 +93,16 @@ static func show(host: Node3D, c: Vector3, right: Vector3, fwd: Vector3) -> Arra
 	out.append(anvil)
 	# a dog or a cat (the fox body) and a bat: each creature group with one instance
 	var at := 0.0
-	for kind: String in ["fox", "bat"]:
+	for kind: String in ["dog", "cat", "fox", "bat"]:
 		var g := Kit.group(kind, 1)
 		g.multimesh.custom_aabb = AABB(Vector3(-50, -10, -50), Vector3(100, 40, 100))
 		host.add_child(g)
 		g.global_position = Vector3.ZERO
-		g.multimesh.set_instance_transform(0, Transform3D(Basis.IDENTITY.scaled(Vector3.ONE * 0.8), c + up * (0.0 if kind == "fox" else 2.0) + right * (6.0 + at)))
-		g.multimesh.set_instance_custom_data(0, Color(0.5, 0.0, 0.0, 0.0) if kind == "fox" else Color(1.5, 0.6, 2.0, 0.0))
+		g.multimesh.set_instance_transform(0, Transform3D(Basis.IDENTITY.scaled(Vector3.ONE * 0.8), c + up * (2.0 if kind == "bat" else 0.0) + right * (6.0 + at)))
+		g.multimesh.set_instance_custom_data(0, Color(1.5, 0.6, 2.0, 0.0) if kind == "bat" else Color(0.5, 0.0, 0.0, 0.0))
 		out.append(g)
 		at += 1.5
+	WorldWarm.show(host, out, c, right, fwd)          # the world kits' materials, the rock styles, water, bark and foliage
 	# the bursts: one of each preset in each colour it is ever thrown in
 	var n := 0
 	for row: Array in NightFx.warm_list(Arena.PAL):
