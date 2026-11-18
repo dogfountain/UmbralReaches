@@ -40,7 +40,7 @@ func _run(root: Node) -> void:
 		if WK.in_town(c, 10.0):
 			WK.rej(tt, "town")
 			continue
-		if WK.site_hit(Rect2(c - Vector2(9.0, 9.0), Vector2(18.0, 18.0)), 2.0):
+		if WK.site_hit(Rect2(c - Vector2(7.0, 7.0), Vector2(14.0, 14.0)), 1.0):
 			WK.rej(tt, "site")
 			continue
 		var f := WK.place_first([c], Vector2(6.0, 6.0), [0.0], 3.0)

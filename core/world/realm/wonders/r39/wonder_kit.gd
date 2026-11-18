@@ -206,7 +206,7 @@ static func protect() -> void:
 			for sp: Vector2 in (((rares as Dictionary)[id] as Dictionary).get("spots", []) as Array):
 				_prot(sp, 14.0)
 	for reg: Dictionary in RealmLayout.REGIONS:             # grounds whose rows and avenues are planted to the land as it is (terraces would hang them in the air)
-		if String(reg.id) in ["orchard", "necropolis", "ossuary"] and reg.has("rect"):
+		if String(reg.id) in ["orchard", "necropolis", "ossuary", "bellfall"] and reg.has("rect"):
 			var rr: Rect2 = reg.rect
 			_prot(rr.get_center(), rr.size.length() * 0.5)
 	for tw: Vector3 in [Vector3(-311.0, 281.0, 42.0), Vector3(-160.0, 300.0, 46.0), Vector3(324.5, 53.5, 54.0), Vector3(6.0, 38.0, 50.0)]:

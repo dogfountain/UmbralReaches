@@ -106,7 +106,7 @@ const SLOTS := {
 		{"kind": "fire", "at": Vector2(322, 96), "note": "bellfall_way at the crater's west lip"},
 		{"kind": "poi", "at": Vector2(350, 102), "note": "the fallen bell in its crater"},
 		{"kind": "camp", "at": Vector2(332, 110), "note": "the crater's west lip"},
-		{"kind": "camp", "at": Vector2(336, 123), "note": "the crater's south apron (outside the bell's site, 10 m+ inside BOUNDS)"}],
+		{"kind": "camp", "at": Vector2(337, 124.5), "note": "the crater's south apron (outside the bell's site, 10 m+ inside BOUNDS)"}],
 	"lastlight": [
 		{"kind": "fire", "at": Vector2(318.5, 55.5), "note": "the town's yard, inside the gate (off bell_track)"},
 		{"kind": "poi", "at": Vector2(322, 40), "note": "Lastlight: the inn, the lamp tower, the watch"},

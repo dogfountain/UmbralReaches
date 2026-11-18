@@ -47,7 +47,7 @@ func _cands(x: float) -> Array:
 	for dx: float in [0.0, 14.0, -14.0, 28.0, -28.0, 44.0, -44.0]:
 		for z: float in [26.0, 104.0, 14.0, 116.0, 60.0]:
 			var c := Vector2(x + dx, z)
-			if WK.in_town(c, 8.0) or c.distance_to(Vector2(215.0, 97.0)) < 48.0 or c.distance_to(Vector2(-196.0, 70.0)) < 42.0 or Rect2(306.0, 84.0, 64.0, 38.0).grow(14.0).has_point(c):
+			if (dx != 0.0 and RealmLayout.path_dist(c) < 14.0) or WK.in_town(c, 8.0) or c.distance_to(Vector2(215.0, 97.0)) < 48.0 or c.distance_to(Vector2(-196.0, 70.0)) < 42.0 or Rect2(306.0, 84.0, 64.0, 38.0).grow(14.0).has_point(c):
 				continue
 			out.append(c)
 	return out

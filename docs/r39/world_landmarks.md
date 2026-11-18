@@ -384,3 +384,10 @@ camp100 "the road west of Weirford" (-268, 74) and its patrol, the wayside bf_to
 - **Grid families**: finds accept relief up to 2.6 m over their 4 m box (as the stairs do), a way 4 m away, and test `protect()` only at the find itself (the clues are not solid); caves test a 20 x 40 m box (1 m margin) and 55 m spacing; hermit caches a 14 m box and 45 m spacing;
   bridges and fords ignore the way's own sites (flights, lanes) and test 18 m round the crossing.
 - Not changed: the orchard camp 14.4 m from a village outpost and the wayside places (bf_tongue, bf_watch, sd_fold) are not tables of this round; if bellfall still loses places the next log will show which of mine is there.
+
+## Placement, seventh round
+- **Bellfall**: its rect (306, 84, 64 x 38) is now protected like the orchard, necropolis and ossuary, so no find, cache, cave, climb, outcrop, shore stone or region-dressing prop of this round stands in it (the region dressing is also thinned everywhere: one prop per 700 m2, 6-30 a region, was 420 m2, 8-44, which freed ground for the wayside places in every region).
+  Pieces that could have been in it: hidden finds and caches (grid), outcrops, shorelines (the crater), region dressing ("bellfall": bell halves, scorched posts), Wardens tower 6's (330,104).
+- **Camps (332,110) and (336,123)** were 14.9 m apart (existing slots, not moved by this round): the second is now (337, 124.5), slot and camp.
+- **Climb towers**: the site box is 14 m with a 1 m margin (was 18 m, 2 m).
+- **Wardens**: a shifted spot must be 14 m or more from a way (the first-merge spots are as before): the nave track's steep stretch (4.43 m/m) is the suspect for a levelled tower pad or the nave_crypt hall's stair (the gate at (267,120) is fixed). Not found: the "1 of 400 in the void" thing; the wayside bf_* skips beyond the Bellfall region.

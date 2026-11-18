@@ -53,7 +53,7 @@ func _run(root: Node) -> void:
 		if not KINDS.has(id) or not reg.has("rect"):
 			continue
 		var r: Rect2 = reg.rect
-		var want := clampi(int(r.get_area() / 420.0), 8, 44)
+		var want := clampi(int(r.get_area() / 700.0), 6, 30)
 		var kinds: Array = KINDS[id]
 		var cells := {}
 		var placed := 0
