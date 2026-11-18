@@ -20,6 +20,7 @@ extends "res://core/enemy/wretch.gd"
 ##   first), the Rockfall comes in sixes and the Undertow every 17 s.
 
 const VillagerBossRig := preload("res://core/enemy/villager_boss_rig.gd")
+const ClipRig := preload("res://core/enemy/clip_rig.gd")
 const AnchoressBody := preload("res://core/enemy/anchoress_body.gd")
 const QuestBook := preload("res://core/story/quest_book.gd")
 const HermitScript := preload("res://core/enemy/wretch.gd")
@@ -233,6 +234,7 @@ func _swing(turn: float) -> void:
 		_sig += 1 if phase == 1 else 0
 	BossKit.zone(get_parent(), global_position, 1.3, 30.0, {"by": self, "rect": Vector2(LANE_W, LANE_LEN), "yaw": yaw, "color": GLOW})
 	say("windup", global_position + Vector3.UP * 2.0, 1.0, 0.6)
+	_strike_after(1.15)
 
 
 func _double_swing() -> void:
@@ -244,14 +246,40 @@ func _second_swing() -> void:
 		_swing(0.7 if randf() < 0.5 else -0.7)
 
 
+## Her body acts each move (18 Nov: in the trailer she stood still through every attack; these drove only the old
+## HunchRig). VillagerBossRig and the Blender ClipRig answer the same three calls.
 func _tell(dur: float) -> void:
-	if _rig is HunchRig:
+	if _rig is VillagerBossRig:
+		(_rig as VillagerBossRig).telegraph(dur)
+	elif _rig is ClipRig:
+		(_rig as ClipRig).telegraph(dur)
+	elif _rig is HunchRig:
 		(_rig as HunchRig).telegraph(dur)
 
 
 func _howl(dur: float) -> void:
-	if _rig is HunchRig:
+	if _rig is VillagerBossRig:
+		(_rig as VillagerBossRig).howl(dur)
+	elif _rig is ClipRig:
+		(_rig as ClipRig).howl(dur)
+	elif _rig is HunchRig:
 		(_rig as HunchRig).howl(dur)
+
+
+## The blow lands `after` seconds from now (the anchor at the end of its swing, the stamp of the rockfall).
+func _strike_after(after: float) -> void:
+	get_tree().create_timer(after, false).timeout.connect(_rig_strike)
+
+
+func _rig_strike() -> void:
+	if not is_alive():
+		return
+	if _rig is VillagerBossRig:
+		(_rig as VillagerBossRig).strike()
+	elif _rig is ClipRig:
+		(_rig as ClipRig).strike()
+	elif _rig is HunchRig:
+		(_rig as HunchRig).strike()
 
 
 ## Chain Ring: the chain whips out round her.
@@ -262,6 +290,7 @@ func _chain_ring() -> void:
 	_tell(1.7)
 	var r := RING_R + (1.8 if phase >= 3 else 0.0)
 	BossKit.cast(self, "Chain Ring", 1.7)
+	_strike_after(1.55)
 	BossKit.zone(get_parent(), global_position, 1.7, 28.0, {"by": self, "radius": r, "color": SALT})
 	Vfx.ring(global_position + Vector3.UP * 0.2, r, SALT, 1.7, 0.1, Vector3.UP, 1.1)
 
@@ -315,6 +344,8 @@ func _torn(line: String) -> void:
 ## Rockfall: discs of falling stone round you, one after another; the first on your own feet.
 func _rockfall() -> void:
 	BossKit.cast(self, "Rockfall", 1.4)
+	_tell(1.1)
+	_strike_after(1.1)                       # she stamps; the cliff answers
 	BossKit.emote(self, "Stones come down off the cliff.", Color(1.0, 0.7, 0.4))
 	var n := 6 if phase >= 3 else 4
 	var c := _p.global_position

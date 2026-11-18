@@ -25,6 +25,7 @@ extends Husk
 
 const QuestBook := preload("res://core/story/quest_book.gd")
 const VillagerBossRig := preload("res://core/enemy/villager_boss_rig.gd")
+const ClipRig := preload("res://core/enemy/clip_rig.gd")
 const CrownBody := preload("res://core/enemy/crown_body.gd")
 const SCALE := 3.4
 const HP := 640
@@ -111,9 +112,39 @@ func _absorb(dmg: float, from: Node) -> float:
 
 
 ## The rig's roar, when it has one (the husk's hunch rig does).
+## Its body acts each move (18 Nov: in the trailer it stood still through every attack; this drove only the old
+## HunchRig). VillagerBossRig and the Blender ClipRig answer the same calls.
 func _howl(t: float) -> void:
-	if _rig is HunchRig:
+	if _rig is VillagerBossRig:
+		(_rig as VillagerBossRig).howl(t)
+	elif _rig is ClipRig:
+		(_rig as ClipRig).howl(t)
+	elif _rig is HunchRig:
 		(_rig as HunchRig).howl(t)
+
+
+func _tell(t: float) -> void:
+	if _rig is VillagerBossRig:
+		(_rig as VillagerBossRig).telegraph(t)
+	elif _rig is ClipRig:
+		(_rig as ClipRig).telegraph(t)
+	elif _rig is HunchRig:
+		(_rig as HunchRig).telegraph(t)
+
+
+func _strike_after(after: float) -> void:
+	get_tree().create_timer(after, false).timeout.connect(_rig_strike)
+
+
+func _rig_strike() -> void:
+	if not is_alive():
+		return
+	if _rig is VillagerBossRig:
+		(_rig as VillagerBossRig).strike()
+	elif _rig is ClipRig:
+		(_rig as ClipRig).strike()
+	elif _rig is HunchRig:
+		(_rig as HunchRig).strike()
 
 
 func cantors() -> int:
@@ -238,6 +269,8 @@ func _echo() -> void:
 	if not is_alive() or _ward_t > 0.0:
 		return
 	BossKit.cast(self, "Echo", 1.3)
+	_tell(1.0)
+	_strike_after(1.0)                       # it shudders as the ring breaks
 	var c := global_position
 	BossKit.zone(get_parent(), c, 1.3, 24.0, {"by": self, "radius": 8.0, "holes": [[c, 2.4]], "color": Color(2.0, 1.4, 0.6), "h": 2.5})
 
@@ -275,6 +308,8 @@ func _falling_crown() -> void:
 	var space := get_world_3d().direct_space_state
 	var c: Vector3 = _arena_c if _arena_c != Vector3.INF else global_position
 	BossKit.cast(self, "Falling Crown", 1.5)
+	_tell(1.2)
+	_strike_after(1.2)                       # the head jerks; the stones go
 	BossKit.emote(self, "The skull sheds its crown.", Color(1.0, 0.7, 0.4))
 	for i in n:
 		var at := _p.global_position
