@@ -120,12 +120,12 @@ const REALM_CAMPS: Array[Dictionary] = [
 	{"at": Vector3(246.0, 60.0, -28.0), "kinds": ["gaunt", "wretch", "gaunt"], "probe": 0.0},     # the lake's east bank, under the bluff
 	{"at": Vector3(188.0, 60.0, 44.0), "kinds": ["spitter", "husk"], "probe": 0.0},               # the south shore, off the fire
 	{"at": Vector3(228.0, 60.0, -18.0), "kinds": ["gaunt", "spitter", "wretch"], "probe": 0.0},   # Stillwater's east bank under the Spire, clear of spire_track
-	{"at": Vector3(180.0, 60.0, -82.0), "kinds": ["bulwark", "chanter", "leaper"], "probe": 0.0},  # the scree
+	{"at": Vector3(230.0, 60.0, -70.0), "kinds": ["bulwark", "chanter", "leaper"], "probe": 0.0},  # the scree
 	{"at": Vector3(232.0, 60.0, -94.0), "kinds": ["bulwark", "quiller", "wretch"], "probe": 0.0},  # the east cells
 	{"at": Vector3(184.0, 60.0, -60.0), "kinds": ["leaper", "gaunt", "gaunt"], "probe": 0.0},      # anchor_track's lower bend
 	{"at": Vector3(170.0, 60.0, 122.0), "kinds": ["wretch", "crawler"], "probe": 0.0},            # Saltmarket's west approach (the salt shed stands at (195, 119.5); was 182,110: 10 m past the hamlet's edge)
 	{"at": Vector3(178.0, 60.0, 196.0), "kinds": ["burrower", "burrower", "crawler", "mite"], "probe": 0.0, "r": 1.8},   # the west pans
-	{"at": Vector3(240.0, 60.0, 140.0), "kinds": ["cinder", "wretch", "gaunt"], "probe": 0.0},    # the east pans
+	{"at": Vector3(246.0, 60.0, 118.0), "kinds": ["cinder", "wretch", "gaunt"], "probe": 0.0},    # the east pans
 	{"at": Vector3(210.0, 60.0, 214.0), "kinds": ["husk", "husk", "chanter"], "probe": 0.0},      # the south pans
 	# --- the ossuary --- its own ground (ossuary_ground.gd; tier 2): the Abbot's servants above the pit. The bearers
 	# walk the Lych Way's hollow with their bell-ringer (kill the Tollman before he tolls the choir down on you); the

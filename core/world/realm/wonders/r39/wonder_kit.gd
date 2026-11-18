@@ -256,7 +256,7 @@ static func _prot(p: Vector2, r: float) -> void:
 
 
 ## Does any registered site touch `box` (grown by `margin`)? Looks only at the sites near it (the index), not at every site.
-static func site_hit(box: Rect2, margin: float) -> bool:
+static func site_hit(box: Rect2, margin: float, prot := true) -> bool:
 	if _sidx_n != WorldLanes.sites.size():
 		_reindex()
 	var g := box.grow(margin)
@@ -268,6 +268,8 @@ static func site_hit(box: Rect2, margin: float) -> bool:
 			for st: Dictionary in (list as Array):
 				if WorldLanes.site_hits_rect(st, box, margin):
 					return true
+	if not prot:
+		return false
 	for cx in range(floori(g.position.x / 32.0), floori(g.end.x / 32.0) + 1):
 		for cz in range(floori(g.position.y / 32.0), floori(g.end.y / 32.0) + 1):
 			var plist: Variant = _pidx.get(Vector2i(cx, cz))
@@ -279,6 +281,44 @@ static func site_hit(box: Rect2, margin: float) -> bool:
 				if g.intersects(Rect2(pc - Vector2(pr, pr), Vector2(pr, pr) * 2.0)):
 					return true
 	return false
+
+
+## The hero landmarks' placement (the first-merge behaviour): the first of the candidates (and yaws) that is dry, flat enough and off the ways and
+## the registered sites, else the least bad; `ignore_sites` evaluates a fixed spot's yaws on relief, water and ways alone. Never searches; the reserved
+## places of `protect()` do not count (the small things move for the heroes, not the other way round).
+static func place_first(cands: Array, half: Vector2, yaws: Array, rel := 6.0, ignore_sites := false) -> Dictionary:
+	var best := {}
+	var best_s := INF
+	for cv: Variant in cands:
+		var c: Vector2 = cv
+		for yv: Variant in yaws:
+			var yaw := float(yv)
+			var ex := Vector2(cos(yaw), sin(yaw))
+			var ez := Vector2(-sin(yaw), cos(yaw))
+			var lo := INF
+			var hi := -INF
+			var wetn := 0
+			var pathn := 0
+			for i in range(-2, 3):
+				for j in range(-2, 3):
+					var p := c + ex * (half.x * float(i) / 2.0) + ez * (half.y * float(j) / 2.0)
+					var y := h(p.x, p.y)
+					lo = minf(lo, y)
+					hi = maxf(hi, y)
+					if wet(p.x, p.y) or not RealmLayout.BOUNDS.grow(-8.0).has_point(p):
+						wetn += 1
+					if RealmLayout.path_dist(p) < 4.0:
+						pathn += 1
+			var r := maxf(half.x, half.y)
+			var sitebad := 1 if (not ignore_sites and site_hit(Rect2(c - Vector2(r, r), Vector2(r, r) * 2.0), 2.0, false)) else 0
+			var bad := wetn * 4 + pathn * 3 + sitebad * 6 + (1 if hi - lo > rel else 0)
+			var sc := float(bad) * 100.0 + (hi - lo)
+			if sc < best_s:
+				best_s = sc
+				best = {"pos": c, "yaw": yaw, "lo": lo, "hi": hi, "bad": bad, "site": false}
+			if bad == 0 and not ignore_sites:
+				return best
+	return best
 
 
 ## BOUNDED placement: the first of at most `cands.size() x yaws.size()` spots (25 height samples each) that is dry, within

@@ -56,10 +56,7 @@ func _w(x: float, y: float, z: float) -> Vector3:
 
 func _run(root: Node) -> void:
 	# the footprint is long along z; the yaw options turn it every which way across the flats
-	var f := WK.place(CANDS, HALF, [0.0, PI * 0.5, PI * 0.25, -PI * 0.25], 3.0, 40.0)
-	if bool(f.get("site", true)):
-		print("WONDER salt_ship: no clean ground (reserved places and sites everywhere it fits): not placed")
-		return
+	var f := WK.place_first([Vector2(232.0, 170.0)], HALF, [0.0, PI * 0.5, PI * 0.25, -PI * 0.25], 3.0, true)      # fixed: on the flats at (232, 170)
 	var yaw := float(f.yaw)
 	var mid: Vector2 = f.pos
 	# the ship's z axis lies along the footprint's long side

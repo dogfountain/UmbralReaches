@@ -63,10 +63,7 @@ func _flight(key: String, a: Vector3, b: Vector3, width: float, base: float) -> 
 
 
 func _run(root: Node) -> void:
-	var f := WK.place(CANDS, HALF, [0.0, PI * 0.5, PI, PI * 1.5], 9.0)
-	if bool(f.get("site", true)):
-		print("WONDER the_sleeper: no clean ground (reserved places and sites everywhere it fits): not placed")
-		return
+	var f := WK.place_first([Vector2(150.0, 338.0)], HALF, [0.0, PI * 0.5, PI, PI * 1.5], 9.0, true)      # fixed: it lies at (150, 338)
 	var fy := float(f.yaw)
 	yaw = -fy                                      # the footprint's x axis is (cos, sin) in (x, z): a turn about +y by -yaw
 	rot = Basis(Vector3.UP, yaw)

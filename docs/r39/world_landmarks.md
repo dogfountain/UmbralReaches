@@ -358,3 +358,21 @@ Placement is recomputed before every kit-cache lookup (the position is in the ki
 - **No surge on a landmark**: the discovery `centre` made each of these a `WorldEvents` site whose ring is stone; they carry `no_surge` and `sites()` skips them (their light signatures are unchanged).
 - The fen sexton's ground (76.8, -27.6) is a `tree_clear` of 4 m (a tree variant shifted the wood onto it).
 Not found: the patrol routes at (18,226) and (-338,178) (no table to read: the camps' 24 m and the towns' circles are the cover), the wayside bf_tongue and sd_fold, the bellfall count and the writings' sense point.
+
+## Placement, fifth round: the heroes stay put, the small things move
+**Heroes are fixed, no search.** Sleeper (150, 338), Hollow King (214, 350), Salt Ship (232, 170), Chain Span (-330, 20, bearing 1.2) take their spot and only choose a yaw (`WK.place_first`, sites ignored for the fixed ones).
+The six Wardens' towers and the four deep halls use the first-merge rule again (`place_first` over their candidate lists: first clean, else least bad; the reserved places of `protect()` do not count), the Titan gates their first three offsets
+(30, 44, 58 m) with sites only (not `protect()`), the caves 0 and 1 their old spots (Crystal Grotto (-302.8, 365.0), Root Cave (-27.0, 278.4)). Nothing is skipped any more.
+**Grid families** (the other five caves, 16 hermit caches, 32 finds, climbs): the way rule is 12 m (10 m for stair feet), `protect()` (camps, rares, haunts, slots, towns, the villagers' ways) stays; bridges and fords have no way rule (they stand on the river crossing);
+the walk clearances (Saltmarket, Fallowmere stops and ways), Hearthward's yards on the outer ring, `no_surge` and the sexton's clearing are kept.
+**Moves (old -> new), each in the same region:**
+- slot and camp "the deep wood" (-340, 22) -> (-298, 44); camp "the Last Milestone" (-344, 28) -> (-356, 58)
+- slot and camp "between the barrows" (-344, 120) -> (-312, 170)
+- slot and camp "the burners' clearing" (130, 352) -> (120, 268); slot and camp "the holly brakes" (212, 318/320) -> (248, 286); camp "the deep wood's nest" (178, 378) -> (170, 394)
+- slot and camp "the scree" (180, -82) -> (230, -70); slot and camp "the east pans" (240, 140) -> (246, 118)
+- rare lamp_wick spots (-316,-2), (-344,-14), (-318,-20) -> (-288,-16), (-316,-28), (-290,-34), its route shifted the same way; rare crownless spots (-334,98), (-338,106), (-330,92) -> (-312,84), (-316,92), (-308,78), route (-312,84), (-324,118), (-310,156), (-322,182), (-308,126);
+  rare charcoal_burner spots (173,342), (165,342), (181,336) -> (246,384), (238,384), (254,378)
+- elite brine_wife haunt (232,172), (228,196), (240,160), (222,204) -> (206,222), (214,228), (200,216), (222,232)
+Counts of camps, rares, haunts and slots per region are unchanged. Not moved (no table to read, or the lore itself): hw_harrow, hw_garden_n, hw_stairfoot (Hearthward's own buildings, 20-30 m from the henge gate), r34_row_4, r34_co_row, r34_guide_cairn_1,
+camp100 "the road west of Weirford" (-268, 74) and its patrol, the wayside bf_tongue, bf_shards, sd_fold, ll_well. The moved spots were chosen by distance from the heroes' footprints, not by walking the ground: check them in layout_r34 and spawns.
+**Expected counts:** Sleeper, Hollow King, Salt Ship, Chain Span 1 each; Wardens 6 of 6; deep halls 4 of 4; Titan gates 3; caves 2 fixed plus whatever the grid finds with a 12 m way rule (aim 5); hermit caches, finds, climbs and bridges: read the `WONDER ...: n of N ... rejected:` lines.

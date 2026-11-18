@@ -217,7 +217,7 @@ const SLOTS := {
 	"anchorholds": [
 		{"kind": "fire", "at": Vector2(209, -83), "note": "the foot of the cliff, a few metres off anchor_track's bend"},
 		{"kind": "poi", "at": Vector2(214, -132), "note": "the cliff terrace: the lower cells, the timber walk, the chapel and the Anchoress's room"},
-		{"kind": "camp", "at": Vector2(180, -82), "note": "the scree at the cliff's foot"}],
+		{"kind": "camp", "at": Vector2(230, -70), "note": "the scree at the cliff's foot"}],
 	"saltmarket": [
 		{"kind": "fire", "at": Vector2(218, 98), "note": "the hamlet's yard"},
 		{"kind": "poi", "at": Vector2(214, 95), "note": "the hamlet: houses, drying shed, the trader's stall"}],
@@ -225,7 +225,7 @@ const SLOTS := {
 		{"kind": "poi", "at": Vector2(232, 168), "note": "the salt-works, its pans and derricks"},
 		{"kind": "poi", "at": Vector2(238, 212), "note": "the crystal crust"},
 		{"kind": "camp", "at": Vector2(178, 196), "note": "the west pans"},
-		{"kind": "camp", "at": Vector2(240, 140), "note": "the east pans"}],
+		{"kind": "camp", "at": Vector2(246, 118), "note": "the east pans"}],
 	"downs": [
 		{"kind": "poi", "at": Vector2(0, 196), "note": "a shepherds' hut and fold"},
 		{"kind": "camp", "at": Vector2(-120, 214), "note": "the west downs"},

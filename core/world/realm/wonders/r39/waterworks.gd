@@ -158,9 +158,6 @@ func _bridges(root: Node, rng: RandomNumberGenerator) -> int:
 		var m := a.lerp(bq, float(ce[1]))
 		var t2 := (bq - a).normalized()
 		var n := Vector2(-t2.y, t2.x)
-		if RealmLayout.path_dist(m) < 10.0:
-			WK.rej(t, "way")
-			continue
 		var close := false
 		for q: Vector2 in taken:
 			if q.distance_to(m) < 45.0:

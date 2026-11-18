@@ -33,12 +33,13 @@ func _gate(root: Node, r: Dictionary) -> void:
 	var title: String = {"henge": "The Thorn Wardens", "hierarch": "The Siege Wardens", "anchorhold": "The Anchor Wardens"}.get(String(r.id), "The Wardens")
 	k.poi("titan_gate_" + String(r.id), title, "two wardens of stone, and what they were set to keep out", WK.region_at(gate))
 	# 30 m outside the gate, clear of the arena's seal guards and camps (their sites): nudged out 14 m at a time if a site is there
-	var base := gate + dir * 30.0
-	for op: Vector2 in [Vector2(30, 0), Vector2(42, 0), Vector2(54, 0), Vector2(30, 16), Vector2(30, -16), Vector2(42, 16), Vector2(42, -16), Vector2(54, 16), Vector2(54, -16), Vector2(66, 0), Vector2(66, 20), Vector2(66, -20), Vector2(80, 0), Vector2(80, 24), Vector2(80, -24), Vector2(96, 0), Vector2(30, 34), Vector2(30, -34), Vector2(54, 34), Vector2(54, -34)]:
-		var bp := gate + dir * op.x + side * op.y
-		if not WK.site_hit(Rect2(bp - Vector2(14.0, 14.0), Vector2(28.0, 28.0)), 3.0):
-			base = bp
+	var off := 30.0
+	for t in 3:
+		var bp := gate + dir * off
+		if not WK.site_hit(Rect2(bp - Vector2(10.0, 10.0), Vector2(20.0, 20.0)), 2.0, false):
 			break
+		off += 14.0
+	var base := gate + dir * off
 	var yaw := atan2(dir.x, dir.y)
 	for s: float in [-1.0, 1.0]:
 		var p := base + side * (7.0 * s)
