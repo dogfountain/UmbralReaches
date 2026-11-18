@@ -72,7 +72,7 @@ const REALM_CAMPS: Array[Dictionary] = [
 	{"at": Vector3(144.0, 60.0, 2.0), "kinds": ["husk", "wretch"], "probe": 0.0,
 		"patrol": [Vector2(144, 2), Vector2(140, -4)]},                                            # under the tor
 	# The Cinder Orchard (tier 1): what roots in the ash -- burrowers under the burned rows, mite nests.
-	{"at": Vector3(-136.0, 60.0, 104.0), "kinds": ["burrower", "burrower", "crawler"], "probe": 0.0},   # the west rows
+	{"at": Vector3(-132.0, 60.0, 101.0), "kinds": ["burrower", "burrower", "crawler"], "probe": 0.0},   # the west rows
 	{"at": Vector3(-80.0, 60.0, 142.0), "kinds": ["mite", "mite", "mite", "mite", "mite"], "probe": 0.0, "r": 1.6},   # the south rows: a nest in the ash
 	{"at": Vector3(-120.0, 60.0, 112.0), "kinds": ["burrower", "mite", "mite", "mite"], "probe": 0.0, "r": 1.8},     # the press-house rows
 	# The Waiting Field (tier 1): the pilgrims, buried facing the mountain, waiting. Risen Pilgrims lie
@@ -120,7 +120,7 @@ const REALM_CAMPS: Array[Dictionary] = [
 	{"at": Vector3(246.0, 60.0, -28.0), "kinds": ["gaunt", "wretch", "gaunt"], "probe": 0.0},     # the lake's east bank, under the bluff
 	{"at": Vector3(188.0, 60.0, 44.0), "kinds": ["spitter", "husk"], "probe": 0.0},               # the south shore, off the fire
 	{"at": Vector3(228.0, 60.0, -18.0), "kinds": ["gaunt", "spitter", "wretch"], "probe": 0.0},   # Stillwater's east bank under the Spire, clear of spire_track
-	{"at": Vector3(230.0, 60.0, -70.0), "kinds": ["bulwark", "chanter", "leaper"], "probe": 0.0},  # the scree
+	{"at": Vector3(229.0, 60.0, -72.0), "kinds": ["bulwark", "chanter", "leaper"], "probe": 0.0},  # the scree
 	{"at": Vector3(232.0, 60.0, -94.0), "kinds": ["bulwark", "quiller", "wretch"], "probe": 0.0},  # the east cells
 	{"at": Vector3(184.0, 60.0, -60.0), "kinds": ["leaper", "gaunt", "gaunt"], "probe": 0.0},      # anchor_track's lower bend
 	{"at": Vector3(170.0, 60.0, 122.0), "kinds": ["wretch", "crawler"], "probe": 0.0},            # Saltmarket's west approach (the salt shed stands at (195, 119.5); was 182,110: 10 m past the hamlet's edge)
