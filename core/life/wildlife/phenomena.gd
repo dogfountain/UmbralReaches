@@ -485,9 +485,12 @@ func start_hart(dist := 40.0) -> bool:
 	var f := -cam.global_basis.z
 	f.y = 0.0
 	f = f.normalized() if f.length() > 0.01 else Vector3.FORWARD
-	for k in 16:
+	for k in 40:
+		# the first tries at the asked range; then nearer and farther, so a dense wood ahead still
+		# finds a clearing in view
 		var a := _rng.randf_range(-0.9, 0.9)
-		var q := p + f.rotated(Vector3.UP, a) * dist * _rng.randf_range(0.85, 1.1)
+		var span := 0.15 if k < 16 else 0.5
+		var q := p + f.rotated(Vector3.UP, a) * dist * _rng.randf_range(1.0 - span, 1.0 + span * 0.7)
 		if not RealmLayout.BOUNDS.has_point(Vector2(q.x, q.z)) or RL.in_water(q.x, q.z):
 			continue
 		if not LifePlace.open_ground(q.x, q.z):
