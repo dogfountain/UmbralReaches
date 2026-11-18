@@ -386,7 +386,7 @@ func take_hit(dmg: float, from: Node = null) -> void:
 		_last_from = away3.normalized() if away3.length() > 0.05 else Vector3.ZERO
 	hp = maxf(hp - dmg, 0.0)
 	_flash = 0.08
-	_hit_fx = maxf(_hit_fx, clampf(dmg / 3.0, 0.3, 1.0) if boss else 1.0)    # a great one flashes by the blow's weight
+	_hit_fx = maxf(_hit_fx, clampf(dmg / 6.0, 0.15, 1.0) if boss else 1.0)    # a great one flashes by the blow's weight
 	var at := global_position + Vector3.UP * (hp_bar_y * 0.6)
 	Vfx.impact(at, Vfx.hot(glow_col), _last_from if from is Node3D else Vector3.ZERO, dmg >= 3.0)
 	# three presets (the hitstop's tiers), not one per damage value: Vfx pools and caches by preset,

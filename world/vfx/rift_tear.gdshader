@@ -35,5 +35,7 @@ void fragment() {
 	float sparks = step(0.93, h2(floor(vec2(p.x * 20.0, p.y * 40.0 - TIME * 30.0)))) * (1.0 - smoothstep(0.0, 0.3, abs(d))) * open;
 	vec3 c = mix(vec3(0.004, 0.0, 0.012), edge_col * 2.0, clamp(seam + sparks, 0.0, 1.0));
 	ALBEDO = c;
-	ALPHA = clamp(inside * 0.95 + seam + sparks, 0.0, 1.0) * step(0.001, open);
+	// a tear the camera passes through (a Rift Step toward the lens) fades out close to it instead of filling the screen
+	float near = smoothstep(0.7, 2.4, length(VERTEX));
+	ALPHA = clamp(inside * 0.95 + seam + sparks, 0.0, 1.0) * step(0.001, open) * near;
 }

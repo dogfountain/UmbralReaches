@@ -324,6 +324,10 @@ func _fight(nm: String, spec: String, ground: Vector3) -> void:
 	bot_t = 0.0
 	lance_t = 0.0
 	step_cd = 0.0
+	if spec.begins_with("look:"):
+		await _look(spec.trim_prefix("look:"), ground)
+		fname = ""
+		return
 	if spec.begins_with("boss:"):
 		var bid := spec.trim_prefix("boss:").get_slice("@", 0).get_slice("^", 0)
 		phase_at.clear()
@@ -384,6 +388,14 @@ func _fight(nm: String, spec: String, ground: Vector3) -> void:
 			for a in get_tree().get_nodes_in_group(&"boss_arena"):
 				if String(boss.get_meta(&"boss_id", "")) == (a as BossArena).boss_id:
 					ar = a as BossArena
+			var fl: Variant = boss._flesh[0] if not boss._flesh.is_empty() and is_instance_valid(boss._flesh[0]) else null
+			var lights_near := 0
+			for l in get_tree().root.find_children("*", "OmniLight3D", true, false):
+				if (l as OmniLight3D).is_visible_in_tree() and (l as Node3D).global_position.distance_to(boss.global_position) < 8.0:
+					lights_near += 1
+			_log("LOOK hit_fx %.2f glint %.2f flash %.2f | mesh hit_flash %s glint %s dissolve %s | lights within 8 m %d" % [boss._hit_fx, boss._glint, boss._flash,
+				(fl as MeshInstance3D).get_instance_shader_parameter(&"hit_flash") if fl else "-", (fl as MeshInstance3D).get_instance_shader_parameter(&"glint") if fl else "-",
+				(fl as MeshInstance3D).get_instance_shader_parameter(&"dissolve") if fl else "-", lights_near])
 			_log("STATUS boss hp %.0f state %s st %.2f cast '%s' %.2f/%.2f proc %d floor %s ward %.1f | arena active %s held %s | player %s %.1f m from centre, %.1f m from boss" % [
 				boss.hp, STATE_N[boss._state], boss._state_t, boss.cast_name, boss.cast_elapsed, boss.cast_time, boss.process_mode, boss.is_on_floor(),
 				boss._ward_t, ar._active if ar else false, ar.is_held() if ar else false, p.global_position.snapped(Vector3.ONE * 0.1),
@@ -513,7 +525,8 @@ func _track() -> void:
 			zones.erase(id)
 			continue
 		var mi := z.mi as MeshInstance3D
-		var pr := float(mi.get_instance_shader_parameter(&"progress"))
+		var pv: Variant = mi.get_instance_shader_parameter(&"progress")
+		var pr := float(pv) if pv != null else 0.0
 		if int(z.full) < 0 and pr >= 0.999:
 			z.full = _ff()
 			_log("TELL zone#%d FULL after %d frames (%.2f s), player inside=%s" % [id % 10000, _ff() - int(z.f), float(_ff() - int(z.f)) / 60.0, _inside(mi, p.global_position)])
@@ -562,6 +575,12 @@ func _onscreen(e: Node3D) -> String:
 	return "onscreen"
 
 
+## An instance shader parameter as a float (0 before the zone's first tween step sets it).
+func _param(mi: MeshInstance3D, k: StringName) -> float:
+	var v: Variant = mi.get_instance_shader_parameter(k)
+	return float(v) if v != null else 0.0
+
+
 ## Degrees between where the enemy's body faces (as drawn) and where its strike aims (_face_dir).
 func _face_err(e: Enemy) -> float:
 	if e._face == null:
@@ -589,7 +608,7 @@ func _on_hurt(amount: float, from: Vector3) -> void:
 		var mi := z.mi as MeshInstance3D
 		var full := int(z.full)
 		zs += " zone#%d(full %s, inside_drawn=%s, prog %.2f fade %.2f)" % [id % 10000, ("%+df" % (_ff() - full)) if full >= 0 else "NOT YET",
-			_inside(mi, p.global_position), float(mi.get_instance_shader_parameter(&"progress")), float(mi.get_instance_shader_parameter(&"fade"))]
+			_inside(mi, p.global_position), _param(mi, &"progress"), _param(mi, &"fade")]
 	var st := ""
 	if near != null:
 		st = " %s state %s st %.2f dist %.2f %s" % [_who(near), STATE_N[near._state], near._state_t, near.global_position.distance_to(p.global_position), _onscreen(near)]
@@ -618,6 +637,31 @@ func _on_killed(e: Node) -> void:
 		want_full.append("kill%d" % kills)
 
 
+## A kind stood still in front of the camera, frames saved with its hit flash and glint off, on, and off again.
+func _look(kind: String, ground: Vector3) -> void:
+	_stand(ground, yaw)
+	await _frames(20)
+	var e := _spawn(kind, ground + _dir(yaw) * 9.0, ground)
+	e.sleep()
+	for k in 4:
+		await _frames(30)
+		match k:
+			1: e._flesh_param(&"hit_flash", 1.0)
+			2:
+				e._flesh_param(&"hit_flash", 0.0)
+				e._flesh_param(&"glint", 1.0)
+			3: e._flesh_param(&"glint", 0.0)
+		await _frames(4)
+		await _cap("look%d" % k)
+	# then blows as a held bolt lands them (0.7 a shot, ~3.5 a second), frames between
+	for k2 in 3:
+		for i in 6:
+			e.take_hit(0.7, p)
+			await _frames(17)
+		await _cap("hits%d" % k2)
+	e.queue_free()
+
+
 # ------------------------------------------------------------------------------------------------------
 # the bot
 
@@ -643,7 +687,7 @@ func _danger_here() -> MeshInstance3D:
 		if not is_instance_valid((zones[id] as Dictionary).mi):
 			continue
 		var mi := (zones[id] as Dictionary).mi as MeshInstance3D
-		var pr := float(mi.get_instance_shader_parameter(&"progress"))
+		var pr := _param(mi, &"progress")
 		if pr < 0.999 and _inside(mi, p.global_position) and pr > bp:
 			bp = pr
 			best = mi
@@ -670,11 +714,12 @@ func _bot(dt: float) -> void:
 	var side := Vector3(-dir.z, 0.0, dir.x)
 	var z := _danger_here()
 	if z != null:
-		var pr := float(z.get_instance_shader_parameter(&"progress"))
+		var pr := _param(z, &"progress")
 		var away := p.global_position - z.global_position
 		away.y = 0.0
 		if away.length() < 0.3:
 			away = side
+		away = away.normalized() + _inward() * 1.5
 		if bot == "fight" and pr > 0.6 and step_cd <= 0.0 and p.can_shadowstep():
 			# a Rift Step out the near side, along the camera-relative stick
 			var loc := Basis(Vector3.UP, p._yaw).inverse() * away.normalized()
@@ -704,6 +749,7 @@ func _bot(dt: float) -> void:
 		wish += dir
 	elif d < want - 1.5:
 		wish -= dir
+	wish += _inward() * 1.5
 	if bot == "melee":
 		p.debug_drive(dir if d > 2.2 else Vector3.ZERO)
 		if d < 3.2 and fmod(bot_t, 0.4) < dt * 1.5:
@@ -730,6 +776,17 @@ func _bot(dt: float) -> void:
 	if tg.marks >= 3 and d < 5.0:
 		Input.action_press("skill_nova")
 		get_tree().create_timer(0.05).timeout.connect(func() -> void: Input.action_release("skill_nova"))
+
+
+## In a boss arena: a pull back toward the centre once past 70 % of the floor's radius (a bot that backs out of the red
+## ends on the rim; a player would not).
+func _inward() -> Vector3:
+	if boss == null or arena_r <= 0.0:
+		return Vector3.ZERO
+	var off := p.global_position - arena_c
+	off.y = 0.0
+	var k := clampf((off.length() - arena_r * 0.7) / (arena_r * 0.2), 0.0, 1.0)
+	return -off.normalized() * k if off.length() > 0.1 else Vector3.ZERO
 
 
 func _stick(v: Vector2) -> void:

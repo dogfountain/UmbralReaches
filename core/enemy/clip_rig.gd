@@ -22,10 +22,11 @@ const BossLook := preload("res://core/enemy/boss_look.gd")
 const DwarfLook := preload("res://core/npc/dwarf_look.gd")
 const VillagerBossRig := preload("res://core/enemy/villager_boss_rig.gd")
 ## The glowing parts of a villager-look model (eyes, flames, the reliquary): its sRGB vertex colour, bright, unlit.
+## No instance uniforms here: a surface's own would take other slots than the flesh overlay's on the same mesh, and the
+## overlay then read its dissolve from a slot nobody writes (the Abbot drew as a gold ghost when it held junk).
 const GLOW_CODE := """
 shader_type spatial;
 render_mode unshaded, shadows_disabled;
-instance uniform float dissolve = 0.0;
 void fragment() {
 	vec3 c = COLOR.rgb;
 	c = mix(c / 12.92, pow((c + 0.055) / 1.055, vec3(2.4)), step(vec3(0.04045), c));

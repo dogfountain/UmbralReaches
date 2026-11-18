@@ -92,7 +92,7 @@ void fragment() {
 	float skin_t = mix(1.0, 0.35 + 0.9 * pow(1.0 - ndv, 1.5), membrane);
 	EMISSION = texture(emit_tex, UV).rgb * emit_energy * breathe * (1.0 + heat * (cl_noise(opos * 7.0 + vec3(0.0, TIME * 0.8, 0.0)) - 0.5)) * skin_t * (1.0 + glint * 2.5)
 		+ cl_accent(NORMAL, VIEW, rim_col, rim_amount) * (1.0 - glint * 0.6) * 0.35
-		+ cl_accent(NORMAL, VIEW, vec3(2.2, 0.72, 0.18), 1.0) * glint * 0.9   // a tell: the silhouette burns ember while its red fills
+		+ cl_accent(NORMAL, VIEW, vec3(2.2, 0.72, 0.18), 1.0) * glint * 0.6   // a tell: the silhouette burns ember while its red fills
 		+ vec3(1.4, 1.25, 1.2) * hit_flash * (0.35 + 0.65 * pow(1.0 - ndv, 1.5))
 		+ burn_col * edge * 3.0;
 }

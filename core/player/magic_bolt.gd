@@ -381,7 +381,17 @@ func _impact_fx(at: Vector3) -> void:
 		# the Lash's blast reads on the ground (the disc is its true radius); its dome is a quick thin shell, so the foe
 		# inside it still shows (a full-strength 3 m dome every third shot hid a 6 m Thornwarden)
 		_burst(at, 4.5, 0.24)
-		SpellFx.disc(at, blast, 0, SpellFx.VIOLET, SpellFx.VIOLET_HOT, 0.7, n)
+		# the disc lies on the ground under a Lash that burst on a body or a wall (laid across the hit's normal it stood up as a
+		# 6 m lightning wheel between the wanderer and the foe)
+		var gat := at
+		var gn := n
+		if n.y < 0.6:
+			gn = Vector3.UP
+			var down := PhysicsRayQueryParameters3D.create(at + Vector3.UP * 0.2, at + Vector3.DOWN * 4.0, Layers.WORLD)
+			var floor_hit := get_world_3d().direct_space_state.intersect_ray(down)
+			if not floor_hit.is_empty():
+				gat = floor_hit.position
+		SpellFx.disc(gat, blast, 0, SpellFx.VIOLET, SpellFx.VIOLET_HOT, 0.7, gn)
 		SpellFx.shell(at, 0.3, blast, Color(0.7, 0.3, 1.6), 0.2)
 		Vfx.burst(at, Color(1.8, 0.9, 3.4), {"count": 36, "life": 0.45, "speed": Vector2(3.0, 8.0), "size": 0.045, "gravity": -6.0, "trail": 0.08, "dir": n, "spread": 80.0})
 		Vfx.light(at, SpellFx.VIOLET, 3.0, blast * 2.4, 0.3, 3)
