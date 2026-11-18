@@ -496,7 +496,7 @@ func _place_hares(space: PhysicsDirectSpaceState3D, keep_off: Array) -> void:
 	# deer's, and a hare bolting past a herd sets it running too
 	var want: Array[Vector2] = [Vector2(6.0, 68.0), Vector2(36.0, 36.0), Vector2(36.0, -44.0),
 		# r34 flora: the Lanternless Moor's heather, the Waiting Field's grass, the Rooted Holds' clearing
-		Vector2(146.0, 2.0), Vector2(30.0, 140.0), Vector2(-134.0, 6.0)]
+		Vector2(146.0, 2.0), Vector2(30.0, 140.0), Vector2(-165.0, 6.0)]
 	var hi := 0
 	for c in want:
 		var spots: Array[Vector3] = []
@@ -621,7 +621,7 @@ func _place_fireflies() -> void:
 			spots.append(Vector3(q.x, 0.0, q.y))
 	# r34 flora: + the Rooted Holds' clearing, the mere's east bank, the orchard rows, the quarry mouth
 	for q: Vector2 in [Vector2(-80, 46), Vector2(-14, 50), Vector2(28, 50), Vector2(-62, 22), Vector2(-88, -40), Vector2(-50, -46), Vector2(-96, 10), Vector2(60, 10),
-			Vector2(-130, 4), Vector2(126, 112), Vector2(-120, 116), Vector2(-112, -78),
+			Vector2(-161, 4), Vector2(126, 112), Vector2(-120, 116), Vector2(-112, -78),
 			# the Sorrow's banks, Stillwater's north shore and the downs' hollows
 			Vector2(-222, 30), Vector2(-196, -34), Vector2(-218, 100), Vector2(176, -18), Vector2(196, 54), Vector2(-40, 214)]:
 		spots.append(Vector3(q.x, 0.0, q.y))

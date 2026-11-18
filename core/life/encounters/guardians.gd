@@ -81,7 +81,7 @@ const NO_GUARDIAN := ["holds", "lastlight"]
 ## Until the world places its own: a nest in the deep Thornwood, a barrow-keeper on the Barrow
 ## Field's far side, a knight on the west of the Pilgrims' Road, a stalker on the Crowns.
 const FALLBACK := [
-	{"at": Vector2(-62.0, -44.0), "id": "brood_mother", "key": "fb_thornwood_nest"},
+	{"at": Vector2(-30.0, -66.0), "id": "brood_mother", "key": "fb_thornwood_nest"},     # (18 Nov: off the henge's 1.6x floor)
 	{"at": Vector2(92.0, -54.0), "id": "sexton", "key": "fb_barrow_keeper"},
 	{"at": Vector2(-80.0, 74.0), "id": "tithe_knight", "key": "fb_west_road"},
 	{"at": Vector2(-70.0, -118.0), "id": "pale_stalker", "key": "fb_crowns"},

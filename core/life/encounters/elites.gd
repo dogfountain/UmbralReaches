@@ -34,7 +34,7 @@ const ELITES := {
 	},
 	"briar_hart": {
 		"title": "The Briar Hart", "kind": "leaper", "script": "res://core/life/encounters/elite_briar_hart.gd",
-		"haunt": [Vector2(-98, -46), Vector2(-94, -38), Vector2(-100, -54)], "region": "thornwood",
+		"haunt": [Vector2(-104, -86), Vector2(-112, -90), Vector2(-96, -92)], "region": "thornwood",     # (18 Nov: off the henge's 1.6x floor)
 		"hp": 21, "ash": 22, "scale": 1.3, "glow": Color(2.4, 0.5, 0.15), "loot": "briar_antler",
 		"where": "deep in the Thornwood, under the Crowns",
 		"note": "DO NOT CUT THE THORN. We cut it. Now there is a hart in the deep wood with a crown of briar, and where it lands the ground bleeds thorns. Step off where it comes down. Two of ours did not. -- the woodsmen's camp",

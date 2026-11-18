@@ -18,7 +18,7 @@ const RealmLand := preload("res://core/world/realm/realm_land.gd")
 ## has its hermits' neighbours). The towns' rings cover their houses, yards and gates.
 const SAFE := [
 	{"id": "hearthward", "c": Vector2(4.0, 36.0), "r": 34.0, "camp": 10.0},
-	{"id": "holds", "c": Vector2(-134.0, 12.0), "r": 21.0, "camp": 6.0},
+	{"id": "holds", "c": Vector2(-165.0, 12.0), "r": 21.0, "camp": 6.0},
 	{"id": "weirford", "c": Vector2(-203.0, 66.0), "r": 30.0},
 	{"id": "saltmarket", "c": Vector2(213.0, 95.0), "r": 22.0},
 	{"id": "lastlight", "c": Vector2(326.0, 46.0), "r": 40.0},

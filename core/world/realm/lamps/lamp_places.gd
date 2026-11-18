@@ -497,18 +497,24 @@ static func _anchorholds(host: Node3D, root: Node) -> void:
 	for m in cells:
 		var n := m.global_basis * Vector3(0, 0, 1)
 		var side := 1.0 if i % 2 == 0 else -1.0
-		for tries in 2:
-			var q := m.global_position + m.global_basis * Vector3(side * 2.1, 1.3, 1.6)
+		for tries in 4:                    # either side of the cell, then further out on either side (its pages and the cairns stand near)
+			var q := m.global_position + m.global_basis * Vector3(side * (2.1 if tries < 2 else 3.3), 1.3, 1.6)
 			if place(host, _s("cell_%d" % i, "niche", q.x, q.z, {"mode": "wall", "y": q.y, "dir": Vector2(-n.x, -n.z), "light": false})) != null:
 				break
 			side = -side
-			if tries == 0 and not skipped.is_empty():
-				skipped.remove_at(skipped.size() - 1)
+			if tries < 3 and not skipped.is_empty():
+				skipped.remove_at(skipped.size() - 1)     # a try that will be retried is not a skip
 		i += 1
 	if chapel != null:
 		var n2 := chapel.global_basis * Vector3(0, 0, 1)
-		var q2 := chapel.global_position + chapel.global_basis * Vector3(-3.4, 0.0, 2.2)
-		place(host, _s("chapel_door", "post", q2.x, q2.z, {"y": chapel.global_position.y, "face": atan2(n2.x, n2.z)}))
+		var tries := [Vector2(-3.4, 2.2), Vector2(3.4, 2.2), Vector2(-4.6, 4.2), Vector2(4.6, 4.2), Vector2(0.0, 6.0)]
+		for ti in tries.size():                # the door's left, its right, further out (cells' niche lamps and the lintel's page stand near)
+			var t2: Vector2 = tries[ti]
+			var q2 := chapel.global_position + chapel.global_basis * Vector3(t2.x, 0.0, t2.y)
+			if place(host, _s("chapel_door", "post", q2.x, q2.z, {"y": chapel.global_position.y, "face": atan2(n2.x, n2.z)})) != null:
+				break
+			if ti < tries.size() - 1 and not skipped.is_empty():
+				skipped.remove_at(skipped.size() - 1)
 
 
 ## The Grandmother Oak's stair: a lamp on the heartwood every few turns.

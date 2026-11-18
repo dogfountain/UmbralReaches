@@ -231,7 +231,7 @@ func _reach() -> void:
 	Book.start("bell_holds")
 	Book.choose("bell_holds", "rung")
 	ok(ReachState.quiet("holds"), "a rung bell quiets its country")
-	var at := Vector3(-138.0, 3.0, 20.0)
+	var at := Vector3(-169.0, 3.0, 20.0)
 	ok(ReachState.respawn_mult(at) >= 3.0, "its camps come back slower (x%.1f)" % ReachState.respawn_mult(at))
 	var rs := main.get_node_or_null("ReachState")
 	if rs:

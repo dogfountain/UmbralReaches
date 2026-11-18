@@ -22,12 +22,12 @@ const HOLDS_TURF := {"name": "The Kin-Taker", "giver": "ruan", "where": "Gammer 
 		{"kind": "tracks", "r": 12.0, "label": "Old Rook's round",
 			"text": "Follow the Kin-Taker's round through the Holds, from roof to roof ({n}/{of})",
 			"marks": [
-				{"at": Vector2(-131.0, 16.0), "text": "A roof with its turf lifted and laid back crooked. The thatch under it is pressed flat in the shape of a very long hand."},
-				{"at": Vector2(-137.0, 23.0), "text": "A second roof, the same. Nothing taken. In the soft ground under the eaves, a print as long as your forearm, the toes pointing in at the door."},
-				{"at": Vector2(-146.0, 14.0), "text": "The third roof has been lifted twice, as if the looker was not satisfied. A child's shoe sits on the sill, set there, toe to the wall."},
-				{"at": Vector2(-141.0, 9.0), "text": "The prints turn and go to ground at the old ward-stone, one deep step after another. Whatever made them is standing very near, and has been looking at you for some time."},
+				{"at": Vector2(-162.0, 16.0), "text": "A roof with its turf lifted and laid back crooked. The thatch under it is pressed flat in the shape of a very long hand."},
+				{"at": Vector2(-168.0, 23.0), "text": "A second roof, the same. Nothing taken. In the soft ground under the eaves, a print as long as your forearm, the toes pointing in at the door."},
+				{"at": Vector2(-177.0, 14.0), "text": "The third roof has been lifted twice, as if the looker was not satisfied. A child's shoe sits on the sill, set there, toe to the wall."},
+				{"at": Vector2(-172.0, 9.0), "text": "The prints turn and go to ground at the old ward-stone, one deep step after another. Whatever made them is standing very near, and has been looking at you for some time."},
 			]},
-		{"kind": "slay", "of": 1, "rares": ["old_rook"], "label": "Old Rook, the Kin-Taker", "at": Vector2(-140.0, 11.0),
+		{"kind": "slay", "of": 1, "rares": ["old_rook"], "label": "Old Rook, the Kin-Taker", "at": Vector2(-171.0, 11.0),
 			"text": "Put down Old Rook, the Kin-Taker, on its round of the Holds"},
 		{"kind": "find", "text": "Set back the turf Old Rook lifted, on the roof by Ruan's fire"},
 		{"kind": "turnin", "who": "ruan", "text": "Tell Gammer Ruan the Kin-Taker is down"},
@@ -35,7 +35,7 @@ const HOLDS_TURF := {"name": "The Kin-Taker", "giver": "ruan", "where": "Gammer 
 	"alt": {"shut": {3: "Tell Gammer Ruan the roof is shut"}, "open": {3: "Tell Gammer Ruan you left the roof's eye open"}},
 	"reward": {"ash": 14},
 	"choose": [{"slot": "vestment", "rarity": 1}, {"slot": "girdle", "rarity": 1}],
-	"leaves": {"shut": {"at": Vector2(-131.0, 9.0), "prop": "slabs"}, "open": {"at": Vector2(-131.0, 9.0), "prop": "lantern_lit"}},
+	"leaves": {"shut": {"at": Vector2(-162.0, 9.0), "prop": "slabs"}, "open": {"at": Vector2(-162.0, 9.0), "prop": "lantern_lit"}},
 	"outcome": {"shut": "Ruan had you lay the turf grass-down and sang the roof shut. In the morning she turned the empty beds face down again, one by one.",
 		"open": "You left a hand's width of the roof open. Ruan looked at it a long while, then sat under it that night with the door wide, and looked up, which the Rooted do not do."}}
 
@@ -498,11 +498,11 @@ const WF_CROWN := {"name": "The Voice in the Head", "giver": "tolliver", "where"
 ## The pickups the deepened tasks want: every old entry whose step moved, and the new ones. quest_chains.gd lists them in
 ## its `# --- deepen B ---` block; the entries that carry a `conv` open a conversation (CONVS) whose choice records the pick.
 const PICKUPS := {
-	"turf_roof": {"quest": "holds_turf", "step": 2, "near": Vector2(-131.0, 9.0), "camp": "ruan", "kind": "place", "name": "the lifted turf", "verb": "Set back", "conv": "qb_holds_turf",
+	"turf_roof": {"quest": "holds_turf", "step": 2, "near": Vector2(-162.0, 9.0), "camp": "ruan", "kind": "place", "name": "the lifted turf", "verb": "Set back", "conv": "qb_holds_turf",
 		"say": "The turf lies where Old Rook set it, grass-up, a roof's width of it."},
-	"wards_set": {"quest": "keeper_wards", "step": 2, "near": Vector2(-129.0, 8.0), "camp": "ruan", "kind": "ward", "name": "Ruan's hearth-ring", "verb": "Set the wards round", "conv": "qb_keeper_wards",
+	"wards_set": {"quest": "keeper_wards", "step": 2, "near": Vector2(-160.0, 8.0), "camp": "ruan", "kind": "ward", "name": "Ruan's hearth-ring", "verb": "Set the wards round", "conv": "qb_keeper_wards",
 		"say": "The wards."},
-	"ward_holds": {"quest": "keeper_wards", "step": 1, "near": Vector2(-141.0, 4.0), "kind": "ward", "name": "a ward-stone", "verb": "Lift",
+	"ward_holds": {"quest": "keeper_wards", "step": 1, "near": Vector2(-172.0, 4.0), "kind": "ward", "name": "a ward-stone", "verb": "Lift",
 		"say": "A grey stone the size of a loaf, a spiral cut in it, lying face up in the heather. It is heavier than it should be. You turn it face down without thinking."},
 	"ward_wood": {"quest": "keeper_wards", "step": 1, "near": Vector2(-66.0, 30.0), "kind": "ward", "name": "a ward-stone", "verb": "Lift",
 		"say": "A ward-stone in the oak roots, an axe-bite in its edge. The Order's chisel has cut KEEPER OF NOTHING over the spiral. The spiral is deeper."},

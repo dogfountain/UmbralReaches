@@ -678,7 +678,7 @@ const _PICKUPS := {
 		"say": "One loaf on the Almonry's board, hard as a stone, a cross cut in the crust. There is always one left."},
 	# r34. `camp`: the spot is found by that giver's outpost fire (village.gd builds it at load), `near`
 	# is only the fallback.
-	"coal_ruan": {"quest": "keeper_leave", "step": 0, "near": Vector2(-129.0, 6.0), "camp": "ruan", "kind": "coal", "name": "a ward-coal", "verb": "Take",
+	"coal_ruan": {"quest": "keeper_leave", "step": 0, "near": Vector2(-160.0, 6.0), "camp": "ruan", "kind": "coal", "name": "a ward-coal", "verb": "Take",
 		"say": "A coal of black heartwood in a clay dish. It burns green at the edges and smells of oak in rain. Go."},
 	"mark_pit": {"quest": "quarry_marks", "step": 0, "near": Vector2(-124.0, -106.0), "kind": "mark", "name": "a squared block", "verb": "Take the mark from",
 		"say": "A squared block on the pit floor, ready to carry. A mark on its end: a hook and two strokes. Wat Mallow, it will turn out. He was paid for this one."},
@@ -728,7 +728,7 @@ const _PICKUPS := {
 	# and the dais stone they are cut into
 	"door_latch": {"quest": "the_latch", "step": 1, "near": Vector2(0.0, -101.5) + Endgame.O2, "kind": "slate", "name": "the latch-stone under the door", "verb": "Stand at", "conv": "door_latch",
 		"say": "The latch-stone."},
-	"name_ruan": {"quest": "names_under", "step": 0, "near": Vector2(-129.0, 6.0), "camp": "ruan", "kind": "slate", "name": "a name", "verb": "Ask for",
+	"name_ruan": {"quest": "names_under", "step": 0, "near": Vector2(-160.0, 6.0), "camp": "ruan", "kind": "slate", "name": "a name", "verb": "Ask for",
 		"say": "Ruan says one word, and spells it, so you'll get it right. BRANN. Her brother. He wanted to see the top. She never did."},
 	"name_ysolt": {"quest": "names_under", "step": 0, "near": Vector2(132.0, -14.0), "camp": "ysolt", "kind": "slate", "name": "a name", "verb": "Ask for",
 		"say": "Ysolt gives you three. You tell her one. She picks the hardest: MAUD OF THE TOR, WHO CARRIED HER CAIRN-STONE UP."},

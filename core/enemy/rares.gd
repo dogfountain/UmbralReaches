@@ -69,14 +69,14 @@ const RARES := {
 		"route": [Vector2(140, 128), Vector2(130, 140), Vector2(118, 132), Vector2(137, 116), Vector2(137, 102)],
 		"line": "The Ferryman goes under. Nobody pays the fare tonight."},
 	"old_rook": {"title": "Old Rook, the Kin-Taker", "kind": "gaunt", "hp": 20, "scale": 1.3,
-		# (18 Nov: west of west_track, which swung round the henge's 1.6x skirt over its old haunts)
-		"spots": [Vector2(-142, 24), Vector2(-150, 12)], "ash": 32, "loot": [["relic_fragment", 1]],
-		"route": [Vector2(-142, 24), Vector2(-150, 12), Vector2(-156, -2), Vector2(-150, 12), Vector2(-146, 34), Vector2(-142, 24)],
+		# (18 Nov: in the Holds, moved 31 m west off the henge's 1.6x skirt)
+		"spots": [Vector2(-171, 11), Vector2(-162, -1)], "ash": 32, "loot": [["relic_fragment", 1]],
+		"route": [Vector2(-171, 11), Vector2(-173, 24), Vector2(-162, 30), Vector2(-152, 26), Vector2(-162, -1)],
 		"line": "Old Rook will not come to the Holds' door again. The Rooted can sleep."},
 	# r36 Act II: the keepers of the Founder's bells (each bell quest's slay step wants its own; they
 	# haunt the bell, so the bell is guarded whenever you come to it)
 	"kin_caller": {"title": "The Kin-Caller", "kind": "gaunt", "hp": 30, "scale": 1.4,
-		"spots": [Vector2(-135, 23), Vector2(-141, 17), Vector2(-136, 28)], "ash": 40, "loot": [["relic_fragment", 2], ["kin_lamp", 1]],
+		"spots": [Vector2(-166, 23), Vector2(-172, 17), Vector2(-167, 28)], "ash": 40, "loot": [["relic_fragment", 2], ["kin_lamp", 1]],
 		"line": "The Kin-Caller lets go of the rope."},
 	"bell_hewer": {"title": "The Bell-Hewer", "kind": "husk", "variant": "stonebound", "hp": 44, "scale": 1.45,
 		"spots": [Vector2(-117, -115), Vector2(-123, -121)], "ash": 44, "loot": [["relic_fragment", 2], ["mason_mark", 1]],

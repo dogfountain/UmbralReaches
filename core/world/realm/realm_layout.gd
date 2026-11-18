@@ -57,9 +57,9 @@ const RAIDS := [
 	# (18 Nov, Luke: the arenas 1.6x, the world reshaped round them) the henge 31 -> 49.6 m; the hill broadened to carry it
 	{"id": "henge", "c": Vector2(-86.0, -24.0), "r": 49.6, "y": 9.0, "fall": 12.0, "mode": "level",
 		"gate": Vector2(-38.1, -11.2), "boss": "thornwarden",
-		# the Titan Gates' wardens stand on west_way below the stair, facing back up the road to Hearthward (from the gate
-		# they were pushed past the village: the henge's rim is only ~60 m from it now)
-		"titans": Vector2(-25.0, 15.0), "titans_dir": Vector2(0.5, 0.86), "titans_avenue": false},     # (its obelisk avenue would run into Hearthward)
+		# the Titan Gates' wardens stand inside the raid wall either side of the raid door at the stair's head (outside it,
+		# the ~60 m left between the rim and Hearthward has the stair, its fire, the Harrow cottage and the road)
+		"titans": Vector2(-50.5, 0.3), "titans_dir": Vector2(0.825, 0.565), "titans_fixed": true, "titans_avenue": false},
 	# (18 Nov) the deck an ellipse 1.6x as wide (rx 44.8) and 5 m west: the Crowns' face behind it is the world's edge
 	{"id": "summit", "c": Vector2(-5.0, -118.0) + Endgame.O2, "r": 28.0, "rx": 44.8, "y": 27.35, "fall": 10.0, "mode": "clear",
 		"gate": Vector2(0.0, -90.0) + Endgame.O2, "boss": "ascended_warden"},
@@ -68,10 +68,10 @@ const RAIDS := [
 	{"id": "hierarch", "c": Vector2(-206.0, 148.0), "r": 24.0, "y": 0.8, "fall": 12.0, "mode": "level",
 		"gate": Vector2(-182.5, 159.06), "boss": "r37_hierarch",
 		"arena_r": 32.0},     # (18 Nov: the fight is the skull (r 24, levelled) and the siege yard round it out to 32 m: 1.6x)
-	# (18 Nov) the terrace 18 -> 28.8 m: its north rim stays on the world's edge (the cliff), it grows south over the scree
-	# and west (clear of the summit deck's west wing)
-	{"id": "anchorhold", "c": Vector2(206.0, -121.2), "r": 28.8, "y": 16.0, "fall": 16.0, "mode": "level",
-		"gate": Vector2(186.1, -100.3), "boss": "r37_anchoress"},     # the track climbs the scree slantwise to the west rim
+	# (18 Nov) the terrace 1.6x along the cliff: an ellipse 28.8 m east-west, its depth (18, from the world's edge) and its
+	# approach up the scree as they were (pushed south, every way up the 1:1 scree was too steep to walk)
+	{"id": "anchorhold", "c": Vector2(214.0, -132.0), "r": 18.0, "rx": 28.8, "y": 16.0, "fall": 24.0, "mode": "level",
+		"gate": Vector2(206.0, -114.0), "boss": "r37_anchoress"},
 ]
 
 ## Regions: [id, name, centre xz, radius or rect, biome, lore one-liner]. Biomes drive flora,
@@ -107,7 +107,7 @@ const REGIONS := [
 	{"id": "quarry", "name": "The Saints' Quarry", "rect": Rect2(-155, -130, 50, 62), "biome": "crag", "tier": 2,
 		"purpose": "terraced pit cut into the Crowns' foot: vertical exploration, a camp on the benches, stone and ore",
 		"lore": "Where the Order cut four thousand steps for the Stair, bench by bench into the mountain."},
-	{"id": "holds", "name": "The Rooted Holds", "c": Vector2(-134, 12), "r": 18.0, "biome": "heath", "tier": 1,
+	{"id": "holds", "name": "The Rooted Holds", "c": Vector2(-165, 12), "r": 18.0, "biome": "heath", "tier": 1,
 		"purpose": "a heather clearing deep in the west wood: the Rooted's turf-roofed earth-houses, a hall-mound, a fire",
 		"lore": "The earth-houses of the Rooted, the Keg-folk's kin, half sunk in the heather; empty since before the road."},
 	{"id": "foundry", "name": "The Founder's Pits", "rect": Rect2(108, -112, 47, 46), "biome": "ash", "tier": 2,
@@ -253,10 +253,11 @@ const SLOTS := {
 		{"kind": "camp", "at": Vector2(-110, -100), "note": "the east benches"},
 		{"kind": "camp", "at": Vector2(-139, -89), "note": "the west benches"}],
 	"holds": [
-		{"kind": "fire", "at": Vector2(-125, 15), "note": "beside west_track at the clearing's edge"},
-		{"kind": "poi", "at": Vector2(-139, 11), "note": "the hall-mound"},
-		{"kind": "poi", "at": Vector2(-133, 1), "note": "a row of earth-houses"},
-		{"kind": "camp", "at": Vector2(-137, 22), "note": "the north holds"}],
+		# (18 Nov: the Holds moved 31 m west, off the henge hill's 1.6x skirt)
+		{"kind": "fire", "at": Vector2(-156, 15), "note": "beside west_track at the clearing's edge"},
+		{"kind": "poi", "at": Vector2(-170, 11), "note": "the hall-mound"},
+		{"kind": "poi", "at": Vector2(-164, 1), "note": "a row of earth-houses"},
+		{"kind": "camp", "at": Vector2(-172, 4), "note": "the north holds"}],
 	"foundry": [
 		{"kind": "fire", "at": Vector2(123, -76), "note": "at moor_track's end, under the first slag heap"},
 		{"kind": "poi", "at": Vector2(135, -105), "note": "the bell furnace, cut into the rim"},
@@ -306,14 +307,14 @@ const SLOTS := {
 const BASE_PATHS := [
 	# west_way's last turn meets the henge stair on its own axis, 2.5 m out (thorn_henge.gd's lane): a straight run to the
 	# foot passed 0.3 m from the north pinnacle and walked into it
-	{"id": "west_way", "w": 1.8, "pts": [Vector2(-4, 30), Vector2(-20, 24), Vector2(-27, 12), Vector2(-29.5, 3.0), Vector2(-32.3, -0.3), Vector2(-34.7, 0.5)]},
+	{"id": "west_way", "w": 1.8, "pts": [Vector2(-4, 30), Vector2(-20, 24), Vector2(-30, 16), Vector2(-31, 4.0), Vector2(-32.3, -0.3), Vector2(-34.7, 0.5)]},     # (clear of the Harrow cottage at (-19, 13))
 	{"id": "east_way", "w": 1.8, "pts": [Vector2(26, 22), Vector2(42, 10), Vector2(58, -12), Vector2(72, -34), Vector2(78, -42)]},
 	{"id": "fen_descent", "w": 1.6, "pts": [Vector2(78, -42), Vector2(62, -56), Vector2(54, -59.5)]},   # ends at the fen's fire (the Threshold); the Ossuary no longer waits at its end
 	{"id": "road", "w": 2.2, "pts": [Vector2(-366, 48), Vector2(-330, 52), Vector2(-300, 56.4), Vector2(-255, 62), Vector2(-232, 64), Vector2(-205, 66), Vector2(-180, 66), Vector2(-150, 67), Vector2(-104, 64), Vector2(-72, 60), Vector2(-40, 58), Vector2(-6, 54), Vector2(2, 44), Vector2(40, 60), Vector2(104, 66), Vector2(150, 68), Vector2(180, 70), Vector2(212, 74), Vector2(240, 72), Vector2(255, 70), Vector2(290, 70), Vector2(318, 66), Vector2(366, 62)]},
 	{"id": "chapel_lane", "w": 1.4, "pts": [Vector2(-60, 58), Vector2(-68, 52)]},
 	{"id": "rift_rim", "w": 2.0, "pts": [Vector2(0, 22) + Endgame.O2, Vector2(0, 4) + Endgame.O2, Vector2(0, -3) + Endgame.O2]},   # Lastlight's north postern to where the approach flight begins
 	{"id": "north_lane", "w": 1.6, "pts": [Vector2(0, 22), Vector2(0, 4), Vector2(-1, 0)]},   # Hearthward's north edge to the meadow fire (rift_rim's old first leg)
-	{"id": "west_track", "w": 1.4, "pts": [Vector2(-118, 65), Vector2(-124, 44), Vector2(-130, 22), Vector2(-148, -2), Vector2(-149, -43), Vector2(-136, -68), Vector2(-126, -84)]},     # (18 Nov: swung west off the henge hill's 1.6x skirt)
+	{"id": "west_track", "w": 1.4, "pts": [Vector2(-118, 65), Vector2(-124, 44), Vector2(-155, 44), Vector2(-163, 22), Vector2(-169, -6), Vector2(-166, -40), Vector2(-150, -60), Vector2(-132, -66), Vector2(-126, -84)]},     # (18 Nov: through the Holds, moved 31 m west with them off the henge hill's 1.6x skirt)
 	{"id": "moor_track", "w": 1.4, "pts": [Vector2(124, 67), Vector2(130, 44), Vector2(134, 18), Vector2(132, -18), Vector2(130, -46), Vector2(128, -72), Vector2(130, -86)]},
 	{"id": "necropolis_way", "w": 1.8, "pts": [Vector2(-6, 54), Vector2(-5, 74), Vector2(-3, 96), Vector2(0, 112), Vector2(0, 128)]},
 	{"id": "orchard_lane", "w": 1.4, "pts": [Vector2(-98, 63), Vector2(-102, 84), Vector2(-108, 104), Vector2(-112, 122)]},
@@ -323,7 +324,7 @@ const BASE_PATHS := [
 	{"id": "weir_track", "w": 1.4, "pts": [Vector2(-196, 66), Vector2(-192, 36), Vector2(-188, 0), Vector2(-188, -40), Vector2(-196, -76), Vector2(-200, -82)]},
 	{"id": "siege_track", "w": 1.4, "pts": [Vector2(-214, 65), Vector2(-215, 84), Vector2(-208, 99), Vector2(-206, 105), Vector2(-203, 118), Vector2(-192, 132), Vector2(-181, 146), Vector2(-182.5, 159.06), Vector2(-177, 175), Vector2(-179, 190)]},
 	{"id": "spire_track", "w": 1.4, "pts": [Vector2(212, 74), Vector2(214, 52), Vector2(226, 30), Vector2(236, 14)]},
-	{"id": "anchor_track", "w": 1.4, "pts": [Vector2(180, 70), Vector2(174, 40), Vector2(172, 0), Vector2(178, -40), Vector2(196, -70), Vector2(186, -84), Vector2(182, -96), Vector2(186.1, -100.3)]},
+	{"id": "anchor_track", "w": 1.4, "pts": [Vector2(180, 70), Vector2(174, 40), Vector2(172, 0), Vector2(178, -40), Vector2(196, -70), Vector2(204, -84), Vector2(205, -102), Vector2(206, -108)]},
 	{"id": "salt_track", "w": 1.4, "pts": [Vector2(212, 74), Vector2(212, 108), Vector2(212, 186), Vector2(196, 212)]},        # the Brine Road: straight from Saltmarket to the pump tower (realm_pois_east_works.gd), so it is not in MEANDER_IDS
 	{"id": "downs_track", "w": 1.4, "pts": [Vector2(-179, 190), Vector2(-150, 196), Vector2(-110, 190), Vector2(-44, 192), Vector2(0, 190), Vector2(44, 192), Vector2(110, 186), Vector2(160, 200), Vector2(196, 212)]},
 	# the Crowns' foot, east-west: the two boss corners are joined to the old north (through the wall's breaches)
@@ -450,7 +451,7 @@ static func macro_dry(x: float, z: float) -> float:
 	# r34: the Saints' Quarry's hill: a spur of the Crowns that quarry_cut benches down into a pit
 	h += 11.0 * _bump(p, QUARRY_C, 46.0)
 	# r34: the Rooted Holds (a hollow clearing in the west wood)
-	h = lerpf(h, 2.5, 0.7 * _bump(p, Vector2(-134, 12), 24.0))
+	h = lerpf(h, 2.5, 1.0 - smoothstep(18.0, 30.0, p.distance_to(Vector2(-165, 12))))      # the Rooted Holds' hollow, flat to 18 m (moved west onto hillier ground, 18 Nov)      # the Rooted Holds' hollow (moved west, 18 Nov: wider and flatter, its new ground is hillier)
 	# hearth basin and the road plain: pulled flat towards 0 / 0.5
 	var hearth := _bump(p, Vector2(6, 38), 40.0)
 	h = lerpf(h, 0.0, hearth)

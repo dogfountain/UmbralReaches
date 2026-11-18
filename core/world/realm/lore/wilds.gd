@@ -55,8 +55,8 @@ static func build(parent: Node) -> void:
 	var k: OssKit = L.k
 	var rng: RandomNumberGenerator = L.rng
 	# --- the abbey bounds: a long broken wall, a gap where the west way passes ------------------
-	var wa := Vector2(-61.0, 31.0)
-	var wb := Vector2(-53.5, 4.5)
+	var wa := Vector2(-56.0, 58.0)          # (18 Nov: from (-61, 31)..(-53.5, 4.5), on the henge's 1.6x floor; east of the chapel, clear of the orchard)
+	var wb := Vector2(-48.0, 36.0)
 	var r := Rect2(wa, Vector2.ZERO).expand(wb).grow(0.8)
 	if LK.clear_of(r, 0.6):
 		L.site("tw_bounds", r, L.g(r.get_center().x, r.get_center().y))
@@ -89,7 +89,7 @@ static func build(parent: Node) -> void:
 			L.stone(L.p, at + Basis(Vector3.UP, rng.randf() * TAU) * Vector3(rng.randf_range(0.7, 1.1), 0, 0), Vector3(0.4, 0.3, 0.35) * rng.randf_range(0.7, 1.3), "lore_moss", false, 0.4)
 		L.scrap(String(t[1]), fp, fp + Vector3.UP * 0.6)
 	# --- the fallen saint ----------------------------------------------------------------------
-	var fs := Vector2(-88.0, 24.0)
+	var fs := Vector2(-50.0, -84.0)           # (18 Nov: from (-88, 24), on the henge's 1.6x floor)
 	var fsv: Vector3 = L.gv(fs.x, fs.y)
 	if L.spot("tw_saint", fsv, 2.2, 0.5):
 		var pq: Vector3 = L.gv(fsv.x + 1.6, fsv.z + 0.3)

@@ -38,7 +38,9 @@ func _gate(root: Node, r: Dictionary) -> void:
 	# 30 m outside the gate, clear of the arena's seal guards and camps (their sites): nudged out 14 m at a time if a site is there
 	var base := gate + dir * 30.0
 	var found := false
-	for off: float in [30.0, 42.0, 54.0, 66.0, 78.0, 90.0]:        # the first distance (then side-step) at which neither obelisk's ground touches a site
+	if bool(r.get("titans_fixed", false)):
+		found = true                          # a named spot (the henge: inside its own raid wall): no search
+	for off: float in ([] if found else [30.0, 42.0, 54.0, 66.0, 78.0, 90.0]):        # the first distance (then side-step) at which neither obelisk's ground touches a site
 		for lat: float in [0.0, 16.0, -16.0, 32.0, -32.0]:
 			var bp := gate + dir * off + side * lat
 			var hit := false
@@ -55,7 +57,7 @@ func _gate(root: Node, r: Dictionary) -> void:
 	var yaw := atan2(dir.x, dir.y)
 	for s: float in [-1.0, 1.0]:
 		var p := base + side * (7.0 * s)
-		WK.reserve("titan_gate_%s_%d" % [String(r.id), int(s)], p, Vector2(5.0, 5.0), yaw, WK.h(p.x, p.y) - 2.0, WK.h(p.x, p.y) + 24.0)
+		WK.reserve(("%s_titan_%d" if bool(r.get("titans_fixed", false)) else "titan_gate_%s_%d") % [String(r.id), int(s)], p, Vector2(5.0, 5.0), yaw, WK.h(p.x, p.y) - 2.0, WK.h(p.x, p.y) + 24.0)
 	if not k.cached(WK.fp(SELF, [String(r.id), base, WK.tsig(base, 60.0)])):
 		for s: float in [-1.0, 1.0]:
 			_titan(k, base + side * (7.0 * s), dir, side, s)

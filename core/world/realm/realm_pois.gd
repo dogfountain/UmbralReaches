@@ -64,7 +64,7 @@ const R37E_PATH := "res://core/world/realm/realm_pois_east_marches.gd"   ## East
 ## [prefer xz, search radius, half extents, max ground rise, title, banner line, region]
 const POIS := {
 	"belfry": [Vector2(82.0, -18.0), 14.0, Vector2(6.0, 6.0), 1.2, "The Drowned Belfry", "the bell that rang for the sunk", "fen"],
-	"charcoal": [Vector2(-86.0, -62.0), 34.0, Vector2(8.0, 8.0), 3.2, "The Charcoal Hollow", "three clamps still burning", "thornwood"],
+	"charcoal": [Vector2(-62.0, -92.0), 34.0, Vector2(8.0, 8.0), 3.2, "The Charcoal Hollow", "three clamps still burning", "thornwood"],
 	"almonry": [Vector2(46.0, 40.0), 12.0, Vector2(8.5, 8.0), 1.3, "The Almonry", "one loaf, one blessing, one night", "road"],
 	"spire": [Vector2(-52.0, -100.0), 16.0, Vector2(6.5, 6.5), 2.2, "The Watchers' Spire", "the Order kept watch on the sky", "crags"],
 }

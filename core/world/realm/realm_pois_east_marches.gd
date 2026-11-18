@@ -743,7 +743,7 @@ static func _anchorholds(holder: Node3D, space: PhysicsDirectSpaceState3D) -> vo
 	k.keep_lanes = false
 	for i in 4:
 		var a := deg_to_rad(45.0 + 90.0 * float(i)) + 0.18
-		var q := Vector3(C.x + cos(a) * 15.4, 0, C.z + sin(a) * 15.4)      # (18 Nov: 9.6 -> 15.4 with the 1.6x terrace)
+		var q := Vector3(C.x + cos(a) * 9.6 * 1.6, 0, C.z + sin(a) * 9.6)      # (18 Nov: stretched east-west with the terrace)
 		q.y = _gy(space, q.x, q.z)
 		cairns.append(q)
 		var yaw := a
@@ -758,7 +758,8 @@ static func _anchorholds(holder: Node3D, space: PhysicsDirectSpaceState3D) -> vo
 	_cells(host, space, C, float(raid.r))
 	# the boss: the arena on the floor, its beacon, the room, what it leaves
 	var script := load(ANCHORESS) as GDScript
-	var arena := BossArena.make(host, "r37_anchoress", "The Anchoress", C, float(raid.r) - 1.0, script, C + _toward(C, raid.gate) * 7.0 + Vector3(0, 0.1, 0))   # rises on the entry axis
+	var arena := BossArena.make(host, "r37_anchoress", "The Anchoress", C, float(raid.get("rx", raid.r)) - 1.0, script, C + _toward(C, raid.gate) * 7.0 + Vector3(0, 0.1, 0))   # rises on the entry axis
+	arena.depth_scale = float(raid.r) / float(raid.get("rx", raid.r))      # (18 Nov) the terrace an ellipse along the cliff
 	arena.room = room
 	arena.ceiling = 10.0
 	arena.max_rise = 2.6
@@ -774,7 +775,7 @@ static func _anchorholds(holder: Node3D, space: PhysicsDirectSpaceState3D) -> vo
 	var gy := _gy(space, gate.x, gate.y)
 	P._lore(host, "r37e_anchor_gate", Vector3(gate.x + 1.6, gy + 1.0, gate.y + 0.6))
 	var cell_y := fy + 0.4
-	var ch := P._chest(host, "anchorhold_cell", Vector3(C.x + 19.0 * cos(deg_to_rad(-60.0)), cell_y, C.z + 19.0 * sin(deg_to_rad(-60.0))), deg_to_rad(120.0))
+	var ch := P._chest(host, "anchorhold_cell", Vector3(C.x + 12.0 * cos(deg_to_rad(-60.0)), cell_y, C.z + 12.0 * sin(deg_to_rad(-60.0))), deg_to_rad(120.0))
 	if ch:
 		ch.set("tier", "iron")
 		ch.set("loot", {"grave_ash": 16, "relic_fragment": 1, "ember_shard": 1})
@@ -822,9 +823,11 @@ static func _cells(host: Node3D, space: PhysicsDirectSpaceState3D, C: Vector3, r
 	# the lower cells, on the floor against the face; the upper cells and the timber walk 4.6 m over it
 	for lvl in 2:
 		var y := C.y + (0.2 if lvl == 0 else TERRACE_UP)
-		for deg: float in [-160.0, -140.0, -120.0, -60.0, -20.0]:
+		# (18 Nov) all on the north face: the terrace now runs east-west along the cliff, so rays at -160 / -20 met its
+		# open ends (or a cairn) instead of rock; and clear of the cairns at -125 and -35
+		for deg: float in [-150.0, -138.0, -108.0, -78.0, -55.0]:
 			var ang := deg_to_rad(deg + (rng.randf_range(-4.0, 4.0)))
-			var f := _face(space, C, ang, y + 1.6, r - 6.0)
+			var f := _face(space, C, ang, y + 1.6, r - 4.0)
 			if f.is_empty():
 				continue
 			var p: Vector3 = f[0]
@@ -857,8 +860,8 @@ static func _cells(host: Node3D, space: PhysicsDirectSpaceState3D, C: Vector3, r
 	# the timber walk over the rim: spans on posts along r - 1.4, a stair up at the west end
 	var wr := r - 1.0
 	var ws := 2.4
-	var a0 := deg_to_rad(-170.0)
-	var a1 := deg_to_rad(-10.0)
+	var a0 := deg_to_rad(-150.0)            # (18 Nov: the north face only; the terrace's ends are open now)
+	var a1 := deg_to_rad(-30.0)
 	var steps := int((a1 - a0) * wr / 3.0)
 	var spans := 0
 	for i in steps:

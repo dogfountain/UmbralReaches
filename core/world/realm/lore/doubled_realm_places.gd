@@ -21,10 +21,10 @@ static func build(parent: Node) -> void:
 	_notice(L, "qy_ban", "r34_qy_ban", [Vector2(-122, -78), Vector2(-128, -78), Vector2(-116, -79)])
 	_page_stone(L, "qy_book_3", "r34_qy_book", [Vector2(-140, -104), Vector2(-136, -112), Vector2(-112, -106)])
 	# --- the Rooted Holds ------------------------------------------------------------------------
-	_rune(L, "rh_stone", "r34_rh_stone", [Vector2(-128, 24), Vector2(-142, 22), Vector2(-127, 6)], 0.0)
-	_grave(L, "rh_grave", "r34_rh_grave", [Vector2(-145, 0), Vector2(-146, 20), Vector2(-122, 2)], false, 4)
-	_rune(L, "rh_kin", "r34_rh_kin", [Vector2(-128, -8), Vector2(-138, -10), Vector2(-121, -6)], 0.0)
-	_way(L, "rh_track", "r34_rh_track", "west_track", [52.0, 60.0, 44.0, 70.0])
+	_rune(L, "rh_stone", "r34_rh_stone", [Vector2(-159, 24), Vector2(-173, 22), Vector2(-158, 6)], 0.0)
+	_grave(L, "rh_grave", "r34_rh_grave", [Vector2(-176, 0), Vector2(-177, 20), Vector2(-153, 2)], false, 4)
+	_rune(L, "rh_kin", "r34_rh_kin", [Vector2(-159, -8), Vector2(-169, -10), Vector2(-152, -6)], 0.0)
+	_way(L, "rh_track", "r34_rh_track", "west_track", [52.0, 60.0, 44.0, 70.0, 80.0, 36.0, 90.0])     # (18 Nov: more arcs: the track swung west round the henge)
 	# --- the Founder's Pits ----------------------------------------------------------------------
 	_notice(L, "fp_notice", "r34_fp_notice", [Vector2(125, -82), Vector2(118, -78), Vector2(127, -70)])
 	_page_stone(L, "fp_book_2", "r34_fp_book", [Vector2(141, -84), Vector2(116, -92), Vector2(146, -90)])

@@ -374,7 +374,7 @@ const CAST := {
 ## 14 m off the encounter camps); `look` is the way they stand and watch from (xz, @out_<id>);
 ## `style` picks the camp's dressing (village_props.gd outpost()).
 const OUTPOSTS := {
-	"ruan": {"near": [Vector2(-128.0, 0.0), Vector2(-120.0, 10.0), Vector2(-126.0, 25.0), Vector2(-144.0, 2.0)], "region": "holds", "style": "holds", "look": Vector2(-86.0, -24.0)},
+	"ruan": {"near": [Vector2(-159.0, 0.0), Vector2(-151.0, 10.0), Vector2(-157.0, 25.0), Vector2(-175.0, 2.0)], "region": "holds", "style": "holds", "look": Vector2(-86.0, -24.0)},
 	"jory": {"near": [Vector2(-135.0, -74.0), Vector2(-138.0, -109.0), Vector2(-120.0, -70.0)], "region": "quarry", "style": "quarry", "look": Vector2(-128.0, -104.0)},
 	"ysolt": {"near": [Vector2(132.0, -14.0), Vector2(132.0, 10.0)], "region": "moor", "style": "moor", "look": Vector2(141.0, -24.0)},
 	"elspeth": {"near": [Vector2(118.0, -72.0), Vector2(126.0, -70.0)], "region": "foundry", "style": "foundry", "look": Vector2(135.0, -105.0)},

@@ -26,7 +26,7 @@ const BRAZIERS := {
 ## Camps keep 13 m off them (the enemies pass). [xz, the point the fire faces]
 const R34_FIRES := {
 	"QuarryFire": [Vector2(-120.0, -83.0), Vector2(-126.0, -84.0)],     # the quarry's mouth, beside west_track's end
-	"HoldsFire": [Vector2(-138.0, 15.5), Vector2(-133.0, 15.0)],        # the Rooted Holds, west of west_track (the holds stand east of it)
+	"HoldsFire": [Vector2(-169.0, 15.5), Vector2(-164.0, 15.0)],        # the Rooted Holds, west of west_track (the holds stand east of it)
 	"FoundryFire": [Vector2(123.0, -76.0), Vector2(128.0, -74.0)],      # moor_track's end, under the first slag heap
 	"MoorFire": [Vector2(126.0, -8.0), Vector2(132.0, -9.0)],           # beside moor_track, under the tor
 	"OrchardFire": [Vector2(-99.0, 104.0), Vector2(-106.0, 104.0)],     # beside orchard_lane
@@ -89,12 +89,19 @@ static func _reserve_raids() -> void:
 		else:
 			# the summit's own monument (SummitDress) already stands in it
 			WorldLanes.register_zone(n, r.c, float(r.r), float(r.y), float(r.y) - 0.8, ["SummitAltar"])
-			if r.has("rx"):
-				# an elliptical deck's wings east and west (one circle the width of it would take in the platform south)
-				var wing := float(r.rx) - float(r.r) * 0.75
-				for sgn: float in [-1.0, 1.0]:
-					WorldLanes.register_zone(n + ("_e" if sgn > 0.0 else "_w"), (r.c as Vector2) + Vector2(sgn * wing, 0.0), float(r.r) * 0.75,
-						float(r.y), float(r.y) - 0.8, ["SummitAltar"])
+		if r.has("rx"):
+			# an elliptical floor's wings east and west and its far ends (one circle its width would take in what lies
+			# north and south of it: the platform, the cliff), so nothing grows or is placed under them
+			var rr := float(r.r)
+			var rxx := float(r.rx)
+			for sgn: float in [-1.0, 1.0]:
+				var tag := "_e" if sgn > 0.0 else "_w"
+				for part: Array in [[rxx - rr * 0.85, rr * 0.85 + 1.5, ""], [rxx - rr * 0.45, rr * 0.5 + 2.0, "e"]]:
+					var cc: Vector2 = (r.c as Vector2) + Vector2(sgn * float(part[0]), 0.0)
+					if String(r.mode) == "level":
+						WorldLanes.register_terrace(n + tag + String(part[2]), cc, float(part[1]), float(r.y))
+					else:
+						WorldLanes.register_zone(n + tag + String(part[2]), cc, float(part[1]), float(r.y), float(r.y) - 0.8, ["SummitAltar"])
 
 
 ## r34 places: every placed fire's name (the valley's four, then the new regions' seven).

@@ -39,7 +39,7 @@ const CAP_R := 38.0
 const HAVEN_C := Vector2(4.0, 36.0)
 const HAVEN_R := 34.0              ## Hearthward and the spawn clearing: nothing of ours spawns in it
 ## r34: the Rooted Holds' clearing is safe-ish too (no tide, no ambush, nothing of ours rises in it)
-const HOLDS_C := Vector2(-134.0, 12.0)
+const HOLDS_C := Vector2(-165.0, 12.0)
 const HOLDS_R := 21.0
 ## r34: an ambush laid on purpose (as well as the planned ones along every way): Corvin's Mere's
 ## causeway, half-way over the water, where the drowned climb up out of the mere.

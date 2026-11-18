@@ -383,8 +383,10 @@ func _rockfall() -> void:
 		if _arena_c != Vector3.INF:
 			var off := at - _arena_c
 			off.y = 0.0
-			if off.length() > 25.6:
-				at = _arena_c + off.normalized() * 25.6
+			var oe := Vector2(off.x / 1.6, off.z)                  # on the terrace's own scale (an ellipse 1.6x as wide)
+			if oe.length() > 15.5:
+				oe = oe.normalized() * 15.5
+				at = _arena_c + Vector3(oe.x * 1.6, 0.0, oe.y)
 		var eid := get_instance_id()
 		var delay := 1.4 + 0.45 * float(i)
 		BossKit.zone(get_parent(), at, delay, 24.0, {"by": self, "radius": 2.6, "spikes": "bone", "color": Color(1.5, 0.8, 0.4)})

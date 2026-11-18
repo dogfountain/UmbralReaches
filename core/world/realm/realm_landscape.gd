@@ -117,7 +117,7 @@ static func relief(x: float, z: float, h: float, bw: PackedFloat32Array) -> floa
 ## camps tuned to it; low ground is only raised. Off the old Realm's own set pieces too (OLD_KEEP).
 const OLD_KEEP := [
 	[Vector2(-28.0, 32.0), 16.0, 30.0],        # the Glimmer Glade (moved out of the henge's 1.6x skirt, 18 Nov)
-	[Vector2(-134.0, 12.0), 22.0, 38.0],       # the Rooted Holds' hollow
+	[Vector2(-165.0, 12.0), 22.0, 38.0],       # the Rooted Holds' hollow (moved west off the henge's 1.6x skirt, 18 Nov)
 	[Vector2(-109.0, 121.0), 44.0, 62.0],      # the Cinder Orchard's rows
 	[Vector2(131.0, -89.0), 30.0, 46.0],       # the Founder's Pits' bench
 	[Vector2(-1.0, 127.0), 46.0, 66.0],        # the Waiting Field

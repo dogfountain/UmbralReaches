@@ -27,7 +27,7 @@ const QUESTS := {
 		"offer": true, "avail": "q:founders_peal",         # the nearest bell asks for nothing first: one bell is the door's whole price
 		"text": "There's a bell in the Holds the Rooted never asked for. The Founder hung it in our oak anyway, to call the kin home at dusk. Something rings it at night now. With its hands. Put it down. Then decide what the bell's for.",
 		"steps": [
-			{"kind": "slay", "of": 1, "rares": ["kin_caller"], "at": Vector2(-138.0, 20.0), "label": "The Kin-Caller",
+			{"kind": "slay", "of": 1, "rares": ["kin_caller"], "at": Vector2(-169.0, 20.0), "label": "The Kin-Caller",
 				"text": "Put down the Kin-Caller, who rings the Kin Bell"},
 			{"kind": "find", "text": "Answer for the Kin Bell under the oak"},
 			{"kind": "turnin", "who": "ruan", "text": "Tell Gammer Ruan what you did with the bell"},
@@ -127,7 +127,7 @@ const QUESTS := {
 const PICKUPS := {
 	"bell_spire": {"quest": "bell_spire", "step": 1, "near": Vector2(242.0, 13.5), "kind": "bell", "name": "the Shut-Out Bell", "verb": "Stand at", "conv": "bell_spire",
 		"say": "A bell hung low on a black oak post at the Spire's foot, where a lamp-trimmer could ring it from the door. The tongue was wrapped in lamp-wick and sealed with wax, so no one would ring it by accident. The wax is broken. Round the shoulder, in a small hand: FOR WHOEVER IS OUTSIDE."},
-	"bell_holds": {"quest": "bell_holds", "step": 1, "near": Vector2(-138.0, 20.0), "kind": "bell", "name": "the Kin Bell", "verb": "Stand at", "conv": "bell_holds",
+	"bell_holds": {"quest": "bell_holds", "step": 1, "near": Vector2(-169.0, 20.0), "kind": "bell", "name": "the Kin Bell", "verb": "Stand at", "conv": "bell_holds",
 		"say": "A small bronze bell hung in the oak's fork on a rope of plaited bark. The Rooted carved their knot into the wood above it, to say they hadn't asked for it and would keep it anyway."},
 	"bell_quarry": {"quest": "bell_quarry", "step": 1, "near": Vector2(-120.0, -118.0), "kind": "bell", "name": "the Mason's Bell", "verb": "Stand at", "conv": "bell_quarry",
 		"say": "A plain iron bell slung from the quarry crane's arm, its rope tied off at the stop stroke and cut through above the knot. Under it, every cutter's mark in the quarry, chiselled into one block."},

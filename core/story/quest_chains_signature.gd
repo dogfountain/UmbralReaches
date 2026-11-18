@@ -20,7 +20,7 @@ const BOUNDS := {"name": "Beating the Bounds", "giver": "ruan", "where": "Gammer
 	"offer": true, "avail": "qd:holds_turf",
 	"text": "Once a year the Rooted walked their bounds, stone to stone, and said each name aloud so the ground would know whose it was. Nobody has walked them since the young ones went. My knees say no. Say the names for me, at the Holds' stone, the wood's, and the glade's. In that order; the ground is particular.",
 	"steps": [
-		{"kind": "visit", "at": Vector2(-141.0, 4.0), "r": 8.0, "label": "The Holds' ward-stone", "text": "Begin the bounds at the Holds' ward-stone, west of the fire"},
+		{"kind": "visit", "at": Vector2(-172.0, 4.0), "r": 8.0, "label": "The Holds' ward-stone", "text": "Begin the bounds at the Holds' ward-stone, west of the fire"},
 		{"kind": "visit", "at": Vector2(-66.0, 30.0), "r": 8.0, "label": "The wood's ward-stone", "text": "Walk on to the ward-stone under the Thornwood's oaks"},
 		{"kind": "visit", "at": Vector2(-44.0, 4.0), "r": 8.0, "label": "The glade's ward-stone", "text": "Close the bounds at the ward-stone in the Glimmer Glade"},
 		{"kind": "turnin", "who": "ruan", "text": "Tell Gammer Ruan the bounds are walked"},
