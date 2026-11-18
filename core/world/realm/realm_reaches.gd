@@ -137,7 +137,7 @@ const PATHS := [
 	{"id": "southwood_way", "w": 1.4, "pts": [Vector2(200, 296), Vector2(236, 288), Vector2(270, 282), Vector2(300, 280), Vector2(320, 300), Vector2(326, 316)]},
 	# Lastlight's yard out through the north postern to the rift's forecourt (rift_rim, RealmLayout): the end of the road
 	{"id": "bell_track", "w": 1.4, "pts": [Vector2(318, 66), Vector2(304, 36), Vector2(310, 22)]},
-	{"id": "nave_track", "w": 1.4, "pts": [Vector2(290, 70), Vector2(292, 96), Vector2(296, 122), Vector2(300, 140)]},
+	{"id": "nave_track", "w": 1.4, "pts": [Vector2(290, 70), Vector2(298, 94), Vector2(312, 118), Vector2(314, 132), Vector2(300, 140)]},
 	{"id": "cairn_track", "w": 1.4, "pts": [Vector2(300, 140), Vector2(286, 168), Vector2(282, 200), Vector2(290, 236), Vector2(300, 280)]},
 	# the Anchorholds' foot round the rift's west berm to its forecourt
 	{"id": "bell_link", "w": 1.4, "pts": [Vector2(196, -70), Vector2(226, -78), Vector2(258, -82), Vector2(263, -52), Vector2(266, -22), Vector2(266, 2), Vector2(284, 6), Vector2(310, 4)]},

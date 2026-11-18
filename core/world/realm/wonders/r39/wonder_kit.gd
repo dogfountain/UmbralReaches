@@ -204,7 +204,7 @@ static func protect() -> void:
 	if rares is Dictionary:
 		for id: String in (rares as Dictionary):
 			for sp: Vector2 in (((rares as Dictionary)[id] as Dictionary).get("spots", []) as Array):
-				_prot(sp, 14.0)
+				_prot(sp, 22.0)
 	for reg: Dictionary in RealmLayout.REGIONS:             # grounds whose rows and avenues are planted to the land as it is (terraces would hang them in the air)
 		if String(reg.id) in ["orchard", "necropolis", "ossuary", "bellfall"] and reg.has("rect"):
 			var rr: Rect2 = reg.rect
@@ -239,6 +239,14 @@ static func protect() -> void:
 					_walk.append((ea as Vector2).lerp(eb as Vector2, float(st) / 6.0))
 	_prot(Vector2(215.0, 97.0), 55.0)         # Saltmarket's yard and its walk lanes
 	_prot(Vector2(-196.0, 70.0), 45.0)        # Weirford
+	for xs: Vector2 in [Vector2(72.0, 204.0), Vector2(-72.0, 52.0), Vector2(78.0, -42.0)]:     # world-event grounds (a surge needs open ground round them)
+		_prot(xs, 20.0)
+	var evx: Variant = (load("res://core/world/realm/realm_pois_doubled_realm.gd") as GDScript).get_script_constant_map().get("EXTRA", {})
+	if evx is Dictionary:
+		for eid: String in (evx as Dictionary):
+			var ev: Array = (evx as Dictionary)[eid]
+			if ev[0] is Vector2:
+				_prot(ev[0] as Vector2, 20.0)
 	var elites: Variant = (load("res://core/life/encounters/elites.gd") as GDScript).get_script_constant_map().get("ELITES", {})
 	if elites is Dictionary:
 		for id: String in (elites as Dictionary):
