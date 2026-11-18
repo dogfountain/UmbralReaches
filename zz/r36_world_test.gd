@@ -154,7 +154,8 @@ func _horses() -> void:
 	await _wait(0.4)
 	Travel.items["grave_ash"] = 0
 	# through the wanderer's own [E] (the sensor finds it), not a call on the horse
-	ok(p.get("_interact_target") == h, "[E] finds the horse beside you (%s)" % str(p.get("_interact_target")))
+	var it: Variant = p.get("_interact_target")
+	ok(it == h, "[E] finds the horse beside you (%s)" % (str((it as Node).get_path()) + " " + str((it as Node).get_script().resource_path if (it as Node).get_script() else "") if it is Node else str(it)))
 	p.call("_try_interact")
 	ok(not bool(h.call("owned")), "no ash, no horse")
 	Travel.items["grave_ash"] = 200
