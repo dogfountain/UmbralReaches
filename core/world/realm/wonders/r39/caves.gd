@@ -21,12 +21,14 @@ const WK := preload("res://core/world/realm/wonders/r39/wonder_kit.gd")
 const DK := preload("res://core/world/realm/wonders/r39/dungeon_kit.gd")
 const Dress := preload("res://core/world/realm/wonders/r39/wonder_dress.gd")
 const RockKit := preload("res://core/world/realm/rock_kit.gd")
+const Plan := preload("res://core/world/realm/wonders/r39/wonder_plan.gd")
 
 const NAMES := ["The Crystal Grotto", "The Root Cave", "The Bat Cave", "The Drowned Cave", "The Ember Cave", "The Bone Den", "The Fungus Grotto"]
 const LINES := ["a cold light under the heather", "the roots go all the way down", "something lives in the dark and leaves it", "the water came in and stayed",
 	"a seam of the rift reached here", "the bears were not the first to dig it", "the cap-ring of a thousand nights"]
 
 var _placed: Array[Vector2] = []
+var _picks: Array = []                 ## [centre, yaw] of every cave built, in order: the stored search (wonder_plan.gd)
 
 
 static func build(root: Node) -> void:
@@ -35,6 +37,17 @@ static func build(root: Node) -> void:
 
 
 func _run(root: Node) -> void:
+	# a warm boot builds the caves the last search picked (wonder_plan.gd), in the same order
+	var pk := Plan.key("caves", SELF, ["res://core/world/realm/wonders/r39/dungeon_kit.gd"])
+	var stored: Variant = Plan.load_plan(pk, SELF)
+	if stored is Dictionary:
+		var sd: Dictionary = stored
+		var spots: Array = sd.spots
+		for si in spots.size():
+			var sp: Array = spots[si]
+			_make(root, si, sp[0] as Vector2, float(sp[1]))
+		print(String(sd.log))
+		return
 	# the whole Realm is the candidate set (a jittered 26 m grid, shuffled): the first seven that pass; every refusal is counted
 	var cands := WK.grid(7710, 26.0, 30.0)
 	var t := {}
@@ -49,7 +62,9 @@ func _run(root: Node) -> void:
 		tried += 1
 		if _ok(c, t) and _cave(root, n, c):
 			n += 1
-	print("WONDER caves: %d of 7 (%d of %d candidates tried); rejected: %s" % [n, tried, cands.size(), WK.rejected(t)])
+	var line := "WONDER caves: %d of 7 (%d of %d candidates tried); rejected: %s" % [n, tried, cands.size(), WK.rejected(t)]
+	print(line)
+	Plan.save_plan(pk, SELF, {"spots": _picks, "log": line})
 
 
 func _ok(c: Vector2, t: Dictionary) -> bool:
@@ -73,7 +88,12 @@ func _cave(root: Node, i: int, c0: Vector2) -> bool:
 		return false
 	var c: Vector2 = f.pos
 	_placed.append(c)
-	var yaw := float(f.yaw)
+	_picks.append([c, float(f.yaw)])
+	return _make(root, i, c, float(f.yaw))
+
+
+## The cave `i` at centre `c`, its stair running along `yaw`: the build from a pick.
+func _make(root: Node, i: int, c: Vector2, yaw: float) -> bool:
 	var ez := Vector2(-sin(yaw), cos(yaw))
 	var fwd2 := ez if WK.h(c.x - ez.x * 24.0, c.y - ez.y * 24.0) <= WK.h(c.x + ez.x * 24.0, c.y + ez.y * 24.0) else -ez
 	var d := DK.new()

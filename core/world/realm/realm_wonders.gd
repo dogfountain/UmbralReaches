@@ -31,6 +31,7 @@ const LIST := [
 
 static func build(root: Node) -> void:
 	preload("res://core/world/realm/wonders/r39/wonder_kit.gd").protect()
+	preload("res://core/world/realm/wonders/r39/wonder_plan.gd").reset()
 	preload("res://core/world/realm/realm_flora.gd").tree_clear.append([Vector2(76.8, -27.6), 4.0])         # the fen sexton's ground: a tree variant must not stand on it (one entry: each costs every tree candidate a test)
 	preload("res://core/world/realm/wonders/r39/wonder_kit.gd").light_used = 0          # the wonders' light budget starts over with each Realm build
 	if "--no-wonders" in OS.get_cmdline_user_args():

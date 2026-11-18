@@ -8,6 +8,8 @@ extends RefCounted
 
 const WK := preload("res://core/world/realm/wonders/r39/wonder_kit.gd")
 const RockKit := preload("res://core/world/realm/rock_kit.gd")
+const Plan := preload("res://core/world/realm/wonders/r39/wonder_plan.gd")
+const SELF := "res://core/world/realm/wonders/r39/terrain_outcrops.gd"
 const MAX := 90
 const SIZES := [Vector3(6.0, 3.6, 2.4), Vector3(7.5, 4.8, 2.8), Vector3(9.0, 6.0, 3.2), Vector3(5.0, 3.0, 2.0)]
 
@@ -27,38 +29,19 @@ func _run(root: Node) -> void:
 	for reg: Dictionary in RealmLayout.REGIONS:
 		biome[String(reg.id)] = String(reg.get("biome", ""))
 	var groups := {}                                  ## mesh -> {cell -> [Transform3D]}: one MultiMesh per (mesh, 96 m cell), not a draw per rock
-	var mb := RealmReaches.MARCH_BOUNDS
-	# one pass over a 14 m grid of the Far Reaches (about 2,000 cells, four height reads each): the steepest MAX cells, 12 m apart
-	var cand: Array = []
-	var gz := -138.0
-	while gz < 390.0:
-		var gx := -360.0
-		while gx < 360.0:
-			gx += 14.0
-			var p := Vector2(gx + rng.randf() * 10.0, gz + rng.randf() * 10.0)
-			if mb.has_point(p) or not RealmLayout.BOUNDS.grow(-12.0).has_point(p) or WK.wet(p.x, p.y) or Rect2(-24, -118, 48, 106).grow(70.0).has_point(p) or WK.in_town(p, 30.0) or RealmLayout.OLD_BOUNDS.grow(10.0).has_point(p):
-				continue
-			var gxv := (WK.h(p.x + 4.0, p.y) - WK.h(p.x - 4.0, p.y)) / 8.0
-			var gzv := (WK.h(p.x, p.y + 4.0) - WK.h(p.x, p.y - 4.0)) / 8.0
-			var sl := sqrt(gxv * gxv + gzv * gzv)
-			if sl >= 0.2 and sl <= 1.4:
-				cand.append([sl, p, gxv, gzv])
-		gz += 14.0
-	cand.sort_custom(func(a: Array, b: Array) -> bool: return float(a[0]) > float(b[0]))
-	var kept: Array[Vector2] = []
+	var picks: Array = []                             ## [slope, point, dx, dz] of every face placed, steepest first: the stored search (wonder_plan.gd)
+	var ncand := 0
+	var pk := Plan.key("terrain_outcrops", SELF, ["res://core/world/realm/rock_kit.gd"])
+	var stored: Variant = Plan.load_plan(pk, SELF)
+	if stored is Dictionary:
+		picks = (stored as Dictionary).picks
+		ncand = int((stored as Dictionary).ncand)
+	else:
+		ncand = _search(rng, picks)
+		Plan.save_plan(pk, SELF, {"picks": picks, "ncand": ncand})
 	var placed := 0
-	for e: Array in cand:
-		if placed >= MAX:
-			break
+	for e: Array in picks:
 		var p: Vector2 = e[1]
-		var close := false
-		for q: Vector2 in kept:
-			if q.distance_squared_to(p) < 144.0:
-				close = true
-				break
-		if close or RealmLayout.path_dist(p) < 12.0 or WK.site_hit(Rect2(p - Vector2(5.0, 5.0), Vector2(10.0, 10.0)), 5.0):
-			continue
-		kept.append(p)
 		var down := Vector2(-float(e[2]), -float(e[3])).normalized()
 		var reg2 := WK.region_at(p)
 		var bio: String = String(biome.get(reg2, ""))
@@ -78,7 +61,44 @@ func _run(root: Node) -> void:
 			mmi.visibility_range_end_margin = 20.0
 			mmi.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
 			host.add_child(mmi)
-	print("WONDER terrain_outcrops: %d scarp faces from %d steep cells" % [placed, cand.size()])
+	print("WONDER terrain_outcrops: %d scarp faces from %d steep cells" % [placed, ncand])
+
+
+## The steepest dry cells of the Far Reaches, 12 m apart and off every way and site: fills `picks` with [slope, point, dx, dz]; returns how many steep cells there were.
+func _search(rng: RandomNumberGenerator, picks: Array) -> int:
+	var mb := RealmReaches.MARCH_BOUNDS
+	# one pass over a 14 m grid of the Far Reaches (about 2,000 cells, four height reads each): the steepest MAX cells, 12 m apart
+	var cand: Array = []
+	var gz := -138.0
+	while gz < 390.0:
+		var gx := -360.0
+		while gx < 360.0:
+			gx += 14.0
+			var p := Vector2(gx + rng.randf() * 10.0, gz + rng.randf() * 10.0)
+			if mb.has_point(p) or not RealmLayout.BOUNDS.grow(-12.0).has_point(p) or WK.wet(p.x, p.y) or Rect2(-24, -118, 48, 106).grow(70.0).has_point(p) or WK.in_town(p, 30.0) or RealmLayout.OLD_BOUNDS.grow(10.0).has_point(p):
+				continue
+			var gxv := (WK.h(p.x + 4.0, p.y) - WK.h(p.x - 4.0, p.y)) / 8.0
+			var gzv := (WK.h(p.x, p.y + 4.0) - WK.h(p.x, p.y - 4.0)) / 8.0
+			var sl := sqrt(gxv * gxv + gzv * gzv)
+			if sl >= 0.2 and sl <= 1.4:
+				cand.append([sl, p, gxv, gzv])
+		gz += 14.0
+	cand.sort_custom(func(a: Array, b: Array) -> bool: return float(a[0]) > float(b[0]))
+	var kept: Array[Vector2] = []
+	for e: Array in cand:
+		if picks.size() >= MAX:
+			break
+		var p: Vector2 = e[1]
+		var close := false
+		for q: Vector2 in kept:
+			if q.distance_squared_to(p) < 144.0:
+				close = true
+				break
+		if close or RealmLayout.path_dist(p) < 12.0 or WK.site_hit(Rect2(p - Vector2(5.0, 5.0), Vector2(10.0, 10.0)), 5.0):
+			continue
+		kept.append(p)
+		picks.append(e)
+	return cand.size()
 
 
 ## A rock: its collision body now (a convex shape on the WORLD layer, no mesh), its picture into the (mesh, cell) group.

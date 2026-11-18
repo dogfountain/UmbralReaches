@@ -21,6 +21,7 @@ const SELF := "res://core/world/realm/wonders/r39/deep_halls.gd"
 const WK := preload("res://core/world/realm/wonders/r39/wonder_kit.gd")
 const DK := preload("res://core/world/realm/wonders/r39/dungeon_kit.gd")
 const Dress := preload("res://core/world/realm/wonders/r39/wonder_dress.gd")
+const Plan := preload("res://core/world/realm/wonders/r39/wonder_plan.gd")
 
 const SPECS := [
 	{"id": "kings_undercroft", "title": "The King's Undercroft", "line": "the barrow has a second stair", "region": "kingsbarrows", "theme": "crypt",
@@ -44,17 +45,35 @@ static func build(root: Node) -> void:
 func _run(root: Node) -> void:
 	for reg: Dictionary in RealmLayout.REGIONS:
 		_ids.append(String(reg.id))
+	# the four spots are searched once and stored (wonder_plan.gd): a warm boot builds the halls on the last picks
+	var pk := Plan.key("deep_halls", SELF, ["res://core/world/realm/wonders/r39/dungeon_kit.gd"])
+	var stored: Variant = Plan.load_plan(pk, SELF)
+	var spots: Array = []
+	if stored is Dictionary and ((stored as Dictionary).spots as Array).size() == SPECS.size():
+		spots = (stored as Dictionary).spots
+	var warm := not spots.is_empty()
 	var n := 0
-	for spec: Dictionary in SPECS:
-		if _hall(root, spec):
+	for si in SPECS.size():
+		var spec: Dictionary = SPECS[si]
+		var c: Vector2
+		var yaw: float
+		if warm:
+			var sp: Array = spots[si]
+			c = sp[0]
+			yaw = float(sp[1])
+		else:
+			var f := WK.place_first(spec.cand as Array, Vector2(16.0, 34.0), [0.0, PI * 0.5, PI, PI * 1.5], 12.0)
+			c = f.pos
+			yaw = float(f.yaw)
+			spots.append([c, yaw])
+		if _hall(root, spec, c, yaw):
 			n += 1
+	if not warm:
+		Plan.save_plan(pk, SELF, {"spots": spots})
 	print("WONDER deep_halls: %d of %d complexes" % [n, SPECS.size()])
 
 
-func _hall(root: Node, spec: Dictionary) -> bool:
-	var f := WK.place_first(spec.cand as Array, Vector2(16.0, 34.0), [0.0, PI * 0.5, PI, PI * 1.5], 12.0)
-	var c: Vector2 = f.pos
-	var yaw := float(f.yaw)
+func _hall(root: Node, spec: Dictionary, c: Vector2, yaw: float) -> bool:
 	var ez := Vector2(-sin(yaw), cos(yaw))
 	# the entry is the end of the footprint with the lower ground; the way in runs up the hill
 	var ea := c - ez * 33.0

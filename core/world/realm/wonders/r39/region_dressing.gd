@@ -20,6 +20,7 @@ extends RefCounted
 const SELF := "res://core/world/realm/wonders/r39/region_dressing.gd"
 const WK := preload("res://core/world/realm/wonders/r39/wonder_kit.gd")
 const Dress := preload("res://core/world/realm/wonders/r39/wonder_dress.gd")
+const Plan := preload("res://core/world/realm/wonders/r39/wonder_plan.gd")
 
 const KINDS := {
 	"greyfell": ["ballista", "helmet_cairn", "shield_pole", "pikes"],
@@ -47,6 +48,13 @@ func _run(root: Node) -> void:
 		ids.append(String(reg.id))
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 5150
+	# the props' spots are searched once and stored (wonder_plan.gd): a warm boot builds the cells the last search filled
+	var pk := Plan.key("region_dressing", SELF)
+	var stored: Variant = Plan.load_plan(pk, SELF)
+	var warm: Dictionary = {}
+	if stored is Dictionary:
+		warm = (stored as Dictionary).regions
+	var picks := {}                                   ## region id -> {cells, placed}
 	var total := 0
 	for reg: Dictionary in RealmLayout.REGIONS:
 		var id := String(reg.id)
@@ -58,6 +66,11 @@ func _run(root: Node) -> void:
 		var cells := {}
 		var placed := 0
 		var tries := 0
+		if warm.has(id):
+			var got: Dictionary = warm[id]
+			cells = got.cells
+			placed = int(got.placed)
+			tries = want * 5
 		while placed < want and tries < want * 5:
 			tries += 1
 			var c := Vector2(rng.randf_range(r.position.x + 8.0, r.end.x - 8.0), rng.randf_range(r.position.y + 8.0, r.end.y - 8.0))
@@ -71,6 +84,7 @@ func _run(root: Node) -> void:
 				cells[key] = []
 			(cells[key] as Array).append([c, sp.y, String(kinds[rng.randi() % kinds.size()]), rng.randf() * TAU])
 			placed += 1
+		picks[id] = {"cells": cells, "placed": placed}
 		for key: Vector2i in cells:
 			var k := WK.new()
 			k.setup(root, "Sig_%s_%d_%d" % [id, key.x, key.y], 5200 + key.x * 31 + key.y)
@@ -80,6 +94,8 @@ func _run(root: Node) -> void:
 					_prop(k, String(it[2]), Vector3(c.x, float(it[1]), c.y), float(it[3]))
 			k.commit(140.0)
 		total += placed
+	if warm.is_empty():
+		Plan.save_plan(pk, SELF, {"regions": picks})
 	print("WONDER region_dressing: %d signature props" % total)
 
 

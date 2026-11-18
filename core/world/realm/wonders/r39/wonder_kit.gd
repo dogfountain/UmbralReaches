@@ -194,7 +194,21 @@ static func near_walk(p: Vector2, r: float) -> bool:
 	return false
 
 
+static var _prot_fp := ""
+
+
+## The reserved places as one digest, for the placement caches (wonder_plan.gd): the keep-outs and the villagers' ways decide where a family may stand.
+static func protect_fp() -> String:
+	if _prot_fp == "":
+		var ctx := HashingContext.new()
+		ctx.start(HashingContext.HASH_SHA256)
+		ctx.update(var_to_bytes([_pidx, _walk]))
+		_prot_fp = ctx.finish().hex_encode()
+	return _prot_fp
+
+
 static func protect() -> void:
+	_prot_fp = ""
 	_pidx.clear()
 	_walk.clear()
 	for rid: String in RealmLayout.SLOTS:

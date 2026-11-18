@@ -11,6 +11,7 @@ extends RefCounted
 
 const WK := preload("res://core/world/realm/wonders/r39/wonder_kit.gd")
 const Dress := preload("res://core/world/realm/wonders/r39/wonder_dress.gd")
+const Plan := preload("res://core/world/realm/wonders/r39/wonder_plan.gd")
 const COUNT := 16
 const SELF := "res://core/world/realm/wonders/r39/hermit_caches.gd"
 
@@ -23,6 +24,21 @@ static func build(root: Node) -> void:
 
 
 func _run(root: Node) -> void:
+	# the search is stored (wonder_plan.gd): a warm boot builds the places the last one picked
+	var pk := Plan.key("hermit_caches", SELF)
+	var stored: Variant = Plan.load_plan(pk, SELF)
+	if stored is Dictionary:
+		var sd: Dictionary = stored
+		var spots: Array = sd.spots
+		for si in spots.size():
+			var sp: Array = spots[si]
+			var sc: Vector2 = sp[0]
+			var lvl := float(sp[1])
+			WorldLanes.register_terrace("wonder_hermit_%d" % si, sc, 8.0, lvl)
+			_cache(root, si, sc, lvl)
+		print(String(sd.log))
+		return
+	var picks: Array = []
 	var cands := WK.grid(9100, 24.0, 20.0)
 	var t := {}
 	var placed := 0
@@ -37,11 +53,14 @@ func _run(root: Node) -> void:
 		if sp.x == INF:
 			WK.rej(t, "span")
 			continue
+		picks.append([c, (sp.x + sp.y) * 0.5])
 		WorldLanes.register_terrace("wonder_hermit_%d" % placed, c, 8.0, (sp.x + sp.y) * 0.5)
 		_cache(root, placed, c, (sp.x + sp.y) * 0.5)
 		_placed_pts.append(c)
 		placed += 1
-	print("WONDER hermit_caches: %d of %d placed (%d of %d candidates tried); rejected: %s" % [placed, COUNT, tried, cands.size(), WK.rejected(t)])
+	var line := "WONDER hermit_caches: %d of %d placed (%d of %d candidates tried); rejected: %s" % [placed, COUNT, tried, cands.size(), WK.rejected(t)]
+	print(line)
+	Plan.save_plan(pk, SELF, {"spots": picks, "log": line})
 
 
 ## Cheap clearance: in the Realm, 40 m or more from the nearest way, 60 m from another cache, clear of every site.
