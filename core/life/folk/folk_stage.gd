@@ -409,11 +409,9 @@ func _net(at: Vector2, face: float) -> void:
 
 
 ## The log's and the net's materials (NightWarm draws one of each behind the loading cover).
+## (The kit's world-triplanar bark: an untextured brown read as a black log by every fire; map audit, 18 Nov.)
 static func log_material() -> StandardMaterial3D:
-	var m := StandardMaterial3D.new()
-	m.albedo_color = Color(0.22, 0.15, 0.1)
-	m.roughness = 1.0
-	return m
+	return OssKit.mat("bark") as StandardMaterial3D
 
 
 static func net_material() -> StandardMaterial3D:

@@ -204,7 +204,7 @@ func _stair(root: Node, i: int, p: Vector2, top: Vector2, rng: RandomNumberGener
 		var mid := a3.lerp(t3, 0.5)
 		k.kit.box("stone_big", Vector3(mid.x, mid.y - 0.1, mid.z), Vector3(3.2, 0.3, 2.2), b, true, 0.9)
 		k.tube("iron", Vector3(mid.x, mid.y, mid.z) + s3 * 1.5, Vector3(mid.x, mid.y + 2.4, mid.z) + s3 * 1.5, 0.05, 0.05, 4, false, 0.6)
-		k.kit.box("glow", Vector3(mid.x, mid.y + 2.5, mid.z) + s3 * 1.5, Vector3(0.26, 0.36, 0.26), b, false, 1.0)
+		k.kit.lantern(Vector3(mid.x, mid.y + 2.5, mid.z) + s3 * 1.5, Vector3(0.26, 0.36, 0.26), b)
 		k.lamp(Vector3(mid.x, mid.y + 2.5, mid.z) + s3 * 1.5, Color(1.0, 0.7, 0.4), 0.8, 8.0)
 		# the viewpoint: a platform, a rail on the drop side, a stone seat, a lantern post, a chest
 		k.kit.box("stone_big", Vector3(t3.x + d3.x * 3.0, yt - 0.5, t3.z + d3.z * 3.0), Vector3(7.0, 1.0, 7.0), b, true, 0.9)
@@ -212,7 +212,7 @@ func _stair(root: Node, i: int, p: Vector2, top: Vector2, rng: RandomNumberGener
 			k.kit.box("stone_big", t3 + d3 * 6.0 + s3 * (sgn * 2.2) + Vector3.UP * 0.3, Vector3(2.4, 0.8, 0.3), b, true, 0.85)
 		k.kit.box("stone_big", t3 + d3 * 5.2 + Vector3.UP * 0.1, Vector3(2.2, 0.5, 0.8), b, true, 0.9)
 		k.tube("iron", t3 + d3 * 3.0 + s3 * 3.0, t3 + d3 * 3.0 + s3 * 3.0 + Vector3.UP * 3.0, 0.06, 0.05, 4, false, 0.6)
-		k.kit.box("glow", t3 + d3 * 3.0 + s3 * 3.0 + Vector3.UP * 3.15, Vector3(0.3, 0.4, 0.3), b, false, 1.0)
+		k.kit.lantern(t3 + d3 * 3.0 + s3 * 3.0 + Vector3.UP * 3.15, Vector3(0.3, 0.4, 0.3), b)
 		k.lamp(t3 + d3 * 3.0 + s3 * 3.0 + Vector3.UP * 3.1, Color(1.0, 0.7, 0.4), 1.0, 10.0)
 		k.chest("climb_stair_%d" % i, "iron", t3 + d3 * 2.6 - s3 * 2.2 + Vector3.UP * 0.1, atan2(-d3.x, -d3.z), {"grave_ash": 12 + i, "grave_iron": 2})
 		Dress.rubble(k, t3 + d3 * 7.0, 2.0, 8, "ruin_big")

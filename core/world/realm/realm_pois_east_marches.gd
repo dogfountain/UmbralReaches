@@ -565,7 +565,8 @@ void fragment() {
 	float crack = 1.0 - smoothstep(0.0, 0.06, v.y - v.x);
 	float grain = n(p * 13.0);
 	vec3 salt = mix(vec3(0.66, 0.68, 0.7), vec3(0.95, 0.96, 0.97), grain) * (1.0 - 0.45 * crack * smoothstep(0.0, 0.5, dry + 0.35));
-	vec3 brine = vec3(0.012, 0.03, 0.036);
+	// murky brine with a skin of salt film drifting on it (near-black, three wet pans read as holes from above; map audit)
+	vec3 brine = vec3(0.045, 0.068, 0.072) + vec3(0.1, 0.1, 0.1) * smoothstep(0.62, 0.9, n(p * 3.1 + seed * 0.3)) * (1.0 - dry);
 	ALBEDO = mix(brine, salt, crust);
 	ROUGHNESS = mix(0.02, 0.85, crust);
 	SPECULAR = mix(1.0, 0.2, crust);

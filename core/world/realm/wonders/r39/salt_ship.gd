@@ -255,7 +255,7 @@ func _mast() -> void:
 		k.kit.quad("chalk", a, a + yx * wdt, a + yx * (wdt - 0.1) + Vector3.DOWN * h, a + Vector3.DOWN * (h - 0.6), rot * Vector3(0.0, 0.0, -1.0), false, 0.8)
 	# the masthead lamp
 	k.kit.box("iron", top + Vector3.UP * 0.1, Vector3(0.9, 0.16, 0.9), Basis.IDENTITY, false, 0.7)
-	k.kit.box("glow", top + Vector3.UP * 0.55, Vector3(0.42, 0.55, 0.42), Basis.IDENTITY, false, 1.0)
+	k.kit.lantern(top + Vector3.UP * 0.55, Vector3(0.42, 0.55, 0.42), Basis.IDENTITY)
 	k.lamp(top + Vector3.UP * 0.6, Color(1.0, 0.7, 0.4), 2.2, 22.0)
 
 

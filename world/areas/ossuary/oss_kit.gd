@@ -43,6 +43,7 @@ static var _halo_mesh: QuadMesh
 const CANDLE_H := [0.42, 0.26, 0.13]
 const CHUNK := 10.0
 const HALO := preload("res://world/areas/ossuary/candle_halo.gdshader")
+const GLOW := preload("res://world/areas/ossuary/oss_glow.gdshader")
 
 
 # --- materials ------------------------------------------------------------------------------
@@ -98,14 +99,12 @@ static func mat(key: String) -> Material:
 			_mats[key] = hm
 			return hm
 		"glow":
-			# lit window glass: warm, under bloom — 0.5 read as solid orange plates
-			m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-			m.vertex_color_use_as_albedo = true
-			m.albedo_color = Color(1.0, 0.58, 0.28)
-			m.emission_enabled = true
-			m.emission = Color(1.0, 0.5, 0.18)
-			m.emission_energy_multiplier = 0.2
-			m.cull_mode = BaseMaterial3D.CULL_DISABLED
+			# lit glass and coals (oss_glow.gdshader): leaded quarries on upright faces, a mottle of coals on flat ones, dimmer
+			# edge-on (map audit, 18 Nov: an unshaded orange box read as a flat full-bright plate on every lantern, window and sconce)
+			var gm := ShaderMaterial.new()
+			gm.shader = GLOW
+			_mats[key] = gm
+			return gm
 		"flame":
 			var sm := ShaderMaterial.new()
 			sm.shader = FLAME
@@ -347,6 +346,19 @@ func collider(c: Vector3, size: Vector3, b := Basis.IDENTITY) -> void:
 	var h := size.abs() * 0.5
 	solids.append([c, b.orthonormalized(), h])
 	_box_col(c, b.x.normalized() * h.x, b.y.normalized() * h.y, b.z.normalized() * h.z)
+
+
+## A lantern's lit glass `size` (w, h, d) at `c` in an iron cage: a cap and a foot a little wider than the glass and a strap
+## at each corner, so a lantern reads as a made thing (a bare lit block read as an orange paddle or a cube; map audit, 18 Nov).
+func lantern(c: Vector3, size: Vector3, b := Basis.IDENTITY, shade := 1.0) -> void:
+	var ey := b.y.normalized()
+	box("glow", c, size, b, false, shade)
+	box("iron", c + ey * (size.y * 0.5 + 0.025), Vector3(size.x * 1.3, 0.05, size.z * 1.3), b, false, 0.6)
+	box("iron", c + ey * (size.y * 0.5 + 0.07), Vector3(size.x * 0.5, 0.05, size.z * 0.5), b, false, 0.6)
+	box("iron", c - ey * (size.y * 0.5 + 0.015), Vector3(size.x * 1.2, 0.03, size.z * 1.2), b, false, 0.6)
+	for sx: float in [-0.5, 0.5]:
+		for sz: float in [-0.5, 0.5]:
+			box("iron", c + b.x.normalized() * (sx * size.x) + b.z.normalized() * (sz * size.z), Vector3(0.025, size.y, 0.025), b, false, 0.6)
 
 
 ## Axis-aligned box from min corner to max corner.

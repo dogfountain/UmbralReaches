@@ -90,6 +90,14 @@ func _run() -> void:
 		_sites()
 		get_tree().quit(0)
 		return
+	for a in OS.get_cmdline_user_args():
+		if a.begins_with("--at="):
+			_at(a.trim_prefix("--at="))
+			var fa := FileAccess.open(out_path, FileAccess.WRITE)
+			fa.store_string("\n".join(lines) + "\n")
+			fa.close()
+			get_tree().quit(0)
+			return
 	if _want("holes"):
 		_holes()
 	await get_tree().process_frame
@@ -107,6 +115,36 @@ func _run() -> void:
 		f.store_string("\n".join(lines) + "\n")
 		f.close()
 	get_tree().quit(0)
+
+
+## --at=x,z,r;x,z,r...: every drawn mesh whose world box reaches within r of (x, z), with its path, size, height and
+## material (class, albedo, emission, unshaded): naming the thing in a sheet you cannot name by eye.
+func _at(spec: String) -> void:
+	var qs: Array = []
+	for part: String in spec.split(";", false):
+		var v := part.split_floats(",")
+		qs.append(Vector3(v[0], v[1], v[2] if v.size() > 2 else 3.0))
+	for n: Node in main.find_children("*", "GeometryInstance3D", true, false):
+		var gi := n as GeometryInstance3D
+		if not gi.is_visible_in_tree():
+			continue
+		var bb: AABB = gi.global_transform * gi.get_aabb()
+		for q: Vector3 in qs:
+			var dx := maxf(maxf(bb.position.x - q.x, 0.0), q.x - bb.end.x)
+			var dz := maxf(maxf(bb.position.z - q.y, 0.0), q.y - bb.end.z)
+			if Vector2(dx, dz).length() > q.z or bb.size.length() > 400.0:
+				continue
+			var mat: Material = gi.material_override
+			if mat == null and gi is MeshInstance3D and (gi as MeshInstance3D).mesh != null and (gi as MeshInstance3D).mesh.get_surface_count() > 0:
+				mat = (gi as MeshInstance3D).get_active_material(0)
+			var md := "none"
+			if mat is StandardMaterial3D:
+				var sm := mat as StandardMaterial3D
+				md = "std albedo %s emis %s x%.2f %s tex %s" % [sm.albedo_color, sm.emission if sm.emission_enabled else "-", sm.emission_energy_multiplier, "UNSHADED" if sm.shading_mode == BaseMaterial3D.SHADING_MODE_UNSHADED else "", sm.albedo_texture != null]
+			elif mat is ShaderMaterial:
+				md = "shader %s" % ((mat as ShaderMaterial).shader.resource_path if (mat as ShaderMaterial).shader else "?")
+			lines.append("at (%.0f,%.0f) %s | box (%.1f,%.1f,%.1f)+(%.1f,%.1f,%.1f) | %s" % [q.x, q.y, main.get_path_to(gi), bb.position.x, bb.position.y, bb.position.z, bb.size.x, bb.size.y, bb.size.z, md])
+			break
 
 
 ## Cluster points by 12 m cells: [[centre, count, sample note]].

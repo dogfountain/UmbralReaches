@@ -409,9 +409,12 @@ func _fall(top: Vector3, out: Vector3, _height: float, star := false) -> void:
 		if g0 > _y + 6.0 and g1 - g0 < 0.3:
 			break
 	var lip_y: float = ground.call(lip_x, z)
-	# the channel runs back only over ground at or above the lip (never uphill to it), 1.5-5 m
-	var back := 1.5
-	while back < 5.0 and float(ground.call(lip_x + into.x * (back + 0.5), z)) >= lip_y - 0.05:
+	# the channel runs back only over ground at or above the lip (never uphill to it), 1.5-5 m. On a thin berm (its outer
+	# face falls away within 6 m) the stream wells up at the lip itself: a rill laid along a ridge's crest read from the far
+	# side as a flat orange card on the slope (map audit, 18 Nov)
+	var thin := float(ground.call(lip_x + into.x * 6.0, z)) < lip_y - 1.5
+	var back := 0.5 if thin else 1.5
+	while not thin and back < 5.0 and float(ground.call(lip_x + into.x * (back + 0.5), z)) >= lip_y - 0.05:
 		back += 0.5
 	# each edge of the stream is sampled on its own, so it lies on the rock across a cross-slope
 	var rows: Array = []                                 # per station: [channel x, NAN] or [NAN, face height]

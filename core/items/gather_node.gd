@@ -5,6 +5,7 @@ extends Interactable
 ## RESPAWN seconds. It is a map marker (group "map_marker", map_kind "gather") while it can be
 ## gathered. Placed by gather.gd; no class_name. Nothing here runs per frame.
 
+const RockKit := preload("res://core/world/realm/rock_kit.gd")
 const KINDS := {
 	"ash_bloom": {"label": "Ash-bloom", "verb": "Gather", "color": Color(0.86, 0.84, 0.96), "bonus": ["ember_shard", 0.08]},
 	"grave_iron": {"label": "Grave-iron", "verb": "Mine", "color": Color(0.85, 0.42, 0.3), "bonus": ["relic_fragment", 0.06]},
@@ -45,15 +46,19 @@ func _build() -> void:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = rng_seed
 	if kind == "grave_iron":
-		var stone := _mat("stone", func() -> Material: return ProcMesh.std_mat(Color(0.2, 0.18, 0.19), 0.95))
-		var rock := ProcMesh.mesh(_vis, "Rock", ProcMesh.sphere(0.75, 1.0, 8, 5), stone, Vector3(0, 0.3, 0), Vector3(0, rng.randf() * TAU, 0), true)
-		rock.scale = Vector3(1.0, 0.75, 0.85)
-		ProcMesh.mesh(_vis, "Rock2", ProcMesh.sphere(0.3, 0.4, 7, 4), stone, Vector3(0.42, 0.12, 0.18), Vector3(0, rng.randf() * TAU, 0), true)
-		var vein := _mat("vein", func() -> Material: return ProcMesh.glow_mat(Color(1.3, 0.42, 0.22)))
-		for i in 4:
+		# a basalt boulder from the rock kit (its strata, its buried skirt) and a few thin dull-red seams in its faces (map audit,
+		# 18 Nov: an untextured black lozenge with four full-bright orange bars on it)
+		var rock := MeshInstance3D.new()
+		rock.name = "Rock"
+		rock.mesh = RockKit.boulder(rng_seed, Vector3(1.5, 0.85, 1.3), "basalt")
+		rock.material_override = RockKit.material("basalt")
+		rock.rotation.y = rng.randf() * TAU
+		_vis.add_child(rock)
+		var vein := _mat("vein", func() -> Material: return ProcMesh.glow_mat(Color(0.75, 0.24, 0.1)))
+		for i in 3:
 			var a := rng.randf() * TAU
-			var v := ProcMesh.mesh(_vis, "Vein%d" % i, ProcMesh.box(Vector3(0.06, 0.06, 0.6)), vein,
-				Vector3(cos(a) * 0.74, 0.3 + rng.randf() * 0.25, sin(a) * 0.64), Vector3(rng.randf_range(-0.6, 0.6), a, 0), false)
+			var v := ProcMesh.mesh(_vis, "Vein%d" % i, ProcMesh.box(Vector3(0.025, 0.025, 0.42)), vein,
+				Vector3(cos(a) * 0.62, 0.22 + rng.randf() * 0.25, sin(a) * 0.52), Vector3(rng.randf_range(-0.6, 0.6), a, 0), false)
 			v.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	else:
 		var stem := _mat("stem", func() -> Material: return ProcMesh.std_mat(Color(0.18, 0.22, 0.2), 0.9))

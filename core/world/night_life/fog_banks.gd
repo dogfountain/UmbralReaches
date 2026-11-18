@@ -67,7 +67,10 @@ static func material() -> StandardMaterial3D:
 	m.vertex_color_use_as_albedo = true
 	m.albedo_texture = _cloud()
 	m.proximity_fade_enabled = true
-	m.proximity_fade_distance = 2.5
+	m.proximity_fade_distance = 6.0            # (map audit, 18 Nov: 2.5 m drew the bank's contour on every slope as a hard line)
+	m.distance_fade_mode = BaseMaterial3D.DISTANCE_FADE_PIXEL_ALPHA      # gone within 2 m of the eye, whole by 14: a bank at
+	m.distance_fade_min_distance = 2.0                                    # eye height seen edge-on was a white wall
+	m.distance_fade_max_distance = 14.0
 	return m
 
 

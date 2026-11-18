@@ -14,6 +14,8 @@ extends Node3D
 @export var requires_bells := 0
 @export var title := "The way is sealed"
 
+const VEIL := preload("res://core/world/ward_veil.gdshader")
+
 var _body: StaticBody3D
 var _vis: Node3D
 var _open := false
@@ -240,24 +242,12 @@ func _build_look() -> void:
 			q.size = Vector2(w, h)
 			veil.mesh = q
 			veil.position = Vector3(0, h * 0.5, 0)
-			var m := StandardMaterial3D.new()
-			m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-			m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-			m.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
-			m.cull_mode = BaseMaterial3D.CULL_DISABLED
-			m.albedo_color = Color(0.5, 0.3, 1.0, 0.35)
+			# a veil of light that pours down the opening in threads, three bands of broken runes across it, every edge soft
+			# (map audit, 18 Nov: a flat translucent purple rectangle with three torus rings read as a placeholder)
+			var m := ShaderMaterial.new()
+			m.shader = VEIL
 			veil.material_override = m
 			_vis.add_child(veil)
-			for k in 3:
-				var ring := MeshInstance3D.new()
-				var tm := TorusMesh.new()
-				tm.inner_radius = 0.42 + 0.3 * float(k)
-				tm.outer_radius = tm.inner_radius + 0.03
-				ring.mesh = tm
-				ring.rotation.x = PI * 0.5
-				ring.position = Vector3(0, h * 0.5, 0)
-				ring.material_override = m
-				_vis.add_child(ring)
 	_light = OmniLight3D.new()
 	_light.light_color = Color(0.9, 0.3, 0.35) if look == "thorn" else Color(0.7, 0.45, 1.0)
 	_light.light_energy = 0.6

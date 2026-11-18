@@ -197,5 +197,10 @@ func _clue(k, kind: int, o: Vector3, to: Vector3, rng: RandomNumberGenerator) ->
 			for s in 3:
 				k.kit.box("ruin_big", o + to * (0.14 + 0.0) + Vector3.UP * (0.3 + 0.2 * float(s)), Vector3(0.5 - 0.14 * float(s), 0.1, 0.06), b, false, 0.7)
 		_:                                                                   # a lantern on a stake turned to the next
-			k.tube("iron", o, o + Vector3.UP * 1.5, 0.03, 0.03, 4, false, 0.6)
-			k.kit.box("glow", o + Vector3.UP * 1.6 + to * 0.1, Vector3(0.22, 0.3, 0.22), b, false, 1.0)
+			k.tube("iron", o, o + Vector3.UP * 1.78, 0.03, 0.03, 4, false, 0.6)
+			# a crook from the stake's head, the lantern hung from it in an iron cage (cap, foot, corner straps): a bare lit
+			# block on a stick read as an orange paddle across the south (map audit, 18 Nov)
+			var lc := o + Vector3.UP * 1.48 + to * 0.32
+			k.kit.box("iron", o + Vector3.UP * 1.76 + to * 0.16, Vector3(0.04, 0.04, 0.36), b, false, 0.6)
+			k.kit.box("iron", lc + Vector3.UP * 0.24, Vector3(0.02, 0.1, 0.02), b, false, 0.6)
+			k.kit.lantern(lc, Vector3(0.18, 0.24, 0.18), b)

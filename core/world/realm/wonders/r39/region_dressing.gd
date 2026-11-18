@@ -125,7 +125,7 @@ func _prop(k, kind: String, o: Vector3, yaw: float) -> void:
 		"lantern_pole":
 			k.tube("wood_big", o, o + Vector3.UP * 5.2, 0.13, 0.1, 5, true, 0.7)
 			k.beam("wood_big", o + Vector3.UP * 5.0, o + Vector3.UP * 5.0 + b * Vector3(1.0, 0.0, 0.0), 0.08, 0.08, false, 0.7)
-			k.kit.box("glow", o + Vector3.UP * 4.6 + b * Vector3(1.0, 0.0, 0.0), Vector3(0.3, 0.4, 0.3), b, false, 1.0)
+			k.kit.lantern(o + Vector3.UP * 4.6 + b * Vector3(1.0, 0.0, 0.0), Vector3(0.3, 0.4, 0.3), b)
 			if rng.randf() < 0.3:
 				k.lamp(o + Vector3.UP * 4.6 + b * Vector3(1.0, 0.0, 0.0), Color(0.6, 0.82, 1.0), 0.9, 8.0)
 		"string_poles":
@@ -136,7 +136,7 @@ func _prop(k, kind: String, o: Vector3, yaw: float) -> void:
 			Dress.rope(k, a, c2, 0.9, 0.03)
 			for i in 4:
 				var q := a.lerp(c2, (float(i) + 0.5) / 4.0) + Vector3.DOWN * 0.7
-				k.kit.box("glow", q, Vector3(0.2, 0.28, 0.2), b, false, 1.0)
+				k.kit.lantern(q, Vector3(0.2, 0.28, 0.2), b)
 		"fungus_ring":
 			for i in 9:
 				var a2 := TAU * float(i) / 9.0
@@ -219,7 +219,7 @@ func _prop(k, kind: String, o: Vector3, yaw: float) -> void:
 			k.tube("dark", o, o + Vector3.UP * (1.8 + rng.randf()), 0.14, 0.1, 5, false, 0.4)
 		"lamp_post", "signal_pole":
 			k.tube("iron", o, o + Vector3.UP * (3.2 if kind == "lamp_post" else 5.0), 0.1, 0.07, 6, true, 0.6)
-			k.kit.box("glow", o + Vector3.UP * (3.4 if kind == "lamp_post" else 5.2), Vector3(0.34, 0.42, 0.34), b, false, 1.0)
+			k.kit.lantern(o + Vector3.UP * (3.4 if kind == "lamp_post" else 5.2), Vector3(0.34, 0.42, 0.34), b)
 		"notice_board":
 			k.kit.box("wood_big", o + Vector3.UP * 1.5, Vector3(1.6, 1.0, 0.1), b, false, 0.8)
 			for s: float in [-1.0, 1.0]:

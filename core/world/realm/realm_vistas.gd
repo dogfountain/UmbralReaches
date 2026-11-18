@@ -21,6 +21,7 @@ const SHAFT_WOODS := {"sorrow": 3, "oak": 2}
 const CLEARINGS := [Vector2(-354.0, -36.0), Vector2(-318.0, 32.0), Vector2(-296.0, -14.0), Vector2(-350.0, 2.0),
 	Vector2(112.0, 272.0), Vector2(188.0, 282.0), Vector2(250.0, 334.0), Vector2(178.0, 380.0), Vector2(116.0, 384.0)]
 const CLEARING_R := 8.5
+const FIRE_SKY := 3.0               ## no crown within this (plus 0.6 of its spread) of a campfire slot
 const SHAFT_SIZE := Vector2(4.2, 20.0)
 ## Lookouts: [xz, the way it looks (xz)]
 const LOOKOUTS := [[Vector2(12.0, 248.0), Vector2(0.0, 342.0)], [Vector2(112.0, 244.0), Vector2(150.0, 330.0)], [Vector2(-330.0, 206.0), Vector2(-300.0, 330.0)]]
@@ -39,6 +40,19 @@ static func reserve(_root: Node) -> void:
 			Flora.tree_clear.append([q + f * (9.0 + 8.0 * float(k)), 5.0 + 1.5 * float(k)])
 	for c: Vector2 in CLEARINGS:
 		Flora.tree_clear.append([c, CLEARING_R])
+	# open sky over every campfire: a fire's smoke and sparks go up into the night, not into a crown (map audit, 18 Nov:
+	# willows hung over the foundry fire, Reedholm's landing and Stillwater's shore; trunks were already kept off, crowns not)
+	for slots: Dictionary in [RealmLayout.SLOTS, RealmReaches.SLOTS]:
+		for id: String in slots:
+			for s: Dictionary in slots[id]:
+				if String(s.kind) == "fire":
+					Flora.tree_clear.append([s.at as Vector2, FIRE_SKY])
+	# and over every raid floor (its trunks were kept off; pines leaned over the Anchoress's terrace and the summit deck)
+	for r: Dictionary in RealmLayout.RAIDS:
+		Flora.tree_clear.append([r.c as Vector2, float(r.r) - 1.0])
+		if r.has("rx"):
+			for sgn: float in [-1.0, 1.0]:
+				Flora.tree_clear.append([(r.c as Vector2) + Vector2(sgn * (float(r.rx) - float(r.r) * 0.7), 0.0), float(r.r) * 0.7 - 1.0])
 
 
 static func build(holder: Node) -> void:

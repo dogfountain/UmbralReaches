@@ -314,6 +314,11 @@ const BASE_PATHS := [
 	{"id": "chapel_lane", "w": 1.4, "pts": [Vector2(-60, 58), Vector2(-68, 52)]},
 	{"id": "rift_rim", "w": 2.0, "pts": [Vector2(0, 22) + Endgame.O2, Vector2(0, 4) + Endgame.O2, Vector2(0, -3) + Endgame.O2]},   # Lastlight's north postern to where the approach flight begins
 	{"id": "north_lane", "w": 1.6, "pts": [Vector2(0, 22), Vector2(0, 4), Vector2(-1, 0)]},   # Hearthward's north edge to the meadow fire (rift_rim's old first leg)
+	# the old rift's meadow north of Hearthward (map audit, 18 Nov: 120 x 110 m with no way through it; the Watchers' Spire,
+	# the Charcoal Hollow and the Ninth Company's ring, camp and grave were reached across open grass): from the meadow
+	# fire past the Ninth's grave and camp to the Spire's foot, and on round the Hollow to the ring
+	{"id": "meadow_way", "w": 1.4, "pts": [Vector2(-1, 0), Vector2(0, -8), Vector2(-8, -24), Vector2(-17, -40), Vector2(-19, -56), Vector2(-21, -72), Vector2(-27, -88), Vector2(-36, -94), Vector2(-42, -96.5)]},
+	{"id": "charcoal_way", "w": 1.3, "pts": [Vector2(-42, -96.5), Vector2(-50, -91), Vector2(-58, -88), Vector2(-72, -86), Vector2(-81, -87)]},
 	{"id": "west_track", "w": 1.4, "pts": [Vector2(-118, 65), Vector2(-124, 44), Vector2(-155, 44), Vector2(-163, 22), Vector2(-169, -6), Vector2(-166, -40), Vector2(-150, -60), Vector2(-132, -66), Vector2(-126, -84)]},     # (18 Nov: through the Holds, moved 31 m west with them off the henge hill's 1.6x skirt)
 	{"id": "moor_track", "w": 1.4, "pts": [Vector2(124, 67), Vector2(130, 44), Vector2(134, 18), Vector2(132, -18), Vector2(130, -46), Vector2(128, -72), Vector2(130, -86)]},
 	{"id": "necropolis_way", "w": 1.8, "pts": [Vector2(-6, 54), Vector2(-5, 74), Vector2(-3, 96), Vector2(0, 112), Vector2(0, 128)]},
@@ -340,7 +345,7 @@ const BASE_PATHS := [
 ## to MEANDER m aside and back. Everything that walks PATHS gets that line; the main road keeps its own (lore/road.gd).
 const MEANDER_IDS := {"west_track": 2.4, "moor_track": 2.4, "necropolis_way": 2.2, "orchard_lane": 2.2,
 	"mere_causeway": 2.0, "south_track": 2.6, "weir_track": 2.4, "siege_track": 2.4, "spire_track": 2.0,
-	"anchor_track": 2.4, "crowns_west": 2.2, "crowns_east": 2.2, "downs_track": 2.8, "downs_link": 1.6}
+	"anchor_track": 2.4, "crowns_west": 2.2, "crowns_east": 2.2, "downs_track": 2.8, "downs_link": 1.6, "meadow_way": 2.0, "charcoal_way": 1.4}
 const MEANDER_STEP := 6.0
 static var PATHS: Array = _meander(BASE_PATHS)
 

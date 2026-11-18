@@ -137,7 +137,7 @@ func _gibbet(k, o: Vector3, b: Basis, yaw: float) -> void:
 		k.tube("iron", cc + Vector3.UP * y, cc + Vector3.UP * (y + 0.05), 0.4, 0.4, 8, false, 0.55)
 	k.kit.box("bone", cc + Vector3.DOWN * 0.2, Vector3(0.3, 0.9, 0.2), b, false, 0.9)
 	k.kit.box("bone", cc + Vector3.UP * 0.35, Vector3(0.26, 0.26, 0.26), b, false, 0.95)
-	k.kit.box("glow", o + b * Vector3(0.0, 4.4, 0.35), Vector3(0.26, 0.38, 0.26), b, false, 1.0)       # a lantern on the post
+	k.kit.lantern(o + b * Vector3(0.0, 4.4, 0.35), Vector3(0.26, 0.38, 0.26), b)       # a lantern on the post
 	k.lamp(o + b * Vector3(0.0, 4.4, 0.35), Color(1.0, 0.68, 0.38), 1.1, 8.0)
 	Dress.rubble(k, o + b * Vector3(1.0, 0.0, 1.6), 1.8, 8, "stone")
 
@@ -178,7 +178,7 @@ func _cairn(k, o: Vector3, b: Basis, yaw: float) -> void:
 		var hp := o + Vector3(cos(a) * 1.5, 3.3, sin(a) * 1.5)
 		Dress.rope(k, o + Vector3.UP * 3.0, hp, 0.1, 0.03, "wood_big", 3)
 		k.kit.box("iron", hp + Vector3.UP * 0.2, Vector3(0.03, 0.4, 0.03), Basis.IDENTITY, false, 0.6)
-		k.kit.box("glow", hp - Vector3.UP * 0.05, Vector3(0.24, 0.32, 0.24), Basis(Vector3.UP, a), false, 1.0)
+		k.kit.lantern(hp - Vector3.UP * 0.05, Vector3(0.24, 0.32, 0.24), Basis(Vector3.UP, a))
 		if i % 2 == 0:
 			k.lamp(hp, Color(1.0, 0.68, 0.38), 0.7, 6.0)
 	k.fire(o + b * Vector3(1.8, 0.2, 0.0), 0.5, 1.2)

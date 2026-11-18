@@ -145,7 +145,7 @@ func _houses() -> void:
 		k.kit.box("wood_big", cen + Vector3.UP * (wh + 1.4), Vector3(0.3, 0.3, hd * 2.0 + 0.9), b, false, 0.8)
 		var lit := cen + Vector3.UP * 1.7
 		k.lamp(lit, Color(1.0, 0.68, 0.38), 1.3, 8.0)
-		k.kit.box("glow", cen + out * (hd + 0.45) + Vector3.UP * (wh + 0.1) + side * 1.1, Vector3(0.22, 0.34, 0.22), b, false, 1.0)
+		k.kit.lantern(cen + out * (hd + 0.45) + Vector3.UP * (wh + 0.1) + side * 1.1, Vector3(0.22, 0.34, 0.22), b)
 		k.kit.box("iron", cen + out * (hd + 0.45) + Vector3.UP * (wh + 0.3) + side * 1.1, Vector3(0.04, 0.4, 0.04), b, false, 0.7)
 		if i == 1:
 			k.chest("hollow_king_house", "wood", cen + Vector3.UP * 0.4 - out * (hd - 0.9) + side * 1.2, a, {"grave_ash": 9, "grave_iron": 1})
@@ -179,7 +179,7 @@ func _stair() -> void:
 		k.kit.box("wood_big", p1 + out_s * 1.25 + Vector3.UP * 0.55, Vector3(0.16, 1.1, 0.16), Basis.IDENTITY, false, 0.8)
 		if i % 4 == 3:
 			k.lamp(p1 + out_s * 1.4 + Vector3.UP * 1.4, Color(1.0, 0.66, 0.34), 0.9, 6.5)
-			k.kit.box("glow", p1 + out_s * 1.4 + Vector3.UP * 1.25, Vector3(0.24, 0.32, 0.24), Basis.IDENTITY, false, 1.0)
+			k.kit.lantern(p1 + out_s * 1.4 + Vector3.UP * 1.25, Vector3(0.24, 0.32, 0.24), Basis.IDENTITY)
 		y = y1
 	# the deck in the fork: a 12-gon ring of boards round the trunk at the stair's last height, railed
 	var dy := y
@@ -221,7 +221,7 @@ func _crown() -> void:
 		# lanterns hung from the limbs on wire: lit glass, a light each third
 		var hang := m2 + (m3 - m2) * 0.4
 		k.kit.box("iron", hang + Vector3.DOWN * 1.1, Vector3(0.03, 2.2, 0.03), Basis.IDENTITY, false, 0.6)
-		k.kit.box("glow", hang + Vector3.DOWN * 2.35, Vector3(0.34, 0.46, 0.34), Basis(Vector3.UP, a), false, 1.0)
+		k.kit.lantern(hang + Vector3.DOWN * 2.35, Vector3(0.34, 0.46, 0.34), Basis(Vector3.UP, a))
 		if i % 3 == 0:
 			k.lamp(hang + Vector3.DOWN * 2.3, Color(1.0, 0.66, 0.36), 1.2, 9.0)
 	k.tube("bark", _p(0.0, 0.0, 40.0), top + Vector3.UP * 5.0, 2.6, 0.3, 8, false, 0.85)

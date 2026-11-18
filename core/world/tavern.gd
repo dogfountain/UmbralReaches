@@ -17,6 +17,7 @@ const T := 0.55                       ## stone wall
 const H1 := Metrics.STOREY            ## ground storey
 const JET := 0.35                     ## upper storey overhang
 const H2 := 2.6
+const GLOW_ONE := preload("res://world/areas/ossuary/oss_glow_one.gdshader")      ## the kit's lit glass, drawn from outside only
 const DOOR_X := 17.6                  ## south door centre (east of the giant trunk's roots at x <= 14.7)
 const CHIM := Rect2(26.0, 29.4, 1.1, 1.6)
 
@@ -577,11 +578,18 @@ func _sign(k: OssKit) -> void:
 ## night through the leading. Costs one draw call (the panes are their own surface now).
 func _panes_one_sided() -> void:
 	var mi := get_node_or_null("Mesh_glow_pane") as MeshInstance3D
-	if mi == null or not (mi.material_override is BaseMaterial3D):
+	if mi == null:
 		return
-	var m := (mi.material_override as BaseMaterial3D).duplicate() as BaseMaterial3D
-	m.cull_mode = BaseMaterial3D.CULL_BACK
-	mi.material_override = m
+	if mi.material_override is ShaderMaterial:
+		var sm := ShaderMaterial.new()
+		sm.shader = GLOW_ONE
+		mi.material_override = sm
+	elif mi.material_override is BaseMaterial3D:
+		var m := (mi.material_override as BaseMaterial3D).duplicate() as BaseMaterial3D
+		m.cull_mode = BaseMaterial3D.CULL_BACK
+		mi.material_override = m
+	else:
+		return
 	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 
 
@@ -600,7 +608,11 @@ func _warm_materials() -> void:
 		mi.material_override = m
 	for gn: String in ["Mesh_glow", "Mesh_glow_pane"]:
 		var gl := get_node_or_null(gn) as MeshInstance3D
-		if gl != null and gl.material_override is StandardMaterial3D:
+		if gl != null and gl.material_override is ShaderMaterial:
+			var sg := (gl.material_override as ShaderMaterial).duplicate() as ShaderMaterial
+			sg.set_shader_parameter("energy", 1.25)
+			gl.material_override = sg
+		elif gl != null and gl.material_override is StandardMaterial3D:
 			var gm := (gl.material_override as StandardMaterial3D).duplicate() as StandardMaterial3D
 			gm.emission_energy_multiplier = 0.16
 			gl.material_override = gm
