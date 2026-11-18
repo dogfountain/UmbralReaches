@@ -49,6 +49,7 @@ func _process(_d: float) -> void:
 		ok(near.distance_to(Vector2(-207.0, -18.0)) < 24.0, "%s is near the weir" % pid)
 		ok(not RealmLayout.river_mask(near.x, near.y) > 0.3, "%s is not in the river" % pid)
 		var hit := space.intersect_ray(PhysicsRayQueryParameters3D.create(Vector3(near.x, 40.0, near.y), Vector3(near.x, -5.0, near.y), 1))
-		ok(hit and String((hit.collider as Node).name).begins_with("Terrain"), "%s stands on open ground (the first thing under the sky is the terrain)" % pid)
+		var over := String((hit.collider as Node).get_path()) if hit else "nothing"
+		ok(hit and String((hit.collider as Node).name).begins_with("Terrain"), "%s stands on open ground (the first thing under the sky is the terrain; %s)" % [pid, over])
 	print("UPWARD FALLS QUEST TEST %s" % ("PASS" if fails == 0 else "FAIL %d" % fails))
 	get_tree().quit()

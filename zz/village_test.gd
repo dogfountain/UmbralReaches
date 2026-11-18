@@ -268,7 +268,8 @@ func _sample(vs: Dictionary) -> void:
 		if absf(fy - p.y) > 0.3:
 			bad_ground += 1
 			if bad_ground < 6:
-				print("    off floor: %s at %s (floor %.2f)" % [vid2, p, fy])
+				var under := village.get_world_3d().direct_space_state.intersect_ray(PhysicsRayQueryParameters3D.create(p + Vector3.UP * 0.6, p - Vector3.UP * 2.0, 0xFFFF, ex))
+				print("    off floor: %s at %s (floor %.2f; under the feet %s)" % [vid2, p, fy, String((under.collider as Node).get_path()) + " y %.2f" % (under.position as Vector3).y if under else "nothing"])
 		if String(v.get("state")) == "walk" and not bool(nav.call("clear", Vector3(p.x, fy, p.z))):
 			bad_clear += 1
 			if bad_clear < 6:

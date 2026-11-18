@@ -115,6 +115,7 @@ func _site() -> void:
 	WorldLanes.register_site(NAME, Rect2(-216.0, -33.0, 18.0, 12.6), 0.6, 60.0)             # the steps and the cutwaters
 	WorldLanes.register_site(NAME + "_weir", Rect2(-226.4, -20.6, 34.0, 8.6), 0.6, 60.0)    # the crest, the wings, the pool's head
 	WorldLanes.register_site(NAME + "_house", Rect2(-233.6, -18.4, 7.4, 6.6), 0.6, 60.0)    # the keeper's house
+	WorldLanes.register_site(NAME + "_gauge", Rect2(-200.0, -8.0, 4.0, 4.0), 0.6, 60.0)     # the gauge's shallows (wf_gauge, quest_chains_upward_falls.gd): open sky over it
 	var who := PackedStringArray()
 	for p: Vector2 in [Vector2(-233.0, -14.0), Vector2(-192.4, ZC), Vector2(CX, -32.0), Vector2(CX, -11.0), Vector2(-192.5, -14.0)]:
 		who.append("%s path %.1f" % [p, RealmLayout.path_dist(p)])

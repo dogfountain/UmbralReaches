@@ -298,7 +298,7 @@ static func _keepout(root: Node) -> void:
 			var a: Vector2 = pts[s]
 			var b: Vector2 = pts[s + 1]
 			_seg_field(_pd, a, b, w, BAND)
-	for l: Array in Zones.lanes(): _seg_field(_pd, l[0], l[1], Zones.LANE_W, BAND)         # the squares' walk lanes stay bare
+	for l: Array in Zones.lanes() + Zones.town_walks(): _seg_field(_pd, l[0], l[1], Zones.LANE_W, BAND)         # the squares' walk lanes stay bare
 	# keep-outs
 	# sites by their bounding rect, as WorldLanes.intrudes and zz/audit judge them (a round terrace
 	# or a diagonal flight claims its whole box)

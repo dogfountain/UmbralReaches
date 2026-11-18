@@ -162,7 +162,7 @@ static func assess(space: PhysicsDirectSpaceState3D, at: Vector3, opts := {}) ->
 			out.solid = String((solid[0].collider as Node).name) if solid[0].collider is Node else "?"
 			why.append("inside " + String(out.solid))
 		sq.collision_mask = Layers.PROPS
-		var prop := space.intersect_shape(sq, 4)
+		var prop := space.intersect_shape(sq, 32)
 		for pr: Dictionary in prop:
 			var n := pr.collider as Node
 			if n == null or n is Enemy or n is CharacterBody3D or (n.get_parent() is Enemy):

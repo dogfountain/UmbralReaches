@@ -72,7 +72,7 @@ var blocker := ""                  ## what the last failed clear() found (the re
 func clear(p: Vector3) -> bool:
 	_q.transform = Transform3D(Basis.IDENTITY, p + Vector3.UP * ((CLEAR_LO + CLEAR_HI) * 0.5))
 	_q.exclude = _exclude
-	for h in _space.intersect_shape(_q, 6):
+	for h in _space.intersect_shape(_q, 64):                  # (room for the terrain's faces and a rock: with a few, which came first was Jolt's order)
 		var c := h.collider as Node
 		if c == null:
 			continue
@@ -207,6 +207,19 @@ func has(id: String) -> bool:
 
 func at(id: String) -> Vector3:
 	return nodes.get(id, Vector3.INF)
+
+
+## After the ground settles under the floors (TerrainStamp.settle, after the village is built): every node's height
+## read again, so one stood on all night is on the turf as it is now. Returns "id dy" for each that moved.
+func resettle() -> PackedStringArray:
+	var out := PackedStringArray()
+	for id: String in nodes:
+		var p: Vector3 = nodes[id]
+		var y := floor_at(p.x, p.z)
+		if absf(y - p.y) > 0.1:
+			out.append("%s %.2f" % [id, y - p.y])
+			nodes[id] = Vector3(p.x, y, p.z)
+	return out
 
 
 ## Nearest node to a world point (xz).

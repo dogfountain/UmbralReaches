@@ -12,6 +12,7 @@ extends RefCounted
 const BOSSES := "res://core/world/realm/realm_bosses.gd"      # by path: realm_bosses reaches the places that reach the land
 const Pilot := preload("res://core/world/realm/scale_pilot.gd")
 const Cast := preload("res://core/life/village/village_cast.gd")
+const ReachTowns := preload("res://core/life/village/village_reach_towns.gd")
 
 ## Open ground the people use: {id, c, r, kind}. "square" = cobbled and dressed round its rim;
 ## "yard" = the same on a working hamlet's ground (more stores). "market" = how many stalls it stands (site_dress.gd).
@@ -99,6 +100,17 @@ static func _init_once() -> void:
 
 static func _add_lane(a: Vector2, b: Vector2) -> void:
 	_lanes.append([a, b, Rect2(a.min(b), (b - a).abs()).grow(LANE_W + 3.5)])
+
+
+## The Reach towns' walks (Reedholm, Lastlight, ...) as [a, b] segments, for the flora's keep-out only (the lamps and
+## the dress may stand beside them): a stone grown on one lifted a spot onto itself and broke the walk (Lastlight's
+## tower step stood 0.8 m up on a rock and lost its edges).
+static func town_walks() -> Array:
+	var out: Array = []
+	for e: Array in ReachTowns.EDGES:
+		if ReachTowns.NODES.has(e[0]) and ReachTowns.NODES.has(e[1]):
+			out.append([ReachTowns.NODES[e[0]], ReachTowns.NODES[e[1]]])
+	return out
 
 
 ## Distance from p to the nearest lane's edge (0 on it), INF when far from every lane.

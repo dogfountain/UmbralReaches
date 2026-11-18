@@ -231,7 +231,7 @@ static func _blocked(p: Vector3, rad: float, awning := false) -> bool:
 	else:
 		_box.size = Vector3(rad * 2.0 + 0.2, 1.1, rad * 2.0 + 0.2)
 		_q.transform = Transform3D(Basis.IDENTITY, p + Vector3.UP * 0.95)
-	for h in _space.intersect_shape(_q, 4):
+	for h in _space.intersect_shape(_q, 64):                  # (room for the terrain's faces and a rock: with a few, which came first was Jolt's order)
 		var c := h.collider as Node
 		if c and not String(c.name).begins_with("Terrain"):
 			return true

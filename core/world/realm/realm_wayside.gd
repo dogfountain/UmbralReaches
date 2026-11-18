@@ -329,7 +329,10 @@ static func _fits(kind: String, q: Vector2, yaw: float) -> float:
 	sq.shape = bx
 	sq.transform = Transform3D(Basis.IDENTITY, Vector3(q.x, gy + 3.85, q.y))
 	sq.collision_mask = Layers.WORLD | Layers.PROPS
-	for h: Dictionary in _space.intersect_shape(sq, 8):
+	# room for every overlap: with 8, the terrain's own faces could fill the list before a rock beside them, and which
+	# came first is Jolt's order, which shifts with the build's timing (the plan, the wood's fingerprint and the
+	# necropolis' grass came out one of two ways between runs)
+	for h: Dictionary in _space.intersect_shape(sq, 64):
 		if not String((h.collider as Node).name).begins_with("Terrain"):
 			return _no("standing")
 	return gy
