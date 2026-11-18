@@ -39,7 +39,7 @@ const TAVERN := Rect2(10.0, 25.6, 16.0, 9.2)               ## Tavern.X0..X1, Z0.
 ## "Inside the Ossuary" checks use in_ossuary() (the pit or the hall), never one AABB round both.
 const OSSUARY_OLD := AABB(Vector3(2.0, -6.0, -110.0) + Endgame.O, Vector3(30.0, 32.0, 88.0))   ## the old site (the rift's kept east wall; the endgame stands Endgame.O east of where it was built)
 const OSSUARY := AABB(Vector3(-63.0, -33.4, 146.0), Vector3(108.0, 56.0, 46.0))   ## the pit and its tiers: x -63..45, y -33..23, z 146..192
-const OSSUARY_HALL := AABB(Vector3(-6.0, -45.4, 177.0), Vector3(56.0, 32.0, 56.0))   ## x -6..50, y -45..-13, z 177..233: the pit hall, under the downs
+const OSSUARY_HALL := AABB(Vector3(-38.8, -45.4, 181.2), Vector3(89.6, 32.0, 89.6))   ## x -39..51, y -45..-13, z 181..271: the pit hall, under the downs (1.6x, 18 Nov)
 const SUMMIT := Vector3(0.0, 24.5, -83.5) + Endgame.O      ## summit platform holder (keep; the far north-east: Endgame)
 const SUMMIT_DAIS := Vector3(0.0, 27.35, -103.9) + Endgame.O ## Ascended Warden's fighting dais (r 14)
 const SUMMIT_WARD := Vector3(0.0, 25.2, -70.9) + Endgame.O ## where the crossing arrives; the summit seal

@@ -651,7 +651,7 @@ func _bone_rain() -> void:
 		if spots.size() >= 3:
 			break
 		var a := randf() * TAU
-		var q := _p.global_position + Vector3(cos(a), 0.0, sin(a)) * randf_range(6.5, 12.0)
+		var q := _p.global_position + Vector3(cos(a), 0.0, sin(a)) * randf_range(10.4, 19.2)
 		var ok := true
 		for s in spots:
 			if Vector2(s.x - q.x, s.z - q.z).length() < RAIN_R * 1.6:

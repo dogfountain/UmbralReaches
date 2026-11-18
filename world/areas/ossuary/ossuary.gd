@@ -762,8 +762,8 @@ func _crypt(hall: Node3D) -> void:
 	var inward := OssFrame.wd(Vector3(-cos(deg_to_rad(da)), 0.0, -sin(deg_to_rad(da))))
 	# he rises on the inner disc, off the entry axis (about 9 m from the pull, clear of the mound):
 	# at 4.6 m, on the entry axis, his 5 m of robe filled the frame and showed the camera only a hem
-	var spawn := OssHall.wat(da + 12.0, 8.5, OssHall.FLOOR_Y + 0.1)
-	var arena := BossArena.make(self, "bone_abbot", "The Bone Abbot", OssHall.WC, 23.0, BoneAbbot, spawn)
+	var spawn := OssHall.wat(da + 12.0, 13.6, OssHall.FLOOR_Y + 0.1)
+	var arena := BossArena.make(self, "bone_abbot", "The Bone Abbot", OssHall.WC, 36.8, BoneAbbot, spawn)     # (18 Nov: 23 -> 36.8 with the 1.6x hall)
 	arena.ceiling = 4.0                          # the stair's slit and the galleries never pull him
 	arena.max_rise = 6.0                         # the mound stands in the middle of the floor
 	# the inner grille at the floor's edge is the line the fight starts behind; the outer one in the

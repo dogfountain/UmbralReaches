@@ -157,7 +157,7 @@ func _walk_down() -> void:
 			pts.append(Vector2(other, end_z))
 	pts.append(Vector2(Hall.SX1 + 0.9, dz))
 	var da := Hall.door_ang()
-	for r: float in [22.0, 19.6]:
+	for r: float in [Hall.TIER_A.x + 3.4, Hall.TIER_A.x + 1.0]:     # in the corridor, short of the inner grille
 		var q := Hall.at(da, r)
 		pts.append(Vector2(q.x, q.z))
 	for i in pts.size():
@@ -298,7 +298,7 @@ func _fight() -> void:
 	await _secs(10.0)
 	check("the floor remembers: four sectors fell", int(hall.call("fallen_count")) == 4, str(hall.call("fallen_count")))
 	var k: int = Hall.FALL_III[0]
-	var over := Hall.wat(45.0 * k, 14.5, Hall.FLOOR_Y)
+	var over := Hall.wat(45.0 * k, (Hall.INNER_R + Hall.FLOOR_R) * 0.5, Hall.FLOOR_Y)
 	var f := _ray(over + Vector3.UP * 0.5, 1.0, 12.0)
 	check("no floor over a fallen sector (the deep below)", f != Vector3.INF and f.y < FLOOR_W - 3.0, str(f))
 	set_meta(&"let_gloom", true)

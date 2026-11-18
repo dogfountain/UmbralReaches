@@ -23,31 +23,34 @@ extends Node3D
 
 const Kit := preload("res://core/life/secrets/kit.gd")
 
-const C := Vector3(59.0, -32.0, -99.0)        ## floor centre (local)
-const BOX := AABB(Vector3(26.0, -38.0, -124.0), Vector3(56.0, 32.0, 56.0))   ## the hall's volume (local)
+## (18 Nov, Luke: the arenas 1.6x, the world reshaped round them) every radius x1.6, the centre moved 16 m south and 19 m
+## west (world) so the bigger rotunda keeps the Counting Stair's shaft outside its wall and its chapels off the Well's
+## rim (it stood 2 m from it); the stair foot's corridor runs in to it (from 59, -99: the old hall)
+const C := Vector3(75.0, -32.0, -80.0)        ## floor centre (local)
+const BOX := AABB(Vector3(30.2, -38.0, -124.8), Vector3(89.6, 32.0, 89.6))   ## the hall's volume (local)
 const FLOOR_Y := -32.0
-const FLOOR_R := 18.5                          ## the fighting floor (sectors' outer edge)
-const INNER_R := 10.0                          ## the inner disc never falls
-const WALL_R := 22.5                           ## the wall's inner face (16-gon apothem)
+const FLOOR_R := 29.6                          ## the fighting floor (sectors' outer edge)
+const INNER_R := 16.0                          ## the inner disc never falls
+const WALL_R := 36.0                           ## the wall's inner face (polygon apothem)
 const WALL_T := 0.5
-const SIDES := 16
+const SIDES := 24
 const WALL_TOP := -15.0
 const VAULT_TOP := -8.6                        ## oculus ring (box top is -6)
-const OCULUS_R := 3.2
-const TIER_A := Vector3(18.5, 20.5, -30.4)     ## inner r, outer r, top y
-const TIER_B := Vector3(20.5, 22.5, -27.6)
+const OCULUS_R := 5.1
+const TIER_A := Vector3(29.6, 32.8, -30.4)     ## inner r, outer r, top y
+const TIER_B := Vector3(32.8, 36.0, -27.6)
 const RAIL_H := 1.1                            ## bone balustrade on tier A's lip (2.7 m from the floor)
 const DEEP_Y := -37.5
 const SECTORS := 8                             ## sector k spans 45k +- 22.5 degrees
-const KEEP := 3                                ## the door's tongue (135 deg) never falls
+const KEEP := 4                                ## the door's tongue (180 deg: the door comes in at ~186) never falls
 const FALL_III := [0, 2, 5, 7]                 ## phase III: "The Floor Remembers"
-const FALL_IV := [1, 4, 6]                     ## the final count
+const FALL_IV := [1, 3, 6]                     ## the final count
 const CHAPELS := [45.0, 315.0, 225.0]          ## SE, NE, NW (deg): the Tallies' plinths
-const CHAPEL_W := 5.0
-const CHAPEL_BACK := 27.4
-const SOCKET_R := 25.6                         ## a Tally stands here (r) in its chapel
+const CHAPEL_W := 6.5
+const CHAPEL_BACK := 43.8
+const SOCKET_R := 41.0                         ## a Tally stands here (r) in its chapel
 const BELLS := [0.0, 90.0, 190.0, 270.0]       ## E, S, W, N
-const BELL_R := 21.2
+const BELL_R := 33.9
 const BELL_Y := -20.2                          ## the bell's mouth
 const MOUND_R := 3.6
 const MOUND_TOP := -26.4
