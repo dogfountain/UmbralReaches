@@ -228,6 +228,7 @@ static func group(kind: String, count: int, mat_kind := "") -> MultiMeshInstance
 	var mmi := MultiMeshInstance3D.new()
 	mmi.name = kind.capitalize().replace(" ", "")
 	mmi.multimesh = mm
+	mmi.set_meta(&"live_pool", true)             # (WorldLanes.cull_scatter leaves a runtime pool alone: its creatures move)
 	mmi.material_override = material(kind if mat_kind == "" else mat_kind)
 	mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	# the groups write whole buffers every rendered frame (not per physics tick): with physics

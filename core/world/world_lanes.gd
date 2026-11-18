@@ -213,7 +213,7 @@ static func cull_scatter(root: Node, margin := 0.35) -> int:
 	for node in root.find_children("*", "MultiMeshInstance3D", true, false):
 		var mmi := node as MultiMeshInstance3D
 		var mm := mmi.multimesh
-		if mm == null or mm.instance_count == 0 or mmi.has_meta("site_owned"):
+		if mm == null or mm.instance_count == 0 or mmi.has_meta("site_owned") or mmi.has_meta(&"live_pool"):     # (a runtime pool: its slots are its own)
 			continue
 		# one buffer read and one write per MultiMesh: per-instance getters fetch the whole GPU buffer
 		# SeatProps leaves its CPU copy: a same-frame read of `buffer` can return the GPU's stale data

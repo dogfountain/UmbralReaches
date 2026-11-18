@@ -103,6 +103,7 @@ func _multimesh(n: String, mesh: Mesh, mat: Material, count: int) -> MultiMeshIn
 	mm.instance_count = count
 	mm.visible_instance_count = 0
 	var mi := MultiMeshInstance3D.new()
+	mi.set_meta(&"live_pool", true)             # (WorldLanes.cull_scatter leaves a runtime pool alone)
 	mi.name = n
 	mi.multimesh = mm
 	mi.material_override = mat

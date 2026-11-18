@@ -73,6 +73,7 @@ func _ready() -> void:
 	top_level = true
 	physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF   # the hook and ribbon are placed every rendered frame
 	_mm = MultiMeshInstance3D.new()
+	_mm.set_meta(&"live_pool", true)            # (WorldLanes.cull_scatter leaves a runtime pool alone)
 	var mm := MultiMesh.new()
 	mm.transform_format = MultiMesh.TRANSFORM_3D
 	mm.mesh = _link_mesh

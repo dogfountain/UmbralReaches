@@ -38,6 +38,7 @@ func _ready() -> void:
 	mm.instance_count = MAX
 	mm.visible_instance_count = 0
 	_mm = MultiMeshInstance3D.new()
+	_mm.set_meta(&"live_pool", true)            # (WorldLanes.cull_scatter leaves a runtime pool alone)
 	_mm.name = "Moths"
 	_mm.multimesh = mm
 	_mm.material_override = mat
