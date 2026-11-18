@@ -147,7 +147,7 @@ func _build() -> void:
 	_spring_cloth()
 
 
-## Cloth that moves: a model with spring chains (bones "<family><i>_<seg>", tools/blender/boss_humanoid_anim.py: the clips
+## Cloth that moves: a model with spring chains (bones "<family><i>_<seg>", the old boss_humanoid_anim.py pipeline: the clips
 ## leave them at rest) gets a SpringBoneSimulator3D over them, so a cloak lags a turn, swings with the stride and the
 ## blow and settles after, and bell sleeves fall back down raised arms. Capsules on the trunk, legs and arms keep the
 ## cloth outside the body; a plane at the feet catches it when he falls. Rig units (the model's own scale).

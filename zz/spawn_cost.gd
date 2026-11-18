@@ -31,8 +31,8 @@ var t_frame := 0
 var wait := 30                       ## frames before the first build (window, first pipelines)
 var _held: Array[Resource] = []
 var gap := 0                         ## --gap=N: frames between a free and the next build (does the warmth last?)
-const MODELS := {"thornwarden": "res://art/models/boss_thornwarden.glb", "bone_abbot": "res://art/models/boss_bone_abbot.glb",
-	"anchoress": "res://art/models/boss_anchoress.glb", "warden": "res://art/models/boss_ascended_warden.glb"}
+const MODELS := {"thornwarden": "res://art/models/bosses/vb_thornwarden.glb", "bone_abbot": "res://art/models/bosses/vb_bone_abbot.glb",
+	"anchoress": "res://art/models/bosses/vb_anchoress.glb", "warden": "res://art/models/bosses/vb_ascended_warden.glb"}
 
 
 func _ready() -> void:
