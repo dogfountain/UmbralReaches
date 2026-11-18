@@ -15,6 +15,7 @@ const Data := preload("res://core/story/long_ledger_data.gd")
 const Tally := preload("res://core/story/tally.gd")
 const Chronicle := preload("res://core/story/chronicle.gd")
 const UiSound := preload("res://ui/ui_sound.gd")
+const LedgerVoice := preload("res://core/story/ledger_voice.gd")
 const Days := preload("res://core/story/days.gd")
 const Tiers := preload("res://core/life/encounters/tiers.gd")
 
@@ -128,6 +129,7 @@ func post() -> void:
 	Travel.save_soon()
 	if not list.is_empty():
 		Events.toast.emit("The Long Ledger is posted at the Keg: %d bounties for tonight." % list.size())
+		LedgerVoice.posted(self, list.size(), ng())
 
 
 func _ready() -> void:
@@ -181,7 +183,7 @@ func _pay(b: Dictionary, s: Dictionary) -> void:
 	s["marks"] = int(s.marks) + (2 if hard else 1)
 	s["done"] = int(s.done) + 1
 	Events.toast.emit("Ledger: %s  +%d grave ash, +%d ember shards, %d mark%s." % [text_of(b), ash, shard, 2 if hard else 1, "s" if hard else ""])
-	UiSound.play(self, "quest_done")
+	LedgerVoice.paid(self, String(tpl[0]), hard)
 	var tally := Tally.data()
 	tally["ledger"] = int(s.done)
 	if rank() > before:
@@ -189,5 +191,6 @@ func _pay(b: Dictionary, s: Dictionary) -> void:
 		Travel.give("ember_shard", 5 * r, false)
 		Events.toast.emit("Rank: %s. %s  +%d ember shards." % [rank_name(), String(Data.RANK_LINES[r]), 5 * r])
 		Chronicle.write("ledger_rank:%d" % r, "road", "The Long Ledger named the wanderer %s." % rank_name())
+		LedgerVoice.rank(self, r, String(Data.RANK_LINES[r]), ng())
 		rank_gained.emit(r)
 	Travel.save_soon()
