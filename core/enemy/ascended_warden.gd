@@ -25,6 +25,7 @@ extends Husk
 ##   fans, the falling sky on you, eclipses and flares. (r35: no soft enrage.)
 
 const VillagerBossRig := preload("res://core/enemy/villager_boss_rig.gd")
+const ClipRig := preload("res://core/enemy/clip_rig.gd")
 const WardenBody := preload("res://core/enemy/warden_body.gd")
 const FAN_WINDUP := 0.85
 const HP := 760
@@ -100,12 +101,26 @@ func _build() -> void:
 	# (17 Nov, Luke: bosses "simple like the villager", "4/5x size") built in the villagers' style to its own design
 	# (core/enemy/warden_body.gd): a floating priest in an ivory bell robe, a gold mask, a mandorla of rays; posed by
 	# formula (core/enemy/villager_boss_rig.gd). The Blender model and its clips stay in art/ for the record.
-	VillagerBossRig.fit(self, WardenBody, {}, {"hover": 0.22, "scale": 0.57, "cap": 0.86, "stoop": 0.0})
+	# (18 Nov, Luke: "all models in the game should be blender") modelled and animated in Blender
+	# (tools/blender/vb_ascended_warden.py): floating in an ivory bell robe with the light of the door pouring from its
+	# hem, a gold mask under an ivory hood, a mandorla with rays swept out like wings and a sun-disc at its heart (the
+	# weak point), long lined sleeves, the key of the door at its hip; a move of its own for each rite. The code-built
+	# body above stays as the fallback.
+	var model: String = BossKit.AUTHORED.get(&"ascended_warden", "")
+	var authored := model != "" and ResourceLoader.exists(model)
+	if authored:
+		ClipRig.fit(self, model, &"ascended_warden", {"body": "spine", "front": "chest", "muzzle": "head", "halo": "halo"},
+				{"walk_stride": 2.0, "villager_look": true, "cap": 0.86})
+		_rig.scale = Vector3.ONE * 0.92             # 2.3 m to the halo's top in body units: about 10 m at SCALE
+		weak_socket = "halo"                        # the sun-disc at the mandorla's heart
+		weak_offset = Vector3(0.0, 0.1, 0.03)
+	else:
+		VillagerBossRig.fit(self, WardenBody, {}, {"hover": 0.22, "scale": 0.57, "cap": 0.86, "stoop": 0.0})
 	name = "AscendedWarden"
 	BossKit.embiggen(self, SCALE)
 	posture({"hunch": 0.05, "crouch": 0.0, "arm_reach": 0.1, "head_jut": 0.1, "limp": 0.0, "sway": 0.4, "twitch": 0.0, "splay": 0.15, "hover": 1.0})
 	# its halo lights the deck round it
-	var head := _rig.socket("head") if _rig else null
+	var head := (_rig.socket("halo") if authored else _rig.socket("head")) if _rig else null
 	if head:
 		var l := OmniLight3D.new()
 		l.name = "Halo"
@@ -114,7 +129,12 @@ func _build() -> void:
 		l.omni_range = 20.0
 		l.shadow_enabled = false
 		head.add_child(l)
-		l.position = Vector3(0.0, 0.14, 0.22)
+		l.position = weak_offset if authored else Vector3(0.0, 0.14, 0.22)
+
+
+## One of its own moves when the model has it (a clip of that name, timed to the cast), else false.
+func _rite(clip: StringName) -> bool:
+	return _rig != null and _rig.has_method("boss_move") and bool(_rig.call("boss_move", clip, 0.0))
 
 
 func _absorb(dmg: float, from: Node) -> float:
@@ -229,7 +249,7 @@ func _physics_process(delta: float) -> void:
 			_blink_t = maxf(_blink_t, 2.4)
 			BossKit.cast(self, "Call the Acolytes", 2.0, true, _call_acolytes)
 			BossKit.emote(self, "He calls his acolytes out of the light.", BossKit.EMOTE_COL)
-			if _rig and _rig.has_method("howl"):
+			if not _rite(&"call") and _rig and _rig.has_method("howl"):
 				_rig.call("howl", 2.0)
 			return
 		if phase == 2 and _gale_t <= 0.0 and _room != null:
@@ -343,6 +363,7 @@ func _fan() -> void:
 func _judgement() -> void:
 	var at := _p.global_position
 	var base := randf() * PI
+	_rite(&"judgement")                         # the right hand raised and brought down across as the lanes land
 	BossKit.cast(self, "Judgement", 1.2)
 	for k in 2:
 		var yaw := base + PI * 0.5 * float(k)
@@ -389,7 +410,7 @@ func _mandorla_flare() -> void:
 	_blink_t = maxf(_blink_t, FLARE_TIME + 0.6)
 	_judge_t = maxf(_judge_t, FLARE_TIME + 0.8)
 	_glint = 1.0
-	if _rig and _rig.has_method("howl"):
+	if not _rite(&"flare") and _rig and _rig.has_method("howl"):     # folded, then flung wide as the deck burns
 		_rig.call("howl", FLARE_TIME)
 	BossKit.cast(self, "Mandorla Flare", FLARE_TIME)
 	BossKit.emote(self, "The mandorla flares.", BossKit.EMOTE_COL)
@@ -417,7 +438,7 @@ func _scatter() -> void:
 ## Eclipse: the deck fills, but for the lit pylons' rings (the room) or two pillars of its light at
 ## blink points away from it (no room). A ring that sheltered you is spent.
 func _eclipse() -> void:
-	if _rig and _rig.has_method("howl"):
+	if not _rite(&"eclipse") and _rig and _rig.has_method("howl"):  # the hands rise and cup over the head
 		_rig.call("howl", ECLIPSE_FILL)
 	_glint = 1.0
 	Sfx.play_stream(Synth.get_stream("chant"), global_position + Vector3.UP * 3.0, 3.0, 0.45)
@@ -461,7 +482,7 @@ func _begin_gale() -> void:
 	_judge_t = maxf(_judge_t, GALE_CAST + GALE_TIME + 1.5)
 	_flare_t = maxf(_flare_t, GALE_CAST + GALE_TIME + 3.0)
 	_eclipse_t = maxf(_eclipse_t, GALE_CAST + GALE_TIME + 4.0)
-	if _rig and _rig.has_method("howl"):
+	if not _rite(&"gale") and _rig and _rig.has_method("howl"):     # drawn back, then both palms driving the wind
 		_rig.call("howl", GALE_CAST)
 	BossKit.cast(self, "Gale of the Door", GALE_CAST, false, func() -> void:
 		if is_alive() and not ascended and phase == 2:
@@ -523,7 +544,7 @@ func _ascend() -> void:
 	set_meta(&"ward_hint", "rekindle the pylons")
 	_star_t = 2.5
 	_star_p_t = 3.5
-	if _rig and _rig.has_method("howl"):
+	if not _rite(&"ascend") and _rig and _rig.has_method("howl"):
 		_rig.call("howl", 2.0)
 	BossKit.roar(self, "", BossKit.HOLY)
 	BossKit.emote(self, "The Warden ascends. The pylons go dark.", Color(1.0, 0.9, 0.6))
