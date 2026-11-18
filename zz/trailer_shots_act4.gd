@@ -11,8 +11,8 @@ const Kit := preload("res://zz/trailer_act4_kit.gd")
 ##        cam: [d0, d1, side0, side1, h0, h1, look height] relative to the boss on the wanderer's side,
 ##        fov, lit: [energy, range] of the fill light, top: top-down height (TOP shots)}
 const BOSS := {
-	"thorn_reveal": {"boss": "thornwarden", "W": 11.0, "pre": false, "cam": [9.5, 0, 4.5, 0, 3.4, 0, 3.4], "push": 3.0, "fov": 55.0, "lit": [5.0, 40.0]},
-	"thorn_move": {"boss": "thornwarden", "W": 12.0, "pre": true, "cam": [13.0, 0, 11.0, 0, 6.0, 0, 1.5], "push": 1.5, "fov": 60.0, "lit": [5.0, 40.0]},
+	"thorn_reveal": {"boss": "thornwarden", "W": 11.0, "pre": false, "cam": [24.0, 0, 9.0, 0, 5.0, 0, 6.0], "push": 3.0, "fov": 55.0, "lit": [5.0, 40.0]},
+	"thorn_move": {"boss": "thornwarden", "W": 12.0, "pre": true, "cam": [26.0, 0, 16.0, 0, 9.0, 0, 4.0], "push": 1.5, "fov": 60.0, "lit": [5.0, 40.0]},
 	"thorn_knots": {"boss": "thornwarden", "W": 8.0, "pre": true, "knot": 60.0, "cam": [9.0, 0, -4.5, 0, 4.2, 0, 3.4], "push": 2.0, "fov": 55.0, "lit": [7.0, 40.0]},
 	"boss_reveal": {"boss": "bone_abbot", "W": 9.0, "pre": false, "cam": [11.0, 0, 3.0, 0, 2.4, 0, 3.0], "ring": [70.0, 13.0], "fov": 46.0, "lit": [1.6, 24.0, 1]},
 	"boss_wide": {"boss": "bone_abbot", "W": 8.0, "pre": true, "cam": [17.0, 0, 7.0, 0, 6.0, 0, 1.5], "ring": [70.0, 12.0], "push": 1.0, "fov": 60.0, "lit": [1.6, 30.0, 1]},
@@ -22,8 +22,8 @@ const BOSS := {
 	"warden": {"boss": "ascended_warden", "W": 13.0, "pre": false, "cam": [19.0, 0, 4.0, 0, 1.0, 0, 6.0], "push": 3.0, "fov": 62.0, "lit": [6.0, 50.0]},
 	"warden_move": {"boss": "ascended_warden", "W": 13.0, "pre": true, "cam": [21.0, 0, -8.0, 0, 9.0, 0, 5.0], "push": 2.0, "fov": 62.0, "lit": [6.0, 50.0]},
 	"warden_phase": {"boss": "ascended_warden", "W": 12.0, "pre": true, "cam": [20.0, 0, 5.0, 0, 1.2, 0, 8.0], "push": 2.0, "fov": 64.0, "lit": [6.0, 50.0]},
-	"anchoress": {"boss": "r37_anchoress", "W": 9.0, "pre": false, "cam": [-8.0, 0, 3.0, 0, 1.6, 0, 2.6], "push": 2.5, "fov": 52.0, "lit": [8.0, 32.0]},
-	"anchoress_move": {"boss": "r37_anchoress", "W": 10.0, "pre": true, "cam": [9.0, 0, 7.5, 0, 5.0, 0, 1.0], "push": 1.5, "fov": 58.0, "lit": [8.0, 32.0]},
+	"anchoress": {"boss": "r37_anchoress", "W": 9.0, "pre": false, "cam": [16.0, 0, 4.0, 0, 2.5, 0, 6.0], "push": 2.5, "fov": 55.0, "lit": [8.0, 32.0]},
+	"anchoress_move": {"boss": "r37_anchoress", "W": 10.0, "pre": true, "cam": [22.0, 0, 12.0, 0, 8.0, 0, 5.0], "push": 1.5, "fov": 58.0, "lit": [8.0, 32.0]},
 	"anchoress_phase": {"boss": "r37_anchoress", "W": 9.0, "pre": true, "cam": [-8.0, 0, 4.0, 0, 1.6, 0, 2.8], "push": 2.0, "fov": 56.0, "lit": [8.0, 32.0]},
 	"hierarch_voice": {"boss": "r37_hierarch", "W": 11.0, "pre": true, "cam": [17.0, 0, 7.0, 0, 8.0, 0, 1.2], "push": 2.0, "fov": 58.0, "lit": [8.0, 40.0]},
 	"hierarch_edict": {"boss": "r37_hierarch", "W": 12.0, "pre": true, "cam": [10.5, 0, 3.5, 0, 1.2, 0, 4.5], "push": 2.5, "fov": 56.0, "lit": [5.0, 40.0]},
@@ -206,7 +206,7 @@ func _s_abbot_iv() -> void:
 	_home = cen + Cam.flat(ar.boss_at - cen).rotated(Vector3.UP, deg_to_rad(70.0)) * 12.0
 	kit.stand(_home, Cam.yaw_dir(Cam.flat(ar.boss_at - _home)))
 	d.use_free_cam()
-	d.cam.fov = 60.0
+	d.cam.fov = 68.0
 	_lit_was = Vector2(d.key.light_energy, d.key.omni_range)
 	d.key.light_energy = 1.6
 	d.key.omni_range = 30.0
@@ -256,22 +256,22 @@ func _u_abbot_iv(tt: float) -> void:
 		_iv_dir = _iv_dir.rotated(Vector3.UP, clampf(ang, -1.5 * _iv_dt, 1.5 * _iv_dt))
 	# a spot clear of the hall's columns, bells and the cage, seeing both of them: solved every 0.4 s near the wished-for
 	# one (FLOOR_R 18.5, columns and bells beyond it: kept within 16 m of the middle), eased between
-	var spot := mid + _iv_dir * 9.0
+	var spot := mid + _iv_dir * 12.0                 # (the Abbot stands 4-5 times a man now: a lens back and up to hold all of him)
 	var wr := Cam.flat(spot - cen)
 	if wr.length() > 16.0:
 		spot = cen + wr.normalized() * 16.0
 	if tt >= _iv_solve_t:
 		_iv_solve_t = tt + 0.4
-		var look: Array = [bp + Vector3.UP * 3.0, d.pp() + Vector3.UP * 1.2]
+		var look: Array = [bp + Vector3.UP * 5.0, d.pp() + Vector3.UP * 1.2]
 		var v := Cam.flat(spot - mid)
-		var at: Vector3 = d.solve_cam(look, mid, atan2(v.x, v.z), maxf(v.length(), 6.0), 6.0)
-		_iv_goal = at if at != Vector3.ZERO else spot + Vector3.UP * 6.0
+		var at: Vector3 = d.solve_cam(look, mid, atan2(v.x, v.z), maxf(v.length(), 6.0), 10.0)
+		_iv_goal = at if at != Vector3.ZERO else spot + Vector3.UP * 10.0
 		if _iv_cam == Vector3.ZERO:
 			_iv_cam = _iv_goal
 	_iv_cam = _iv_cam.lerp(_iv_goal, 1.0 - exp(-_iv_dt * 2.5))
 	# set straight, not frame_cam: its ray pulls the lens in front of whatever crosses it (the shades, the bone rain)
 	d._cam_pos = _iv_cam
-	d._cam_at = mid + Vector3.UP * 1.3
+	d._cam_at = mid + Vector3.UP * 3.5
 	d.light_at(mid, 6.0)
 	# the wanderer: on the move round him the whole fight (the way changes, a Rift Step out of his reach) and every
 	# spell he has, one after another (IV_CASTS)

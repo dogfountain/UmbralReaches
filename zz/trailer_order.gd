@@ -11,13 +11,15 @@ const ORDER := [
 	["cold", 1.4, 0.0, "I", "CIN"], ["village", 2.4, 0.0, "I", "CIN"], ["tavern", 1.4, 0.0, "I", "CIN"], ["keep_talk", 3.4, 0.0, "I", "UI"],
 	["run_game", 1.8, 0.0, "I", "GAME"],
 	# act II: what climbs comes down hollow
-	["card_dark", 0.8, 0.0, "II", "CARD"], ["fight_otc", 3.0, 0.0, "II", "GAME"], ["fight_side", 2.6, 0.0, "II", "CIN"], ["familiar", 2.2, 0.0, "II", "CIN"],
+	["card_dark", 0.8, 0.0, "II", "CARD"], ["fight_otc", 3.0, 0.0, "II", "GAME"], ["familiar", 2.2, 0.0, "II", "CIN"],
 	["loot", 2.2, 0.0, "II", "CIN"], ["gear", 1.8, 0.0, "II", "UI"],
-	# act III: the Realm widens
-	["card_realm", 0.8, 0.0, "III", "CARD"], ["horse_gallop", 2.4, 0.0, "III", "GAME"], ["weirford_life", 2.4, 0.0, "III", "CIN"], ["lamp_kindle", 2.0, 0.0, "III", "CIN"],
+	# act III: the Realm widens (the Chain Span's lanterns)
+	["card_realm", 0.8, 0.0, "III", "CARD"], ["horse_gallop", 2.4, 0.0, "III", "GAME"],
+	["chain_span", 2.2, 0.0, "III", "CIN"], ["weirford_life", 2.4, 0.0, "III", "CIN"], ["lamp_kindle", 2.0, 0.0, "III", "CIN"],
 	["escort_attack", 2.4, 0.0, "III", "GAME"],
-	# act IV: the Bone Abbot, all four phases
-	["card_depths", 0.8, 0.0, "IV", "CARD"], ["abbot_iv", 12.0, 0.0, "IV", "CIN"],
+	# act IV: the great ones, rebuilt (the Warden, the Anchoress, the Speaking Crown, the Bone Abbot's four phases, the Thornwarden's fall)
+	["card_depths", 0.8, 0.0, "IV", "CARD"], ["warden", 2.0, 0.0, "IV", "CIN"], ["anchoress", 2.0, 0.0, "IV", "CIN"],
+	["hierarch_voice", 2.2, 0.0, "IV", "CIN"], ["abbot_iv", 12.0, 0.0, "IV", "CIN"], ["final_blow", 2.8, 0.0, "IV", "CIN"],
 	# the title
 	["finale", 4.5, 0.0, "V", "CIN"],
 ]
@@ -44,6 +46,8 @@ const FULL := [
 	["stillwater", 1.4, 0.0, "III", "CIN"], ["lamp_spire", 1.8, 0.0, "III", "FP"], ["anchorholds", 1.4, 0.0, "III", "CIN"],
 	["hierarch", 1.6, 0.0, "III", "CIN"], ["siege", 1.3, 0.0, "III", "CIN"],
 	["saltmarket", 1.2, 0.0, "III", "CIN"], ["saltmarket_life", 2.2, 0.0, "III", "CIN"], ["pans", 1.2, 0.0, "III", "CIN"],
+	["sleeper", 2.4, 0.0, "III", "CIN"], ["hollow_king", 2.4, 0.0, "III", "CIN"], ["salt_ship", 2.2, 0.0, "III", "CIN"],
+	["chain_span", 2.2, 0.0, "III", "CIN"], ["titan_gate", 2.2, 0.0, "III", "CIN"], ["wardens", 2.2, 0.0, "III", "CIN"], ["undercroft", 2.0, 0.0, "III", "CIN"],
 	["pans_wide", 2.0, 0.0, "III", "CIN"], ["oak", 1.4, 0.0, "III", "CIN"], ["well", 1.6, 0.0, "III", "CIN"], ["downs", 1.8, 0.0, "III", "CIN"],
 	["bells", 2.0, 0.0, "III", "CIN"], ["bell_ring", 2.4, 0.0, "III", "CIN"], ["shutter_fight", 2.6, 0.0, "III", "GAME"],
 	["secret", 2.4, 0.0, "III", "CIN"],
@@ -66,6 +70,6 @@ const NO_SUBJECT := ["cold", "card_dark", "card_realm", "card_depths", "fp_run",
 	"village", "keg_song", "keep_talk", "wildlife_herd", "familiar", "hearth_tithe", "kindling", "gear", "map", "thornwood", "necropolis", "mere", "foundry", "orchard", "quarry", "moor", "holds", "crowns",
 	"stillwater", "lamp_spire", "anchorholds", "hierarch", "saltmarket", "pans", "oak", "well", "bells", "roam", "rain_mist",
 	"thorn_reveal", "thorn_knots", "warden", "anchoress", "hierarch_voice", "final_blow", "boss_low", "horse_breeds", "weirford", "defend", "spell_arcana",
-	"weirford_life", "saltmarket_life", "pans_wide", "downs", "bell_ring", "secret", "escort_top", "defend_top", "roam_incursion", "horse_fp",
+	"weirford_life", "saltmarket_life", "pans_wide", "sleeper", "hollow_king", "salt_ship", "chain_span", "titan_gate", "wardens", "undercroft", "downs", "bell_ring", "secret", "escort_top", "defend_top", "roam_incursion", "horse_fp",
 	"thorn_move", "abbot_phase", "abbot_fall", "abbot_burn", "abbot_iv", "warden_move", "warden_phase", "anchoress_move", "anchoress_phase", "hierarch_edict", "hierarch_phase",
 	"boss_game", "boss_wide"]

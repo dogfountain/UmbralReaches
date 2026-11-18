@@ -346,7 +346,7 @@ func _hide_overlays() -> void:
 		if c == layer or String(c.name) == "Grade":
 			continue
 		if _kept(c):
-			if (keep_menus and String(c.name) in ["CharacterScreen", "Backdrop", "GearPanel", "Kindling", "Codex", "WorldMap"]) or keep_hud:
+			if (keep_menus and String(c.name) in ["CharacterScreen", "Backdrop", "GearPanel", "Kindling", "Codex", "WorldMap"]) or keep_hud or c in keep_layers:
 				(c as CanvasLayer).visible = true      # an earlier cut hid it; it shows and hides its own contents
 		else:
 			(c as CanvasLayer).visible = false

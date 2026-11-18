@@ -24,17 +24,30 @@ const PLACES := {
 	"well": [Vector2(48, 193), Vector2(70, 204), -1.0, 8.0, 7.0, 62.0, 1.0, 1.0, 0.25, 0.1],
 	"weirford": [Vector2(-190, 66), Vector2(-226, 62), 5.0, 4.5, 2.2, 60.0, 1.5, 0.8, 0.5],
 	"downs": [Vector2(-10, 190), Vector2(0, 196), 3.0, 4.5, 2.0, 60.0, 1.5, 0.6, 0.5],
+	"chain_span": [Vector2(-330, -14), Vector2(-330, 20), 6.0, 8.0, 4.0, 60.0, 1.5, 1.0, 0.4, 0.3],
 }
 
 ## The places whose lens is picked by the clear-lens solver (vista_clear: never behind a wall, a roof, a sign or a headstone,
 ## the wanderer kept in the lower third); the rest trail the wanderer with the plain Cam.vista.
 ## id -> a fixed sideways shift of the lens (+ = right of the walk), to slide it past something in the foreground.
 const LENS_SIDE := {"moor": 2.0}
-const CLEAR_LENS := ["quarry", "holds", "stillwater", "moor", "necropolis", "siege", "saltmarket", "well", "anchorholds", "hierarch"]
+const CLEAR_LENS := ["quarry", "holds", "stillwater", "moor", "necropolis", "siege", "saltmarket", "well", "anchorholds", "hierarch", "chain_span"]
+
+## The Far Reaches' landmarks (core/world/realm/wonders/r39), too big for a trailing lens: a slow high orbit round each,
+## lit by its own fires. id -> [centre xz, look height over its ground, radius, lens height over the centre's ground,
+## start bearing (degrees; 0 = from the south, so the vortex in the north stands behind it), sweep (degrees), fov]
+const FLY := {
+	"sleeper": [Vector2(168, 343), 6.0, 95.0, 40.0, -15.0, 22.0, 55.0],
+	"hollow_king": [Vector2(214, 350), 18.0, 80.0, 35.0, 10.0, 24.0, 58.0],
+	"salt_ship": [Vector2(232, 170), 4.0, 60.0, 30.0, -20.0, 26.0, 58.0],
+	"titan_gate": [Vector2(-23, -24), 8.0, 55.0, 25.0, -10.0, 12.0, 60.0],
+	"wardens": [Vector2(124, 26), 10.0, 34.0, 13.0, 20.0, 28.0, 60.0],
+	"undercroft": [Vector2(-334, 85), 1.5, 24.0, 7.0, 15.0, 25.0, 60.0],
+}
 
 
 func handles(id: String) -> bool:
-	return PLACES.has(id)
+	return PLACES.has(id) or FLY.has(id)
 
 
 func _look(id: String) -> Vector3:
@@ -44,6 +57,9 @@ func _look(id: String) -> Vector3:
 
 
 func _s_any(id: String) -> void:
+	if FLY.has(id):
+		_s_fly(id)
+		return
 	var pl: Array = PLACES[id]
 	gather_props()
 	_try = 0
@@ -60,6 +76,9 @@ func _s_any(id: String) -> void:
 
 
 func _u_any(tt: float, id: String) -> void:
+	if FLY.has(id):
+		_u_fly(tt, id)
+		return
 	var pl: Array = PLACES[id]
 	var k: float = d.sm(clampf(tt / float(d.SHOTS[d.si][1]), 0.0, 1.0))
 	if id in CLEAR_LENS:
@@ -97,6 +116,43 @@ func _u_any(tt: float, id: String) -> void:
 func _e_any(_id: String) -> void:
 	d.drive(Vector3.ZERO)
 	d.cam.fov = 62.0
+
+
+# --- the landmark flyovers (FLY) ------------------------------------------------------------------------------
+
+func _fly_centre(id: String) -> Vector3:
+	var f: Array = FLY[id]
+	var c: Vector2 = f[0]
+	return Vector3(c.x, d.gy(c.x, c.y) + float(f[1]), c.y)
+
+
+func _s_fly(id: String) -> void:
+	var f: Array = FLY[id]
+	var c: Vector2 = f[0]
+	# the wanderer stands at the landmark's foot on the lens' side: a figure for its scale
+	var a0 := deg_to_rad(float(f[4]))
+	var foot := c + Vector2(sin(a0), cos(a0)) * minf(float(f[2]) * 0.45, 30.0)
+	var st: Vector2 = clear_stand(foot)
+	d.put_player(Vector3(st.x, 0.0, st.y), Cam.yaw_dir(Vector3(c.x, 0.0, c.y) - Vector3(st.x, 0.0, st.y)), -0.05)
+	d.drive(Vector3.ZERO)
+	d.use_free_cam()
+	d.cam.fov = float(f[6])
+	_u_fly(0.0, id)
+
+
+func _u_fly(tt: float, id: String) -> void:
+	var f: Array = FLY[id]
+	var c: Vector2 = f[0]
+	var k: float = d.sm(clampf(tt / float(d.SHOTS[d.si][1]), 0.0, 1.0))
+	var a := deg_to_rad(float(f[4]) + float(f[5]) * k)
+	var r := float(f[2]) * (1.0 - 0.08 * k)                    # a slow push in as it turns
+	var at := Vector3(c.x + sin(a) * r, 0.0, c.y + cos(a) * r)
+	at.y = maxf(d.gy(c.x, c.y) + float(f[3]), d.gy(at.x, at.z) + 22.0)        # over the tree crowns under the lens
+	d.cam.global_position = at
+	d.cam.look_at(_fly_centre(id), Vector3.UP)
+	d.light_at(Vector3(c.x, -400.0, c.y), 0.0)                # the trailer's key light out of the way: the landmark's own fires light it
+	for e in d.get_tree().get_nodes_in_group(Groups.ENEMY):
+		(e as Node3D).visible = false
 
 
 # --- bespoke shots ------------------------------------------------------------------------------------------
