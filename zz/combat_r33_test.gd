@@ -434,5 +434,8 @@ func _s_target() -> void:
 	cs.crit_chance = 0.0
 	cs.deal(a, 1.0, &"umbral", p)
 	await _ticks(40)
-	ok(p.current_target() == null, "a dead target is forgotten (alive %s, hp %.2f)" % [a.is_alive() if is_instance_valid(a) else false, a.hp if is_instance_valid(a) else -1.0])
+	# forgotten: no target, or one the wanderer struck since (a foe still standing beside it takes the target by a
+	# hit, combat_state.gd deal(): which one, and when, rides on the frame timing)
+	var now_t := p.current_target()
+	ok(now_t == null or (now_t != a and now_t is Enemy and (now_t as Enemy).is_alive()), "a dead target is forgotten (alive %s, hp %.2f; target now %s)" % [a.is_alive() if is_instance_valid(a) else false, a.hp if is_instance_valid(a) else -1.0, now_t.name if now_t else "none"])
 	_clear()

@@ -108,7 +108,10 @@ func _case(kind: String, bearing: float) -> void:
 	var head := -2.0
 	var flat_aim := false
 	var h := Vfx.host()
-	var host_kids := h.get_child_count() if h else 0
+	var before := {}                      # the host's children before this case (a glob is a new one: indices shift as others free)
+	if h:
+		for c0: Node in h.get_children():
+			before[c0.get_instance_id()] = true
 	for f in 60 * 7:
 		await get_tree().physics_frame
 		if not is_instance_valid(e):
@@ -130,13 +133,12 @@ func _case(kind: String, bearing: float) -> void:
 			vel = orb.velocity
 			seen = true
 		elif h != null and not seen:
-			for i in range(host_kids, h.get_child_count()):
-				var mi := h.get_child(i) as MeshInstance3D
-				if mi != null and mi.mesh is SphereMesh and absf((mi.mesh as SphereMesh).radius - 0.16) < 0.001:
+			for c1: Node in h.get_children():
+				var mi := c1 as MeshInstance3D
+				if mi != null and not before.has(mi.get_instance_id()) and mi.mesh is SphereMesh and absf((mi.mesh as SphereMesh).radius - 0.16) < 0.001:
 					spawn = mi.global_position
 					seen = true
 					break
-			host_kids = h.get_child_count()
 		if seen:
 			var to := _flat(p.global_position - e.global_position).normalized()
 			var fwd := _flat(-e._face.global_basis.z).normalized()
