@@ -73,7 +73,7 @@ func sites() -> Array[Dictionary]:
 	var out: Array[Dictionary] = []
 	var space := get_world_3d().direct_space_state if is_inside_tree() else null
 	for n in get_tree().get_nodes_in_group("world_poi"):
-		if n.has_meta("centre"):
+		if n.has_meta("centre") and not n.has_meta("no_surge"):        # (a landmark of the world pass is a discovery, not a ground for the Gloom: its ring is stone)
 			var c: Vector3 = n.get_meta("centre")
 			if SpawnRules.safe_at(Vector2(c.x, c.z)) in SpawnRules.TOWNS:
 				continue                       # a town's own place (its bridge, its mill): the Gloom does not well up in a town

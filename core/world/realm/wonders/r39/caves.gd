@@ -66,6 +66,8 @@ func _ok(c: Vector2, t: Dictionary) -> bool:
 
 func _cave(root: Node, i: int, c0: Vector2) -> bool:
 	var f := WK.place([c0], Vector2(12.0, 26.0), [0.0, PI * 0.5, PI, PI * 1.5], 14.0)
+	if bool(f.get("site", true)):
+		return false
 	var c: Vector2 = f.pos
 	_placed.append(c)
 	var yaw := float(f.yaw)

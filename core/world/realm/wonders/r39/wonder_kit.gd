@@ -183,8 +183,20 @@ static var _pidx := {}                  ## 32 m cell -> [centre, radius] of the 
 
 ## The existing world's reserved places that no site is registered for yet: the layout's slots (camps, fires, places of interest),
 ## the rares' spots and the elites' haunts. `site_hit` treats them as taken, so no family of this round lands on one.
+static var _walk: Array[Vector2] = []     ## the villagers' stops and the points along their ways
+
+
+## Is `p` within `r` of a villager's stop or way (the yards keep clear of them)?
+static func near_walk(p: Vector2, r: float) -> bool:
+	for q: Vector2 in _walk:
+		if q.distance_squared_to(p) < r * r:
+			return true
+	return false
+
+
 static func protect() -> void:
 	_pidx.clear()
+	_walk.clear()
 	for rid: String in RealmLayout.SLOTS:
 		for sl: Dictionary in (RealmLayout.SLOTS[rid] as Array):
 			_prot(sl.at as Vector2, 18.0)
@@ -197,6 +209,34 @@ static func protect() -> void:
 		if String(reg.id) in ["orchard", "necropolis", "ossuary"] and reg.has("rect"):
 			var rr: Rect2 = reg.rect
 			_prot(rr.get_center(), rr.size.length() * 0.5)
+	for tw: Vector3 in [Vector3(-311.0, 281.0, 42.0), Vector3(-160.0, 300.0, 46.0), Vector3(324.5, 53.5, 54.0), Vector3(6.0, 38.0, 50.0)]:
+		_prot(Vector2(tw.x, tw.y), tw.z)          # the four towns whole (their walk graphs, graves and yards are not all in the site list)
+	for fn: String in DirAccess.get_files_at("res://core/enemy"):             # the camps' tables
+		if fn.begins_with("realm_camps") and fn.ends_with(".gd"):
+			var cm: Dictionary = (load("res://core/enemy/" + fn) as GDScript).get_script_constant_map()
+			for ck: String in cm:
+				if cm[ck] is Array:
+					for ce: Variant in (cm[ck] as Array):
+						if ce is Dictionary and (ce as Dictionary).has("at"):
+							var cat: Variant = (ce as Dictionary).get("at")
+							if cat is Vector3:
+								_prot(Vector2((cat as Vector3).x, (cat as Vector3).z), 24.0)
+							elif cat is Vector2:
+								_prot(cat as Vector2, 24.0)
+	var vt: Dictionary = (load("res://core/life/village/village_reach_towns.gd") as GDScript).get_script_constant_map()
+	if vt.get("NODES") is Dictionary and vt.get("EDGES") is Array:               # the villagers' stops and the ways between them
+		var nodes: Dictionary = vt.get("NODES")
+		for nk: String in nodes:
+			if nodes[nk] is Vector2:
+				_prot(nodes[nk] as Vector2, 7.0)
+				_walk.append(nodes[nk] as Vector2)
+		for eg: Variant in (vt.get("EDGES") as Array):
+			var ea: Variant = nodes.get((eg as Array)[0])
+			var eb: Variant = nodes.get((eg as Array)[1])
+			if ea is Vector2 and eb is Vector2:
+				for st in range(1, 6):
+					_prot((ea as Vector2).lerp(eb as Vector2, float(st) / 6.0), 5.0)
+					_walk.append((ea as Vector2).lerp(eb as Vector2, float(st) / 6.0))
 	_prot(Vector2(215.0, 97.0), 55.0)         # Saltmarket's yard and its walk lanes
 	_prot(Vector2(-196.0, 70.0), 45.0)        # Weirford
 	var elites: Variant = (load("res://core/life/encounters/elites.gd") as GDScript).get_script_constant_map().get("ELITES", {})
@@ -244,7 +284,7 @@ static func site_hit(box: Rect2, margin: float) -> bool:
 ## BOUNDED placement: the first of at most `cands.size() x yaws.size()` spots (25 height samples each) that is dry, within
 ## `rel` metres of relief, off the ways and clear of every registered site; else the least bad of them. Never searches, never
 ## returns empty: {pos: Vector2, yaw: float, lo: float, hi: float, bad: int} (bad = 0 for a clean spot).
-static func place(cands: Array, half: Vector2, yaws: Array, rel := 6.0) -> Dictionary:
+static func place(cands: Array, half: Vector2, yaws: Array, rel := 6.0, path_m := 4.0) -> Dictionary:
 	var best := {}
 	var best_s := INF
 	var all: Array = cands.duplicate()
@@ -269,7 +309,7 @@ static func place(cands: Array, half: Vector2, yaws: Array, rel := 6.0) -> Dicti
 					hi = maxf(hi, y)
 					if wet(p.x, p.y) or not RealmLayout.BOUNDS.grow(-8.0).has_point(p):
 						wetn += 1
-					if RealmLayout.path_dist(p) < 4.0:
+					if RealmLayout.path_dist(p) < path_m:
 						pathn += 1
 			# sites and reserved places are tested under the footprint's own 25 samples (a box round its longest half-extent
 			# called the whole south "taken" for a footprint like the Sleeper's)
@@ -287,7 +327,7 @@ static func place(cands: Array, half: Vector2, yaws: Array, rel := 6.0) -> Dicti
 			var sc := float(bad) * 100.0 + (hi - lo)
 			if sc < best_s:
 				best_s = sc
-				best = {"pos": c, "yaw": yaw, "lo": lo, "hi": hi, "bad": bad}
+				best = {"pos": c, "yaw": yaw, "lo": lo, "hi": hi, "bad": bad, "site": sitebad == 1}
 			if bad == 0:
 				return best
 		if i >= all.size() and not widened:
@@ -619,6 +659,7 @@ func commit(range_end := 0.0) -> int:
 				got = true
 		if got:
 			host.set_meta("centre", bb.get_center())
+			host.set_meta("no_surge", true)
 			host.set_meta("radius", clampf(bb.size.length() * 0.35, 8.0, 40.0))
 	if range_end > 0.0:
 		for ch in host.get_children():

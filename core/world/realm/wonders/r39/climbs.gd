@@ -44,6 +44,9 @@ func _run(root: Node) -> void:
 			WK.rej(tt, "site")
 			continue
 		var f := WK.place([c], Vector2(6.0, 6.0), [0.0], 3.0)
+		if bool(f.get("site", true)):
+			WK.rej(tt, "site")
+			continue
 		_tower(root, towers, f.pos, float(f.lo), float(f.hi), rng)
 		_placed.append(f.pos)
 		towers += 1
