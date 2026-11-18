@@ -49,6 +49,10 @@ void fragment() {
 	// grazing views look through more of it
 	a *= mix(1.0, 1.6, 1.0 - clamp(abs(vdir.y) * 3.0, 0.0, 1.0));
 	a *= smoothstep(8.0, 34.0, my_z);
+	// only over ground: never against the sky, and never seen from under the sheet (looking up at it from the valley floor,
+	// its far border hung across the view as a hard line; map audit, 18 Nov). Under it, the weather's mist is the mist.
+	a *= step(1e-6, raw);                     // (reverse Z: the sky clears to depth 0)
+	a *= 1.0 - smoothstep(-0.03, 0.02, vdir.y);
 	vec2 e = min(UV, 1.0 - UV);
 	a *= smoothstep(0.0, 0.18, min(e.x, e.y));
 	ALBEDO = tint * (0.9 + 0.2 * wisps);

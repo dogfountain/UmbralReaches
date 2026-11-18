@@ -67,14 +67,14 @@ const QUESTS := {
 		"where": "Nan Wright, at the Kindled Keg",
 		"text": "Pell's little red shoe hangs at the Shrine of the Lost and somebody keeps mending it: a new stitch each dusk, neat, in grey thread. Nan wants to know who. Pell does not speak, and she is the obvious answer, and Nan does not think it is her. Read the shrine's shoe. Keep the watch it wants. And decide what to do with the one who mends.",
 		"steps": [
-			{"kind": "clues", "at": Vector2(-45.5, 17.5), "r": 10.0, "need": 2, "label": "Pell's shoe",
+			{"kind": "clues", "at": Vector2(-22.6, 32.6), "r": 10.0, "need": 2, "label": "Pell's shoe",
 				"text": "Read Pell's shoe and the shrine round it for who mends it ({n}/{of} read)",
 				"clues": [
 					{"key": "thread", "at": Vector2(-46.0, 18.5), "name": "grey thread", "text": "The thread is grey, undyed, from a grey wool: the Order's, the kind a sister wore. The stitches are tight and small, a sempstress's, and not Pell's: her own, on her own sleeve, are crooked."},
 					{"key": "heel", "at": Vector2(-45.0, 19.5), "name": "a mended heel", "text": "The heel has been darned with a pattern of tiny crosses, over and over: a prayer in thread. Every cross has an open door worked into the knot: the Order's sign, turned the wrong way up."},
 					{"key": "dust", "at": Vector2(-46.5, 20.0), "name": "dust on the stone", "text": "The dust on the shrine's step is disturbed in a line: very small, very light, and barefoot. It stops at the shoe, and begins again on the other side, as if whoever came knelt there a long time."},
 				]},
-			{"kind": "vigil", "at": Vector2(-45.5, 17.5), "r": 9.0, "time": 60.0, "gloom": 0.5, "label": "The Shrine of the Lost", "noun": "shrine", "prop": "lantern_lit",
+			{"kind": "vigil", "at": Vector2(-22.6, 32.6), "r": 9.0, "time": 60.0, "gloom": 0.5, "label": "The Shrine of the Lost", "noun": "shrine", "prop": "lantern_lit",
 				"waves": [{"at": 12.0, "kinds": ["husk"], "n": 2, "say": "The shrine's candles lean. Something small has come into the Glade, barefoot, and is waiting for you to go."},
 					{"at": 30.0, "kinds": ["wretch", "husk"], "n": 3, "say": "The dark is full of little hollow shapes, and not one of them goes near the shoe."},
 					{"at": 48.0, "kinds": ["gaunt"], "n": 2, "say": "A needle, somewhere, makes the very small sound of a stitch pulled through."}],

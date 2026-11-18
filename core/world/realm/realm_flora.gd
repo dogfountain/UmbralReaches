@@ -324,9 +324,8 @@ static func _keepout(root: Node) -> void:
 	_seg_field(_sd, Vector2(cf.x, cf.z), Vector2(ch.x, ch.z), 5.0, BAND)
 	_disc_field(_sd, Vector2(RealmLayout.SUMMIT.x, RealmLayout.SUMMIT.z), 14.0, BAND)
 	_disc_field(_sd, Vector2(RealmLayout.SUMMIT_DAIS.x, RealmLayout.SUMMIT_DAIS.z), 16.0, BAND)
-	# the extended dais SummitDress registers after the wood (site "summit_dais": the square inside its 28 m disc, centred on
-	# the holder's (0, -34.5) = world (0, -118), half = 0.7 * 28): reserved here so no stone is left inside it
-	_rect_field(_sd, Rect2(-19.6, -137.6, 39.2, 39.2), BAND)
+	# the extended dais SummitDress registers after the wood (site "summit_dais", the holder's (0, -34.5) + Endgame.O, half 0.7 * 28): bare
+	_rect_field(_sd, Rect2(-19.6 + Endgame.O.x, -137.6, 39.2, 39.2), BAND)     # follows the deck east (map audit: it left a bare square north of Hearthward)
 	_disc_field(_sd, Vector2(RealmLayout.OSSUARY_GATE.x, RealmLayout.OSSUARY_GATE.z), 5.0, BAND)
 	# r34 flora: the outpost camps (village.gd _outposts, built after the flora) look for clear ground
 	# round their candidate spots (village_cast.gd OUTPOSTS): keep those rounds bare, so the camp

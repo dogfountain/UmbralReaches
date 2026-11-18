@@ -703,7 +703,7 @@ func _lights() -> void:
 	_omni("GalleryA", Vector3(22.25, GAL_Y + 3.6, -54.5), Color(1.0, 0.58, 0.28), 1.3, 9.0, false)
 	_omni("GalleryB", Vector3(22.25, GAL_Y + 3.6, -63.0), Color(1.0, 0.58, 0.28), 1.3, 9.0, false)
 	_omni("PitCandles", PIT_C + Vector3(0, 3.6, 0), Color(1.0, 0.6, 0.3), 2.6, 18.0, false)   # unshadowed: fights here re-rendered its cube map every frame
-	_omni("Chapel", Vector3(16.0, PIT_Y + 3.0, -104.0), Color(0.75, 0.45, 1.0), 1.6, 8.0, false)
+	_omni("Chapel", Vector3(16.0, PIT_Y + 3.0, -104.0), Color(1.0, 0.64, 0.36), 1.3, 8.0, false)     # (map audit: was violet, and flooded the bone chapel magenta; its candles' gold now)
 	_omni("BridgeUnder", Vector3(8.0, HALL_Y - 4.0, -34.0), Color(0.55, 0.7, 1.0), 1.0, 12.0, false)      # the pool's cold glint under the bridge
 	_omni("Landing", Vector3(-7.0, HALL_Y + 3.4, -34.0), Color(1.0, 0.6, 0.3), 1.5, 11.0, false)
 

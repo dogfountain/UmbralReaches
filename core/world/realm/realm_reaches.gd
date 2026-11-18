@@ -127,14 +127,14 @@ const SLOTS := {
 ## Ways (RealmLayout.BASE_PATHS' schema). The road itself runs on to the new edges (RealmLayout's road entry).
 ## Junctions sit exactly on another way's vertex.
 const PATHS := [
-	{"id": "fell_track", "w": 1.4, "pts": [Vector2(-300, 56.4), Vector2(-298, 30), Vector2(-300, 0), Vector2(-306, -30), Vector2(-310, -56), Vector2(-312, -78)]},
+	{"id": "fell_track", "w": 1.4, "pts": [Vector2(-300, 56.4), Vector2(-298, 30), Vector2(-300, 0), Vector2(-306, -30), Vector2(-312, -49), Vector2(-317, -55)]},     # (map audit: ends at the keep stair's foot; it ended 6 m east of the stair's middle, among the crag's boulders)
 	{"id": "barrow_track", "w": 1.4, "pts": [Vector2(-330, 52), Vector2(-326, 80), Vector2(-318, 110), Vector2(-320, 150), Vector2(-318, 190), Vector2(-320, 232), Vector2(-318, 272), Vector2(-316, 296)]},
 	{"id": "reed_ford", "w": 1.4, "pts": [Vector2(-316, 296), Vector2(-292, 304), Vector2(-266, 306), Vector2(-236, 302), Vector2(-196, 298), Vector2(-152, 296)]},
 	{"id": "fallow_way", "w": 1.6, "pts": [Vector2(-150, 196), Vector2(-150, 230), Vector2(-148, 262), Vector2(-152, 296)]},
 	{"id": "arches_way", "w": 1.6, "pts": [Vector2(-152, 296), Vector2(-110, 310), Vector2(-60, 318), Vector2(0, 322), Vector2(60, 318), Vector2(110, 306), Vector2(150, 302), Vector2(200, 296)]},
 	{"id": "arches_link", "w": 1.4, "pts": [Vector2(110, 186), Vector2(104, 226), Vector2(84, 262), Vector2(66, 294), Vector2(60, 318)]},
 	{"id": "salt_south", "w": 1.4, "pts": [Vector2(196, 212), Vector2(204, 240), Vector2(206, 268), Vector2(200, 296)]},
-	{"id": "southwood_way", "w": 1.4, "pts": [Vector2(200, 296), Vector2(236, 288), Vector2(270, 282), Vector2(300, 280), Vector2(320, 300), Vector2(326, 316)]},
+	{"id": "southwood_way", "w": 1.4, "pts": [Vector2(200, 296), Vector2(236, 288), Vector2(270, 282), Vector2(300, 280), Vector2(320, 300), Vector2(324.5, 310.5)]},     # (map audit: ends at the Cairn Tower's foot, not 3 m into its stepped base)
 	# Lastlight's yard out through the north postern to the rift's forecourt (rift_rim, RealmLayout): the end of the road
 	{"id": "bell_track", "w": 1.4, "pts": [Vector2(318, 66), Vector2(304, 36), Vector2(310, 22)]},
 	{"id": "nave_track", "w": 1.4, "pts": [Vector2(290, 70), Vector2(298, 94), Vector2(312, 118), Vector2(314, 132), Vector2(300, 140)]},
@@ -321,7 +321,7 @@ static func _crag(p: Vector2) -> float:
 	var cliff := 1.0 - smoothstep(edge, edge + 5.5, d)
 	var talus := 1.0 - smoothstep(edge + 2.0, edge + 26.0, d)
 	var hh := top * maxf(cliff, talus * 0.36)
-	var to_track := (Vector2(-312.0, -78.0) - KEEP_C).normalized()
+	var to_track := (Vector2(-317.0, -55.0) - KEEP_C).normalized()     # fell_track's end, the stair's foot (straight down the stair)
 	var ramp_w := smoothstep(0.84, 0.97, u.dot(to_track)) if d > 0.5 else 0.0
 	var ramp := top * clampf(1.0 - (d - edge + 1.0) / 22.0, 0.0, 1.0)
 	return lerpf(hh, maxf(hh, ramp), ramp_w)

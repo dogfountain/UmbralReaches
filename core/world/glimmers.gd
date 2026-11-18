@@ -274,6 +274,12 @@ func _ground(x: float, z: float) -> Vector3:
 	var p := hit.position as Vector3
 	if p.y < 0.08:
 		return Vector3(INF, INF, INF)
+	# never indoors: not in a room, nor under a roof or an overhang (map audit, 18 Nov: orbs floated in the Keg and the cottages)
+	if Interiors.at(p + Vector3.UP * 1.0) > 0.0:
+		return Vector3(INF, INF, INF)
+	var up := PhysicsRayQueryParameters3D.create(p + Vector3.UP * 0.6, p + Vector3.UP * 30.0)
+	if not space.intersect_ray(up).is_empty():
+		return Vector3(INF, INF, INF)
 	return p
 
 

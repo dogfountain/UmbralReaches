@@ -130,7 +130,9 @@ void fragment() {
 	// the pans' edge is a stain, not a line: salt creeps out over the bank in patches (a wider, noise-broken falloff)
 	float sdl = length(sd);
 	float sn = texture(alb, vec3(sq * 0.045, 3.0)).a;
-	float salt_t = clamp(1.0 - sdl / 26.0 + (sn - 0.5) * 0.8 * min(sdl / 5.0, 1.0), 0.0, 1.0);
+	// (map audit, 18 Nov: over 26 m it crept 9-24 m out, onto the Nave crypt's gate, Saltmarket's yard, the mere's bank and
+	// the Southwood path: now a stain of a few metres past the pans' bank)
+	float salt_t = clamp(1.0 - sdl / 11.0 + (sn - 0.5) * 0.5 * min(sdl / 4.0, 1.0), 0.0, 1.0);
 	float w_salt = salt_t * salt_t * (3.0 - 2.0 * salt_t);
 	float w_rest = w_a.r + w_b.x + w_a.g + w_a.b + w_a.a + w_b.y + w_b.z;
 	float w_k = (1.0 - w_salt) / max(w_rest, 0.001);

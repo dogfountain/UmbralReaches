@@ -37,7 +37,7 @@ const UNDER := {
 const LOOKS := {
 	"quarry": {"tree_mul": {"oak": 0.0, "birch": 0.3, "pine": 0.35, "sapling": 0.35},
 		"under_mul": {"grass": 0.62, "tallgrass": 0.7, "heather": 0.7, "flowers": 0.4, "fern": 0.45},
-		"under_add": {"scaffold": 0.006, "moss": 0.02},
+		"under_add": {"scaffold": 0.012, "moss": 0.02},     # (map audit: 0.006 left the quarry 0-3 scaffolds on a reshuffle of the stream)
 		"tint": Color(0.92, 0.9, 0.82), "props": {"rubble": 0.07, "block": 0.012}, "stone_mul": 1.6, "style": "granite"},
 	"holds": {"tree_mul": {"oak": 0.12, "birch": 0.5, "pine": 0.2, "sapling": 0.15, "snag": 0.3},
 		"under_mul": {"heather": 2.4, "grass": 2.3, "fern": 0.5, "litter": 0.4},

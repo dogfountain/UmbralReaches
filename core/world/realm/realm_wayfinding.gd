@@ -19,6 +19,7 @@ const LK := preload("res://core/world/realm/lore/lore_kit.gd")
 const Flora := preload("res://core/world/realm/realm_flora.gd")
 const Starlit := preload("res://core/world/realm/rift/starlit_stone.gd")
 const Footing := preload("res://core/world/footing.gd")
+const Signposts := preload("res://core/world/realm/signposts.gd")
 
 const LANTERN_PATHS := [
 	"west_way", "east_way", "fen_descent", "oss_lane",      # (oss_lane is the Ossuary's: a lantern at the Pilgrims' Landing)
@@ -45,6 +46,7 @@ static func build(root: Node) -> void:
 	var ne := edges(holder, space)
 	var t2 := Time.get_ticks_msec()
 	var ng := cold_glows(root)
+	var ns := Signposts.build(holder, space)
 	var tower := climb_tower(holder, space)
 	# the henge reads as "the boss is here" from west_way and the glade: an ember shaft over its hill
 	beacon(holder, ThornHenge.C, "thornwarden", Color(1.0, 0.52, 0.46), 46.0, 0.42, 9.0, false, 260.0)
@@ -52,7 +54,7 @@ static func build(root: Node) -> void:
 	var pois := load("res://core/world/realm/realm_pois.gd") as GDScript
 	if pois and pois.can_instantiate():
 		pois.call("build", root)
-	print("REALM wayfinding: %d lanterns (%d ms), %d edge rocks (%d ms), %d cold glows, watchtower at %s (%d ms total)" % [nl, t1 - t0, ne, t2 - t1, ng, tower, Time.get_ticks_msec() - t0])
+	print("REALM wayfinding: %d lanterns (%d ms), %d edge rocks (%d ms), %d cold glows, %d way-posts, watchtower at %s (%d ms total)" % [nl, t1 - t0, ne, t2 - t1, ng, ns, tower, Time.get_ticks_msec() - t0])
 
 
 # --- lanterns ----------------------------------------------------------------------------------
@@ -214,8 +216,9 @@ static func edges(holder: Node3D, space: PhysicsDirectSpaceState3D) -> int:
 			for u: float in [-7.5, -5.0, -2.5, 0.0, 2.5, 5.0, 7.5]:
 				for v: float in [-1.0, 1.5, 3.0]:
 					var sp := c + along * u + inward * v
-					if not WorldLanes.site_at(sp, 0.8).is_empty():
-						clash = true                   # the whole face, not just its centre: no rock in a site
+					if not WorldLanes.site_at(sp, 0.8).is_empty() or RealmLayout.path_dist(sp) < 1.5:
+						clash = true                   # the whole face, not just its centre: no rock in a site, none across a way
+						# (map audit: a cliff face stood across the road's west end at (-364.5, 48))
 			if clash:
 				continue
 			# two cliff sizes x four variants per style (RockKit caches one mesh per key: a handful of

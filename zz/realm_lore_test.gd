@@ -155,7 +155,9 @@ func _process(d: float) -> void:
 		var hc := RealmLayout.HENGE_C            # r34 layout: the henge moved (RealmLayout.RAIDS)
 		if Vector2(clampf(hc.x, r.position.x, r.end.x), clampf(hc.y, r.position.y, r.end.y)).distance_to(hc) < 18.0:
 			fail("site %s on the henge" % st.name)
-		if r.intersects(Rect2(-24, -118, 48, 106)):
+		# (map audit: the rift's rect follows the rift, which the endgame moved Endgame.O east on 16 Nov; the old rect is
+		# open meadow north of Hearthward now and the lore there (tw_ring, nc_grave) stands on it by design)
+		if r.intersects(Rect2(Vector2(-24, -118) + Vector2(Endgame.O.x, Endgame.O.z), Vector2(48, 106))):
 			fail("site %s in the rift" % st.name)
 		if not String(st.name).begins_with("oss_") and r.intersects(Rect2(RealmLayout.OSSUARY.position.x, RealmLayout.OSSUARY.position.z, RealmLayout.OSSUARY.size.x, RealmLayout.OSSUARY.size.z)):
 			fail("site %s on the Ossuary" % st.name)

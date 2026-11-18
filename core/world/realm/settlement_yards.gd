@@ -156,7 +156,7 @@ func _scene(k, kind: String, o: Vector3, yaw: float) -> void:
 					k.kit.box("cave_moss", gp + Vector3.UP * 0.1, Vector3(0.7, 0.2, 1.4), b, false, 0.8)
 					k.kit.box("stone_big", gp + b * Vector3(0.0, 0.45, -0.7), Vector3(0.45, 0.9 + 0.2 * rng.randf(), 0.14), b * Basis(Vector3.RIGHT, rng.randf_range(-0.12, 0.12)), false, 0.85)
 			k.tube("iron", o + b * Vector3(2.4, 0.0, 0.0), o + b * Vector3(2.4, 2.0, 0.0), 0.04, 0.04, 4, false, 0.6)
-			k.kit.box("glow", o + b * Vector3(2.4, 2.1, 0.0), Vector3(0.22, 0.3, 0.22), b, false, 1.0)
+			k.kit.lantern(o + b * Vector3(2.4, 2.18, 0.0), Vector3(0.22, 0.3, 0.22), b)
 		_:
 			for i in 3:
 				var cp := o + b * Vector3(-1.4 + 1.0 * float(i), 0.0, 0.8)

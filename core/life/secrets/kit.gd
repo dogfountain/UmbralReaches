@@ -872,14 +872,19 @@ void fragment() {
 	vec2 uv = UV;
 	float flow = uv.y * 6.0 - TIME * speed * 3.0;
 	float a = n(vec2(uv.x * 7.0, flow)) * 0.6 + n(vec2(uv.x * 19.0, flow * 2.3)) * 0.4;
-	float seam = smoothstep(0.42, 0.6, a);
-	float edge = smoothstep(0.0, 0.18, uv.x) * smoothstep(1.0, 0.82, uv.x);
+	float seam = smoothstep(0.55, 0.72, a) * mix(1.0, 0.55, smoothstep(0.2, 0.6, uv.y));      // hot threads in a dark crust, cooling as it falls
+	// ragged sides that shift as it pours, and below the spout the sheet parts into rivulets (a flat panel of even
+	// orange stood on edge read as a door of light)
+	float rag = 0.12 + 0.22 * n(vec2(uv.y * 4.0 - TIME * speed * 2.0, floor(uv.x + 0.5) * 7.3));
+	float edge = smoothstep(0.0, rag, uv.x) * smoothstep(1.0, 1.0 - rag, uv.x);
+	float strands = smoothstep(0.3, 0.6, n(vec2(uv.x * 6.0, flow * 0.25)));
+	float part = mix(1.0, strands, smoothstep(0.05, 0.45, uv.y));
 	vec3 crust = vec3(0.09, 0.03, 0.02);
 	vec3 hot = vec3(1.0, 0.36, 0.08);
 	ALBEDO = mix(crust, hot * 0.4, seam);
-	EMISSION = hot * (0.18 + seam * 1.05) * edge * (0.85 + 0.15 * sin(TIME * 3.0 + uv.y * 9.0));
+	EMISSION = hot * (0.04 + seam * 1.1) * edge * (0.85 + 0.15 * sin(TIME * 3.0 + uv.y * 9.0));
 	ROUGHNESS = 0.6;
-	ALPHA = edge * (0.75 + 0.25 * a);
+	ALPHA = edge * part * (0.75 + 0.25 * a);
 	ALPHA_SCISSOR_THRESHOLD = 0.25;
 }
 """

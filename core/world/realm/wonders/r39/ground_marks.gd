@@ -41,10 +41,13 @@ func _run(root: Node) -> void:
 				var p := a + t * (float(j) * 1.5)
 				if _in_town(p) or Land.in_water(p.x, p.y):
 					continue
+				# no ruts through a gate, over a paved terrace or a raid floor, or across a place's own ground (map audit, 18 Nov:
+				# they ran through the March gates and across the Anchoress's flagged terrace)
+				var on_site := not WorldLanes.site_at(p, 1.0).is_empty() or RealmMarch.wall_dist(p) < 6.0
 				var key := Vector2i(floori(p.x / 96.0), floori(p.y / 96.0))
 				# ruts: a pair of strips, broken by a hash of the position
 				var hv := absi(hash(Vector2i(roundi(p.x * 0.7), roundi(p.y * 0.7)))) % 100
-				if hv < 72 and width >= 1.2:
+				if hv < 72 and width >= 1.2 and not on_site:
 					if not ruts.has(key):
 						ruts[key] = []
 					for s: float in [-1.0, 1.0]:
@@ -53,7 +56,7 @@ func _run(root: Node) -> void:
 						(ruts[key] as Array).append([c0, c1, t])
 						nr += 1
 				# a puddle beside the way where the ground dips
-				if hv % 11 == 0:
+				if hv % 11 == 0 and not on_site:
 					var off := n * (rng.randf_range(0.4, 1.6) * (1.0 if hv % 2 == 0 else -1.0))
 					var q := p + off
 					var hq := WK.h(q.x, q.y)
@@ -64,13 +67,17 @@ func _run(root: Node) -> void:
 						(pools[key] as Array).append([q, t, rng.randf_range(0.5, 1.4)])
 						np += 1
 	var rut_mat := StandardMaterial3D.new()
-	rut_mat.albedo_color = Color(0.03, 0.03, 0.04, 0.5)
+	# pressed damp earth, not paint: a dark loam brown, soft across its width and at its ends (vertex alpha), a little wet
+	# (map audit, 18 Nov: hard 0.26 m black stripes at alpha 0.5 read as tar lines painted on every way)
+	rut_mat.albedo_color = Color(0.11, 0.085, 0.065, 1.0)
+	rut_mat.vertex_color_use_as_albedo = true
 	rut_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	rut_mat.roughness = 0.9
+	rut_mat.roughness = 0.55
 	rut_mat.depth_draw_mode = BaseMaterial3D.DEPTH_DRAW_DISABLED
 	rut_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
 	var pool_mat := StandardMaterial3D.new()
-	pool_mat.albedo_color = Color(0.02, 0.04, 0.07, 0.9)
+	pool_mat.albedo_color = Color(0.04, 0.06, 0.09, 0.8)
+	pool_mat.vertex_color_use_as_albedo = true
 	pool_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	pool_mat.roughness = 0.02
 	pool_mat.metallic = 0.0
@@ -111,23 +118,32 @@ func _mesh(host: Node3D, nm: String, m: ArrayMesh, mat: Material, vis: float) ->
 func _rut_mesh(segs: Array) -> ArrayMesh:
 	var v := PackedVector3Array()
 	var idx := PackedInt32Array()
+	var col := PackedColorArray()
 	for sg: Array in segs:
 		var c0: Vector2 = sg[0]
 		var c1: Vector2 = sg[1]
 		var t: Vector2 = sg[2]
-		var n := Vector2(-t.y, t.x) * 0.13
+		var n := Vector2(-t.y, t.x) * 0.2
+		# a hash of the spot sets how deep the wheels pressed here (0.15..0.42): the track comes and goes, never one tone
+		var a0 := 0.15 + 0.27 * float(absi(hash(Vector2i(roundi(c0.x * 2.0), roundi(c0.y * 2.0)))) % 100) / 100.0
+		var a1 := 0.15 + 0.27 * float(absi(hash(Vector2i(roundi(c1.x * 2.0), roundi(c1.y * 2.0)))) % 100) / 100.0
 		var i := v.size()
-		for e: Array in [[c0, -1.0], [c0, 1.0], [c1, 1.0], [c1, -1.0]]:
+		# across: soft edge, core, core, soft edge (four rows; the edges at alpha 0)
+		for e: Array in [[c0, a0], [c1, a1]]:
 			var c: Vector2 = e[0]
-			var q := c + n * float(e[1])
-			v.append(Vector3(q.x, WK.h(q.x, q.y) + 0.04, q.y))
-		idx.append_array([i, i + 1, i + 2, i, i + 2, i + 3])
-	return _arr(v, idx)
+			for k: float in [-1.0, -0.35, 0.35, 1.0]:
+				var q := c + n * k
+				v.append(Vector3(q.x, WK.h(q.x, q.y) + 0.04, q.y))
+				col.append(Color(1.0, 1.0, 1.0, float(e[1]) if absf(k) < 0.5 else 0.0))
+		for q in 3:
+			idx.append_array([i + q, i + q + 1, i + 5 + q, i + q, i + 5 + q, i + 4 + q])
+	return _arr(v, idx, col)
 
 
 func _pool_mesh(list: Array, rng: RandomNumberGenerator) -> ArrayMesh:
 	var v := PackedVector3Array()
 	var idx := PackedInt32Array()
+	var col := PackedColorArray()
 	for e: Array in list:
 		var c: Vector2 = e[0]
 		var t: Vector2 = e[1]
@@ -135,23 +151,37 @@ func _pool_mesh(list: Array, rng: RandomNumberGenerator) -> ArrayMesh:
 		var n := Vector2(-t.y, t.x)
 		var ring: Array[Vector2] = []
 		var low := INF
+		var high := -INF
 		for k in 8:
 			var a := TAU * float(k) / 8.0
 			var rr := r * rng.randf_range(0.7, 1.2)
 			var q := c + t * (cos(a) * rr * 1.5) + n * (sin(a) * rr)
 			ring.append(q)
 			low = minf(low, WK.h(q.x, q.y))
-		var y := low + 0.05
+			high = maxf(high, WK.h(q.x, q.y))
+		# water lies level: only where the ground under the whole pool is (a flat dark polygon hung over a slope's fall read
+		# as a black slab; map audit, 18 Nov), and it thins to nothing at its rim
+		if high - low > 0.16:
+			continue
+		var y := low + 0.04
 		var i := v.size()
 		v.append(Vector3(c.x, y, c.y))
+		col.append(Color(1.0, 1.0, 1.0, 1.0))
+		for q: Vector2 in ring:
+			var m := c.lerp(q, 0.6)
+			v.append(Vector3(m.x, y, m.y))
+			col.append(Color(1.0, 1.0, 1.0, 0.85))
 		for q: Vector2 in ring:
 			v.append(Vector3(q.x, y, q.y))
+			col.append(Color(1.0, 1.0, 1.0, 0.0))
 		for k in 8:
-			idx.append_array([i, i + 1 + k, i + 1 + (k + 1) % 8])
-	return _arr(v, idx)
+			var k1 := (k + 1) % 8
+			idx.append_array([i, i + 1 + k, i + 1 + k1])
+			idx.append_array([i + 1 + k, i + 9 + k, i + 9 + k1, i + 1 + k, i + 9 + k1, i + 1 + k1])
+	return _arr(v, idx, col)
 
 
-func _arr(v: PackedVector3Array, idx: PackedInt32Array) -> ArrayMesh:
+func _arr(v: PackedVector3Array, idx: PackedInt32Array, col := PackedColorArray()) -> ArrayMesh:
 	if v.is_empty():
 		return null
 	var nrm := PackedVector3Array()
@@ -161,6 +191,8 @@ func _arr(v: PackedVector3Array, idx: PackedInt32Array) -> ArrayMesh:
 	arr.resize(Mesh.ARRAY_MAX)
 	arr[Mesh.ARRAY_VERTEX] = v
 	arr[Mesh.ARRAY_NORMAL] = nrm
+	if not col.is_empty():
+		arr[Mesh.ARRAY_COLOR] = col
 	arr[Mesh.ARRAY_INDEX] = idx
 	var m := ArrayMesh.new()
 	m.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arr)

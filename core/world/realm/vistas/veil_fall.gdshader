@@ -39,6 +39,9 @@ void fragment() {
 	vec3 c = mix(water_color, white_color, clamp(white * 0.8 + mist * 0.6, 0.0, 1.0));
 	ALBEDO = c;
 	float a = opacity * (0.45 + 0.55 * white) * edge * lip * (1.0 - 0.75 * mist * (1.0 - white));
+	// stood under its foot the ribbon's streaks ran to one point and fanned across the whole view (map audit, 18 Nov): it
+	// thins to nothing near the eye, the spray and the weather carry the last metres
+	a *= smoothstep(3.0, 14.0, -VERTEX.z);
 	ALPHA = clamp(a * mix(1.0, 0.6, mist), 0.0, 0.9);
 	ROUGHNESS = mix(0.15, 0.75, white);
 	SPECULAR = 0.55;
