@@ -344,7 +344,7 @@ static func _fits(kind: String, q: Vector2, yaw: float) -> float:
 static func _keep_d(kr: float, r: float, slot: bool) -> float:
 	if _loose:
 		if slot:
-			return 0.0                           # (a slot's round is for what may be built there: the live camps and fires have their own)
+			return kr * 0.4                      # (a slot's round is for what may be built there, but its core stays clear: a reshuffled loose place once sat on the Grandmother Oak)
 		return 0.0 if kr >= 15.0 else kr - 0.5
 	return kr + (r if slot else r * 0.4)
 

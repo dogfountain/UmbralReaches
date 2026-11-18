@@ -13,6 +13,9 @@ const BossThemes := preload("res://core/life/wildlife/boss_themes.gd")
 ## The fight starts inside this (0: `radius`): a room that is a sanctum plus its yard (the Speaking Crown's skull and the
 ## siege yard round it) pulls at the sanctum, so a road through the yard does not wake the boss.
 @export var pull_radius := 0.0
+## An elliptical floor (the summit's deck): `radius` east-west, radius * depth_scale north-south (the floor audit and the
+## boss's leash read it).
+@export var depth_scale := 1.0
 @export var ceiling := 6.0
 @export var requires_bosses: Array[String] = []
 ## r36 Act II: the Founder's bells answered for before the fight wakes (the Ascended Warden).
@@ -170,9 +173,10 @@ func _physics_process(_d: float) -> void:
 						_bar_name.text = "%s  ·  %s" % [_named().to_upper(), ["", "I", "II", "III", "IV"][clampi(_phase_seen, 0, 4)]]
 			# the boss keeps to its sanctum: drawn back inside the ring if it strays out
 			var bd := _boss.global_position - global_position
-			var flat := Vector2(bd.x, bd.z)
+			var flat := Vector2(bd.x, bd.z / depth_scale)       # (on the floor's own scale: an ellipse is a circle here)
 			if flat.length() > radius + 0.5:
 				var back := flat.normalized() * (radius - 0.5)
+				back.y *= depth_scale
 				_boss.global_position = Vector3(global_position.x + back.x, _boss.global_position.y, global_position.z + back.y)
 		var pl := get_tree().get_first_node_in_group(Groups.PLAYER) as Node3D
 		if pl:
@@ -554,7 +558,7 @@ func audit() -> Array[String]:
 	for i in 12:
 		var a := TAU * float(i) / 12.0
 		for rr: float in [0.0, radius * 0.5, radius * 0.85]:
-			var p := global_position + Vector3(cos(a) * rr, 0, sin(a) * rr)
+			var p := global_position + Vector3(cos(a) * rr, 0, sin(a) * rr * depth_scale)
 			var hit := space.intersect_ray(PhysicsRayQueryParameters3D.create(p + Vector3.UP * 2.0, p + Vector3.DOWN * 4.0, Layers.WORLD))
 			if hit.is_empty():
 				out.append("%s: no floor at %s" % [boss_id, p.snapped(Vector3.ONE * 0.1)])

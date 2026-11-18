@@ -50,13 +50,14 @@ var _judge_t := 4.0
 var _eclipse_t := 16.0
 var _arena_c := Vector3.INF
 var _arena_r := 10.0
+var _arena_sx := 1.0           ## the deck's east-west stretch (an ellipse _arena_r by _arena_r / _arena_sx)
 const ECLIPSE_EVERY := 24.0
 const ECLIPSE_FILL := 2.8
 const POOL_R := 2.3
 const FLARE_EVERY := 19.0
 const FLARE_TIME := 2.0
 const FLARE_IN := 3.6
-const FLARE_R := 16.0
+const FLARE_R := 25.6          ## (18 Nov: x1.6 with the deck; 16 before)
 const ACOLYTES_EVERY := 34.0
 const GALE_EVERY := 28.0
 const GALE_CAST := 1.6
@@ -151,12 +152,14 @@ func on_engaged(arena: Node) -> void:
 		var c := (arena as Node3D).global_position
 		_arena_c = c
 		_arena_r = (arena as BossArena).radius if arena is BossArena else 11.0
+		if _room != null and _room.get("SX") != null:
+			_arena_sx = maxf(float(_room.get("SX")), 1.0)
 		var space := (arena as Node3D).get_world_3d().direct_space_state
 		# eight blink points: four near (between the pylons' lines) and four far (by the rim)
 		for ring: Array in [[0.33, PI * 0.25], [0.68, 0.0]]:
 			for i in 4:
 				var a := TAU * float(i) / 4.0 + float(ring[1])
-				var p := c + Vector3(cos(a), 0.0, sin(a)) * _arena_r * float(ring[0]) + Vector3.UP * 3.0
+				var p := c + Vector3(cos(a), 0.0, sin(a) / _arena_sx) * _arena_r * float(ring[0]) + Vector3.UP * 3.0
 				var hit := space.intersect_ray(PhysicsRayQueryParameters3D.create(p, p + Vector3.DOWN * 8.0, Layers.WORLD))
 				if hit:
 					anchors.append(hit.position as Vector3)
@@ -288,7 +291,7 @@ func _physics_process(delta: float) -> void:
 func _random_deck_point() -> Vector3:
 	var a := randf() * TAU
 	var r := sqrt(randf()) * (_arena_r - 1.0)
-	return _arena_c + Vector3(cos(a) * r, 0.0, sin(a) * r)
+	return _arena_c + Vector3(cos(a) * r, 0.0, sin(a) * r / _arena_sx)
 
 
 func _blink() -> void:
@@ -315,7 +318,7 @@ func _aim_fan(double: bool) -> void:
 		_rig.call("telegraph", FAN_WINDUP)
 	_glint = 1.0
 	BossKit.cast(self, "Radiant Fan", FAN_WINDUP, true)
-	var cone := SpellFx.danger(global_position, FAN_WINDUP, {"radius": 20.0, "half_angle": deg_to_rad(33.0), "yaw": atan2(-to.x, -to.z), "color": BossKit.HOLY})
+	var cone := SpellFx.danger(global_position, FAN_WINDUP, {"radius": 32.0, "half_angle": deg_to_rad(33.0), "yaw": atan2(-to.x, -to.z), "color": BossKit.HOLY})
 	if cone:
 		track_move(cone)
 	_fan_cone = cone
@@ -368,7 +371,7 @@ func _judgement() -> void:
 	for k in 2:
 		var yaw := base + PI * 0.5 * float(k)
 		var dir := Basis(Vector3.UP, yaw) * Vector3.FORWARD
-		BossKit.zone(get_parent(), at - dir * 10.0, 1.2, 24.0, {"by": self, "rect": Vector2(1.1, 10.0), "yaw": yaw, "color": BossKit.HOLY})
+		BossKit.zone(get_parent(), at - dir * 16.0, 1.2, 24.0, {"by": self, "rect": Vector2(1.1, 16.0), "yaw": yaw, "color": BossKit.HOLY})
 
 
 ## The halo found while its hands are up: the volley scatters.

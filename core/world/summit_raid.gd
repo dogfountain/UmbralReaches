@@ -27,6 +27,7 @@ const GOLD := Color(1.0, 0.84, 0.55)
 
 var C := Vector3.ZERO                                  ## deck centre (world, at deck height)
 var R := 28.0
+var SX := 1.0                                          ## the deck's east-west stretch (an ellipse R * SX by R)
 var pylons: Array[Pylon] = []
 var mood := "rest"
 var _boss: Node = null
@@ -149,13 +150,14 @@ class Pylon extends Node3D:
 		return false
 
 
-static func build(host: Node3D, centre: Vector3, radius: float, holder_basis: Basis) -> Node3D:
+static func build(host: Node3D, centre: Vector3, radius: float, holder_basis: Basis, sx := 1.0) -> Node3D:
 	var r := (load("res://core/world/summit_raid.gd") as GDScript).new() as Node3D
 	r.name = "SummitRaid"
 	r.set_meta("site", "summit_dais")                 # the deck's own furniture (zz/realm_audit)
 	host.add_child(r)
 	r.set("C", centre)
 	r.set("R", radius)
+	r.set("SX", sx)
 	r.call("_build", holder_basis)
 	return r
 
@@ -163,6 +165,12 @@ static func build(host: Node3D, centre: Vector3, radius: float, holder_basis: Ba
 func _dir(deg: float) -> Vector3:
 	var a := deg_to_rad(deg)
 	return Vector3(cos(a), 0.0, sin(a))
+
+
+## The point at `deg`, `rad` out on the deck's ellipse (its x stretched by SX).
+func _at(deg: float, rad: float) -> Vector3:
+	var d := _dir(deg)
+	return C + Vector3(d.x * SX, 0.0, d.z) * rad
 
 
 func _build(_hb: Basis) -> void:
@@ -183,7 +191,7 @@ func _build(_hb: Basis) -> void:
 		var p := Pylon.new()
 		p.name = "Pylon%d" % pylons.size()
 		add_child(p)
-		p.global_position = C + _dir(deg) * PYLON_R
+		p.global_position = _at(deg, PYLON_R)
 		p.setup(card_mat)
 		pylons.append(p)
 	# the edge fires: a bowl at each end of the two broken edges, red, one light per edge
@@ -194,7 +202,7 @@ func _build(_hb: Basis) -> void:
 	var spots: Array[Vector3] = []
 	for deg: float in EDGE_ANGLES:
 		for s: float in [-1.0, 1.0]:
-			spots.append(C + _dir(deg + s * (EDGE_HALF + 2.2)) * (R - 1.0))
+			spots.append(_at(deg + s * (EDGE_HALF + 2.2) / SX, R - 1.0))
 	for p in spots:
 		k.box("stone", p + Vector3.UP * 0.45, Vector3(0.7, 0.9, 0.7), Basis.IDENTITY, true, 0.9)
 		k.box("stone", p + Vector3.UP * 0.98, Vector3(1.05, 0.16, 1.05), Basis.IDENTITY, true, 0.8)
@@ -222,7 +230,7 @@ func _build(_hb: Basis) -> void:
 		l.shadow_enabled = false
 		l.set_meta(&"light_class", "fill")
 		add_child(l)
-		l.global_position = C + _dir(deg) * (R - 1.5) + Vector3.UP * 2.0
+		l.global_position = _at(deg, R - 1.5) + Vector3.UP * 2.0
 		LightPolicy.apply_fade(l)
 		_edge_lights.append(l)
 	# a cold key light down the cirque onto the deck (no shadows: the budget)
@@ -339,7 +347,7 @@ func gale_shelter(from: Vector3, pos: Vector3) -> bool:
 func edge_points() -> Array[Vector3]:
 	var out: Array[Vector3] = []
 	for deg: float in EDGE_ANGLES:
-		out.append(C + _dir(deg) * R)
+		out.append(_at(deg, R))
 	return out
 
 
@@ -352,8 +360,10 @@ func star(at: Vector3, boss: Node, fall := STAR_FALL) -> void:
 		at = p.global_position + (d.normalized() if d.length() > 0.1 else Vector3.RIGHT) * (RING_R + STAR_R + 0.3)
 	var flat := at - C
 	flat.y = 0.0
-	if flat.length() > R - 0.5:
-		at = C + flat.normalized() * (R - 0.5)
+	var fe := Vector2(flat.x / SX, flat.z)                # on the ellipse's own scale
+	if fe.length() > R - 0.5:
+		fe = fe.normalized() * (R - 0.5)
+		at = C + Vector3(fe.x * SX, 0.0, fe.y)
 	at.y = C.y
 	BossKit.zone(self, at, fall, STAR_GLOOM, {"by": boss if boss is Enemy else null, "radius": STAR_R, "color": BossKit.HOLY})
 	# the star itself: a streak from the sky that lands as the disc fills

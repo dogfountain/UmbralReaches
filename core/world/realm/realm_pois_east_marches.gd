@@ -743,7 +743,7 @@ static func _anchorholds(holder: Node3D, space: PhysicsDirectSpaceState3D) -> vo
 	k.keep_lanes = false
 	for i in 4:
 		var a := deg_to_rad(45.0 + 90.0 * float(i)) + 0.18
-		var q := Vector3(C.x + cos(a) * 9.6, 0, C.z + sin(a) * 9.6)
+		var q := Vector3(C.x + cos(a) * 15.4, 0, C.z + sin(a) * 15.4)      # (18 Nov: 9.6 -> 15.4 with the 1.6x terrace)
 		q.y = _gy(space, q.x, q.z)
 		cairns.append(q)
 		var yaw := a
@@ -774,7 +774,7 @@ static func _anchorholds(holder: Node3D, space: PhysicsDirectSpaceState3D) -> vo
 	var gy := _gy(space, gate.x, gate.y)
 	P._lore(host, "r37e_anchor_gate", Vector3(gate.x + 1.6, gy + 1.0, gate.y + 0.6))
 	var cell_y := fy + 0.4
-	var ch := P._chest(host, "anchorhold_cell", Vector3(C.x + 12.0 * cos(deg_to_rad(-60.0)), cell_y, C.z + 12.0 * sin(deg_to_rad(-60.0))), deg_to_rad(120.0))
+	var ch := P._chest(host, "anchorhold_cell", Vector3(C.x + 19.0 * cos(deg_to_rad(-60.0)), cell_y, C.z + 19.0 * sin(deg_to_rad(-60.0))), deg_to_rad(120.0))
 	if ch:
 		ch.set("tier", "iron")
 		ch.set("loot", {"grave_ash": 16, "relic_fragment": 1, "ember_shard": 1})

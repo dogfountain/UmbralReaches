@@ -60,15 +60,18 @@ const RAIDS := [
 		# the Titan Gates' wardens stand on west_way below the stair, facing back up the road to Hearthward (from the gate
 		# they were pushed past the village: the henge's rim is only ~60 m from it now)
 		"titans": Vector2(-25.0, 15.0), "titans_dir": Vector2(0.5, 0.86), "titans_avenue": false},     # (its obelisk avenue would run into Hearthward)
-	{"id": "summit", "c": Vector2(0.0, -118.0) + Endgame.O2, "r": 28.0, "y": 27.35, "fall": 10.0, "mode": "clear",
+	# (18 Nov) the deck an ellipse 1.6x as wide (rx 44.8) and 5 m west: the Crowns' face behind it is the world's edge
+	{"id": "summit", "c": Vector2(-5.0, -118.0) + Endgame.O2, "r": 28.0, "rx": 44.8, "y": 27.35, "fall": 10.0, "mode": "clear",
 		"gate": Vector2(0.0, -90.0) + Endgame.O2, "boss": "ascended_warden"},
 	# the two Marches bosses (docs/r37_expansion.md). The Hierarch's fight is in the toppled statue's broken
 	# crown, in the middle of the Siege Lines (the Marches hauled him there); the Anchoress's on the cliff terrace.
 	{"id": "hierarch", "c": Vector2(-206.0, 148.0), "r": 24.0, "y": 0.8, "fall": 12.0, "mode": "level",
 		"gate": Vector2(-182.5, 159.06), "boss": "r37_hierarch",
 		"arena_r": 32.0},     # (18 Nov: the fight is the skull (r 24, levelled) and the siege yard round it out to 32 m: 1.6x)
-	{"id": "anchorhold", "c": Vector2(214.0, -132.0), "r": 18.0, "y": 16.0, "fall": 20.0, "mode": "level",
-		"gate": Vector2(206.0, -114.0), "boss": "r37_anchoress"},
+	# (18 Nov) the terrace 18 -> 28.8 m: its north rim stays on the world's edge (the cliff), it grows south over the scree
+	# and west (clear of the summit deck's west wing)
+	{"id": "anchorhold", "c": Vector2(206.0, -121.2), "r": 28.8, "y": 16.0, "fall": 16.0, "mode": "level",
+		"gate": Vector2(186.1, -100.3), "boss": "r37_anchoress"},     # the track climbs the scree slantwise to the west rim
 ]
 
 ## Regions: [id, name, centre xz, radius or rect, biome, lore one-liner]. Biomes drive flora,
@@ -320,7 +323,7 @@ const BASE_PATHS := [
 	{"id": "weir_track", "w": 1.4, "pts": [Vector2(-196, 66), Vector2(-192, 36), Vector2(-188, 0), Vector2(-188, -40), Vector2(-196, -76), Vector2(-200, -82)]},
 	{"id": "siege_track", "w": 1.4, "pts": [Vector2(-214, 65), Vector2(-215, 84), Vector2(-208, 99), Vector2(-206, 105), Vector2(-203, 118), Vector2(-192, 132), Vector2(-181, 146), Vector2(-182.5, 159.06), Vector2(-177, 175), Vector2(-179, 190)]},
 	{"id": "spire_track", "w": 1.4, "pts": [Vector2(212, 74), Vector2(214, 52), Vector2(226, 30), Vector2(236, 14)]},
-	{"id": "anchor_track", "w": 1.4, "pts": [Vector2(180, 70), Vector2(174, 40), Vector2(172, 0), Vector2(178, -40), Vector2(196, -70), Vector2(204, -84), Vector2(205, -102), Vector2(206, -108)]},
+	{"id": "anchor_track", "w": 1.4, "pts": [Vector2(180, 70), Vector2(174, 40), Vector2(172, 0), Vector2(178, -40), Vector2(196, -70), Vector2(186, -84), Vector2(182, -96), Vector2(186.1, -100.3)]},
 	{"id": "salt_track", "w": 1.4, "pts": [Vector2(212, 74), Vector2(212, 108), Vector2(212, 186), Vector2(196, 212)]},        # the Brine Road: straight from Saltmarket to the pump tower (realm_pois_east_works.gd), so it is not in MEANDER_IDS
 	{"id": "downs_track", "w": 1.4, "pts": [Vector2(-179, 190), Vector2(-150, 196), Vector2(-110, 190), Vector2(-44, 192), Vector2(0, 190), Vector2(44, 192), Vector2(110, 186), Vector2(160, 200), Vector2(196, 212)]},
 	# the Crowns' foot, east-west: the two boss corners are joined to the old north (through the wall's breaches)
@@ -780,10 +783,19 @@ static func water_level_at(x: float, z: float) -> float:
 
 ## r34: the raid floors (RAIDS): "level" pulls the ground to y inside r and blends back over `fall`;
 ## "clear" only cuts it down to y - 0.8 inside r + 2 (the summit's deck stands over the chasm).
+## Distance from a raid's centre on the scale of its depth `r`: an elliptical floor ("rx", its east-west half) is
+## squeezed to a circle of radius r.
+static func raid_d(r: Dictionary, p: Vector2) -> float:
+	var d: Vector2 = p - (r.c as Vector2)
+	if r.has("rx"):
+		d.x *= float(r.r) / float(r.rx)
+	return d.length()
+
+
 static func raid_shape(x: float, z: float, h: float) -> float:
 	var p := Vector2(x, z)
 	for r: Dictionary in RAIDS:
-		var d := p.distance_to(r.c)
+		var d := raid_d(r, p)
 		var rr: float = r.r
 		var fall: float = r.fall
 		if d > rr + 2.0 + fall:

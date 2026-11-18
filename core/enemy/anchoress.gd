@@ -28,9 +28,9 @@ const HermitScript := preload("res://core/enemy/wretch.gd")
 const ID := "r37_anchoress"
 const HP := 560
 const SCALE := 3.0               ## 2.3 -> 3.0 (a boss in her own room)
-const LANE_LEN := 6.4                 ## half length of the Swing's strip (x2 on the ground)
+const LANE_LEN := 10.2                ## half length of the Swing's strip (x2 on the ground; 18 Nov: x1.6 with the terrace)
 const LANE_W := 1.7
-const RING_R := 5.4
+const RING_R := 8.6
 const SWING_EVERY := 6.5
 const RING_EVERY := 10.5
 const TOLL_EVERY := 24.0
@@ -379,12 +379,12 @@ func _rockfall() -> void:
 	var c := _p.global_position
 	for i in n:
 		var a := TAU * float(i) / float(n) + randf() * 0.6
-		var at := c + Vector3(cos(a), 0.0, sin(a)) * (0.0 if i == 0 else randf_range(3.0, 6.5))
+		var at := c + Vector3(cos(a), 0.0, sin(a)) * (0.0 if i == 0 else randf_range(4.8, 10.4))
 		if _arena_c != Vector3.INF:
 			var off := at - _arena_c
 			off.y = 0.0
-			if off.length() > 15.5:
-				at = _arena_c + off.normalized() * 15.5
+			if off.length() > 25.6:
+				at = _arena_c + off.normalized() * 25.6
 		var eid := get_instance_id()
 		var delay := 1.4 + 0.45 * float(i)
 		BossKit.zone(get_parent(), at, delay, 24.0, {"by": self, "radius": 2.6, "spikes": "bone", "color": Color(1.5, 0.8, 0.4)})

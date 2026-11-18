@@ -89,6 +89,12 @@ static func _reserve_raids() -> void:
 		else:
 			# the summit's own monument (SummitDress) already stands in it
 			WorldLanes.register_zone(n, r.c, float(r.r), float(r.y), float(r.y) - 0.8, ["SummitAltar"])
+			if r.has("rx"):
+				# an elliptical deck's wings east and west (one circle the width of it would take in the platform south)
+				var wing := float(r.rx) - float(r.r) * 0.75
+				for sgn: float in [-1.0, 1.0]:
+					WorldLanes.register_zone(n + ("_e" if sgn > 0.0 else "_w"), (r.c as Vector2) + Vector2(sgn * wing, 0.0), float(r.r) * 0.75,
+						float(r.y), float(r.y) - 0.8, ["SummitAltar"])
 
 
 ## r34 places: every placed fire's name (the valley's four, then the new regions' seven).

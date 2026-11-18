@@ -113,11 +113,12 @@ static func dress(root: Node) -> void:
 	var ward := WardSeal.make(holder, "summit", RealmLayout.SUMMIT_WARD, Vector3.BACK, 5.8, 3.6, "light", "The summit ward", bosses)
 	ward.requires_bells = Chains.BELLS_NEEDED     # r36 Act II: the door opens to a peal
 	var dais := SUMMIT + Vector3(DAIS_C.x, TOP_DECK_Y, DAIS_C.y)
-	var arena := BossArena.make(holder, "ascended_warden", "The Ascended Warden", dais, DAIS_R - 0.5, AscendedWarden, dais + Vector3(0, 0.1, 3.5))   # he rises on the near side of the dais: at -6 m he stood 32 m from the pull and read as a small figure in the bubble
+	var arena := BossArena.make(holder, "ascended_warden", "The Ascended Warden", dais, DAIS_R * DAIS_SX - 0.5, AscendedWarden, dais + Vector3(0, 0.1, 3.5))   # he rises on the near side of the dais: at -6 m he stood 32 m from the pull and read as a small figure in the bubble
 	arena.ceiling = 14.0
+	arena.depth_scale = 1.0 / DAIS_SX            # the deck is an ellipse: 44.8 m east-west, 28 m north-south
 	arena.max_rise = 0.5                       # the raid deck is one flat paved floor
 	# r34 raids: the room the fight changes (pylons, broken edges, the falling sky, its light)
-	var raid: Node3D = SummitRaid.build(holder, dais, DAIS_R, holder.global_basis)
+	var raid: Node3D = SummitRaid.build(holder, dais, DAIS_R, holder.global_basis, DAIS_SX)
 	arena.room = raid
 	arena.requires_bosses = bosses
 	arena.requires_bells = Chains.BELLS_NEEDED
@@ -201,8 +202,11 @@ static func _approach_stairs(holder: Node3D, platform: Node) -> void:
 ## east and west where the deck hangs over the chasm (SummitRaid.EDGE_ANGLES: the Gale blows you
 ## there); piers carry it down to the ground. The back rail and moss rocks it covers are removed
 ## (before _solidify_from_meshes, so their collision goes too); the lift jetty route keeps clear.
-const DAIS_C := Vector2(0.0, -34.5)          ## holder xz (world (O.x, -118): Endgame); front edge at z -6.5, just behind the deck
-const DAIS_R := 28.0
+const DAIS_C := Vector2(-5.0, -34.5)         ## holder xz (world (O.x - 5, -118): Endgame); front edge at z -6.5, just behind the deck
+const DAIS_R := 28.0                          ## the deck's depth (north-south half): it cannot grow, the Crowns' face is the world's edge
+## (18 Nov, Luke: the arenas 1.6x, grown round what stands in the way) the deck is an ellipse 1.6x as wide east-west, out
+## over the chasm (44.8 m), and set 5 m west so its east rim stays inside the world; its front still meets the mouth
+const DAIS_SX := 1.6
 const DAIS_THICK := 1.0
 const DAIS_GAP := 3.2                        ## half width of the opening onto the top deck
 const SCREEN_H := 2.5                        ## rim wall height where it borders the platform (GRAB_MAX 2.25)
@@ -212,7 +216,12 @@ const JUNCTION := AABB(Vector3(-3.3, 1.8, -7.6), Vector3(6.6, 3.0, 2.0))   ## de
 
 
 static func _in_dais(p: Vector3, grow := 0.0) -> bool:
-	return Vector2(p.x, p.z).distance_to(DAIS_C) <= DAIS_R + grow
+	return Vector2((p.x - DAIS_C.x) * (DAIS_R + grow) / (DAIS_R * DAIS_SX + grow), p.z - DAIS_C.y).length() <= DAIS_R + grow
+
+
+## A direction on the deck stretched to its ellipse (holder x is east-west).
+static func _st(d: Vector3) -> Vector3:
+	return Vector3(d.x * DAIS_SX, d.y, d.z)
 
 
 ## Is the rim segment at holder angle `a` (0 = east, PI/2 = south) one of the broken edges?
@@ -238,7 +247,7 @@ static func _extended_dais(holder: Node3D, platform: Node) -> void:
 	k.keep_lanes = false
 	var top := TOP_DECK_Y
 	var bot := top - DAIS_THICK
-	var segs := 72
+	var segs := 96
 	# a raid floor that reads from the air: a rose of inlaid slate bands and eight spokes
 	var rings: Array[float] = [0.0, 3.2, 3.6, 10.6, 11.0, 16.6, 17.0, 23.4, 23.8, 26.9, DAIS_R]
 	var ring_keys: Array[String] = ["floor", "slate", "floor", "slate", "floor", "slate", "floor", "slate", "floor", "stone"]
@@ -246,9 +255,9 @@ static func _extended_dais(holder: Node3D, platform: Node) -> void:
 	for s in segs:
 		var a0 := TAU * float(s) / float(segs)
 		var a1 := TAU * float(s + 1) / float(segs)
-		var d0 := Vector3(cos(a0), 0, sin(a0))
-		var d1 := Vector3(cos(a1), 0, sin(a1))
-		var spoke := s % 9 == 0
+		var d0 := _st(Vector3(cos(a0), 0, sin(a0)))
+		var d1 := _st(Vector3(cos(a1), 0, sin(a1)))
+		var spoke := s % 12 == 0
 		for ri in rings.size() - 1:
 			var r0: float = rings[ri]
 			var r1: float = rings[ri + 1]
@@ -259,14 +268,14 @@ static func _extended_dais(holder: Node3D, platform: Node) -> void:
 		# rim face and soffit
 		var o0 := c + d0 * DAIS_R
 		var o1 := c + d1 * DAIS_R
-		k.quad("stone", o0 + Vector3.UP * bot, o1 + Vector3.UP * bot, o1 + Vector3.UP * top, o0 + Vector3.UP * top, (d0 + d1) * 0.5, true, 0.86)
+		k.quad("stone", o0 + Vector3.UP * bot, o1 + Vector3.UP * bot, o1 + Vector3.UP * top, o0 + Vector3.UP * top, ((d0 + d1) * 0.5).normalized(), true, 0.86)
 		k.quad("stone", c + Vector3.UP * bot, o0 + Vector3.UP * bot, o1 + Vector3.UP * bot, c + Vector3.UP * bot, Vector3.DOWN, false, 0.7)
 	# the step from the deck: a slab over the rear opening, flush with both floors
 	k.block("floor", Vector3(-DAIS_GAP, top - 0.3, -7.4), Vector3(DAIS_GAP, top, -6.2), true, 0.95)
 	# parapet: coped wall round the edge, open onto the deck, at the lift jetty and at the broken edges
 	var space := holder.get_world_3d().direct_space_state
 	var wall_r := DAIS_R - 0.3
-	var at := func(a: float) -> Vector3: return Vector3(DAIS_C.x + cos(a) * wall_r, top, DAIS_C.y + sin(a) * wall_r)
+	var at := func(a: float) -> Vector3: return Vector3(DAIS_C.x + cos(a) * wall_r * DAIS_SX, top, DAIS_C.y + sin(a) * wall_r)
 	var opening: Array[bool] = []
 	var broken: Array[bool] = []
 	var mouth_ends: Array[Vector3] = []
@@ -300,10 +309,10 @@ static func _extended_dais(holder: Node3D, platform: Node) -> void:
 		# piers down to the ground: under every fourth rim segment and on an inner ring, clear of the
 		# platform (anything the ray meets that is not the terrain): none on a roof
 		for ring: float in [DAIS_R - 1.4, 15.0]:
-			if (ring > 20.0 and s % 4 != 1) or (ring < 20.0 and s % 9 != 4):
+			if (ring > 20.0 and s % 4 != 1) or (ring < 20.0 and s % 12 != 4):
 				continue
 			var am2 := (a0 + a1) * 0.5
-			var foot := Vector3(DAIS_C.x + cos(am2) * ring, bot, DAIS_C.y + sin(am2) * ring)
+			var foot := Vector3(DAIS_C.x + cos(am2) * ring * DAIS_SX, bot, DAIS_C.y + sin(am2) * ring)
 			if Vector2(foot.x, foot.z).length() < PLATFORM_RADIUS + 1.0:
 				continue
 			var w := holder.global_transform * foot
@@ -327,8 +336,8 @@ static func _extended_dais(holder: Node3D, platform: Node) -> void:
 	var wc := holder.global_transform * Vector3(DAIS_C.x, 0, DAIS_C.y)
 	# sites are rects: register the square inside the disc (the square round it would take in the
 	# rails)
-	var half := DAIS_R * 0.7
-	WorldLanes.register_site("summit_dais", Rect2(wc.x - half, wc.z - half, half * 2.0, half * 2.0), holder.global_position.y + top, NAN, true)
+	var half := Vector2(DAIS_R * DAIS_SX, DAIS_R) * 0.7
+	WorldLanes.register_site("summit_dais", Rect2(wc.x - half.x, wc.z - half.y, half.x * 2.0, half.y * 2.0), holder.global_position.y + top, NAN, true)
 	# the mouth: the chord across the opening onto the deck
 	if mouth_ends.size() >= 2:
 		var lo := mouth_ends[0]

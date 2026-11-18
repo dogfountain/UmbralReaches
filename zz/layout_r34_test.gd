@@ -332,7 +332,8 @@ func _raids() -> void:
 	for r: Dictionary in RealmLayout.RAIDS:
 		var c: Vector2 = r.c
 		var rr: float = r.r
-		var size_r: float = maxf(rr, float(r.get("arena_r", 0.0)))     # a fight that is a sanctum and its yard: the yard's reach
+		var rxx: float = float(r.get("rx", rr))                           # an elliptical deck's east-west half (the summit)
+		var size_r: float = maxf(maxf(rr, rxx), float(r.get("arena_r", 0.0)))     # a fight that is a sanctum and its yard: the yard's reach
 		var y: float = r.y
 		# (18 Nov, Luke: every boss arena 1.6x) the r34 floors were 55..65 m across, the r37 ones 36..65
 		if String(r.id) in ["hierarch", "anchorhold"]:
@@ -341,13 +342,13 @@ func _raids() -> void:
 			check("raid %s is %.0f m across (88..105: 1.6x)" % [r.id, size_r * 2.0], size_r * 2.0 >= 88.0 and size_r * 2.0 <= 105.0)
 		# the Anchoress's terrace is a shelf in the Crowns' face: its floor may touch the north edge exactly
 		var margin := 0.0 if String(r.id) == "anchorhold" else 2.0
-		check("raid %s inside BOUNDS" % r.id, RealmLayout.BOUNDS.grow(-margin).encloses(Rect2(c - Vector2(rr, rr), Vector2(rr, rr) * 2.0)))
+		check("raid %s inside BOUNDS" % r.id, RealmLayout.BOUNDS.grow(-margin).encloses(Rect2(c - Vector2(rxx, rr), Vector2(rxx, rr) * 2.0)))
 		var lo := INF
 		var hi := -INF
 		var above := 0
 		var hi_at := Vector2.ZERO
-		var x := -rr
-		while x <= rr:
+		var x := -rxx
+		while x <= rxx:
 			var z := -rr
 			while z <= rr:
 				var on_stair := false
@@ -355,7 +356,7 @@ func _raids() -> void:
 					var f: Vector3 = ThornHenge.stair_pts[0]
 					var h3: Vector3 = ThornHenge.stair_pts[3]
 					on_stair = _poly_dist([Vector2(f.x, f.z), Vector2(h3.x, h3.z)], c + Vector2(x, z)) < 4.5    # its own cut under the treads
-				if Vector2(x, z).length() <= rr - 1.0 and not on_stair:
+				if Vector2(x * rr / rxx, z).length() <= rr - 1.0 and not on_stair:
 					var g := _terrain(c.x + x, c.y + z)
 					if not is_nan(g):
 						lo = minf(lo, g)
@@ -374,7 +375,7 @@ func _raids() -> void:
 		var trees := 0
 		for tr: Array in Flora.trees:
 			var tp: Vector3 = tr[0]
-			if Vector2(tp.x, tp.z).distance_to(c) < rr + 1.0:
+			if RealmLayout.raid_d(r, Vector2(tp.x, tp.z)) < rr + 1.0:
 				trees += 1
 		check("raid %s: no trees on it (%d)" % [r.id, trees], trees == 0)
 		var camps := 0

@@ -339,7 +339,7 @@ func _summit() -> void:
 	if room == null:
 		return
 	var C: Vector3 = arena.global_position
-	check("summit: the deck is raid-sized", arena.radius >= 27.0 and absf(C.x - Endgame.O.x) < 0.5 and absf(C.z + 118.0) < 0.5, "r %.1f at %s" % [arena.radius, C])
+	check("summit: the deck is raid-sized", arena.radius >= 27.0 and absf(C.x - float(RealmLayout.raid("summit").c.x)) < 0.5 and absf(C.z + 118.0) < 0.5, "r %.1f at %s" % [arena.radius, C])
 	var space := p.get_world_3d().direct_space_state
 	var floor_ok := 0
 	for i in 8:
@@ -355,7 +355,7 @@ func _summit() -> void:
 	check("summit: the east edge is broken open, the north has its parapet", edge_open and north_wall)
 	check("summit: four pylons, lit at rest", (room.get("pylons") as Array).size() == 4 and int(room.call("lit_count")) == 4)
 	var fire := main.find_child("SummitFire", true, false) as Node3D
-	check("summit: the fire stands outside the deck", fire != null and Vector2(fire.global_position.x - C.x, fire.global_position.z - C.z).length() > arena.radius + BossArena.LEAVE)
+	check("summit: the fire stands outside the deck", fire != null and Vector2(fire.global_position.x - C.x, (fire.global_position.z - C.z) / arena.depth_scale).length() > arena.radius + BossArena.LEAVE)     # (the deck an ellipse: measured on its own scale)
 	check("summit: the mouth veil is open at rest", arena.gate != null and not _shut(arena.gate))
 	check("summit: the ward opens (guards dead, both bosses down)", _seal("summit") != null and _seal("summit").is_open())
 	# the pull
