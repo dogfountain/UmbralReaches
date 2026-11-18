@@ -49,7 +49,7 @@ func made(opts: Dictionary) -> Node3D:
 		im.generate_lods(25.0, 60.0, [])
 		mesh = im.get_mesh()
 		GenCache.save_mesh(key, path, mesh)
-	mesh.surface_set_material(0, DwarfLook.material_outdoor())
+	mesh.surface_set_material(0, DwarfLook.material_boss())           # (a great one: no emissive edges, dwarf_look.gd)
 	_assemble(mesh)
 	return self
 

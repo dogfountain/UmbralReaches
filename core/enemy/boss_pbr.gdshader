@@ -4,7 +4,7 @@ render_mode diffuse_burley, specular_schlick_ggx, depth_draw_opaque;
 #define CL_CAVITY 0.5
 #define CL_BREAKUP 0.2
 #define CL_WEAR 1.3
-#define CL_LIFT 1.4
+#define CL_LIFT 1.15
 #include "res://core/vfx/char_look.gdshaderinc"
 // Modelled bosses (r30, tools/blender/boss_*.py): one baked atlas per boss -- albedo, tangent-space
 // normal (OpenGL, as Blender bakes it), ORM (ambient occlusion, roughness, metallic) and emission --
@@ -75,8 +75,12 @@ void fragment() {
 	}
 	float edge = (1.0 - smoothstep(0.0, 0.06, d - dissolve * 1.08)) * step(0.001, dissolve);
 
+	// the warm and moonlit rims were EMISSION, lit whether or not any light touched the body (the grey shine, as on the
+	// enemies before grunt_pbr's fix, 17 Nov): Godot's lit rim instead, the accent fresnel a third, the lift 1.15 (was 1.4)
+	RIM = 0.45;
+	RIM_TINT = 0.55;
 	EMISSION = texture(emit_tex, UV).rgb * emit_energy * (1.0 + glint * 2.5)
-		+ cl_accent(NORMAL, VIEW, rim_col, rim_amount) * (1.0 - glint * 0.6) + cl_rim(NORMAL, VIEW, VIEW_MATRIX) + cl_moon_rim(NORMAL, VIEW, VIEW_MATRIX)
+		+ cl_accent(NORMAL, VIEW, rim_col, rim_amount) * (1.0 - glint * 0.6) * 0.35
 		+ vec3(1.4, 1.25, 1.2) * hit_flash * (0.35 + 0.65 * pow(1.0 - ndv, 1.5))
 		+ burn_col * edge * 3.0;
 }

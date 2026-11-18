@@ -26,6 +26,8 @@ uniform float cloth_relief = 0.032;      // one fold octave
 // grade's brightness floor for warm hues and is pulled into the azure band (they read blue-grey)
 uniform vec3 warm_bounce = vec3(1.0, 0.56, 0.3);
 uniform float bounce = 0.12;
+uniform float rim_emit = 1.0;            // the always-on fresnel rim as emission (people); 0 for the bosses (DwarfLook.material_boss)
+uniform float lit_rim = 0.0;             // Godot's lit rim, only where a light reaches the edge (the bosses: 0.45)
 uniform float moon_rim = 0.0;            // a cool edge light for people outdoors: a dark coat on dark ground otherwise lost its silhouette (set by DwarfLook.material_outdoor)
 // colour strength of the albedo: candlelight and the grade's x1.42 saturation both push warm cloth
 // and skin toward neon; a little less chroma here keeps them reading as dyed wool and skin
@@ -113,8 +115,10 @@ void fragment() {
 	AO = mix(ambient_floor, 1.0, ao) * ambient_keep;
 	AO_LIGHT_AFFECT = 0.55 * (1.0 - ao);
 	float bn = (m == 0 && skin_bounce >= 0.0) ? skin_bounce : bounce;
-	EMISSION = ALBEDO * warm_bounce * bn * mix(0.35, 1.0, ao) + cl_rim(NORMAL, VIEW, VIEW_MATRIX)
+	EMISSION = ALBEDO * warm_bounce * bn * mix(0.35, 1.0, ao) + cl_rim(NORMAL, VIEW, VIEW_MATRIX) * rim_emit
 		+ vec3(0.18, 0.26, 0.42) * moon_rim * pow(1.0 - clamp(dot(NORMAL, VIEW), 0.0, 1.0), 2.5);
+	RIM = lit_rim;
+	RIM_TINT = 0.55;
 	if (m == 0) {
 		// skin: a little warm light through thin parts (nose, ears), cheap wrap
 		BACKLIGHT = skin_back * ao;

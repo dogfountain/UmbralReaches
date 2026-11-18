@@ -16,6 +16,7 @@ const LAYER_NAMES := ["skin", "cloth", "linen", "leather", "hair", "metal", "woo
 
 static var _mat: ShaderMaterial
 static var _mat_out: ShaderMaterial
+static var _mat_boss: ShaderMaterial
 
 
 ## Drop the engine resources held in static vars (called when the night is torn down): statics
@@ -23,6 +24,7 @@ static var _mat_out: ShaderMaterial
 static func release() -> void:
 	_mat = null
 	_mat_out = null
+	_mat_boss = null
 
 
 ## The same material for people outdoors (Hearthward's villagers): no hearth in the open, so the
@@ -38,6 +40,22 @@ static func material_outdoor() -> ShaderMaterial:
 	_mat_out.set_shader_parameter("skin_bounce", 0.09)    # models pass: was 0.2: the self-glow flattened faces to one tone
 	_mat_out.set_shader_parameter("skin_back", Vector3(0.22, 0.12, 0.06))
 	return _mat_out
+
+
+## The great ones built the people's way (villager_boss_rig.gd, beast_body.gd): the outdoor look without the self-glow
+## and the always-on edges. On a body the size of a house the cool moon rim and the fresnel rim, both emission, lit its
+## pale robe into a grey sheen in any shade (the enemies lost theirs on 17 Nov, grunt_pbr); the rim is Godot's lit one,
+## only where the moon or a fire reaches the edge.
+static func material_boss() -> ShaderMaterial:
+	if _mat_boss:
+		return _mat_boss
+	_mat_boss = material_outdoor().duplicate() as ShaderMaterial
+	_mat_boss.set_shader_parameter("moon_rim", 0.0)
+	_mat_boss.set_shader_parameter("rim_emit", 0.0)
+	_mat_boss.set_shader_parameter("lit_rim", 0.45)
+	_mat_boss.set_shader_parameter("bounce", 0.04)
+	_mat_boss.set_shader_parameter("skin_bounce", 0.04)
+	return _mat_boss
 
 
 static func material() -> ShaderMaterial:

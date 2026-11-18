@@ -39,6 +39,7 @@ const GAIT := [0.26, 0.6, 0.011, 0.16]          ## the old's gait: thigh swing, 
 const STRIKE_LEN := 1.25
 const STAGGER_LEN := 1.8
 const DEATH_LEN := 2.6
+const DwarfLook := preload("res://core/npc/dwarf_look.gd")
 const SOCKETS := {"pelvis": 1, "body": 1, "chest": 2, "front": 2, "head": 3, "hand_r": 7, "hand_l": 10}
 const FX_CODE := """
 shader_type spatial;
@@ -157,6 +158,7 @@ func _build() -> void:
 func dress(_kind: StringName) -> Array[MeshInstance3D]:
 	var mi := _v.get("mesh_instance") as MeshInstance3D
 	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+	mi.set_surface_override_material(0, DwarfLook.material_boss())     # the people's look without its emissive edges (dwarf_look.gd)
 	var out: Array[MeshInstance3D] = [mi]
 	return out
 
