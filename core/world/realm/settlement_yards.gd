@@ -14,7 +14,7 @@ const Dress := preload("res://core/world/realm/wonders/r39/wonder_dress.gd")
 const Zones := preload("res://core/world/realm/dress_zones.gd")
 const More := preload("res://core/world/realm/settlement_yards_more.gd")
 
-const TOWNS := [[Vector2(6.0, 38.0), 34.0, 16], [Vector2(-311.0, 281.0), 30.0, 11], [Vector2(-160.0, 300.0), 34.0, 12], [Vector2(324.5, 53.5), 40.0, 14]]
+const TOWNS := [[Vector2(6.0, 38.0), 34.0, 10, 0.62], [Vector2(-311.0, 281.0), 30.0, 11], [Vector2(-160.0, 300.0), 34.0, 12], [Vector2(324.5, 53.5), 40.0, 14]]
 const KINDS := ["washing", "garden", "pen", "smith", "grave", "market", "well", "pen", "fence", "workshop", "linen", "garden", "geese", "well", "workshop", "fence"]
 
 
@@ -39,12 +39,13 @@ func _run(root: Node) -> void:
 		var c: Vector2 = t[0]
 		var r: float = t[1]
 		var want: int = t[2]
+		var inner: float = float(t[3]) if t.size() > 3 else 0.0      # Hearthward's yards stay on its outer ring: the plaza, the graves and the fire are the villagers' own
 		var n := 0
 		var tries := 0
 		while n < want and tries < want * 24:
 			tries += 1
 			var a := rng.randf() * TAU
-			var p := c + Vector2(cos(a), sin(a)) * sqrt(rng.randf()) * r * 0.95
+			var p := c + Vector2(cos(a), sin(a)) * lerpf(inner, 0.95, sqrt(rng.randf())) * r
 			if not _open(space, q, p, made):
 				continue
 			var g := WK.h(p.x, p.y)
@@ -72,7 +73,7 @@ func _open(space: PhysicsDirectSpaceState3D, q: PhysicsShapeQueryParameters3D, p
 	for m: Vector2 in made:
 		if m.distance_to(p) < 9.0:
 			return false
-	if RealmLayout.path_dist(p) < 3.5 or WK.wet(p.x, p.y) or Zones.lane_dist(p) < 3.2:
+	if RealmLayout.path_dist(p) < 3.5 or WK.wet(p.x, p.y) or Zones.lane_dist(p) < 3.2 or WK.near_walk(p, 6.5):
 		return false
 	var hit := space.intersect_ray(PhysicsRayQueryParameters3D.create(Vector3(p.x, 60.0, p.y), Vector3(p.x, -20.0, p.y), Layers.WORLD))
 	if hit.is_empty() or absf((hit.position as Vector3).y - WK.h(p.x, p.y)) > 0.6:
