@@ -62,6 +62,8 @@ static var _kgrid := {}                      ## Vector2i(CELL) -> Array of _keep
 static var _keep: Array = []                 ## [Vector2, radius] the camps', fires', outposts' and slots' rounds
 static var _rng := RandomNumberGenerator.new()
 static var _n := 0
+static var _force_qs := {}                   ## "region/stage" -> the spots _force tries
+static var _sraid: Array = []                ## per site index: a raid floor (its own, finer test)
 static var _loose := false                   ## the named places' last resort: nearer the rounds and the ways (see _force)
 
 
@@ -89,11 +91,12 @@ static func plan_now(root: Node, tree_clear: Array) -> void:
 	_index_segs()
 	_keep.clear()
 	_kgrid.clear()
+	_force_qs.clear()
 	_n = 0
 	if off():
 		return
 	_space = (root as Node3D).get_world_3d().direct_space_state
-	_rng.seed = 20261115
+	_rng.seed = 20261124
 	var laps := {}
 	var tl := Time.get_ticks_usec()
 	for pass_name: String in ["interests", "lookouts", "ways", "miles", "open", "dress", "assign"]:
@@ -352,7 +355,9 @@ static func _no(why: String) -> float:
 static func _clear(rect: Rect2, margin: float) -> bool:
 	if _sgrid.is_empty():
 		var sites := WorldLanes.sites
+		_sraid.clear()
 		for i in sites.size():
+			_sraid.append(String(sites[i].name).begins_with("raid_"))
 			var r: Rect2 = (sites[i].rect as Rect2).grow(2.0)
 			for cj in range(floori(r.position.y / CELL), floori(r.end.y / CELL) + 1):
 				for ci in range(floori(r.position.x / CELL), floori(r.end.x / CELL) + 1):
@@ -365,7 +370,10 @@ static func _clear(rect: Rect2, margin: float) -> bool:
 		for ci in range(floori(g.position.x / CELL), floori(g.end.x / CELL) + 1):
 			for i: int in _sgrid.get(Vector2i(ci, cj), []):
 				var st: Dictionary = WorldLanes.sites[i]
-				if WorldLanes.site_hits_rect(st, rect, margin) if String(st.name).begins_with("raid_") else (st.rect as Rect2).grow(margin).intersects(rect):
+				var sr: Rect2 = st.rect
+				if sr.position.x - margin >= rect.end.x or sr.end.x + margin <= rect.position.x or sr.position.y - margin >= rect.end.y or sr.end.y + margin <= rect.position.y:
+					continue                             # (the plain box test first, without the grow's copy)
+				if not (_sraid[i] as bool) or WorldLanes.site_hits_rect(st, rect, margin):
 					return false
 	# the ways: LoreKit's own test with no site in it
 	var pts: Array[Vector2] = [rect.position, rect.end, Vector2(rect.position.x, rect.end.y), Vector2(rect.end.x, rect.position.y), rect.get_center()]
@@ -378,6 +386,18 @@ static func _clear(rect: Rect2, margin: float) -> bool:
 			if pq.distance_to(a + ab * t) - float(sg[2]) < margin:
 				return false
 	return true
+
+
+## Distance from q to the nearest way, on the planner's own grid (99 where none is within 64 m): it only orders spots.
+static func _way_d(q: Vector2) -> float:
+	var best := 99.0
+	for si: int in _segs_near(Rect2(q - Vector2(64.0, 64.0), Vector2(128.0, 128.0))):
+		var sg: Array = _segs[si]
+		var a: Vector2 = sg[0]
+		var ab: Vector2 = (sg[1] as Vector2) - a
+		var t := clampf((q - a).dot(ab) / maxf(ab.length_squared(), 0.0001), 0.0, 1.0)
+		best = minf(best, q.distance_to(a + ab * t) - float(sg[2]))
+	return best
 
 
 ## The yaw that turns a place's front (local -z) to the nearest way.
@@ -798,6 +818,25 @@ static func _force(region: String, kinds: Array, stage := 0) -> Dictionary:
 			rd = r
 	if rd.is_empty():
 		return {}
+	var ck := "%s/%d" % [region, stage]
+	if not _force_qs.has(ck):
+		_force_qs[ck] = _force_spots(rd, stage)
+	var qs: Array = _force_qs[ck]
+	_loose = stage >= 2
+	var found := {}
+	for kind: String in kinds:
+		var ks: Array[String] = [kind]
+		found = _try(ks, qs, region, "way")
+		if not found.is_empty():
+			break
+	_loose = false
+	if not found.is_empty():
+		return found
+	return {} if stage >= 3 else _force(region, kinds, stage + 1)
+
+
+## The spots `_force` tries in a region at a stage: by its ways, then the rest nearest them (cached per region).
+static func _force_spots(rd: Dictionary, stage: int) -> Array:
 	var area: Rect2 = rd.rect if rd.has("rect") else Rect2((rd.c as Vector2) - Vector2(rd.r, rd.r), Vector2(rd.r, rd.r) * 2.0)
 	var w_min := 0.8 if stage == 0 else (0.25 if stage < 3 else -1.0)   # (place_weight falls to 0 over 18 m past a rect: 0.25 is ~13 m out)
 	if stage > 0:
@@ -828,24 +867,13 @@ static func _force(region: String, kinds: Array, stage := 0) -> Dictionary:
 		while x < area.end.x - 4.0:
 			var q2 := Vector2(x, z)
 			if RealmLayout.place_weight(rd, x, z) > w_min:
-				more.append([RealmLayout.path_dist(q2), q2])
+				more.append([_way_d(q2), q2])
 			x += 7.0
 		z += 7.0
 	more.sort_custom(func(a: Array, b: Array) -> bool: return float(a[0]) < float(b[0]))
 	for m: Array in more:
 		qs.append(m[1])
-	qs = qs.slice(0, 150)                    # (a region with no room for the kind gives up soon)
-	_loose = stage >= 2
-	var found := {}
-	for kind: String in kinds:
-		var ks: Array[String] = [kind]
-		found = _try(ks, qs, region, "way")
-		if not found.is_empty():
-			break
-	_loose = false
-	if not found.is_empty():
-		return found
-	return {} if stage >= 3 else _force(region, kinds, stage + 1)
+	return qs.slice(0, 150)                  # (a region with no room for the kind gives up soon)
 
 
 ## Give a place its writing: its own carrier piece if it has one of the right kind, else a carrier beside it.
