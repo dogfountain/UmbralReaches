@@ -121,7 +121,8 @@ func _carrion(root: Node, space: PhysicsDirectSpaceState3D, add: Callable) -> vo
 		var spot := Vector2.INF
 		var max_cover := 0.45 if RealmLayout.biome_at(near.x, near.y) == "oldforest" else 0.18
 		for k in 260:
-			var q := near + Vector2(_rng.randf_range(-30.0, 30.0), _rng.randf_range(-30.0, 30.0))
+			var spread := 30.0 if k < 160 else 52.0         # camps moved off the landmarks crowd some tracks: look further along them
+			var q := near + Vector2(_rng.randf_range(-spread, spread), _rng.randf_range(-spread, spread))
 			var pd := RealmLayout.path_dist(q)
 			if pd < 4.0 or pd > (12.0 if k < 160 else 20.0) or not _carrion_ground(q) or String(RealmLayout.region_at(q.x, q.y).get("id", "")) != rid:
 				continue

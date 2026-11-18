@@ -157,8 +157,20 @@ func _run() -> void:
 			break
 	if owls != null:
 		var op: Vector3 = owls.positions()[0]
+		for ob: Dictionary in owls.get("birds"):            # a perched one (an owl already up, away or hunting has nothing to startle from)
+			if int(ob.state) == 0:
+				op = ob.pos
+				break
 		await _put(player, Vector3(op.x + 3.0, op.y - 3.0, op.z))
-		await _secs(2.0)
+		for _i in 10:                      # an owl mid-hunt or mid-glide takes a moment to notice: up to 5 s
+			await _secs(0.5)
+			if owls.alarms > 0:
+				break
+		if owls.alarms == 0:
+			var sts: Array = []
+			for ob: Dictionary in owls.get("birds"):
+				sts.append([int(ob.state), (ob.pos as Vector3).distance_to(player.global_position)])
+			print("LIFE owl debug: player %s, op %s, birds %s, flee_r %s, processing %s" % [player.global_position, op, sts, owls.get("flee_r"), owls.is_processing()])
 		check(owls.alarms > 0, "an owl flew off (alarms %d)" % owls.alarms)
 	# ---- frogs: you hush them, a hollowed thing hushes them
 	var pond: Node3D = null
