@@ -217,7 +217,7 @@ const SLOTS := {
 	"anchorholds": [
 		{"kind": "fire", "at": Vector2(209, -83), "note": "the foot of the cliff, a few metres off anchor_track's bend"},
 		{"kind": "poi", "at": Vector2(214, -132), "note": "the cliff terrace: the lower cells, the timber walk, the chapel and the Anchoress's room"},
-		{"kind": "camp", "at": Vector2(230, -70), "note": "the scree at the cliff's foot"}],
+		{"kind": "camp", "at": Vector2(229, -72), "note": "the scree at the cliff's foot"}],
 	"saltmarket": [
 		{"kind": "fire", "at": Vector2(218, 98), "note": "the hamlet's yard"},
 		{"kind": "poi", "at": Vector2(214, 95), "note": "the hamlet: houses, drying shed, the trader's stall"}],
@@ -263,7 +263,7 @@ const SLOTS := {
 		{"kind": "fire", "at": Vector2(-99, 104), "note": "beside orchard_lane"},
 		{"kind": "poi", "at": Vector2(-128, 132), "note": "the press-house ruin"},
 		{"kind": "poi", "at": Vector2(-86, 122), "note": "the burned rows' heart (a night event ground)"},
-		{"kind": "camp", "at": Vector2(-136, 104), "note": "the west rows"},
+		{"kind": "camp", "at": Vector2(-132, 101), "note": "the west rows"},
 		{"kind": "camp", "at": Vector2(-80, 142), "note": "the south rows"}],
 	"necropolis": [
 		{"kind": "fire", "at": Vector2(8, 108), "note": "at the field's gate, off necropolis_way"},

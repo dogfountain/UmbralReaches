@@ -40,6 +40,7 @@ var systems_before := {}
 
 
 func _ready() -> void:
+	add_child((load("res://zz/vow_closer.gd") as GDScript).new())
 	Travel._busy = true
 	Travel.bosses_slain.clear()
 	CodexStore.persist = false

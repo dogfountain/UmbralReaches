@@ -70,13 +70,13 @@ const SLOTS := {
 		{"kind": "fire", "at": Vector2(-292, 14), "note": "beside fell_track in a lit clearing"},
 		{"kind": "poi", "at": Vector2(-330, -8), "note": "the ring of giant caps"},
 		{"kind": "poi", "at": Vector2(-350, 44), "note": "the Last Milestone at the road's west end"},
-		{"kind": "camp", "at": Vector2(-298, 44), "note": "the deep wood"},
+		{"kind": "camp", "at": Vector2(-295, 44), "note": "the deep wood"},
 		{"kind": "camp", "at": Vector2(-282, -30), "note": "the wood's north edge"}],
 	"kingsbarrows": [
 		{"kind": "fire", "at": Vector2(-318, 96), "note": "barrow_track at the ridge's north end"},
 		{"kind": "poi", "at": Vector2(-345, 152), "note": "the King's Barrow, its door open"},
 		{"kind": "poi", "at": Vector2(-300, 128), "note": "the stone row along the ridge"},
-		{"kind": "camp", "at": Vector2(-312, 170), "note": "between the barrows"},
+		{"kind": "camp", "at": Vector2(-311, 170), "note": "between the barrows"},
 		{"kind": "camp", "at": Vector2(-296, 196), "note": "the ridge's south shoulder"}],
 	"reedmere": [
 		{"kind": "fire", "at": Vector2(-316, 302), "note": "Reedholm's landing"},
@@ -100,7 +100,7 @@ const SLOTS := {
 		{"kind": "poi", "at": Vector2(169, 330), "note": "the charcoal burners' ruin"},
 		{"kind": "poi", "at": Vector2(226, 362), "note": "the witch's hollow"},
 		{"kind": "camp", "at": Vector2(120, 268), "note": "the burners' clearing"},
-		{"kind": "camp", "at": Vector2(248, 286), "note": "the holly brakes"},
+		{"kind": "camp", "at": Vector2(249, 290), "note": "the holly brakes"},
 		{"kind": "camp", "at": Vector2(243, 260), "note": "the wood's north-east edge"}],
 	"bellfall": [
 		{"kind": "fire", "at": Vector2(322, 96), "note": "bellfall_way at the crater's west lip"},
