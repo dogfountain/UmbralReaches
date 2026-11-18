@@ -94,9 +94,33 @@ the Thornwarden on `BeastRig`) share one pose vocabulary of six modes: idle, win
 4. Phase visuals and arena lighting.
 5. Film every move, test, measure, then a short boss trailer.
 
-## Decisions for Luke
-- Model rebuild in Blender (recommended, meets the hero-asset bar) or keep the code-built bodies and only add
-  detail and motion?
-- Install the Blender connector for the modelling (faster iteration and render review), or keep the headless
-  scripts?
-- Any moves above to change, add or drop, per boss?
+## Decided (Luke, 18 Nov)
+- "Modeled blender assets like all other assets, all models in the game should be blender." The bosses are rebuilt
+  in Blender (step 4 above is in), and the same rule now covers every model in the game (below).
+- Seen in the trailer: two bosses showed no animation at all. They are the Anchoress and the Speaking Crown (no rig
+  calls in their fights); they go first in step 1.
+
+## Every model in Blender (the game-wide program)
+Today about 123 scripts build geometry in code through the kits (OssKit boxes, WonderKit, DwarfMesh / CreatureMesh
+lofts, RockKit, TreeGen): 65 in the Realm's places and POIs, 19 in the r39 wonders (the landmarks), 25 in life (villagers,
+wildlife, secrets), 13 enemies and bosses, 6 people (the dwarves), 5 in the Ossuary. 730 GLBs already exist under
+art/models (112 props). Each family moves to Blender-authored GLBs, one at a time, each with a turnaround render
+reviewed at full size before it goes in:
+1. **Bosses** (this plan): skeleton, mesh and keyframed clips in Blender, one boss at a time, shown to Luke before
+   the next.
+2. **Enemies and the people** (grunts, villagers, dwarves, wildlife): one skinned mesh each on a shared skeleton per
+   body type, clips in Blender; the villager look kept as the style.
+3. **Landmarks** (the Sleeper, the Hollow King, the Salt Ship, the Wardens' towers, the Chain Span, the Titan Gates,
+   the caves and deep halls): modelled set pieces with near and far meshes; their placement code stays and loads
+   the GLBs instead of building boxes.
+4. **Architecture and POIs** (cottages, towns, ruins, the Ossuary): a modular Blender kit (walls, roofs, doors,
+   stairs, trims) so the existing layout code assembles modelled pieces.
+5. **Props, rocks and trees** (crates, barrels, stalls, boulders, cliffs, trees, undergrowth): Blender libraries with
+   LODs, swapped in by key so the scatter and dressing code is unchanged.
+Rules for every family: in-house only, the villager/Enshrouded-style look, LODs and a far mesh, no new draw calls
+per instance (MultiMesh stays), GenCache for anything derived, and the frame-time tour against today's numbers
+after each family lands.
+
+## Still to decide
+- The Blender connector (Anthropic + Blender Lab) for live modelling with renders each step, or the headless
+  `tools/blender` scripts as now?
