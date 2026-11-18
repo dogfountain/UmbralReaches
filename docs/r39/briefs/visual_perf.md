@@ -27,6 +27,33 @@ Keep a live checklist at `docs/r39/visual_perf.md`, with every finding, its evid
 - **Frame stutter is Luke's top complaint.** Any visual gain that costs a hitch is a loss.
 - **Never:** never enable dynamic resolution (the code stays in, off). Never rebake `world/main.tscn`. Never cut content.
 
+## Inherited from the map audit and the combat pass (fix these first; they are bugs, not taste)
+
+Read `docs/r39/combat_fix.md` (rows MA1-MA4 and "Not fixed") and `docs/r39/map_audit.md` ("Not fixed").
+
+**Soundness, P0** (reproduce each with a short run before fixing):
+- **MA1:** the Bone Abbot's pit-hall wall can be walked through. The combat strips show falls to y -58 (`world/areas/ossuary/oss_hall.gd`, the 1.6x room).
+- **MA4:** the Speaking Crown's siege yard drops the wanderer through the ground near (-216.8, 169.7) to y -35.
+- **Warden fight:** about 8.3 s into every Ascended Warden fight, the wanderer is burned by the rift's lava at (314.1, -15.2, -60.6) and put back on the deck (35 wounds). Something carries them off the summit.
+- **Count door:** at the Ossuary's Count door, a pale void shows through a gap in the wall, looking down the Counting Stair (map audit F27, left open). It needs a rock skirt fitted to the Ossuary's own walls, checked in game; it must not block the stair.
+
+**Camera:**
+- **MA2:** the Crown's earthwork puts the camera inside rock.
+- **MA3:** the henge stones crowd the camera.
+
+**Performance:**
+- **Load spike:** a frame of about 960 pipelines and 120-140 ms about 6 s after load. It comes from the world's post-build mesh merge (the "ATMOS merged" step): move it behind the loading screen or spread it.
+- **First fight:** the first `boss_engaged` costs 18.6 ms once.
+
+**Look:**
+- **Rift Step:** a tear about 3 m from the camera covers a fifth of the frame for 0.3 s.
+- **White blob:** a large white blob sits near the wanderer's hands in combat strips (the lantern or a cast glow; `scratchpad/combat/R8/flank2_s04.jpg`).
+- **Pale orbs:** they float at eye level in the pit hall and the Hearthward meadow (`scratchpad/pairs/F01_pit_hall_after.jpg`, `F20_meadow_post_after.jpg`).
+- **The pit hall is nearly black** away from the reliquary.
+- **The Resonance popup:** its huge pink text was clipped at the screen's edge (`combat/R7/hierarch_s39.jpg`; split onto two lines since: check it).
+
+**Models:** the map audit's F28 list of code-built models (in `docs/r39/map_audit.md`) is yours to rebuild in Blender.
+
 ## The critique: brutal, by seat
 
 Measure and capture first:
