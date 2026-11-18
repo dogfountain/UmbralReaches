@@ -57,7 +57,7 @@ const CAMPS: Array[Dictionary] = [
 	# holly, leapers at the wood's north-east edge, a mite nest in the deep wood (the Hollow-Witch holds her hollow).
 	{"name": "the burners' clearing", "at": Vector3(120.0, 60.0, 268.0), "kinds": ["cinder", "cinder", "husk", "wretch"], "probe": 0.0, "r": 2.8},
 	{"name": "the holly brakes", "at": Vector3(248.0, 60.0, 286.0), "kinds": ["gaunt", "gaunt", "leaper"], "probe": 0.0,
-		"patrol": [Vector2(212, 320), Vector2(228, 334), Vector2(206, 344), Vector2(194, 328)]},
+		"patrol": [Vector2(248, 286), Vector2(258, 296), Vector2(240, 306), Vector2(232, 290)]},
 	{"name": "the wood's north-east edge", "at": Vector3(243.0, 60.0, 260.0), "kinds": ["leaper", "crawler", "crawler"], "probe": 0.0},
 	{"name": "the deep wood's nest", "at": Vector3(170.0, 60.0, 394.0), "kinds": ["mite", "mite", "mite", "mite", "mite"], "probe": 0.0, "r": 1.6},
 	# --- the Bellfall (under Lastlight's south wall since the Stair took the Crowns' east corner): the bell's heat on the

@@ -53,7 +53,7 @@ func _run(root: Node) -> void:
 		if close:
 			WK.rej(t, "spacing")
 			continue
-		if not _spot(f, t):
+		if not _spot(f, t, true):
 			continue
 		var c: Array[Vector2] = []
 		var a0 := rng.randf() * TAU
@@ -83,17 +83,17 @@ func _run(root: Node) -> void:
 	print("WONDER hidden_finds: %d of %d (%d of %d candidates tried); rejected: %s" % [n, COUNT, tried, cands.size(), WK.rejected(t)])
 
 
-func _spot(q: Vector2, t: Dictionary) -> bool:
+func _spot(q: Vector2, t: Dictionary, strict := false) -> bool:
 	if WK.in_town(q):
 		return WK.rej(t, "town")
 	if not RealmLayout.BOUNDS.grow(-16.0).has_point(q):
 		return WK.rej(t, "edge")
-	if RealmLayout.path_dist(q) < 6.0:
+	if RealmLayout.path_dist(q) < 4.0:
 		return WK.rej(t, "way")
 	var sp := WK.span(q, Vector2(2.0, 2.0), 0.0)
-	if sp.x == INF or sp.y - sp.x >= 1.4:
+	if sp.x == INF or sp.y - sp.x >= 2.6:
 		return WK.rej(t, "slope")
-	if WK.site_hit(Rect2(q - Vector2(3.0, 3.0), Vector2(6.0, 6.0)), 1.0):
+	if WK.site_hit(Rect2(q - Vector2(3.0, 3.0), Vector2(6.0, 6.0)), 1.0, strict):
 		return WK.rej(t, "site")
 	return true
 

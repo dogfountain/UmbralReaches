@@ -138,6 +138,16 @@ func sgn_rail(j: int) -> bool:
 
 
 ## Three plank bridges and two fords on the Sorrow where no way crosses it.
+## A registered site that is not a way's own (a flight, a lane) touching the box: the bridge stands on its way, so the way's site is no obstacle.
+func _site_near(box: Rect2) -> bool:
+	for st: Dictionary in WorldLanes.sites:
+		if st.has("seg") or String(st.name).contains("lane") or String(st.name).contains("way"):
+			continue
+		if WorldLanes.site_hits_rect(st, box, 1.0):
+			return true
+	return false
+
+
 func _bridges(root: Node, rng: RandomNumberGenerator) -> int:
 	var pts: Array = RealmLayout.RIVER.pts
 	var made := 0
@@ -170,7 +180,7 @@ func _bridges(root: Node, rng: RandomNumberGenerator) -> int:
 		if Land.in_water(ea.x, ea.y) or Land.in_water(eb.x, eb.y):
 			WK.rej(t, "bank")
 			continue
-		if WK.site_hit(Rect2(m - Vector2(10.0, 10.0), Vector2(20.0, 20.0)), 2.0):
+		if _site_near(Rect2(m - Vector2(9.0, 9.0), Vector2(18.0, 18.0))):
 			WK.rej(t, "site")
 			continue
 		taken.append(m)

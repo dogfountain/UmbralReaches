@@ -33,13 +33,22 @@ func _gate(root: Node, r: Dictionary) -> void:
 	var title: String = {"henge": "The Thorn Wardens", "hierarch": "The Siege Wardens", "anchorhold": "The Anchor Wardens"}.get(String(r.id), "The Wardens")
 	k.poi("titan_gate_" + String(r.id), title, "two wardens of stone, and what they were set to keep out", WK.region_at(gate))
 	# 30 m outside the gate, clear of the arena's seal guards and camps (their sites): nudged out 14 m at a time if a site is there
-	var off := 30.0
-	for t in 3:
-		var bp := gate + dir * off
-		if not WK.site_hit(Rect2(bp - Vector2(10.0, 10.0), Vector2(20.0, 20.0)), 2.0, false):
+	var base := gate + dir * 30.0
+	var found := false
+	for off: float in [30.0, 42.0, 54.0, 66.0, 78.0, 90.0]:        # the first distance (then side-step) at which neither obelisk's ground touches a site
+		for lat: float in [0.0, 16.0, -16.0, 32.0, -32.0]:
+			var bp := gate + dir * off + side * lat
+			var hit := false
+			for sg: float in [-1.0, 1.0]:
+				var op := bp + side * (7.0 * sg)
+				if WK.site_hit(Rect2(op - Vector2(6.0, 6.0), Vector2(12.0, 12.0)), 3.0, false):
+					hit = true
+			if not hit:
+				base = bp
+				found = true
+				break
+		if found:
 			break
-		off += 14.0
-	var base := gate + dir * off
 	var yaw := atan2(dir.x, dir.y)
 	for s: float in [-1.0, 1.0]:
 		var p := base + side * (7.0 * s)

@@ -51,11 +51,11 @@ func _ok(c: Vector2, t: Dictionary) -> bool:
 	if RealmLayout.path_dist(c) < 12.0:
 		return WK.rej(t, "way")
 	for q: Vector2 in _placed_pts:
-		if q.distance_to(c) < 60.0:
+		if q.distance_to(c) < 45.0:
 			return WK.rej(t, "spacing")
 	if WK.region_at(c) in ["hearth", "summit", "rift", "ossuary", "henge"]:
 		return WK.rej(t, "region")
-	if WK.site_hit(Rect2(c - Vector2(9.0, 9.0), Vector2(18.0, 18.0)), 2.0):
+	if WK.site_hit(Rect2(c - Vector2(7.0, 7.0), Vector2(14.0, 14.0)), 1.0):
 		return WK.rej(t, "site")
 	return true
 

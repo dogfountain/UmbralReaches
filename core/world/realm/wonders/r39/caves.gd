@@ -58,11 +58,11 @@ func _ok(c: Vector2, t: Dictionary) -> bool:
 	if WK.wet(c.x, c.y):
 		return WK.rej(t, "water")
 	for q: Vector2 in _placed:
-		if q.distance_to(c) < 75.0:
+		if q.distance_to(c) < 55.0:
 			return WK.rej(t, "spacing")
 	if WK.region_at(c) in ["hearth", "summit", "rift", "ossuary", "henge"] or WK.in_town(c, 20.0):
 		return WK.rej(t, "region")
-	if WK.site_hit(Rect2(c - Vector2(14.0, 28.0), Vector2(28.0, 56.0)), 2.0):
+	if WK.site_hit(Rect2(c - Vector2(10.0, 20.0), Vector2(20.0, 40.0)), 1.0):
 		return WK.rej(t, "site")
 	return true
 

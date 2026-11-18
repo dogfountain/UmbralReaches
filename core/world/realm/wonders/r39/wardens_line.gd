@@ -41,6 +41,18 @@ func _blk(key: String, x0: float, x1: float, z0: float, z1: float, y_lo: float, 
 	k.kit.box(key, _w((x0 + x1) * 0.5, (y_lo + y_hi) * 0.5, (z0 + z1) * 0.5), Vector3(x1 - x0, y_hi - y_lo, z1 - z0), rot, solid, shade)
 
 
+## The four first-merge spots of a station, then each shifted along the line (x +-14, +-28, +-44): never in a town, at Saltmarket, at Weirford or in the Bellfall.
+func _cands(x: float) -> Array:
+	var out: Array = []
+	for dx: float in [0.0, 14.0, -14.0, 28.0, -28.0, 44.0, -44.0]:
+		for z: float in [26.0, 104.0, 14.0, 116.0, 60.0]:
+			var c := Vector2(x + dx, z)
+			if WK.in_town(c, 8.0) or c.distance_to(Vector2(215.0, 97.0)) < 48.0 or c.distance_to(Vector2(-196.0, 70.0)) < 42.0 or Rect2(306.0, 84.0, 64.0, 38.0).grow(14.0).has_point(c):
+				continue
+			out.append(c)
+	return out
+
+
 func _run(root: Node) -> void:
 	var placed := 0
 	var meshes := 0
@@ -48,7 +60,7 @@ func _run(root: Node) -> void:
 	var lights := 0
 	for i in STATIONS.size():
 		var x: float = STATIONS[i]
-		var f := WK.place_first([Vector2(x, 26.0), Vector2(x, 104.0), Vector2(x, 14.0), Vector2(x, 116.0)], Vector2(8.0, 8.0), [0.0], 2.5)
+		var f := WK.place_first(_cands(x), Vector2(8.0, 8.0), [0.0], 2.5)
 		var c: Vector2 = f.pos
 		WorldLanes.register_terrace("wonder_wardens_%d" % (i + 1), c, 9.0, (float(f.lo) + float(f.hi)) * 0.5)
 		k = WK.new()                                   # one kit (one set of meshes) per tower: each culls on its own

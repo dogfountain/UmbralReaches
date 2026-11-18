@@ -63,7 +63,7 @@ func _scan() -> Array:
 						var r := Vector2(x, z) + d * float(f + 1)
 						if not Land.in_water(r.x, r.y):
 							var key := Vector2i(floori(r.x / SPACING), floori(r.y / SPACING))
-							if not taken.has(key) and RealmLayout.path_dist(r) > 2.5 and not WK.site_hit(Rect2(r - Vector2(1.2, 1.2), Vector2(2.4, 2.4)), 0.5):
+							if not taken.has(key) and not RealmLayout.OLD_BOUNDS.has_point(r) and RealmLayout.path_dist(r) > 2.5 and not WK.site_hit(Rect2(r - Vector2(1.2, 1.2), Vector2(2.4, 2.4)), 0.5):
 								taken[key] = true
 								out.append([r + d * 0.3, -d])
 							break
