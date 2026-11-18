@@ -48,6 +48,7 @@ var at2 := Vector2.INF
 var yaw := 0.0
 var perf := false
 var full_hits := false
+var full_tells := false
 var main: Node
 var p: Player
 var started := false
@@ -74,6 +75,11 @@ var ft := PackedFloat32Array()
 var summary := PackedStringArray()
 var boss: Enemy
 var recording := false
+var phase_at: Array[float] = []
+var _pipes := 0
+var _added := 0
+var _nav_us := 0
+var _nav_q := 0        ## boss:<id>^r2^r3: the life set to each ratio at equal slices of the fight
 var arena_c := Vector3.ZERO
 var arena_r := 0.0
 # --- the bot
@@ -104,7 +110,9 @@ func _ready() -> void:
 			"--at": at2 = Vector2(float(v.get_slice(",", 0)), float(v.get_slice(",", 1)))
 			"--yaw": yaw = deg_to_rad(float(v))
 			"--perf": perf = true
-			"--full": full_hits = v == "hits"
+			"--full":
+				full_hits = v == "hits" or v == "hurts"
+				full_tells = v == "hits"
 	DirAccess.make_dir_recursive_absolute(out)
 	Travel._busy = true
 	Travel.bosses_slain.clear()
@@ -137,9 +145,20 @@ func _process(delta: float) -> void:
 		return
 	if fname != "":
 		ft.append(delta * 1000.0)
+		var pc := int(Performance.get_monitor(Performance.PIPELINE_COMPILATIONS_SURFACE) + Performance.get_monitor(Performance.PIPELINE_COMPILATIONS_DRAW) + Performance.get_monitor(Performance.PIPELINE_COMPILATIONS_SPECIALIZATION) + Performance.get_monitor(Performance.PIPELINE_COMPILATIONS_MESH))
 		if delta > 0.025:
 			spikes.append([Engine.get_physics_frames() - f0, snappedf(delta * 1000.0, 0.1)])
-			_log("SPIKE %.1f ms" % (delta * 1000.0))
+			_log("SPIKE %.1f ms (process %.1f ms, physics %.1f ms, pipelines compiled %d, nodes added %d, nav %.1f ms in %d queries)" % [delta * 1000.0,
+				Performance.get_monitor(Performance.TIME_PROCESS) * 1000.0, Performance.get_monitor(Performance.TIME_PHYSICS_PROCESS) * 1000.0,
+				pc - _pipes, _added, float(NavAssist.query_usec - _nav_us) / 1000.0, NavAssist.queries - _nav_q])
+		if pc > _pipes and delta <= 0.025:
+			_log("PIPE %d compiled (surface %d draw %d spec %d mesh %d), %.1f ms" % [pc - _pipes, int(Performance.get_monitor(Performance.PIPELINE_COMPILATIONS_SURFACE)),
+				int(Performance.get_monitor(Performance.PIPELINE_COMPILATIONS_DRAW)), int(Performance.get_monitor(Performance.PIPELINE_COMPILATIONS_SPECIALIZATION)),
+				int(Performance.get_monitor(Performance.PIPELINE_COMPILATIONS_MESH)), delta * 1000.0])
+		_pipes = pc
+		_added = 0
+		_nav_us = NavAssist.query_usec
+		_nav_q = NavAssist.queries
 	if not started and is_instance_valid(main) and main.has_meta("realm_done"):
 		p = get_tree().get_first_node_in_group(Groups.PLAYER) as Player
 		if p == null:
@@ -306,7 +325,10 @@ func _fight(nm: String, spec: String, ground: Vector3) -> void:
 	lance_t = 0.0
 	step_cd = 0.0
 	if spec.begins_with("boss:"):
-		var bid := spec.trim_prefix("boss:").get_slice("@", 0)
+		var bid := spec.trim_prefix("boss:").get_slice("@", 0).get_slice("^", 0)
+		phase_at.clear()
+		for r: String in spec.split("^").slice(1):
+			phase_at.append(float(r))
 		boss = await _arena_boss(bid)
 		if boss != null and spec.contains("@"):
 			# a later phase: the life set below its mark, the floor's signature count met, and the change let play out
@@ -321,6 +343,8 @@ func _fight(nm: String, spec: String, ground: Vector3) -> void:
 			summary.append("%s: the arena never pulled the boss" % nm)
 			return
 		foes.append(boss)
+		if boss._rig != null and boss._rig.get("clip_rate") != null:
+			_log("BOSS rig clip_rate %.3f" % float(boss._rig.get("clip_rate")))
 	else:
 		_stand(ground, yaw)
 		await _frames(30)
@@ -340,6 +364,7 @@ func _fight(nm: String, spec: String, ground: Vector3) -> void:
 		last_state[e.get_instance_id()] = e._state
 		last_hp[e.get_instance_id()] = e.hp
 	f0 = Engine.get_physics_frames()
+	_pipes = int(Performance.get_monitor(Performance.PIPELINE_COMPILATIONS_SURFACE) + Performance.get_monitor(Performance.PIPELINE_COMPILATIONS_DRAW) + Performance.get_monitor(Performance.PIPELINE_COMPILATIONS_SPECIALIZATION) + Performance.get_monitor(Performance.PIPELINE_COMPILATIONS_MESH))
 	_log("FIGHT %s spec=%s bot=%s player at %s" % [nm, spec, bot, p.global_position.snapped(Vector3.ONE * 0.1)])
 	for e: Enemy in foes:
 		_log("  %s hp %.1f poise %.1f windup %.2f strike_range %.2f arc %.0f dmg %.1f x%.2f lvl %d at %.1f m" % [_who(e), e.hp, e.poise,
@@ -354,12 +379,31 @@ func _fight(nm: String, spec: String, ground: Vector3) -> void:
 		if every > 0 and Engine.get_physics_frames() - f0 >= next_cap:
 			next_cap += every
 			await _cap("")
+		if is_instance_valid(boss) and Engine.get_physics_frames() % 60 == 0:
+			var ar: BossArena = null
+			for a in get_tree().get_nodes_in_group(&"boss_arena"):
+				if String(boss.get_meta(&"boss_id", "")) == (a as BossArena).boss_id:
+					ar = a as BossArena
+			_log("STATUS boss hp %.0f state %s st %.2f cast '%s' %.2f/%.2f proc %d floor %s ward %.1f | arena active %s held %s | player %s %.1f m from centre, %.1f m from boss" % [
+				boss.hp, STATE_N[boss._state], boss._state_t, boss.cast_name, boss.cast_elapsed, boss.cast_time, boss.process_mode, boss.is_on_floor(),
+				boss._ward_t, ar._active if ar else false, ar.is_held() if ar else false, p.global_position.snapped(Vector3.ONE * 0.1),
+				Vector2(p.global_position.x - arena_c.x, p.global_position.z - arena_c.z).length(), boss.global_position.distance_to(p.global_position)])
+		if is_instance_valid(boss) and boss.is_alive() and not phase_at.is_empty():
+			var k := phase_at.size()
+			for j in k:
+				var at_t := secs * float(j + 1) / float(k + 1)
+				if t >= at_t and t - 1.0 / 60.0 < at_t:
+					boss.set("_sig", 2)
+					boss._ward_t = 0.0
+					boss.hp = minf(boss.hp, float(boss.max_hp) * phase_at[j])
+					boss._refresh_hp(false)
+					_log("HARNESS boss life set to %.0f%% (phase step %d)" % [phase_at[j] * 100.0, j + 2])
 		if not want_full.is_empty() and every > 0:
 			var lab: String = want_full.pop_front()
 			await _cap(lab)
 		var alive := 0
-		for e: Enemy in foes:
-			if is_instance_valid(e) and e.is_alive():
+		for v: Variant in foes:
+			if is_instance_valid(v) and (v as Enemy).is_alive():
 				alive += 1
 		if alive == 0 and t > 1.0:
 			_log("ALL DOWN at %.2f s" % t)
@@ -405,6 +449,8 @@ func _log(s: String) -> void:
 
 
 func _on_node_added(n: Node) -> void:
+	if fname != "":
+		_added += 1
 	if fname == "" or not (n is MeshInstance3D):
 		return
 	var mi := n as MeshInstance3D
@@ -425,7 +471,7 @@ func _on_node_added(n: Node) -> void:
 		_log("TELL zone#%d %s %s r=%.2f x %.2f half=%.0f deg col=%s at %.1f m from player, by~%s, player inside=%s" % [
 			mi.get_instance_id() % 10000, "rect" if shape == 1 else ("cone" if half < 3.1 else "disc"), "", sz.x, sz.y, rad_to_deg(half),
 			Color(col.x, col.y, col.z).to_html(false), d, _who(near), _inside(mi, p.global_position)])
-		if full_hits and zones.size() <= 400:
+		if full_tells and zones.size() <= 400:
 			want_full.append("tell%d" % (mi.get_instance_id() % 10000))
 	).call_deferred()
 
@@ -461,12 +507,12 @@ func _inside(mi: MeshInstance3D, pos: Vector3) -> bool:
 func _track() -> void:
 	for id: int in zones.keys():
 		var z: Dictionary = zones[id]
-		var mi := z.mi as MeshInstance3D
-		if not is_instance_valid(mi):
+		if not is_instance_valid(z.mi):
 			if int(z.full) < 0:
 				_log("TELL zone#%d GONE before full (cancelled), shown %d frames" % [id % 10000, _ff() - int(z.f)])
 			zones.erase(id)
 			continue
+		var mi := z.mi as MeshInstance3D
 		var pr := float(mi.get_instance_shader_parameter(&"progress"))
 		if int(z.full) < 0 and pr >= 0.999:
 			z.full = _ff()
@@ -477,6 +523,8 @@ func _track() -> void:
 		if e == null:
 			continue
 		var id := e.get_instance_id()
+		if not last_state.has(id) and e.global_position.distance_to(p.global_position) > 45.0:
+			continue                              # a camp elsewhere in the Realm (respawned after the clear)
 		if not last_state.has(id):
 			last_state[id] = e._state
 			last_hp[id] = e.hp
@@ -536,9 +584,9 @@ func _on_hurt(amount: float, from: Vector3) -> void:
 	var zs := ""
 	for id: int in zones.keys():
 		var z: Dictionary = zones[id]
-		var mi := z.mi as MeshInstance3D
-		if not is_instance_valid(mi):
+		if not is_instance_valid(z.mi):
 			continue
+		var mi := z.mi as MeshInstance3D
 		var full := int(z.full)
 		zs += " zone#%d(full %s, inside_drawn=%s, prog %.2f fade %.2f)" % [id % 10000, ("%+df" % (_ff() - full)) if full >= 0 else "NOT YET",
 			_inside(mi, p.global_position), float(mi.get_instance_shader_parameter(&"progress")), float(mi.get_instance_shader_parameter(&"fade"))]
@@ -592,9 +640,9 @@ func _danger_here() -> MeshInstance3D:
 	var best: MeshInstance3D = null
 	var bp := -1.0
 	for id: int in zones.keys():
-		var mi := (zones[id] as Dictionary).mi as MeshInstance3D
-		if not is_instance_valid(mi):
+		if not is_instance_valid((zones[id] as Dictionary).mi):
 			continue
+		var mi := (zones[id] as Dictionary).mi as MeshInstance3D
 		var pr := float(mi.get_instance_shader_parameter(&"progress"))
 		if pr < 0.999 and _inside(mi, p.global_position) and pr > bp:
 			bp = pr
@@ -707,8 +755,8 @@ func _arena_boss(key: String) -> Enemy:
 	if akey == "ascended_warden":
 		Travel.bosses_slain["thornwarden"] = true
 	if seal != "":
-		for sp in get_tree().root.find_children("EnemySpawner", "", true, false):
-			for slot: Variant in sp._slots:
+		for sp: Variant in get_tree().root.find_children("EnemySpawner", "", true, false):
+			for slot: Variant in (sp as Object).get("_slots"):
 				var pawn: Variant = slot.get("pawn")
 				if String(slot.get("seal", "")) == seal and is_instance_valid(pawn) and pawn is Enemy:
 					(pawn as Enemy).take_hit(999.0)
@@ -738,7 +786,19 @@ func _arena_boss(key: String) -> Enemy:
 	far.y = c.y + 0.5
 	_stand(far, _yaw_of(c - far))
 	await get_tree().create_timer(2.0).timeout
-	_stand(at, _yaw_of(c - at))
+	# walk in, as a wanderer would (a teleport to the pull streamed the place in on the pull's own frames)
+	var walk_end := Time.get_ticks_msec() + 9000
+	while Time.get_ticks_msec() < walk_end:
+		var to_at := at - p.global_position
+		to_at.y = 0.0
+		if to_at.length() < 1.5:
+			break
+		p.debug_drive(to_at.normalized())
+		p.set_view(_yaw_of(to_at), -0.1)
+		await get_tree().physics_frame
+	p.debug_drive(Vector3.ZERO)
+	if Vector2(at.x - p.global_position.x, at.z - p.global_position.z).length() > 3.0:
+		_stand(at, _yaw_of(c - at))          # the walk was blocked: put the wanderer there
 	var found: Enemy = null
 	var end := Time.get_ticks_msec() + 9000
 	while Time.get_ticks_msec() < end and found == null:
