@@ -1835,6 +1835,11 @@ func _s_warmth() -> void:
 		sanc.kindle_quiet()
 		var sp := sanc.global_position
 		await _view_still("w_hearth_fire.png", "the Hearth's fire at night", ring.call(sp), sp + Vector3(0, 0.8, 0))
+	# from afar: does a town's light carry? (the far cards and the pools, landmark_signatures.gd) Hearthward from the moor's
+	# tor, ~150 m, and Lastlight from the same rise, ~190 m
+	var tor := Vector3(141.0, g.call(141.0, -24.0) + 2.2, -24.0)
+	await _view_still("w_far_hearth.png", "Hearthward from the moor's tor, ~150 m: do its fires and windows carry?", tor, Vector3(0.0, 3.0, 30.0))
+	await _view_still("w_far_lastlight.png", "Lastlight from the moor's tor, ~190 m", tor, Vector3(325.0, 4.0, 55.0))
 	var hearth_at := sanc.global_position if sanc != null else studio
 	var lamp_best: Lamp = null
 	var lamp_d := 1.0e9
