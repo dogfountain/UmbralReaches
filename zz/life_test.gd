@@ -157,13 +157,18 @@ func _run() -> void:
 			break
 	if owls != null:
 		var op: Vector3 = owls.positions()[0]
-		for ob: Dictionary in owls.get("birds"):            # a perched one (an owl already up, away or hunting has nothing to startle from)
-			if int(ob.state) == 0:
-				op = ob.pos
-				break
-		await _put(player, Vector3(op.x + 3.0, op.y - 3.0, op.z))
-		for _i in 10:                      # an owl mid-hunt or mid-glide takes a moment to notice: up to 5 s
-			await _secs(0.5)
+		# an owl moves between its perches on its own clock (a lone owl flies to another tree and sits there), so the one picked may have gone by the time the
+		# wanderer arrives: pick the perched owl again where it sits NOW and go to it, up to four times (each a fresh chance for the proximity startle)
+		for _try in 4:
+			for ob: Dictionary in owls.get("birds"):            # a perched one (an owl already up, away or hunting has nothing to startle from)
+				if int(ob.state) == 0:
+					op = ob.pos
+					break
+			await _put(player, Vector3(op.x + 3.0, op.y - 3.0, op.z))
+			for _i in 6:                      # an owl mid-hunt or mid-glide takes a moment to notice
+				await _secs(0.5)
+				if owls.alarms > 0:
+					break
 			if owls.alarms > 0:
 				break
 		if owls.alarms == 0:
