@@ -29,7 +29,7 @@ const PlacementLog := preload("res://core/world/realm/placement_log.gd")
 const GAP_WAY := 30.0        ## along a way, the next place worth a look is never further than this
 const GAP_OPEN := 44.0       ## off the ways
 const DRESS_STEP := 11.0     ## the dressing's candidate grid
-const DRESS_SPACING := 19.0  ## no two of the wayside's places nearer than this when dressing
+const DRESS_SPACING := 17.0  ## no two of the wayside's places nearer than this when dressing
 ## The dressing's share by ground: the Far Reaches in full, the Marches most, the old valley (already full of its
 ## own places) lightly.
 const DENSITY := {"reaches": 1.0, "marches": 0.8, "old": 0.4}
@@ -39,7 +39,8 @@ const MILE := 115.0          ## a milestone this often along the Far Reaches' an
 const KEEP_CAMP := 13.0
 const KEEP_FIRE := 12.0
 const KEEP_OUTPOST := 11.0
-const KEEP_SLOT := {"poi": 23.0, "poi_wet": 21.0, "camp": 14.0, "fire": 12.0}
+const KEEP_SLOT := {"poi": 19.0, "poi_wet": 17.0, "camp": 14.0, "fire": 12.0}
+const KEEP_WALK := 3.5       ## a place keeps this far off a patrol round or a walked path (the tests walk them)
 const WATER := -0.9
 const SAME_NEAR := 110.0     ## the same kind twice inside this reads as copied
 const CELL := 32.0
@@ -57,9 +58,11 @@ static var _pgrid := {}                      ## Vector2i(CELL) -> Array of plann
 static var _by_kind := {}                    ## kind -> Array of Vector2: where the planned places of each kind stand
 static var _segs: Array = []                 ## [a, b, half width] every way's segments
 static var _seg_grid := {}                   ## Vector2i(CELL) -> Array of indices into _segs
+static var _kgrid := {}                      ## Vector2i(CELL) -> Array of _keep entries whose round (and a place's reach) touches the cell
 static var _keep: Array = []                 ## [Vector2, radius] the camps', fires', outposts' and slots' rounds
 static var _rng := RandomNumberGenerator.new()
 static var _n := 0
+static var _loose := false                   ## the named places' last resort: nearer the rounds and the ways (see _force)
 
 
 ## A/B: the world without the wayside and the flora's layers.
@@ -85,6 +88,7 @@ static func plan_now(root: Node, tree_clear: Array) -> void:
 	_by_kind.clear()
 	_index_segs()
 	_keep.clear()
+	_kgrid.clear()
 	_n = 0
 	if off():
 		return
@@ -94,7 +98,9 @@ static func plan_now(root: Node, tree_clear: Array) -> void:
 	var tl := Time.get_ticks_usec()
 	for pass_name: String in ["interests", "lookouts", "ways", "miles", "open", "dress", "assign"]:
 		match pass_name:
-			"interests": _interests(root)
+			"interests":
+				_interests(root)
+				_index_keeps()
 			"lookouts": _lookouts()
 			"ways": _ways()
 			"miles": _miles()
@@ -128,6 +134,20 @@ static func plan_now(root: Node, tree_clear: Array) -> void:
 
 # --- what is already there -----------------------------------------------------------------------
 
+## Index the rounds by cell: each lands in every cell its round plus the widest place's reach (8 m) touches.
+static func _index_keeps() -> void:
+	_kgrid.clear()
+	for kp: Array in _keep:
+		var c: Vector2 = kp[0]
+		var reach := float(kp[1]) + 8.0
+		for cj in range(floori((c.y - reach) / CELL), floori((c.y + reach) / CELL) + 1):
+			for ci in range(floori((c.x - reach) / CELL), floori((c.x + reach) / CELL) + 1):
+				var key := Vector2i(ci, cj)
+				if not _kgrid.has(key):
+					_kgrid[key] = []
+				(_kgrid[key] as Array).append(kp)
+
+
 static func _interests(root: Node) -> void:
 	if "--wayside-sites" in OS.get_cmdline_user_args():
 		for st: Dictionary in WorldLanes.sites:
@@ -148,6 +168,14 @@ static func _interests(root: Node) -> void:
 		var bp := (b as Node3D).global_position
 		_add_interest(Rect2(Vector2(bp.x, bp.z) - Vector2(2, 2), Vector2(4, 4)))
 		_keep.append([Vector2(bp.x, bp.z), KEEP_FIRE])
+	# the walks the world's own tests and its patrols take: the camps' patrol rounds and the fen postern's crest path
+	for c: Dictionary in EnemySpawner.REALM_CAMPS:
+		var pat: Variant = c.get("patrol", [])
+		if pat is Array:
+			_keep_line(pat as Array, KEEP_WALK)
+	var crest: Variant = (load("res://core/life/secrets/site_fen.gd") as GDScript).get_script_constant_map().get("CREST", [])
+	if crest is Array:
+		_keep_line(crest as Array, KEEP_WALK)
 	var cast := load("res://core/life/village/village_cast.gd") as GDScript
 	var outposts: Dictionary = cast.get_script_constant_map().get("OUTPOSTS", {}) if cast else {}
 	for id: String in outposts:
@@ -159,9 +187,19 @@ static func _interests(root: Node) -> void:
 			for s: Dictionary in slots[rid]:
 				var q: Vector2 = s.at
 				var kind := String(s.kind)
-				_keep.append([q, float(KEEP_SLOT.get(kind, 14.0))])
+				_keep.append([q, float(KEEP_SLOT.get(kind, 14.0)), true])
 				if kind.begins_with("poi"):
 					_add_interest(Rect2(q - Vector2(6, 6), Vector2(12, 12)))
+
+
+## A walked line (a patrol round, a crest path) kept clear: a round of `rad` every few metres along it.
+static func _keep_line(pts: Array, rad: float) -> void:
+	for i in pts.size():
+		var a: Vector2 = pts[i]
+		var b: Vector2 = pts[(i + 1) % pts.size()]          # (a patrol is a loop; the crest's closing leg only adds a few rounds)
+		var n := maxi(1, ceili(a.distance_to(b) / 3.0))
+		for k in n:
+			_keep.append([a.lerp(b, float(k) / float(n)), rad])
 
 
 static func _add_interest(r: Rect2) -> void:
@@ -215,8 +253,8 @@ static func _fits(kind: String, q: Vector2, yaw: float) -> float:
 	for t: Array in Themes.TOWNS:
 		if q.distance_to(t[0]) < float(t[1]) + r:
 			return _no("town")
-	for kp: Array in _keep:
-		if q.distance_to(kp[0]) < float(kp[1]) + r:
+	for kp: Array in _kgrid.get(Vector2i(floori(q.x / CELL), floori(q.y / CELL)), []):
+		if q.distance_to(kp[0]) < _keep_d(float(kp[1]), r, kp.size() > 2):
 			return _no("keep-out")
 	for sx: float in [-262.0, 262.0]:
 		if absf(q.x - sx) < r + 1.0:
@@ -236,17 +274,17 @@ static func _fits(kind: String, q: Vector2, yaw: float) -> float:
 	if kind == "milestone":
 		if pd < 1.4 or pd > 3.4:
 			return _no("milestone off its way")
-	elif pd < r + 2.2:
+	elif pd < (1.5 + r * 0.35 if _loose else r + 2.2):
 		return _no("way")
 	var rect := Rect2(q - Vector2(r, r), Vector2(r, r) * 2.0)
-	if not _clear(rect, 1.2 if kind != "milestone" else 0.4):
+	if not _clear(rect, 0.3 if _loose else (1.2 if kind != "milestone" else 0.4)):
 		return _no("site")
 	var c0 := Vector2i(floori(q.x / CELL), floori(q.y / CELL))
 	for dj in range(-1, 2):
 		for di in range(-1, 2):
 			for v: Dictionary in _pgrid.get(c0 + Vector2i(di, dj), []):
 				var va: Vector3 = v.at
-				if Vector2(va.x, va.z).distance_to(q) < float(v.r) + r + 1.0:
+				if Vector2(va.x, va.z).distance_to(q) < ((float(v.r) + r) * 0.75 if _loose else float(v.r) + r + 1.0):
 					return _no("another place")
 	var c: Array = _ground(q)
 	if not bool(c[1]):
@@ -292,6 +330,17 @@ static func _fits(kind: String, q: Vector2, yaw: float) -> float:
 		if not String((h.collider as Node).name).begins_with("Terrain"):
 			return _no("standing")
 	return gy
+
+
+## How far a place's middle keeps from a round of radius `kr` (a camp, fire or slot). The last-resort pass for the named
+## places (`_loose`) comes as near as the wayside test's floors allow (a camp 12 m, a fire 11 m); the layout's slots' own
+## rounds (`slot`) do not count then, the live camps and fires and the sites hold the ground.
+static func _keep_d(kr: float, r: float, slot: bool) -> float:
+	if _loose:
+		if slot:
+			return 0.0                           # (a slot's round is for what may be built there: the live camps and fires have their own)
+		return 0.0 if kr >= 15.0 else kr - 0.5
+	return kr + (r if slot else r * 0.4)
 
 
 static func _no(why: String) -> float:
@@ -740,8 +789,9 @@ static func _assign() -> void:
 
 
 ## A place of one of `kinds` in `region` where the passes left none: the open ground nearest the region's ways. A
-## small region its camps, fire and landmark fill (the Bellfall) has it on the ground just round it (`spill`).
-static func _force(region: String, kinds: Array, spill := false) -> Dictionary:
+## small region its camps, fire and landmark fill (the Bellfall) has it on the ground just round it (stage 1), failing that nearer the camps and the ways (stage 2: `_loose`, a named
+## place is worth more than the quiet round a camp), failing that a little further out (stage 3).
+static func _force(region: String, kinds: Array, stage := 0) -> Dictionary:
 	var rd := {}
 	for r: Dictionary in RealmLayout.REGIONS:
 		if String(r.id) == region:
@@ -749,9 +799,9 @@ static func _force(region: String, kinds: Array, spill := false) -> Dictionary:
 	if rd.is_empty():
 		return {}
 	var area: Rect2 = rd.rect if rd.has("rect") else Rect2((rd.c as Vector2) - Vector2(rd.r, rd.r), Vector2(rd.r, rd.r) * 2.0)
-	var w_min := 0.25 if spill else 0.8             # (place_weight falls to 0 over 18 m past a rect: 0.25 is ~13 m out)
-	if spill:
-		area = area.grow(14.0)
+	var w_min := 0.8 if stage == 0 else (0.25 if stage < 3 else -1.0)   # (place_weight falls to 0 over 18 m past a rect: 0.25 is ~13 m out)
+	if stage > 0:
+		area = area.grow(14.0 if stage < 3 else 34.0)
 	var qs: Array = []
 	for p: Dictionary in RealmLayout.PATHS:
 		var pts: Array = p.pts
@@ -785,12 +835,17 @@ static func _force(region: String, kinds: Array, spill := false) -> Dictionary:
 	for m: Array in more:
 		qs.append(m[1])
 	qs = qs.slice(0, 150)                    # (a region with no room for the kind gives up soon)
+	_loose = stage >= 2
+	var found := {}
 	for kind: String in kinds:
 		var ks: Array[String] = [kind]
-		var v := _try(ks, qs, region, "way")
-		if not v.is_empty():
-			return v
-	return {} if spill else _force(region, kinds, true)
+		found = _try(ks, qs, region, "way")
+		if not found.is_empty():
+			break
+	_loose = false
+	if not found.is_empty():
+		return found
+	return {} if stage >= 3 else _force(region, kinds, stage + 1)
 
 
 ## Give a place its writing: its own carrier piece if it has one of the right kind, else a carrier beside it.
