@@ -218,6 +218,7 @@ static func behave(e: Node, tier: int) -> void:
 		en.combo_chance = minf(en.combo_chance + 0.06 * float(k), 0.6)
 	if en.strike_range > 0.0:
 		en.feint_chance = minf(en.feint_chance + 0.04 * float(k), 0.35)
+		en.attack_gap = maxf(0.6, en.attack_gap - 0.08 * float(k))     # and less breath between its blows
 
 
 ## A pawn already in the world (planted before encounters loaded): same scaling, bar refreshed.

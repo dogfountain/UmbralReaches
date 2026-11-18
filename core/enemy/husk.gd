@@ -27,7 +27,7 @@ var _lane: MeshInstance3D
 
 
 func _init() -> void:
-	max_hp = 5
+	max_hp = 10
 	hp = 5.0
 	walk_speed = 2.35
 	chase_range = 10.0

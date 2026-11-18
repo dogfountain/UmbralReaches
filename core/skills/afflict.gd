@@ -31,6 +31,16 @@ var _rec := {}            ## enemy instance id -> record
 var _step := 0.0
 
 
+## The record kept for `e` ({} when none). Read only: never makes the manager or a record (the plate's row of
+## afflictions reads it, EnemyStatus.list).
+static func record_of(e: Node) -> Dictionary:
+	if e == null or _inst == null or not is_instance_valid(_inst):
+		return {}
+	var mgr: Variant = _inst
+	var r: Variant = (mgr._rec as Dictionary).get(e.get_instance_id(), {})
+	return r if r is Dictionary else {}
+
+
 static func _mgr() -> Node:
 	if _inst != null and is_instance_valid(_inst) and _inst.is_inside_tree():
 		return _inst

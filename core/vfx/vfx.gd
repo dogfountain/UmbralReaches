@@ -434,23 +434,75 @@ static func light(at: Vector3, color: Color, energy: float, rng: float, time := 
 	var h := host()
 	if h == null or not h.is_inside_tree():
 		return
-	if not _make_room(h.get_tree(), priority):
+	var l := _flash_light(h, priority)
+	if l == null:
 		return
-	var l := OmniLight3D.new()
 	l.light_color = tone(color)
 	l.light_energy = energy * Access.flash()          # Reduce Flashes
 	l.omni_range = rng
-	l.shadow_enabled = false
-	l.light_volumetric_fog_energy = 0.6
-	l.set_meta("light_class", "player_orb")
 	l.set_meta(&"vfx_pri", priority)
 	l.set_meta(&"vfx_born", Time.get_ticks_msec())
-	l.add_to_group(LIGHT_GROUP)
-	h.add_child(l)
 	l.global_position = at
+	l.visible = true
+	var old: Variant = l.get_meta(&"vfx_tween") if l.has_meta(&"vfx_tween") else null
+	if old is Tween and (old as Tween).is_valid():
+		(old as Tween).kill()
 	var tw := l.create_tween()
+	l.set_meta(&"vfx_tween", tw)
 	tw.tween_property(l, "light_energy", 0.0, time).set_ease(Tween.EASE_IN)
-	tw.tween_callback(l.queue_free)
+	tw.tween_callback(func() -> void:
+		l.visible = false
+		l.remove_from_group(LIGHT_GROUP))
+
+
+## The flashes are a fixed set of lights kept under the scene and reused (a hit, a swipe, a death, a landing each made an
+## OmniLight3D and freed it 0.3 s later: light churn every blow, and the engine's "indexing did not unpair geometries
+## from light" when a light died the frame a body near it changed). A free one if any (hidden, out of LIGHT_GROUP);
+## else room is made under LIGHT_CAP as before (a lower-priority, older flash gives its light up), else null.
+static var _flash_pool: Array = []
+static var _flash_host: Node = null
+
+
+static func _flash_light(h: Node, priority: int) -> OmniLight3D:
+	var stale := _flash_host != h
+	for i in _flash_pool.size():
+		if not is_instance_valid(_flash_pool[i]):
+			stale = true
+	if stale:
+		_flash_pool.clear()
+		_flash_host = h
+	for v: Variant in _flash_pool:
+		var o := v as OmniLight3D
+		if not o.visible:
+			if not _make_room(h.get_tree(), priority):
+				return null
+			o.add_to_group(LIGHT_GROUP)
+			return o
+	if _flash_pool.size() < LIGHT_CAP:
+		if not _make_room(h.get_tree(), priority):
+			return null
+		var l := OmniLight3D.new()
+		l.name = "VfxFlash%d" % _flash_pool.size()
+		l.shadow_enabled = false
+		l.light_volumetric_fog_energy = 0.6
+		l.set_meta("light_class", "player_orb")
+		l.visible = false
+		h.add_child(l)
+		_flash_pool.append(l)
+		l.add_to_group(LIGHT_GROUP)
+		return l
+	# every pooled light is lit: the lowest-priority, oldest flash gives way to this one (or nothing does)
+	var victim: OmniLight3D = null
+	var vkey := 1 << 60
+	for v2: Variant in _flash_pool:
+		var o := v2 as OmniLight3D
+		var key := int(o.get_meta(&"vfx_pri", 1)) * (1 << 40) + int(o.get_meta(&"vfx_born", 0))
+		if key < vkey:
+			vkey = key
+			victim = o
+	if victim == null or int(victim.get_meta(&"vfx_pri", 1)) > priority:
+		return null
+	return victim
 
 
 ## A light carried by a shot (child of `parent`), in the shot's colour. Counts against the cap but
@@ -489,7 +541,13 @@ static func _make_room(tree: SceneTree, priority: int) -> bool:
 	if victim == null or int(victim.get_meta(&"vfx_pri", 1)) > priority:
 		return false
 	victim.remove_from_group(LIGHT_GROUP)
-	victim.queue_free()
+	if _flash_pool.has(victim):
+		victim.visible = false                 # a pooled flash is put out, kept for the next
+		var tw: Variant = victim.get_meta(&"vfx_tween") if victim.has_meta(&"vfx_tween") else null
+		if tw is Tween and (tw as Tween).is_valid():
+			(tw as Tween).kill()
+	else:
+		victim.queue_free()
 	return true
 
 

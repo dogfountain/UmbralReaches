@@ -11,7 +11,7 @@ static func list(e: Enemy) -> Array[Dictionary]:
 		out.append({"id": "umbral_mark", "name": "Umbral Mark", "left": maxf(e._mark_t, 0.0), "stacks": e.marks, "harmful": true})
 	if e._broken_t > 0.0:
 		out.append({"id": "broken", "name": "Broken", "left": e._broken_t, "stacks": 1, "harmful": true})
-	var rec := e._affliction()
+	var rec := _affliction(e)
 	if not rec.is_empty():
 		if float(rec.get("burn", 0.0)) > 0.0:
 			out.append({"id": "burning", "name": "Burning", "left": float(rec.burn), "stacks": 1, "harmful": true})
@@ -35,6 +35,16 @@ static func list(e: Enemy) -> Array[Dictionary]:
 			if d is Dictionary:
 				out.append(d)
 	return out
+
+
+## What core/skills/afflict.gd keeps for `e` ({} when none). Loaded by path on first use (no class_name there).
+static var _afflict: Variant = null
+
+
+static func _affliction(e: Enemy) -> Dictionary:
+	if _afflict == null:
+		_afflict = load("res://core/skills/afflict.gd")
+	return _afflict.record_of(e) as Dictionary
 
 
 static func level(e: Enemy) -> int:

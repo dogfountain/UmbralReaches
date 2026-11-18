@@ -79,6 +79,7 @@ var glow_col := Color(1.2, 0.45, 2.4)    ## the colour this kind burns in: its d
 @export var lunge := 4.5                ## m/s thrown forward on the strike (step back to dodge it)
 @export var poise := 2.6                ## damage taken within POISE_WINDOW that staggers it
 @export var recover_time := 0.55        ## open after a strike: the punish window
+@export var attack_gap := 1.1           ## then this long (x0.8-1.3) back at the ring before it may wind up again
 @export_group("")
 @export_group("Leap")
 @export var leap_min := 4.0             ## metres; closer than this it just walks in
@@ -141,6 +142,7 @@ var _lit_t := 0.0            ## seconds the player has been sheltering in light
 var _calm_t := 0.0           ## after giving up a chase: no re-aggro until this runs out
 var _poise_dmg := 0.0        ## recent damage toward a stagger, drains at 1/POISE_WINDOW
 var _stagger_cd := 0.0       ## no stun-lock: one stagger per STAGGER_CD
+var _atk_cd := 0.0           ## struck a moment ago: no new tell until this runs out (attack_gap)
 var _struck := false         ## this STRIKE has resolved
 var _danger: MeshInstance3D  ## the telegraph cone while it fills
 var _orbit := 1.0            ## which way it circles while waiting for an opening
@@ -231,7 +233,6 @@ const HARD_LEASH := 2.2
 const EVADE_PACE := 1.0               ## r35: it walks home (it ran at 1.8, immune)
 const EVADE_MAX := 12.0
 const EVADE_COL := Color(0.85, 0.85, 0.95)
-const AFFLICT_PATH := "res://core/skills/afflict.gd"
 signal cast_started(cast: String, time: float, interruptible: bool)
 signal cast_ended(cast: String, interrupted: bool)
 signal evaded()                 ## got home from a leash (r35: not healed)
@@ -256,7 +257,6 @@ var _patrol_i := 0
 var _patrol_wait := 0.0
 ## Ramps: the Wounds its blows and zones deal are multiplied by this (BossKit reads it; r35: no soft enrage).
 var dmg_mult := 1.0
-static var _afflict: GDScript
 ## EnemyBody kind to dress with; empty = the type's own (bosses set theirs before _build).
 var body_kind: StringName = &""
 
@@ -386,7 +386,7 @@ func take_hit(dmg: float, from: Node = null) -> void:
 		_last_from = away3.normalized() if away3.length() > 0.05 else Vector3.ZERO
 	hp = maxf(hp - dmg, 0.0)
 	_flash = 0.08
-	_hit_fx = 1.0
+	_hit_fx = maxf(_hit_fx, clampf(dmg / 3.0, 0.3, 1.0) if boss else 1.0)    # a great one flashes by the blow's weight
 	var at := global_position + Vector3.UP * (hp_bar_y * 0.6)
 	Vfx.impact(at, Vfx.hot(glow_col), _last_from if from is Node3D else Vector3.ZERO, dmg >= 3.0)
 	# three presets (the hitstop's tiers), not one per damage value: Vfx pools and caches by preset,
@@ -824,6 +824,7 @@ func _physics_process(delta: float) -> void:
 	_vb.tick(self, voice_family(), delta, _dist, boss, _state == IDLE or _state == CHASE or _state == RECOVER, _voice_pitch())
 	_poise_dmg = maxf(0.0, _poise_dmg - delta * poise / POISE_WINDOW)
 	_stagger_cd = maxf(0.0, _stagger_cd - delta)
+	_atk_cd = maxf(0.0, _atk_cd - delta)
 	_flee_t = maxf(0.0, _flee_t - delta)
 	_shaken_t = maxf(0.0, _shaken_t - delta)
 	_wary_t = maxf(0.0, _wary_t - delta)
@@ -1184,6 +1185,9 @@ func _think() -> void:
 				_waiting = false
 			elif role == &"guard" and _guard():
 				_guarding = true
+			elif not boss and _atk_cd > 0.0 and dist <= _wait_ring() + 1.2:
+				_waiting = true                      # it struck: it gives ground and circles before the next tell
+				_circle(dist)
 			elif dist <= strike_range and _take_token():
 				_waiting = false
 				_face_dir = to / maxf(dist, 0.001)
@@ -1231,6 +1235,7 @@ func _think() -> void:
 			_wish = Vector3.ZERO
 			_feinted = false
 			if _state_t >= recover_time:
+				_atk_cd = attack_gap * randf_range(0.8, 1.3)
 				_set_state(CHASE if dist <= chase_range and from_home <= hunt_leash else IDLE)
 
 
@@ -1470,21 +1475,20 @@ func _on_state(next: int) -> void:
 		if next == WINDUP:
 			_struck = false
 			var reach := strike_range + 0.45
-			_danger = SpellFx.danger(Vector3.ZERO, life, {"radius": reach, "half_angle": deg_to_rad(strike_arc), "parent": self, "yaw": _face.rotation.y if _face else 0.0})
+			_danger = SpellFx.danger(Vector3.ZERO, life + STRIKE_AT, {"radius": reach, "half_angle": deg_to_rad(strike_arc), "parent": self, "yaw": _face.rotation.y if _face else 0.0})
 		elif _p != null:
 			# a pounce: the red fills under YOU (where it will come down if you stay)
-			_danger = SpellFx.danger(_leap_target(_p as Player), life, {"radius": 1.7, "hold": 1.2})
+			_danger = SpellFx.danger(_leap_target(_p as Player), life + flight_time(leap_apex, _p.global_position.y - global_position.y), {"radius": 1.7, "hold": 0.25})
 	elif next == STRIKE:
 		if _rig and _rig.has_method("strike"):
 			_rig.call("strike")
 		if _face_dir.length_squared() > 0.01:
 			# lunge, but stop short of the player (bodies don't collide with them: a full lunge
 			# from close in would carry it straight through and out the other side)
-			var room := maxf(0.0, _dist - strike_range * 0.55)
+			var room := maxf(0.0, _dist - maxf(strike_range * 0.75, 1.1))
 			var go := Vector3(_face_dir.x, 0.0, _face_dir.z).normalized() * minf(lunge, sqrt(2.0 * 14.0 * room))
 			if _knock.length() < 1.0:
 				_knock = go                         # a blow that just landed keeps its knockback
-		_swipe_fx()
 
 
 ## Pitch of this kind's voice (small things higher, bosses lower).
@@ -1607,6 +1611,7 @@ func _call_pack() -> void:
 ## A Rift Step through it is a riposte; stepping back out of the cone is a clean dodge.
 func _resolve_strike() -> void:
 	_struck = true
+	_swipe_fx()                                  # the rake's arc with the blow, not a beat before it
 	if _on_threat:                               # a blow at the ward (a watchman's are counted by the watch)
 		if ward != null and _threat_node() == ward:
 			ward.swing_at(self)
@@ -1617,7 +1622,7 @@ func _resolve_strike() -> void:
 	var dy := to.y
 	to.y = 0.0
 	var d := to.length()
-	var fwd := _face_dir if _face_dir.length_squared() > 0.01 else (to / maxf(d, 0.001))
+	var fwd := Vector3(-_face.global_basis.z.x, 0.0, -_face.global_basis.z.z) if _face else (to / maxf(d, 0.001))
 	var in_cone := d < 0.6 or fwd.normalized().dot(to / maxf(d, 0.001)) >= cos(deg_to_rad(strike_arc))
 	if d <= strike_range + 0.45 and in_cone and absf(dy) < 1.8 and _strike_clear(_p):
 		if _p.is_evading():
@@ -1866,6 +1871,8 @@ func _flash_visual(delta: float) -> void:
 	if _hit_fx > 0.0:
 		_hit_fx = maxf(0.0, _hit_fx - delta * 7.0)
 		_flesh_param(&"hit_flash", _hit_fx * preload("res://ui/access.gd").flash())
+	if _state == WINDUP or _state == LEAP_PREP or (_state == SPECIAL and not _moves.is_empty()):
+		_glint = 1.0
 	if _glint > 0.0:
 		_glint = maxf(0.0, _glint - delta * 1.6)
 		_flesh_param(&"glint", _glint)
@@ -2328,22 +2335,6 @@ func level() -> int:
 
 func debuffs() -> Array[Dictionary]:
 	return EnemyStatus.list(self)
-
-
-## The record core/skills/afflict.gd keeps for it ({} when none). Read only: never creates one.
-func _affliction() -> Dictionary:
-	if _afflict == null:
-		if not ResourceLoader.exists(AFFLICT_PATH):
-			return {}
-		_afflict = load(AFFLICT_PATH) as GDScript
-	var mgr: Variant = _afflict.get("_inst") if _afflict else null
-	if not (mgr is Node) or not is_instance_valid(mgr):
-		return {}
-	var recs: Variant = (mgr as Node).get("_rec")
-	if not (recs is Dictionary):
-		return {}
-	var r: Variant = (recs as Dictionary).get(get_instance_id(), {})
-	return r if r is Dictionary else {}
 
 
 func ui_info() -> Dictionary:

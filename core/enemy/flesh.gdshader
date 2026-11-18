@@ -90,6 +90,7 @@ void fragment() {
 	RIM_TINT = 0.55;
 	EMISSION = eye_col * UV2.x * eye_energy * (1.0 + glint * 2.5)
 		+ cl_accent(NORMAL, VIEW, rim_col, rim_amount) * (1.0 - glint * 0.6) * 0.35
+		+ cl_accent(NORMAL, VIEW, vec3(2.2, 0.72, 0.18), 1.0) * glint * 0.9   // a tell: the silhouette burns ember while its red fills
 		+ vec3(1.4, 1.25, 1.6) * hit_flash * (0.35 + 0.65 * pow(1.0 - ndv, 1.5))
 		+ burn_col * edge * 3.0;
 }

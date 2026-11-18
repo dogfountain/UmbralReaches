@@ -17,7 +17,7 @@ var _shield: MeshInstance3D
 
 func _init() -> void:
 	super._init()
-	max_hp = 6
+	max_hp = 12
 	hp = 6.0
 	walk_speed = 2.0
 	strike_gloom = 30.0

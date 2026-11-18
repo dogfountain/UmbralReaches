@@ -31,7 +31,7 @@ func _init() -> void:
 	super._init()
 	if GruntModel.has(&"pilgrim"):
 		body_kind = &"pilgrim"           # its own modelled body (hooded cloak, candle, staff): no parts stuck on
-	max_hp = 4
+	max_hp = 8
 	hp = 4.0
 	walk_speed = 2.7
 	chase_range = 11.0
