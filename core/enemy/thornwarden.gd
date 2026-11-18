@@ -143,7 +143,7 @@ func _build() -> void:
 ## One of its own moves when the model has it (a clip of that name, timed to the cast), else false; `then` a clip held
 ## after it (rooted in the altar).
 func _rite(clip: StringName, then := &"") -> bool:
-	return _rig != null and _rig.has_method("boss_move") and bool(_rig.call("boss_move", clip, 0.0, then))
+	return _rig is ClipRig and (_rig as ClipRig).boss_move(clip, 0.0, then)
 
 
 ## Living Thornspeakers (its priority adds).
@@ -525,8 +525,8 @@ func _tick_rooted(delta: float) -> void:
 ## Out of the altar: all knots burned (`left` 0), or the henge closed on the ones still beating.
 func _end_rooting(left: int) -> void:
 	rooted = false
-	if _rig and _rig.has_method("stagger"):
-		_rig.call("stagger")                    # it tears itself up out of the altar, reeling
+	if _rig is ClipRig:
+		(_rig as ClipRig).stagger()             # it tears itself up out of the altar, reeling
 	set_meta(&"phase_label", "")
 	remove_meta(&"ward_hint")
 	_finish_cast(true, false)

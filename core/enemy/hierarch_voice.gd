@@ -128,7 +128,7 @@ func _absorb(dmg: float, from: Node) -> float:
 ## HunchRig). VillagerBossRig and the Blender ClipRig answer the same calls.
 ## One of its own moves when the model has it (a clip of that name, timed to the cast), else false.
 func _rite(clip: StringName) -> bool:
-	return _rig != null and _rig.has_method("boss_move") and bool(_rig.call("boss_move", clip, 0.0))
+	return _rig is ClipRig and (_rig as ClipRig).boss_move(clip, 0.0)
 
 
 func _howl(t: float) -> void:

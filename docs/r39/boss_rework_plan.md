@@ -16,6 +16,23 @@ Luke, 18 Nov: "the bosses look bad and are static". This is the plan and, below,
   - the staff is aimed in the world per key (`aim()`), whatever the arm does;
   - played by `ClipRig` (`villager_look`, `boss_move(clip, dur)`), hooked from `bone_abbot.gd` `_move()`; the old
     code-built body stays as the fallback; `BossKit.AUTHORED` prefetches the glb in the arena's warm-up.
+- Luke, 18 Nov: "Abbot is decent, finish everything else". The other four, the same way (each its script in
+  `tools/blender/`, its glb in `art/models/bosses/`, its own moves through `ClipRig.boss_move`, the old body the fallback):
+  - **the Anchoress** (`vb_anchoress.py`, 48k tris): she brought her cell's wall with her, mortared stones strapped to
+    her bowed back with the barred squint and her candle; wound in chain, blindfolded; the anchor on its chain and the
+    caged lantern swing on additive follow-through chains (`vb_kit`). Moves: the anchor heaved overhead through the
+    Swing's tell and flung down the lane, chain_ring, toll, rockfall, undertow.
+  - **the Ascended Warden** (`vb_ascended_warden.py`, 24k): floating in an ivory bell robe, the door's light at its
+    hem, a gold mask, a mandorla with rays swept out like wings and the sun-disc weak point, plumb-hanging lined
+    sleeves, the key at its hip. Moves: the fan's tell/strike, flare, eclipse, gale, call, judgement (new), ascend.
+  - **the Speaking Crown** (`vb_speaking_crown.py`, 15k): a squat cracked stone cope, pauldrons and bronze-bound
+    fists, a bronze horn whose six petals (bones) close to a bud and flower open to speak. Moves: edict, echo,
+    falling_crown, toll, verdict, choir.
+  - **the Thornwarden** (`vb_thornwarden.py`, 17k): a stag-wolf of bark scales, briar antlers, root legs, the heart-knot
+    at its breast; a quadruped skeleton with trot, gallop, air/land for the pounce. Moves: thornstorm (reared up),
+    snare, mend, rooting + rooted_hold (held through the intermission: `boss_move(clip, dur, then)`), bloom.
+- Still open: spring-bone secondary motion (step 3; the cloth chains are keyed follow-through for now), the phase
+  visuals by material (step 4), a boss trailer cut, and the game-wide program below.
 
 ## What is wrong (from the code and the trailer footage)
 
