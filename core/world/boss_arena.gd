@@ -10,6 +10,9 @@ const BossThemes := preload("res://core/life/wildlife/boss_themes.gd")
 @export var boss_id := ""
 @export var title := "Boss"
 @export var radius := 7.0
+## The fight starts inside this (0: `radius`): a room that is a sanctum plus its yard (the Speaking Crown's skull and the
+## siege yard round it) pulls at the sanctum, so a road through the yard does not wake the boss.
+@export var pull_radius := 0.0
 @export var ceiling := 6.0
 @export var requires_bosses: Array[String] = []
 ## r36 Act II: the Founder's bells answered for before the fight wakes (the Ascended Warden).
@@ -189,7 +192,7 @@ func _physics_process(_d: float) -> void:
 		if themes != null:
 			themes.prepare(boss_id)             # the theme's stems read or rendered on a thread, not at the pull
 		_warm_step(0)
-	if Vector2(d.x, d.z).length() > radius or d.y < -1.0 or d.y > ceiling:
+	if Vector2(d.x, d.z).length() > (pull_radius if pull_radius > 0.0 else radius) or d.y < -1.0 or d.y > ceiling:
 		return
 	if not _past_gate(p.global_position):
 		return                                  # still on the stair outside: the gate must not shut in your face

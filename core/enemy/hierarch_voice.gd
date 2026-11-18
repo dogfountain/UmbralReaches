@@ -30,7 +30,7 @@ const CrownBody := preload("res://core/enemy/crown_body.gd")
 const SCALE := 3.4
 const HP := 640
 const EDICT_TIME := 2.2
-const EDICT_R := 17.0
+const EDICT_R := 27.0              ## (18 Nov: x1.6 with the fight's yard; 17 before)
 const EDICT_EVERY := 11.0
 const FALL_EVERY := 8.5
 const CHOIR_EVERY := 30.0
@@ -292,7 +292,7 @@ func _echo() -> void:
 		_tell(1.0)
 		_strike_after(1.0)
 	var c := global_position
-	BossKit.zone(get_parent(), c, 1.3, 24.0, {"by": self, "radius": 8.0, "holes": [[c, 2.4]], "color": Color(2.0, 1.4, 0.6), "h": 2.5})
+	BossKit.zone(get_parent(), c, 1.3, 24.0, {"by": self, "radius": 12.8, "holes": [[c, 3.8]], "color": Color(2.0, 1.4, 0.6), "h": 2.5})
 
 
 func _on_weak_hit(_dmg: float) -> void:
@@ -336,7 +336,7 @@ func _falling_crown() -> void:
 		var at := _p.global_position
 		if i > 0:
 			var a := randf() * TAU
-			at += Vector3(cos(a), 0.0, sin(a)) * randf_range(3.0, 11.0)
+			at += Vector3(cos(a), 0.0, sin(a)) * randf_range(5.0, 17.6)
 		var d := at - c
 		d.y = 0.0
 		if d.length() > _arena_r - 2.0:
@@ -389,7 +389,7 @@ func _verdict() -> void:
 	BossKit.cast(self, "Verdict", 1.5)
 	BossKit.emote(self, "Three voices go out from the horn, one after another. The quiet is between them.", Color(1.0, 0.45, 0.3))
 	var c := global_position
-	for rg: Array in [[1.4, 2.6, 5.4], [2.3, 9.0, 12.0], [3.2, 15.5, 18.5]]:
+	for rg: Array in [[1.4, 4.2, 8.6], [2.3, 14.4, 19.2], [3.2, 24.8, 29.6]]:
 		BossKit.zone(get_parent(), c, float(rg[0]), 26.0, {"by": self, "radius": float(rg[2]), "holes": [[c, float(rg[1])]], "color": Color(2.4, 0.9, 0.35), "h": 3.0})
 	_sig += 1
 

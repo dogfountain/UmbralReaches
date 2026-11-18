@@ -65,7 +65,8 @@ const RAIDS := [
 	# the two Marches bosses (docs/r37_expansion.md). The Hierarch's fight is in the toppled statue's broken
 	# crown, in the middle of the Siege Lines (the Marches hauled him there); the Anchoress's on the cliff terrace.
 	{"id": "hierarch", "c": Vector2(-206.0, 148.0), "r": 24.0, "y": 0.8, "fall": 12.0, "mode": "level",
-		"gate": Vector2(-182.5, 159.06), "boss": "r37_hierarch"},
+		"gate": Vector2(-182.5, 159.06), "boss": "r37_hierarch",
+		"arena_r": 32.0},     # (18 Nov: the fight is the skull (r 24, levelled) and the siege yard round it out to 32 m: 1.6x)
 	{"id": "anchorhold", "c": Vector2(214.0, -132.0), "r": 18.0, "y": 16.0, "fall": 20.0, "mode": "level",
 		"gate": Vector2(206.0, -114.0), "boss": "r37_anchoress"},
 ]

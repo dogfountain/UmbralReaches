@@ -173,15 +173,19 @@ static func statue(host: Node3D, space: PhysicsDirectSpaceState3D) -> BossArena:
 	room.name = "HierarchRoom"
 	host.add_child(room)
 	room.global_position = c
+	# (18 Nov, Luke: the arenas 1.6x, grown round what stands in the way) the fight is the skull and the siege yard round it,
+	# out to the inner earthwork: 20 -> 32 m, the besiegers' rotting engines its cover. The colossus cannot grow (the river is
+	# 44 m west of the skull, the March Wall 50 m east, his body fills the south), so the yard is the room's new ground. It
+	# still wakes at the skull (pull_radius 20): siege_track runs through the yard. No seal on the mouth: it would shut
+	# you in the skull, and the yard has its breaches.
 	room.set("centre", c)
-	room.set("radius", 20.0)
+	room.set("radius", 32.0)
 	var spawn := c + Vector3(out.x, 0.0, out.y) * 4.5 + Vector3.UP * 0.1   # rises on the entry axis, in sight of the mouth (was behind the centre, 26 m off)
-	var ar: BossArena = BossArena.make(host, "r37_hierarch", "The Speaking Crown", c, 20.0, HierarchVoice, spawn)
+	var ar: BossArena = BossArena.make(host, "r37_hierarch", "The Speaking Crown", c, 32.0, HierarchVoice, spawn)
+	ar.pull_radius = 20.0
 	ar.room = room
 	ar.ceiling = 26.0
 	ar.subtitle = "the Hierarch's voice, kept in his head"
-	var gate := WardSeal.make_arena_gate(host, "hierarch", mouth, Vector3(-out.x, 0.0, -out.y), 12.0, 6.0, "light")
-	ar.gate = gate
 	ar.on_slain = func(fresh: bool) -> void:
 		if fresh:
 			Events.toast.emit("The horn goes quiet. The skull is only stone.")

@@ -332,12 +332,13 @@ func _raids() -> void:
 	for r: Dictionary in RealmLayout.RAIDS:
 		var c: Vector2 = r.c
 		var rr: float = r.r
+		var size_r: float = maxf(rr, float(r.get("arena_r", 0.0)))     # a fight that is a sanctum and its yard: the yard's reach
 		var y: float = r.y
 		# (18 Nov, Luke: every boss arena 1.6x) the r34 floors were 55..65 m across, the r37 ones 36..65
 		if String(r.id) in ["hierarch", "anchorhold"]:
-			check("raid %s is %.0f m across (57..105: a r37 floor in a cliff or a valley, 1.6x)" % [r.id, rr * 2.0], rr * 2.0 >= 57.0 and rr * 2.0 <= 105.0)
+			check("raid %s is %.0f m across (57..105: a r37 floor in a cliff or a valley, 1.6x)" % [r.id, size_r * 2.0], size_r * 2.0 >= 57.0 and size_r * 2.0 <= 105.0)
 		else:
-			check("raid %s is %.0f m across (88..105: 1.6x)" % [r.id, rr * 2.0], rr * 2.0 >= 88.0 and rr * 2.0 <= 105.0)
+			check("raid %s is %.0f m across (88..105: 1.6x)" % [r.id, size_r * 2.0], size_r * 2.0 >= 88.0 and size_r * 2.0 <= 105.0)
 		# the Anchoress's terrace is a shelf in the Crowns' face: its floor may touch the north edge exactly
 		var margin := 0.0 if String(r.id) == "anchorhold" else 2.0
 		check("raid %s inside BOUNDS" % r.id, RealmLayout.BOUNDS.grow(-margin).encloses(Rect2(c - Vector2(rr, rr), Vector2(rr, rr) * 2.0)))
