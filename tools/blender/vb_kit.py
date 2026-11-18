@@ -208,8 +208,9 @@ def tube(g, path, radii, segs, col, layer, weights, squash=(1.0, 1.0), ref=V(0, 
     return g.add(verts, faces, col, layer, uvs, weights, glow)
 
 
-def blob(g, c, radii, col, layer, weights, basis=None, rings=8, segs=12, lumps=0.0, seed=1, glow=False, phi=(0.0, 1.0)):
-    """An ellipsoid (radii x, y, z) at c, optional basis (3x3) and lumpy surface; phi limits latitude (0 top..1 bottom)."""
+def blob(g, c, radii, col, layer, weights, basis=None, rings=8, segs=12, lumps=0.0, seed=1, glow=False, phi=(0.0, 1.0), power=1.0):
+    """An ellipsoid (radii x, y, z) at c, optional basis (3x3) and lumpy surface; phi limits latitude (0 top..1 bottom).
+    power < 1 squares it off toward a box (0.3: a dressed stone with soft arrises)."""
     rng = np.random.default_rng(seed)
     bump = rng.uniform(-1, 1, (rings + 1, segs)) * lumps
     B = np.eye(3) if basis is None else np.asarray(basis, dtype=np.float64)
@@ -219,6 +220,8 @@ def blob(g, c, radii, col, layer, weights, basis=None, rings=8, segs=12, lumps=0
         for i in range(segs):
             lo = TAU * i / segs
             d = V(math.sin(la) * math.sin(lo), math.cos(la), -math.sin(la) * math.cos(lo))
+            if power != 1.0:
+                d = np.sign(d) * np.abs(d) ** power
             s = 1.0 + bump[j, i] * math.sin(la)
             p = c + B @ (d * np.asarray(radii) * s)
             verts.append(p)
@@ -442,9 +445,13 @@ def key_clip(arm, name, keys, length, loop=False, chains=None, ripple=0.0, root_
     arm.animation_data_create()
     arm.animation_data.action = act
     nf = max(2, int(round(length * FPS)))
-    allb = set()
-    for _, p, *_ in keys:
-        allb |= set(p.keys())
+    # every bone is keyed at every key (missing = rest), so nothing keeps a pose left over from the clip keyed before;
+    # the cloth chains that the follow-through drives on its own are left to it
+    driven = set()
+    for ch in (chains or []):
+        if not (isinstance(ch, dict) and ch.get("add")):
+            driven |= set(ch["bones"] if isinstance(ch, dict) else ch)
+    allb = set(pb.name for pb in arm.pose.bones) - driven
     qkeys = [(t, pose_q(arm, p)) for t, p, *_ in keys]
     # keep each bone's keys on one quaternion hemisphere so the per-channel curves never take the long way round
     for i in range(1, len(qkeys)):
@@ -458,9 +465,9 @@ def key_clip(arm, name, keys, length, loop=False, chains=None, ripple=0.0, root_
         for t, qd in qkeys:
             pb.rotation_quaternion = qd.get(b, Quaternion())
             pb.keyframe_insert("rotation_quaternion", frame=1 + t * FPS)
-    if root_keys:
+    if True:
         pb = arm.pose.bones["root"]
-        for t, xyz in root_keys:
+        for t, xyz in (root_keys or [(t, (0.0, 0.0, 0.0)) for t, *_ in keys]):
             pb.location = arm.data.bones["root"].matrix_local.inverted().to_3x3() @ bl(xyz)
             pb.keyframe_insert("location", frame=1 + t * FPS)
     # Blender 5: the action's curves live in a layered action; set every key's interpolation by walking fcurves
@@ -497,23 +504,36 @@ def _fcurves(act):
 
 
 def _key_chains(arm, act, chains, nf, length, ripple, loop):
-    """Each chain link copies its parent's motion a little late: the body's rotation about the chain's root, sampled
-    from the evaluated pose `delay` seconds earlier, damped down the chain, plus a slow sideways ripple."""
+    """Each chain link copies its driver's motion a little late: the driver's world rotation (the pelvis, or the hand
+    a chain hangs from), sampled from the evaluated pose `delay` seconds earlier, damped down the chain, plus a slow
+    sideways ripple. A chain is a list of bones, or {"bones": [...], "drive": bone, "gain": k, "add": True}: an
+    additive chain keeps its own keys (an anchor's chain aimed per pose) and lags on top of them."""
     scn = bpy.context.scene
     arm.animation_data.action = act
-    # sample the root/pelvis/spine world rotation per frame
-    drive = "pelvis" if "pelvis" in arm.pose.bones else "root"
-    samples = []
+    specs = []
+    for ch in chains:
+        if isinstance(ch, dict):
+            specs.append((list(ch["bones"]), ch.get("drive"), float(ch.get("gain", 1.0)), bool(ch.get("add", False)), float(ch.get("ripple", 1.0))))
+        else:
+            specs.append((list(ch), None, 1.0, False, 1.0))
+    default = "pelvis" if "pelvis" in arm.pose.bones else "root"
+    drives = sorted(set((d or default) for _, d, *_ in specs))
+    adds = sorted(set(b for bones, _, _, add, _ in specs if add for b in bones))
+    samples = {d: [] for d in drives}
+    base = {b: [] for b in adds}
     for f in range(nf + 1):
         scn.frame_set(1 + f)
-        m = arm.pose.bones[drive].matrix
-        samples.append(m.to_quaternion())
-    rest = arm.data.bones[drive].matrix_local.to_quaternion()
-    for ci, chain in enumerate(chains):
-        for li, b in enumerate(chain):
+        for d in drives:
+            samples[d].append(arm.pose.bones[d].matrix.to_quaternion())
+        for b in adds:
+            base[b].append(arm.pose.bones[b].rotation_quaternion.copy())
+    for ci, (bones, drv, gk, add, rk) in enumerate(specs):
+        smp = samples[drv or default]
+        for li, b in enumerate(bones):
             pb = arm.pose.bones[b]
             delay = 0.12 + 0.1 * li
-            gain = 0.55 + 0.25 * li
+            gain = (0.55 + 0.25 * li) * gk
+            restb = arm.data.bones[b].matrix_local.to_quaternion()
             for f in range(nf + 1):
                 t = f / FPS
                 tl = t - delay
@@ -521,15 +541,16 @@ def _key_chains(arm, act, chains, nf, length, ripple, loop):
                     tl = tl % length
                 fi = max(0, min(nf, int(round(tl * FPS))))
                 fn = max(0, min(nf, int(round(t * FPS))))
-                # the body's turn since then, opposed (the cloth trails it)
-                d = samples[fi].inverted() @ samples[fn]
+                # the driver's turn since then, opposed (the cloth trails it)
+                d = smp[fi].inverted() @ smp[fn]
                 ang = d.angle if d.angle < math.pi else d.angle - TAU
                 ax = d.axis
                 lag = Quaternion(ax, -ang * gain) if abs(ang) > 1e-5 else Quaternion()
                 ph = TAU * (t / max(length, 0.1)) * (1.0 if loop else 0.5) + ci * 1.7 + li * 0.6
-                rip = Quaternion(rig_axis(V(0, 0, 1)), ripple * math.sin(ph) * (0.4 + 0.6 * li))
-                restb = arm.data.bones[b].matrix_local.to_quaternion()
+                rip = Quaternion(rig_axis(V(0, 0, 1)), ripple * rk * math.sin(ph) * (0.4 + 0.6 * li))
                 q = restb.inverted() @ (lag @ rip) @ restb
+                if add:
+                    q = q @ base[b][f]
                 pb.rotation_quaternion = q
                 pb.keyframe_insert("rotation_quaternion", frame=1 + f)
     arm.animation_data.action = None

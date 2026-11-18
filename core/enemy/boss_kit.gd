@@ -45,7 +45,8 @@ static var _live: Array = []        ## [[zone mesh id, land time s], ...]: the z
 ## frames (culled things never compile), then freed.
 ## The bosses rebuilt in Blender (18 Nov, every model authored there): skeleton, mesh and clips in one glb each,
 ## worn with the villagers' look (tools/blender/vb_*.py).
-const AUTHORED := {&"bone_abbot": "res://art/models/bosses/vb_bone_abbot.glb"}
+const AUTHORED := {&"bone_abbot": "res://art/models/bosses/vb_bone_abbot.glb",
+		&"r37_anchoress": "res://art/models/bosses/vb_anchoress.glb"}
 
 
 static func warm(host: Node, stage := -1, boss := &"") -> void:

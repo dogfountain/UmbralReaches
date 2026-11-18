@@ -80,12 +80,37 @@ func phase_marks() -> Array[float]:
 
 
 func _build() -> void:
-	# (17 Nov, Luke: bosses "simple like the villager", "4/5x size") built in the villagers' style to her own design
-	# (core/enemy/anchoress_body.gd): a gaunt hermit wound in chain, gagged, an anchor-stone hanging from her fist, a
-	# caged lantern at her hip; posed by formula (core/enemy/villager_boss_rig.gd)
-	VillagerBossRig.fit(self, AnchoressBody, {"seed": 7, "sex": "f", "age": "adult"}, {"scale": 1.35, "stoop": 0.06})
+	# (18 Nov, Luke: "all models in the game should be blender") modelled and animated in Blender
+	# (tools/blender/vb_anchoress.py) in the villagers' style: she brought her cell's wall with her, a slab of mortared
+	# stones strapped to her bowed back with its squint and candle; wound in chain, blindfolded, the anchor on its chain
+	# from her right fist, the caged lantern (her weak point) from her left; a move of her own for each rite. The
+	# code-built body (anchoress_body.gd on the villager rig) stays as the fallback.
+	var model: String = BossKit.AUTHORED.get(&"r37_anchoress", "")
+	if model != "" and ResourceLoader.exists(model):
+		ClipRig.fit(self, model, &"anchoress", {"body": "spine", "front": "chest", "muzzle": "anchor"},
+				{"walk_stride": 1.4, "villager_look": true})
+		_rig.scale = Vector3.ONE * 1.35
+		weak_socket = "hand_l"                         # the lantern hangs a forearm below her left fist
+		weak_offset = Vector3(0.0, -0.26, -0.03)
+		var at := _rig.socket("hand_l")
+		if at:
+			var l := OmniLight3D.new()
+			l.name = "Lantern"
+			l.light_color = Color(1.0, 0.66, 0.3)
+			l.light_energy = 0.7
+			l.omni_range = 4.5
+			l.shadow_enabled = false
+			at.add_child(l)
+			l.position = weak_offset
+	else:
+		VillagerBossRig.fit(self, AnchoressBody, {"seed": 7, "sex": "f", "age": "adult"}, {"scale": 1.35, "stoop": 0.06})
 	name = "Anchoress"
 	BossKit.embiggen(self, SCALE)
+
+
+## One of her own moves when the model has it (a clip of that name, timed to the cast), else false.
+func _rite(clip: StringName) -> bool:
+	return _rig != null and _rig.has_method("boss_move") and bool(_rig.call("boss_move", clip, 0.0))
 
 
 func on_engaged(arena: Node) -> void:
@@ -287,10 +312,11 @@ func _chain_ring() -> void:
 	_set_state(RECOVER)
 	_state_t = -1.7
 	_glint = 1.0
-	_tell(1.7)
+	if not _rite(&"chain_ring"):            # drawn out and whirled round her once and a half, landing with the ring
+		_tell(1.7)
+		_strike_after(1.55)
 	var r := RING_R + (1.8 if phase >= 3 else 0.0)
 	BossKit.cast(self, "Chain Ring", 1.7)
-	_strike_after(1.55)
 	BossKit.zone(get_parent(), global_position, 1.7, 28.0, {"by": self, "radius": r, "color": SALT})
 	Vfx.ring(global_position + Vector3.UP * 0.2, r, SALT, 1.7, 0.1, Vector3.UP, 1.1)
 
@@ -301,7 +327,8 @@ func _toll() -> void:
 	_state_t = -TOLL_TIME
 	_knot_t = TOLL_TIME
 	_glint = 1.0
-	_howl(TOLL_TIME)
+	if not _rite(&"toll"):                   # the lantern lifted high to the cells, shaken, held till the call
+		_howl(TOLL_TIME)
 	BossKit.cast(self, "Toll of the Cell", TOLL_TIME, true, _tolled)
 	BossKit.emote(self, "The Anchoress lifts her lantern to the cells.", Color(1.0, 0.82, 0.5))
 	if phase == 1:
@@ -344,8 +371,9 @@ func _torn(line: String) -> void:
 ## Rockfall: discs of falling stone round you, one after another; the first on your own feet.
 func _rockfall() -> void:
 	BossKit.cast(self, "Rockfall", 1.4)
-	_tell(1.1)
-	_strike_after(1.1)                       # she stamps; the cliff answers
+	if not _rite(&"rockfall"):               # she stamps (at 1.1 s); the cliff answers
+		_tell(1.1)
+		_strike_after(1.1)
 	BossKit.emote(self, "Stones come down off the cliff.", Color(1.0, 0.7, 0.4))
 	var n := 6 if phase >= 3 else 4
 	var c := _p.global_position
@@ -371,7 +399,8 @@ func _undertow() -> void:
 	_state_t = -UNDER_TIME
 	velocity = Vector3.ZERO
 	_glint = 1.0
-	_howl(UNDER_TIME)
+	if not _rite(&"undertow"):               # the anchor bitten into the floor, hauled in hand over hand
+		_howl(UNDER_TIME)
 	BossKit.cast(self, "The Undertow", UNDER_TIME, false, _under_lands)
 	BossKit.emote(self, "She drags the anchor. The terrace slides toward her.", Color(1.0, 0.6, 0.35))
 	_under_left = UNDER_TIME
