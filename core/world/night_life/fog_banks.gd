@@ -7,6 +7,7 @@ extends Node3D
 ## where they meet the ground so there is no hard line. One MultiMesh, twelve instances, updated by formula.
 
 const Reg := preload("res://core/world/night_life/night_registry.gd")
+const Land := preload("res://core/world/realm/realm_land.gd")
 
 const N := 8                              ## banks (each a large alpha quad: overdraw is the cost, so few); none on the low detail setting
 const HALF := 70.0
@@ -98,7 +99,13 @@ func _process(delta: float) -> void:
 		# wrap round the wanderer
 		var o := _off[i]
 		var rel := Vector2(fposmod(o.x - pp.x + HALF, HALF * 2.0) - HALF, fposmod(o.y - pp.z + HALF, HALF * 2.0) - HALF)
-		var w := Vector3(pp.x + rel.x, _gy + _lift[i] + 0.25 * sin(_t * 0.07 + float(i)), pp.z + rel.y)
+		# on the ground under the bank itself (the wanderer's own height laid every bank flat at a rise's height: from a tor the
+		# whole valley went under one pale sheet), the water's face where it drifts over a mere; never far from the wanderer's
+		# own level (a bank far below is hidden by the land anyway)
+		var bx := pp.x + rel.x
+		var bz := pp.z + rel.y
+		var under := Land.water_y_at(bx, bz) if Land.in_water(bx, bz) else Land.height_at(bx, bz)
+		var w := Vector3(bx, maxf(under, _gy - 30.0) + _lift[i] + 0.25 * sin(_t * 0.07 + float(i)), bz)
 		var edge := 1.0 - smoothstep(HALF * 0.55, HALF * 0.98, maxf(absf(rel.x), absf(rel.y)))
 		var tint := OPEN
 		var warm := 0.0

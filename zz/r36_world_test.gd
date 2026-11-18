@@ -101,12 +101,16 @@ func _watch() -> void:
 	for e in wave:
 		hp0 += float((e as Enemy).hp)
 	p.teleport(w.global_position + Vector3(0, 0.5, 0) - (w.get("face") as Vector3) * 12.0)
-	await _wait(12.0)
-	var hp1 := 0.0
-	for e in w.get("_wave"):
-		if is_instance_valid(e):
-			hp1 += float((e as Enemy).hp)
-	inf = w.call("info")
+	var hp1 := hp0
+	for _k in 20:                         # a blow lands within a few swings; under a loaded machine give it up to 20 s
+		await _wait(1.0)
+		hp1 = 0.0
+		for e in w.get("_wave"):
+			if is_instance_valid(e):
+				hp1 += float((e as Enemy).hp)
+		inf = w.call("info")
+		if hp1 < hp0 or int(inf.wave) < wave.size():
+			break
 	ok(hp1 < hp0 or int(inf.wave) < wave.size(), "the watchmen cut at the hollowed (%.1f -> %.1f life left)" % [hp0, hp1])
 	# clean up whatever is left so the next checks start quiet
 	for e in w.get("_wave"):

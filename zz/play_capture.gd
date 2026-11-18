@@ -1565,6 +1565,12 @@ func _view_still(file: String, desc: String, cam_pos: Vector3, target: Vector3) 
 	print("PLAYCAP far glows in %s:%s" % [file, beams if beams != "" else " none"])
 	if "--probe" in OS.get_cmdline_user_args():
 		_probe_view(file)
+		var ls := get_tree().root.find_child("LightSignatures", true, false)
+		if ls != null:
+			for c: Node in ls.get_children():
+				if c is MultiMeshInstance3D:
+					var mmx := (c as MultiMeshInstance3D).multimesh
+					print("PLAYCAP probe %s light %s: %d of %d drawn, in tree %s, visible %s" % [file, c.name, mmx.visible_instance_count, mmx.instance_count, c.is_inside_tree(), (c as Node3D).is_visible_in_tree()])
 	await _still(file, desc, 4)
 
 
@@ -1837,7 +1843,7 @@ func _s_warmth() -> void:
 		await _view_still("w_hearth_fire.png", "the Hearth's fire at night", ring.call(sp), sp + Vector3(0, 0.8, 0))
 	# from afar: does a town's light carry? (the far cards and the pools, landmark_signatures.gd) Hearthward from the moor's
 	# tor, ~150 m, and Lastlight from the same rise, ~190 m
-	var tor := Vector3(141.0, g.call(141.0, -24.0) + 2.2, -24.0)
+	var tor := Vector3(141.0, 18.5, -24.0)        # standing on the tor's crown (its rock tops out near y 16; the terrain ray reads the ground under it)
 	await _view_still("w_far_hearth.png", "Hearthward from the moor's tor, ~150 m: do its fires and windows carry?", tor, Vector3(0.0, 3.0, 30.0))
 	await _view_still("w_far_lastlight.png", "Lastlight from the moor's tor, ~190 m", tor, Vector3(325.0, 4.0, 55.0))
 	var hearth_at := sanc.global_position if sanc != null else studio

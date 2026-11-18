@@ -192,6 +192,8 @@ static func _pick(data: Variant, order: PackedInt32Array, stride: int) -> Varian
 static func split_multimesh(mmi: MultiMeshInstance3D, cell := CELL, cell_y := 0.0) -> int:
 	if mmi == null or mmi.multimesh == null or mmi.has_meta("chunked") or DisplayServer.get_name() == "headless":
 		return 0
+	if mmi.has_meta(&"live_pool"):          # a runtime pool (the far light cards, the mist banks, the wildlife): its script writes the
+		return 0                             # one MultiMesh it made each frame; split by its placeholder slots it drew nothing
 	var mm := mmi.multimesh
 	if mm.transform_format != MultiMesh.TRANSFORM_3D or mm.instance_count < 2 or mm.mesh == null:
 		return 0
