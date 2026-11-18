@@ -19,9 +19,10 @@ const ReachCamps := preload("res://core/enemy/realm_camps_reaches.gd")
 ## brazier (RealmBosses.BRAZIERS). The crypt's own seal camps ("oss_gallery") stay in the Ossuary.
 const REALM_CAMPS: Array[Dictionary] = [
 	# guardians of the thorn seal: the Thornwood edge along west_way, below the henge hill
-	{"at": Vector3(-50.0, 60.0, 8.0), "kinds": ["wretch", "crawler"], "probe": 0.0, "seal": "henge"},        # past the glade
-	{"at": Vector3(-41.0, 60.0, -18.0), "kinds": ["spitter", "wretch"], "probe": 0.0, "seal": "henge"},      # the stair's foot, east of the flight (moved 4 m off west_way: it stood 3.7 m from the walk)
-	{"at": Vector3(-54.0, 60.0, -18.8), "kinds": ["leaper", "crawler"], "probe": 0.0, "seal": "henge"},      # the stair's head on the raid floor's rim (r32: was at -74,12, 22 m off any path, behind the hill; r34 enemies: -18 -> -18.8, 13 m+ from HengeFire on its landing)
+	# (18 Nov: out with the henge's 1.6x raid floor; the stair now runs from (-45, 4) on the rim to its foot at (-34.7, 0.5))
+	{"at": Vector3(-46.0, 60.0, 20.0), "kinds": ["wretch", "crawler"], "probe": 0.0, "seal": "henge"},       # on the hill's skirt north of the stair's head
+	{"at": Vector3(-26.0, 60.0, -9.0), "kinds": ["spitter", "wretch"], "probe": 0.0, "seal": "henge"},       # the stair's foot, east of the flight, off the walk
+	{"at": Vector3(-35.0, 60.0, -15.0), "kinds": ["leaper", "crawler"], "probe": 0.0, "seal": "henge"},      # at the raid floor's rim south of the stair's head, 13 m+ from HengeFire on its landing
 	# guardians of the summit ward (it also needs the Thornwarden and the Bone Abbot): they hold the
 	# Crossing itself, its west tower (Crossing.T2, parapeted) and its head in front of the ward
 	# (r32: the first pack stood 12-16 m east of the Crossing's foot, off the way, beside a roaming pack)
@@ -30,9 +31,9 @@ const REALM_CAMPS: Array[Dictionary] = [
 	# roaming packs (they come back)
 	# r28 war bands: a guard (Bulwark) before a caster (Chanter), flankers on the sides
 	# r31: a Tollman rides with it (kill it before it rings, or the Thornwood comes) and a Gaunt darts
-	{"at": Vector3(-126.0, 60.0, -32.0), "kinds": ["bulwark", "chanter", "gaunt", "wretch", "tollman"], "probe": 0.0, "r": 3.0},   # Thornwood deep (r34 layout: was -92,-30, inside the henge's raid floor; now off west_track, west of the hill)
-	{"at": Vector3(-84.0, 60.0, 22.0), "kinds": ["leaper", "husk"], "probe": 0.0},                 # Thornwood west (r30: was 18 m from Wyck the hermit)
-	{"at": Vector3(-82.0, 60.0, -56.0), "kinds": ["mite", "mite", "mite", "mite", "mite"], "probe": 0.0, "r": 1.6},   # Thornwood under the Crowns: a swarm nest
+	{"at": Vector3(-160.0, 60.0, -28.0), "kinds": ["bulwark", "chanter", "gaunt", "wretch", "tollman"], "probe": 0.0, "r": 3.0},   # Thornwood deep, west of west_track (18 Nov: -126,-32 was on the 1.6x raid floor)
+	{"at": Vector3(-90.0, 60.0, 46.0), "kinds": ["leaper", "husk"], "probe": 0.0},                 # Thornwood west (18 Nov: -84,22 was on the 1.6x raid floor)
+	{"at": Vector3(-80.0, 60.0, -88.0), "kinds": ["mite", "mite", "mite", "mite", "mite"], "probe": 0.0, "r": 1.6},   # Thornwood under the Crowns: a swarm nest (18 Nov: off the 1.6x raid floor)
 	{"at": Vector3(-66.0, 60.0, 24.0), "kinds": ["wretch", "spitter"], "probe": 0.0},              # Thornwood's village edge, back in the trees (47 m from the green and 5 m off west_way, it held the walk out of the village)
 	{"at": Vector3(94.0, 60.0, -10.0), "kinds": ["ossuant", "wretch"], "probe": 0.0},              # Hollow Fen east
 	{"at": Vector3(86.0, 60.0, -75.0), "kinds": ["burrower", "spitter", "burrower"], "probe": 0.0},    # Hollow Fen north: the soft ground (r30: 10 m+ inside the bounds, off the barrows)
@@ -91,7 +92,7 @@ const REALM_CAMPS: Array[Dictionary] = [
 	# The road's new ends and the west wood along west_track
 	{"at": Vector3(-128.0, 60.0, 74.0), "kinds": ["husk", "gaunt", "wretch"], "probe": 0.0},       # the West Gate's approach
 	{"at": Vector3(132.0, 60.0, 58.0), "kinds": ["chanter", "husk", "crawler"], "probe": 0.0},     # the East Gate's approach
-	{"at": Vector3(-144.0, 60.0, -50.0), "kinds": ["leaper", "wretch", "crawler"], "probe": 0.0},  # west_track under the quarry
+	{"at": Vector3(-158.0, 60.0, -52.0), "kinds": ["leaper", "wretch", "crawler"], "probe": 0.0},  # west of west_track under the quarry (18 Nov: the track swung west round the henge hill)
 	{"at": Vector3(-135.0, 60.0, 40.0), "kinds": ["wretch", "crawler"], "probe": 0.0},             # west_track north of the Holds
 	# --- south marches ---
 	# The Southern Downs (tier 1): open chalk, long sight lines; gaunts who hunt the flock's old ground and a

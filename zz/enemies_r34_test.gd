@@ -238,8 +238,8 @@ func _seals(sp: Node) -> void:
 		for i in west.size() - 1:
 			d_way = minf(d_way, _seg_dist(west[i], west[i + 1], q))
 		var d_foot := q.distance_to(foot)
-		var d_rim := q.distance_to(RealmLayout.HENGE_C) - 31.0
-		var on_route := d_way < 12.0 or (d_foot < 16.0 and d_rim < 12.0)
+		var d_rim := q.distance_to(RealmLayout.HENGE_C) - float(RealmLayout.raid("henge").r)
+		var on_route := d_way < 12.0 or (d_foot < 24.0 and d_rim < 12.0)     # (18 Nov: 16 -> 24 m, the 1.6x henge's stair zone is wider)
 		check("henge guard camp %s stands on the way to the stair" % q, on_route, "%.1f m off west_way, %.1f m from the stair's foot, %.1f m outside the floor's rim" % [d_way, d_foot, d_rim])
 		check("henge guard camp %s planted" % q, planted.has(str(cp.at)))
 		guards += (planted.get(str(cp.at), []) as Array).size()

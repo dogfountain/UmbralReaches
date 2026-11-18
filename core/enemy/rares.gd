@@ -69,8 +69,9 @@ const RARES := {
 		"route": [Vector2(140, 128), Vector2(130, 140), Vector2(118, 132), Vector2(137, 116), Vector2(137, 102)],
 		"line": "The Ferryman goes under. Nobody pays the fare tonight."},
 	"old_rook": {"title": "Old Rook, the Kin-Taker", "kind": "gaunt", "hp": 20, "scale": 1.3,
-		"spots": [Vector2(-140, 11), Vector2(-131, -1)], "ash": 32, "loot": [["relic_fragment", 1]],
-		"route": [Vector2(-140, 11), Vector2(-142, 24), Vector2(-131, 30), Vector2(-120, 26), Vector2(-131, -1)],
+		# (18 Nov: west of west_track, which swung round the henge's 1.6x skirt over its old haunts)
+		"spots": [Vector2(-142, 24), Vector2(-150, 12)], "ash": 32, "loot": [["relic_fragment", 1]],
+		"route": [Vector2(-142, 24), Vector2(-150, 12), Vector2(-156, -2), Vector2(-150, 12), Vector2(-146, 34), Vector2(-142, 24)],
 		"line": "Old Rook will not come to the Holds' door again. The Rooted can sleep."},
 	# r36 Act II: the keepers of the Founder's bells (each bell quest's slay step wants its own; they
 	# haunt the bell, so the bell is guarded whenever you come to it)

@@ -27,6 +27,9 @@ func _gate(root: Node, r: Dictionary) -> void:
 	var c: Vector2 = r.c
 	var gate: Vector2 = r.gate
 	var dir := (gate - c).normalized()
+	if r.has("titans"):                       # a raid that names its wardens' spot (the henge: on its road, not off its gate)
+		dir = (r.titans_dir as Vector2).normalized()
+		gate = (r.titans as Vector2) - dir * 30.0
 	var side := Vector2(-dir.y, dir.x)
 	var k := WK.new()
 	k.setup(root, "TitanGate_" + String(r.id), 8100 + int(absf(c.x)))
@@ -56,7 +59,8 @@ func _gate(root: Node, r: Dictionary) -> void:
 	if not k.cached(WK.fp(SELF, [String(r.id), base, WK.tsig(base, 60.0)])):
 		for s: float in [-1.0, 1.0]:
 			_titan(k, base + side * (7.0 * s), dir, side, s)
-		_avenue(k, base, dir, side, String(r.id))
+		if bool(r.get("titans_avenue", true)):
+			_avenue(k, base, dir, side, String(r.id))
 	var n: int = k.commit(0.0)
 	print("WONDER titan_gate %s at %s: %d meshes, %d fires" % [String(r.id), base, n, k.fires])
 

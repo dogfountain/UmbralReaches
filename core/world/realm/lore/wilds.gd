@@ -16,7 +16,7 @@ const SONG := [
 	["tw_song_3", [Vector2(-88.0, -46.0), Vector2(-84.0, -50.0), Vector2(-92.0, -42.0), Vector2(-80.0, -48.0)]],
 	["tw_song_4", [Vector2(-56.0, -44.0), Vector2(-60.0, -48.0), Vector2(-66.0, -53.0), Vector2(-58.0, -52.0), Vector2(-76.0, -54.0), Vector2(-52.0, -40.0)]],
 ]
-const HENGE_KEEP := 34.0   # r34 layout: the raid floor (RealmLayout.RAIDS henge r 31) and its rim
+const HENGE_KEEP := 64.0   # the raid floor (RealmLayout.RAIDS henge, r 49.6 since 18 Nov) and its fill skirt
 
 
 static func ok_henge(q: Vector2, r := 0.0) -> bool:
@@ -179,7 +179,8 @@ static func _woodsmen(L: RefCounted) -> void:
 	var p: OssKit = L.p
 	var rng: RandomNumberGenerator = L.rng
 	var c := Vector2.INF
-	for q: Vector2 in [Vector2(-76.0, 22.0), Vector2(-80.0, 13.0), Vector2(-68.0, 20.0), Vector2(-92.0, 12.0), Vector2(-104.0, 16.0), Vector2(-112.0, 4.0)]:   # r34: two more, west of the moved henge
+	for q: Vector2 in [Vector2(-76.0, 22.0), Vector2(-80.0, 13.0), Vector2(-68.0, 20.0), Vector2(-92.0, 12.0), Vector2(-104.0, 16.0), Vector2(-112.0, 4.0),
+			Vector2(-118.0, 40.0), Vector2(-130.0, 52.0), Vector2(-112.0, 72.0)]:   # r34: two more, west of the moved henge; 18 Nov: three past its 1.6x skirt
 		var r := Rect2(q - Vector2(4.5, 4.5), Vector2(9.0, 9.0))
 		if ok_henge(q, 5.0) and LK.clear_of(r, 0.6):
 			c = q

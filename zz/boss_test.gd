@@ -97,7 +97,7 @@ func _physics_process(_d: float) -> void:
 			var b := _boss()
 			check("thornwarden rose", b is Thornwarden)
 			check("thorn gate closed behind", _seal("henge") != null and _seal("henge")._body.collision_layer != 0)
-			_tp_ground(ThornHenge.C.x + 30.0, ThornHenge.C.z + 30.0)
+			_tp_ground(ThornHenge.C.x + 42.0, ThornHenge.C.z + 42.0)        # (59 m: past the 1.6x room and the 6 m leave margin)
 			step = 20; wait = 20      # run away: r35, the fight is held (it used to reset)
 		20:
 			check("leaving holds the fight (r35) and opens the gate", _held_arena("thornwarden") and _seal("henge")._body.collision_layer == 0)

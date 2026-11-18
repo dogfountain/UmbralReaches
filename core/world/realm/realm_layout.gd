@@ -54,8 +54,12 @@ const SUMMIT_WARD := Vector3(0.0, 25.2, -70.9) + Endgame.O ## where the crossing
 ##                   the Crowns cut back into a cirque behind it)
 ##   gate   xz of the way in (the floor's rim where the approach arrives)
 const RAIDS := [
-	{"id": "henge", "c": Vector2(-86.0, -24.0), "r": 31.0, "y": 9.0, "fall": 12.0, "mode": "level",
-		"gate": Vector2(-56.0, -16.0), "boss": "thornwarden"},
+	# (18 Nov, Luke: the arenas 1.6x, the world reshaped round them) the henge 31 -> 49.6 m; the hill broadened to carry it
+	{"id": "henge", "c": Vector2(-86.0, -24.0), "r": 49.6, "y": 9.0, "fall": 12.0, "mode": "level",
+		"gate": Vector2(-38.1, -11.2), "boss": "thornwarden",
+		# the Titan Gates' wardens stand on west_way below the stair, facing back up the road to Hearthward (from the gate
+		# they were pushed past the village: the henge's rim is only ~60 m from it now)
+		"titans": Vector2(-25.0, 15.0), "titans_dir": Vector2(0.5, 0.86), "titans_avenue": false},     # (its obelisk avenue would run into Hearthward)
 	{"id": "summit", "c": Vector2(0.0, -118.0) + Endgame.O2, "r": 28.0, "y": 27.35, "fall": 10.0, "mode": "clear",
 		"gate": Vector2(0.0, -90.0) + Endgame.O2, "boss": "ascended_warden"},
 	# the two Marches bosses (docs/r37_expansion.md). The Hierarch's fight is in the toppled statue's broken
@@ -93,7 +97,7 @@ const REGIONS := [
 		"lore": "Boss: the Ascended Warden, last priest of the ascension. Seal 'summit'."},
 	{"id": "crags", "name": "The Crowns", "rect": Rect2(-260, -150, 520, 40), "biome": "crag", "tier": 2,
 		"lore": "The mountain wall the sky turns inward over; the world's northern edge."},
-	{"id": "glade", "name": "The Glimmer Glade", "c": Vector2(-38, 8), "r": 18.0, "biome": "glade", "tier": 0,
+	{"id": "glade", "name": "The Glimmer Glade", "c": Vector2(-28, 32), "r": 16.0, "biome": "glade", "tier": 0,
 		"lore": "Bioluminescent clearing between the village and the Thornwood; a shrine to the lost."},
 	# --- r34: the new ground --------------------------------------------------------------------
 	{"id": "quarry", "name": "The Saints' Quarry", "rect": Rect2(-155, -130, 50, 62), "biome": "crag", "tier": 2,
@@ -298,14 +302,14 @@ const SLOTS := {
 const BASE_PATHS := [
 	# west_way's last turn meets the henge stair on its own axis, 2.5 m out (thorn_henge.gd's lane): a straight run to the
 	# foot passed 0.3 m from the north pinnacle and walked into it
-	{"id": "west_way", "w": 1.8, "pts": [Vector2(-4, 30), Vector2(-20, 24), Vector2(-38, 10), Vector2(-46, -2), Vector2(-47.6, -10.8), Vector2(-50, -10)]},
+	{"id": "west_way", "w": 1.8, "pts": [Vector2(-4, 30), Vector2(-20, 24), Vector2(-27, 12), Vector2(-29.5, 3.0), Vector2(-32.3, -0.3), Vector2(-34.7, 0.5)]},
 	{"id": "east_way", "w": 1.8, "pts": [Vector2(26, 22), Vector2(42, 10), Vector2(58, -12), Vector2(72, -34), Vector2(78, -42)]},
 	{"id": "fen_descent", "w": 1.6, "pts": [Vector2(78, -42), Vector2(62, -56), Vector2(54, -59.5)]},   # ends at the fen's fire (the Threshold); the Ossuary no longer waits at its end
 	{"id": "road", "w": 2.2, "pts": [Vector2(-366, 48), Vector2(-330, 52), Vector2(-300, 56.4), Vector2(-255, 62), Vector2(-232, 64), Vector2(-205, 66), Vector2(-180, 66), Vector2(-150, 67), Vector2(-104, 64), Vector2(-72, 60), Vector2(-40, 58), Vector2(-6, 54), Vector2(2, 44), Vector2(40, 60), Vector2(104, 66), Vector2(150, 68), Vector2(180, 70), Vector2(212, 74), Vector2(240, 72), Vector2(255, 70), Vector2(290, 70), Vector2(318, 66), Vector2(366, 62)]},
 	{"id": "chapel_lane", "w": 1.4, "pts": [Vector2(-60, 58), Vector2(-68, 52)]},
 	{"id": "rift_rim", "w": 2.0, "pts": [Vector2(0, 22) + Endgame.O2, Vector2(0, 4) + Endgame.O2, Vector2(0, -3) + Endgame.O2]},   # Lastlight's north postern to where the approach flight begins
 	{"id": "north_lane", "w": 1.6, "pts": [Vector2(0, 22), Vector2(0, 4), Vector2(-1, 0)]},   # Hearthward's north edge to the meadow fire (rift_rim's old first leg)
-	{"id": "west_track", "w": 1.4, "pts": [Vector2(-118, 65), Vector2(-124, 44), Vector2(-132, 22), Vector2(-138, -6), Vector2(-138, -40), Vector2(-132, -66), Vector2(-126, -84)]},
+	{"id": "west_track", "w": 1.4, "pts": [Vector2(-118, 65), Vector2(-124, 44), Vector2(-130, 22), Vector2(-148, -2), Vector2(-149, -43), Vector2(-136, -68), Vector2(-126, -84)]},     # (18 Nov: swung west off the henge hill's 1.6x skirt)
 	{"id": "moor_track", "w": 1.4, "pts": [Vector2(124, 67), Vector2(130, 44), Vector2(134, 18), Vector2(132, -18), Vector2(130, -46), Vector2(128, -72), Vector2(130, -86)]},
 	{"id": "necropolis_way", "w": 1.8, "pts": [Vector2(-6, 54), Vector2(-5, 74), Vector2(-3, 96), Vector2(0, 112), Vector2(0, 128)]},
 	{"id": "orchard_lane", "w": 1.4, "pts": [Vector2(-98, 63), Vector2(-102, 84), Vector2(-108, 104), Vector2(-112, 122)]},
@@ -373,9 +377,9 @@ const CROSSING_HEAD := SUMMIT_WARD
 ## r34: the henge moved 14 m west and 6 m north onto a broader hill so its raid floor (RAIDS "henge",
 ## r 31) clears the Glimmer Glade and west_way; the stair foot moved with it.
 const HENGE_C := Vector2(-86.0, -24.0)                     ## ThornHenge.C xz (r33: (-72, -18))
-const HENGE_STAIR_FOOT := Vector2(-50.0, -10.0)            ## end of west_way
+const HENGE_STAIR_FOOT := Vector2(-34.7, 0.5)              ## end of west_way (18 Nov: out with the 1.6x raid floor, on the flight's old line)
 const CHAPEL_C := Vector2(-72.0, 52.0)
-const GLADE_C := Vector2(-38.0, 8.0)
+const GLADE_C := Vector2(-28.0, 32.0)                     ## (18 Nov: from (-38, 8), which the henge's 1.6x floor and skirt took)
 const BARROWS_C := Vector2(78.0, -42.0)
 const OSSUARY_GATE := Vector3(-40.0, 5.2, 147.5)          ## the Pilgrims' Landing: where the lane ends and the bone bridge begins (OssFrame.LANDING)
 

@@ -116,7 +116,7 @@ static func relief(x: float, z: float, h: float, bw: PackedFloat32Array) -> floa
 ## high, never steeper than ~6 %), so the land rolls from the road without tipping any of the places, carriers and
 ## camps tuned to it; low ground is only raised. Off the old Realm's own set pieces too (OLD_KEEP).
 const OLD_KEEP := [
-	[Vector2(-38.0, 8.0), 18.0, 34.0],         # the Glimmer Glade
+	[Vector2(-28.0, 32.0), 16.0, 30.0],        # the Glimmer Glade (moved out of the henge's 1.6x skirt, 18 Nov)
 	[Vector2(-134.0, 12.0), 22.0, 38.0],       # the Rooted Holds' hollow
 	[Vector2(-109.0, 121.0), 44.0, 62.0],      # the Cinder Orchard's rows
 	[Vector2(131.0, -89.0), 30.0, 46.0],       # the Founder's Pits' bench

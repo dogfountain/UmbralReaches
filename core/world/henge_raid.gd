@@ -15,14 +15,17 @@ extends Node3D
 ## Room API (BossArena / Thornwarden): room_begin(boss), room_reset(), room_won(), grow_stage(k, boss),
 ## wither_stage(k), spawn_knots(boss) -> Array, knots_left(), start_briars(), briars_r, shelter(from, to).
 
-const FLOOR_R := 31.0
-const ARENA_R := 29.0
-const WALL_R := 30.2
+## (18 Nov, Luke: the arenas 1.6x) 31 -> 49.6 m: the wall, the great stones, the knots, the maze and the briars grow with
+## it; the inner henge (ThornHenge's hedge at 12.2, its menhirs and altar) stays, so the ring between it and the wall
+## doubles (maze radii r' = 12.2 + (r - 12.2) * 2.0)
+const FLOOR_R := 49.6
+const ARENA_R := 46.4
+const WALL_R := 48.3
 const WALL_H := 5.6
 const MOUTH := 0.16                     ## half-angle of the raid door's opening (rad): ~9.6 m chord
-const STONE_R := 21.0
-const STONES := 10
-const KNOT_R := 25.5
+const STONE_R := 29.8
+const STONES := 16
+const KNOT_R := 38.8
 const KNOT_HP := 18.0
 const KNOT_ANGLES := [60.0, 180.0, 300.0]
 const OPENINGS := [0.0, 90.0, 180.0, 270.0]   ## the inner hedge's mouths (degrees from the raid door)
@@ -32,16 +35,16 @@ const ERUPT_GLOOM := 20.0
 ## Stage 1 (the intermission's start): spokes between the inner mouths. Stage 2: arcs before the
 ## mouths (go round). Stage 3: outer spokes fencing each heart-knot in its own bay (open inward).
 const MAZE := [
-	[1, 45.0, 14.6, 45.0, 20.0], [1, 135.0, 14.6, 135.0, 20.0], [1, 225.0, 14.6, 225.0, 20.0], [1, 315.0, 14.6, 315.0, 20.0],
-	[2, -13.0, 17.4, 0.0, 17.6], [2, 0.0, 17.6, 13.0, 17.4], [2, 77.0, 17.4, 90.0, 17.6], [2, 90.0, 17.6, 103.0, 17.4],
-	[2, 167.0, 17.4, 180.0, 17.6], [2, 180.0, 17.6, 193.0, 17.4], [2, 257.0, 17.4, 270.0, 17.6], [2, 270.0, 17.6, 283.0, 17.4],
-	[3, 30.0, 22.6, 30.0, 28.4], [3, 90.0, 22.6, 90.0, 28.4], [3, 150.0, 22.6, 150.0, 28.4],
-	[3, 210.0, 22.6, 210.0, 28.4], [3, 270.0, 22.6, 270.0, 28.4], [3, 330.0, 22.6, 330.0, 28.4],
+	[1, 45.0, 17.0, 45.0, 27.8], [1, 135.0, 17.0, 135.0, 27.8], [1, 225.0, 17.0, 225.0, 27.8], [1, 315.0, 17.0, 315.0, 27.8],
+	[2, -10.0, 22.6, 0.0, 23.0], [2, 0.0, 23.0, 10.0, 22.6], [2, 80.0, 22.6, 90.0, 23.0], [2, 90.0, 23.0, 100.0, 22.6],
+	[2, 170.0, 22.6, 180.0, 23.0], [2, 180.0, 23.0, 190.0, 22.6], [2, 260.0, 22.6, 270.0, 23.0], [2, 270.0, 23.0, 280.0, 22.6],
+	[3, 30.0, 33.2, 30.0, 44.6], [3, 90.0, 33.2, 90.0, 44.6], [3, 150.0, 33.2, 150.0, 44.6],
+	[3, 210.0, 33.2, 210.0, 44.6], [3, 270.0, 33.2, 270.0, 44.6], [3, 330.0, 33.2, 330.0, 44.6],
 ]
-const BRIAR_START := 29.0
-const BRIAR_MIN := 16.0
+const BRIAR_START := 46.4
+const BRIAR_MIN := 22.0
 const BRIAR_STEP := 14.0
-const BRIAR_SHRINK := 3.25
+const BRIAR_SHRINK := 4.9
 const BRIAR_GLOOM := 5.0                ## Gloom per half second outside the briars
 const EMBER := Color(1.0, 0.46, 0.2)
 const GenCache := preload("res://core/world/realm/gen_cache.gd")

@@ -7,7 +7,8 @@ const Watch := preload("res://core/world/watch/watch.gd")
 
 ## id -> {name, at (xz), face (xz: the way the dark comes from)}
 const POSTS := {
-	"west_road": {"name": "The Watch on the West Road", "at": Vector2(-98.0, -38.0), "face": Vector2(-1.0, 0.2)},
+	# (18 Nov) beside west_track below the henge hill: at (-98, -38) it stood 18 m from the henge's middle, inside its raid floor
+	"west_road": {"name": "The Watch on the West Road", "at": Vector2(-124.5, -74.0), "face": Vector2(-1.0, 0.2)},
 	"pits_road": {"name": "The Watch at the Pits' Gate", "at": Vector2(100.0, -46.0), "face": Vector2(0.6, -0.8)},
 	"orchard_way": {"name": "The Watch on the Orchard Way", "at": Vector2(-62.0, 98.0), "face": Vector2(-0.7, 0.7)},
 	"mere_way": {"name": "The Watch on the Mere Way", "at": Vector2(76.0, 92.0), "face": Vector2(0.7, 0.7)},

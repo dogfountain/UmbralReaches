@@ -25,9 +25,6 @@ static var stair_pts: Array[Vector3] = []
 ## change to the ground near the foot (west_way's last turn onto the stair axis) cannot swing the flight, its landing
 ## fire and the guard camps placed round them. Re-run the search and update this if the hill itself is reshaped.
 const REALM_HEAD_DIR := Vector2(0.825067, 0.565035)
-## The Realm stair foot's height, held the same way: the lowest ground round the foot, less 0.12, as the hill stood
-## before west_way's last turn; the turn's levelled shoulder lifted that reading 0.45 m and left the first riser a metre.
-const REALM_FOOT_Y := 5.005622
 
 
 static func use_realm() -> void:
@@ -76,7 +73,6 @@ func _build(root: Node) -> void:
 		fg = minf(fg, _ground(space, FOOT.x + o.x, FOOT.y + o.y))
 	var foot := Vector3(FOOT.x, fg - 0.12, FOOT.y)
 	if realm:
-		foot.y = REALM_FOOT_Y                                            # (see the const)
 		to_foot = REALM_HEAD_DIR                                         # the head swings round the hill (see the const)
 	var gate2 := Vector2(C.x, C.z) + to_foot * (STAIR_R if realm else R)   # stair head on the terrace (raid floor) edge
 	var head := Vector3(gate2.x, C.y, gate2.y)

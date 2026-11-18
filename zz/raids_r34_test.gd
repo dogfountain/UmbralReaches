@@ -255,7 +255,7 @@ func _henge() -> void:
 	var grown_before := int(room.call("grown_count"))
 	var hp_before := b.hp
 	var held_b := b
-	_tp(_ground(C.x + gout.x * 44.0, C.z + gout.z * 44.0))
+	_tp(_ground(C.x + gout.x * (arena.radius + 12.0), C.z + gout.z * (arena.radius + 12.0)))
 	await _frames(20)
 	check("henge: leaving holds the fight (not a reset)", is_instance_valid(held_b) and held_b.is_alive() and arena.is_held() and held_b.process_mode == Node.PROCESS_MODE_DISABLED and not _shut(seal) and not Player.boss_fight_active(get_tree()))
 	await _secs(1.5)

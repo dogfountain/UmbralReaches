@@ -77,7 +77,7 @@ func _init() -> void:
 	hp = float(HP)
 	walk_speed = 5.0
 	strike_gloom = 38.0
-	leap_max = 20.0
+	leap_max = 30.0                  # (18 Nov: the room grew 1.6x; 20 before)
 	leap_apex = 3.0
 	leap_cooldown = 1.8
 	leap_prep = 0.7
@@ -586,7 +586,7 @@ func _bloom() -> void:
 		_rig.call("howl", 1.2)
 	BossKit.cast(self, "Bloom of Thorns", 1.4)
 	BossKit.emote(self, "The bark splits. Something in it blooms, red, all at once.", Color(1.0, 0.5, 0.35))
-	var rings := [[1.4, 2.5, 5.0], [2.2, 8.5, 11.0], [3.0, 14.5, 17.0]]
+	var rings := [[1.4, 4.0, 8.0], [2.2, 13.6, 17.6], [3.0, 23.2, 27.2]]     # (18 Nov: x1.6 with the room)
 	for rg: Array in rings:
 		BossKit.zone(get_parent(), c, float(rg[0]), 24.0, {"by": self, "radius": float(rg[2]), "holes": [[c, float(rg[1])]], "color": BossKit.THORN, "h": 2.5})
 	_sig += 1

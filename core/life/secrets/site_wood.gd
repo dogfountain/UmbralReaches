@@ -14,9 +14,9 @@ const Kit := preload("res://core/life/secrets/kit.gd")
 const State := preload("res://core/life/secrets/state.gd")
 const RockKit := preload("res://core/world/realm/rock_kit.gd")
 
-const OAK := Vector2(-124.0, -62.0)   # r34 layout: was (-100, -42), inside the henge's raid floor (RealmLayout.RAIDS); now past the hill's skirt
-const CIST := Vector2(-97.0, 45.5)
-const KNEEL := [["XII", Vector2(-98.0, 54.0)], ["IX", Vector2(-102.5, 47.5)], ["VII", Vector2(-94.0, 37.0)], ["V", Vector2(-90.0, 30.5)], ["III", Vector2(-85.0, 29.5)]]
+const OAK := Vector2(-140.0, -80.0)   # past the henge hill's skirt (18 Nov: (-124, -62) was on the 1.6x raid floor; r34: (-100, -42))
+const CIST := Vector2(-103.0, 59.5)          # (18 Nov: the cist and its stones moved (-6, +14) off the henge hill's 1.6x skirt)
+const KNEEL := [["XII", Vector2(-104.0, 68.0)], ["IX", Vector2(-108.5, 61.5)], ["VII", Vector2(-100.0, 51.0)], ["V", Vector2(-96.0, 44.5)], ["III", Vector2(-91.0, 43.5)]]
 const ANSEL := ["XII", "VII", "III"]
 const PELL := Vector2(-16.0, 2.5)
 const CAIRN := Vector2(-70.0, -122.0)
@@ -318,7 +318,7 @@ static func _pell(root: Node, parent: Node3D, sp: PhysicsDirectSpaceState3D) -> 
 	var node := Node3D.new()
 	node.name = "PellsDen"
 	parent.add_child(node)
-	var p := Kit.free_spot(sp, PELL, 2.0)
+	var p := PELL                    # its own spot: the trees there are cleared (a free-spot search let a tree push it 4 m into its own walk)
 	Kit.clear_flora(root, [Vector3(p.x, p.y, 2.6)])
 	var g := Kit.gy(sp, p.x, p.y)
 	var c := Vector3(p.x, g, p.y)

@@ -544,7 +544,7 @@ func _place_elk(space: PhysicsDirectSpaceState3D) -> void:
 	while x <= bb.end.x:
 		var z := -66.0
 		while z <= bb.end.y:
-			var clear := not Rect2(-48, -130, 96, 125).has_point(Vector2(x, z)) and Vector2(x, z).distance_to(RealmLayout.HENGE_C) > 28.0
+			var clear := not Rect2(-48, -130, 96, 125).has_point(Vector2(x, z)) and Vector2(x, z).distance_to(RealmLayout.HENGE_C) > float(RealmLayout.raid("henge").r) - 3.0
 			for rd: Dictionary in RealmLayout.RAIDS:
 				if Vector2(x, z).distance_to(rd.c) < float(rd.r) + 10.0:
 					clear = false
