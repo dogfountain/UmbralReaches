@@ -40,7 +40,7 @@ RUN_DIR="$(mktemp -d "${SCRATCH%/}/umbral_tests.XXXXXX")" || { echo "cannot make
 OUT_DIR="$RUN_DIR/logs"
 mkdir -p "$OUT_DIR"
 
-BAD_RE='SCRIPT ERROR|SHADER ERROR|Parse Error|Failed to load script'
+BAD_RE='SCRIPT ERROR|SHADER ERROR|Parse Error|Failed to load script|Instance index out of bounds|p_count > instance_count'
 FAIL_RE='(^|[^A-Za-z_])FAIL([^A-Za-z_]|$)'
 ZERO_RE='(^|[^0-9])0 FAIL([^A-Za-z_]|$)|FAIL 0([^0-9]|$)'   # "DIAG 0 FAIL ok" is a count, not a failure
 
