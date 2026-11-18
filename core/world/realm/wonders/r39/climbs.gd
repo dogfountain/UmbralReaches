@@ -167,7 +167,7 @@ func _stair(root: Node, i: int, p: Vector2, top: Vector2, rng: RandomNumberGener
 	var a3 := Vector3(p.x, yb, p.y)
 	var t3 := Vector3(top.x, yt, top.y)
 	WorldLanes.register_flight("climb_stair_%d" % i, a3, t3, 2.4)
-	WK.reserve("climb_top_%d" % i, top, Vector2(5.0, 5.0), 0.0, yt - 3.0, yt + 6.0)
+	WK.reserve("climb_top_%d" % i, top, Vector2(4.0, 4.0), 0.0, yt - 3.0, yt + 6.0, 0.0)
 	if not k.cached(WK.fp(SELF, ["stair", i, a3, t3, WK.tsig(p.lerp(top, 0.5), 16.0)])):
 		var steps := int(ceilf((yt - yb) / 0.36))
 		k.kit.stairs("stone_big", a3, t3, 2.6, steps, yb - 1.0)

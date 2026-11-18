@@ -61,7 +61,7 @@ func _try(root: Node, c: Vector2, t: Vector2, n: int, ids: Array, rng: RandomNum
 	_placed.append(c)
 	var k := WK.new()
 	k.setup(root, "Roadside%d" % n, 6100 + n)
-	WK.reserve("wonder_roadside_%d" % n, c, Vector2(5.0, 5.0), 0.0, sp.x, sp.y + 6.0)
+	WK.reserve("wonder_roadside_%d" % n, c, Vector2(3.5, 3.5), 0.0, sp.x, sp.y + 6.0, 0.0)
 	var g := sp.y
 	var yaw := atan2(t.x, t.y) + rng.randf_range(-0.4, 0.4)
 	var o := Vector3(c.x, g, c.y)

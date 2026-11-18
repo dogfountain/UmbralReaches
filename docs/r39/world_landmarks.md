@@ -391,3 +391,9 @@ camp100 "the road west of Weirford" (-268, 74) and its patrol, the wayside bf_to
 - **Camps (332,110) and (336,123)** were 14.9 m apart (existing slots, not moved by this round): the second is now (337, 124.5), slot and camp.
 - **Climb towers**: the site box is 14 m with a 1 m margin (was 18 m, 2 m).
 - **Wardens**: a shifted spot must be 14 m or more from a way (the first-merge spots are as before): the nave track's steep stretch (4.43 m/m) is the suspect for a levelled tower pad or the nave_crypt hall's stair (the gate at (267,120) is fixed). Not found: the "1 of 400 in the void" thing; the wayside bf_* skips beyond the Bellfall region.
+
+## Placement, eighth round (the wayside places)
+`realm_wayside._clear` keeps every place off the ways and off every registered site (axis-aligned rect plus margin). The small pieces of this round reserved generous boxes beside the ways, where the places also stand: `WK.reserve` has a `pad` now (it was a fixed 3 m on each side)
+and the small ones use none: finds 4 x 4 m (were 12 x 12), roadside scenes 7 x 7 (were 16 x 16), climb viewpoints 8 x 8 (were 16 x 16). Their solids are small and the camps, rares and towns stay protected by `WK.protect()` for the grid families. The Bellfall and Lastlight
+(la_fountain) hold no piece of this round that I can find: the Bellfall rect is protected (nothing of the grid families, outcrops or dressing lands in it), Lastlight is a town circle (protected), the Wardens' sixth tower is kept out of both, and region dressing registers no site;
+if they still lose places the cause is not a site of this round. Rare "heron_wife": spots (-300,372), (-292,360), (-310,380) -> (-326,372), (-318,360), (-336,380), the first two route points the same way (the Crystal Grotto stands 21 m east).

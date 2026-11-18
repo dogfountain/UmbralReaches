@@ -422,9 +422,9 @@ static func find_any(cands: Array, half: Vector2, yaws: Array, allow: Array, rel
 
 
 ## Reserve a yawed rectangle: the flora, the wayside and everything planned later keep off it; the ground is not cut.
-static func reserve(nm: String, c: Vector2, half: Vector2, yaw: float, lo: float, hi: float) -> void:
+static func reserve(nm: String, c: Vector2, half: Vector2, yaw: float, lo: float, hi: float, pad := 3.0) -> void:
 	var ex := Vector2(absf(cos(yaw)), absf(sin(yaw)))
-	var ext := Vector2(half.x * ex.x + half.y * ex.y, half.x * ex.y + half.y * ex.x) + Vector2(3.0, 3.0)
+	var ext := Vector2(half.x * ex.x + half.y * ex.y, half.x * ex.y + half.y * ex.x) + Vector2(pad, pad)
 	WorldLanes.register_site(nm, Rect2(c - ext, ext * 2.0), lo, hi + 40.0)
 
 

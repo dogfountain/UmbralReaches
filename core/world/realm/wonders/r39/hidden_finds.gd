@@ -112,7 +112,7 @@ func _build(root: Node, i: int, c: Array[Vector2], rng: RandomNumberGenerator) -
 	var back := (c[2] - c[3]).normalized()
 	var yaw := atan2(back.x, back.y)
 	var b := Basis(Vector3.UP, yaw)
-	WK.reserve("hidden_find_%d" % i, c[3], Vector2(3.0, 3.0), 0.0, o.y - 1.0, o.y + 4.0)
+	WK.reserve("hidden_find_%d" % i, c[3], Vector2(2.0, 2.0), 0.0, o.y - 1.0, o.y + 4.0, 0.0)
 	var tier: String = TIERS[i % TIERS.size()]
 	var loot := {"grave_ash": 8 + (i % 6) * 3, "grave_iron": 1 + i % 3}
 	if i % 4 == 3:
