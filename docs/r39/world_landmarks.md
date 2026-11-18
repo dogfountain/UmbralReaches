@@ -350,3 +350,11 @@ and 5 m round any site. Families that cannot fit now place fewer: read the per-f
 `WK.place` tested sites in one box round the footprint's longest half-extent (the Sleeper's is 49 m), so the whole south counted as taken and the least-bad spot won; it now tests the footprint's 25 own samples (boxes 0.3 x half-extent, 6 m margin) and widens in five rings (24-130 m, 12 spots each) round the first two candidates.
 The deep halls give their footprint the gate's end (half 16 x 40), the Titan gates have fourteen offsets out to 96 m and 34 m aside, the Chain Span weighs a taken crossing at -250 (a dry pair no longer outranks a clean one), and the outcrops stay out of the old valley (the quarry stair).
 Placement is recomputed before every kit-cache lookup (the position is in the kit's cache key: `WK.fp(SELF, [mid, ...])`), so a stale cached position cannot win; the protected set only changes where a landmark goes, never what a key means.
+
+## Placement fix, fourth round
+- **Place fewer, and say so.** `WK.place` now returns `site` (true when no spot free of sites and reserved places was found). The Sleeper, Salt Ship, Hollow King, each Wardens' tower, each deep hall and each cave and climb tower are **not built** when it is true, and print why
+  (`WONDER <family>: ... not placed`); the Titan gates likewise keep their clean offsets only. Landmarks with a terrace take a path margin (ship 40 m, Hollow King 34 m, towers 16 m) so a levelled pad never steepens a way (salt_track).
+- **More is reserved**: the four towns whole (their graves, fires and plazas), every camp in `core/enemy/realm_camps*.gd` (24 m), the villagers' stops and every point along their ways in `village_reach_towns.gd` (7 / 5 m), besides the slots, rares and haunts. The yards also keep 6.5 m off the stops and ways and Hearthward's stay on its outer ring.
+- **No surge on a landmark**: the discovery `centre` made each of these a `WorldEvents` site whose ring is stone; they carry `no_surge` and `sites()` skips them (their light signatures are unchanged).
+- The fen sexton's ground (76.8, -27.6) is a `tree_clear` of 4 m (a tree variant shifted the wood onto it).
+Not found: the patrol routes at (18,226) and (-338,178) (no table to read: the camps' 24 m and the towns' circles are the cover), the wayside bf_tongue and sd_fold, the bellfall count and the writings' sense point.

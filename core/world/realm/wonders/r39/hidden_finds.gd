@@ -156,6 +156,7 @@ func _build(root: Node, i: int, c: Array[Vector2], rng: RandomNumberGenerator) -
 	k.host.set_meta("find_at", at)
 	k.commit(130.0)
 	k.host.set_meta("centre", at)
+	k.host.set_meta("no_surge", true)
 	k.host.set_meta("radius", 10.0)
 
 
