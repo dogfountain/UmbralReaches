@@ -15,6 +15,8 @@ const Rig := preload("res://core/life/village/villager_rig.gd")
 const Arena := preload("res://core/world/night_life/arena_light.gd")
 const Warm := preload("res://core/world/night_life/night_warm.gd")
 const NightFx := preload("res://core/world/night_life/night_fx.gd")
+const WorldWarm := preload("res://core/world/night_life/world_warm.gd")
+const OssKit := preload("res://world/areas/ossuary/oss_kit.gd")
 
 var bad := 0
 
@@ -34,6 +36,7 @@ func _ready() -> void:
 	_arena()
 	_tools()
 	_warm()
+	_world_warm()
 	print("NIGHTLIFE PASS" if bad == 0 else "NIGHTLIFE FAIL %d" % bad)
 	get_tree().quit(1 if bad > 0 else 0)
 
@@ -184,3 +187,27 @@ func _warm() -> void:
 	for f: String in Warm.COVERED:
 		ok(seen.has(f), "the warm list names %s, which exists" % f)
 	ok(NightFx.warm_list(Arena.PAL).size() > 40, "the warm list holds every preset in every colour (%d)" % NightFx.warm_list(Arena.PAL).size())
+
+
+## A new world material without a warm entry fails here: every key of OssKit.mat's match is in WorldWarm.OSS_KEYS (and builds), and every file of the
+## wonders' newest builder folder that makes a material of its own is in WorldWarm.COVERED.
+func _world_warm() -> void:
+	var text := FileAccess.get_file_as_string("res://world/areas/ossuary/oss_kit.gd")
+	var a := text.find("static func mat(key: String)")
+	var b := text.find("_mats[key] = m\n\treturn m", a)
+	var rx := RegEx.new()
+	rx.compile("\"([a-z_0-9]+)\"")
+	var keys := {"hub": true}
+	for line in text.substr(a, b - a).split("\n"):
+		if line.begins_with("\t\t\"") and line.strip_edges().ends_with(":"):
+			for m in rx.search_all(line):
+				keys[m.get_string(1)] = true
+	for k: String in keys:
+		ok(WorldWarm.OSS_KEYS.has(k), "the kit material '%s' is in the world warm list" % k)
+	for k: String in WorldWarm.OSS_KEYS:
+		ok(keys.has(k) and OssKit.mat(k) != null, "the warm list's '%s' is a real kit material" % k)
+	var dir := "res://core/world/realm/wonders/r39/"
+	for f: String in DirAccess.get_files_at(dir):
+		if f.ends_with(".gd") and FileAccess.get_file_as_string(dir + f).contains("Material.new("):
+			ok(WorldWarm.COVERED.has(f), "%s makes a material and is in the world warm list" % f)
+	ok(keys.size() >= 20, "the kit's materials were read from its source (%d)" % keys.size())
