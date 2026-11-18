@@ -8,16 +8,22 @@ extends RefCounted
 ## extra breaches besides the gates and the track crossings: [side, z]. RIDGES break up the long north-south
 ## valleys (a polyline, half width, height); a way that crosses one gets a saddle.
 
-const WALL_WEST := [Vector2(-157, -112), Vector2(-165, -90), Vector2(-172, -66), Vector2(-163, -40), Vector2(-170, -14),
-	Vector2(-160, 10), Vector2(-155, 34), Vector2(-155, 52), Vector2(-155, 82), Vector2(-152, 104), Vector2(-158, 128),
+## (map audit, 18 Nov: the west line bent out past the Rooted Holds and west_track between z -40 and 52 -- the arenas'
+## 1.6x growth had moved both onto the wall's old line (-163..-155), so the track ran inside the curtain for ~80 m and the
+## Holds' hall, houses, camp and fire stood in or against it; it now runs 9-10 m east of weir_track)
+const WALL_WEST := [Vector2(-157, -112), Vector2(-165, -90), Vector2(-172, -66), Vector2(-175, -40), Vector2(-179, -14),
+	Vector2(-178, 10), Vector2(-173, 32), Vector2(-155, 52), Vector2(-155, 82), Vector2(-152, 104), Vector2(-158, 128),
 	Vector2(-162, 150), Vector2(-157, 172), Vector2(-165, 196), Vector2(-163, 214), Vector2(-158, 230), Vector2(-156, 242)]
 const WALL_EAST := [Vector2(157, -112), Vector2(163, -92), Vector2(171, -70), Vector2(160, -46), Vector2(159, -22),
 	Vector2(163, 8), Vector2(166, 30), Vector2(158, 44), Vector2(155, 56), Vector2(155, 84), Vector2(152, 106),
 	Vector2(158, 128), Vector2(153, 150), Vector2(162, 172), Vector2(166, 196), Vector2(166, 214), Vector2(160, 230), Vector2(157, 242)]
 ## Short spurs: the wall runs out from its line to a tower on a knoll (the land lifts under the tip).
-const SPURS := [{"side": -1, "base": Vector2(-160, 10), "tip": Vector2(-176, 24)}, {"side": 1, "base": Vector2(158, 44), "tip": Vector2(170, 50)}]
+## (map audit: the west spur stood across the Holds' fire and kin-caller ground (its wall ran through (-167, 15)); the east
+## one's tower stood on anchor_track at (176, 49): both moved north, where nothing walks)
+const SPURS := [{"side": -1, "base": Vector2(-165, -90), "tip": Vector2(-179, -87)}, {"side": 1, "base": Vector2(163, -92), "tip": Vector2(177, -97)}]
 ## The long fall: [side, z0, z1] where the wall has come down (stubs and rubble, nothing to bar the way).
-const RUINS := [[-1, 112.0, 184.0]]
+## (map audit: to z 198, past downs_track's crossing at z 191, which the breach rule could not open so near the fall's end)
+const RUINS := [[-1, 112.0, 198.0]]
 ## Extra openings besides the gates and the track crossings: [side, z].
 const OPENINGS := [[-1, -24.0], [1, -26.0], [1, 132.0]]
 ## Cross-ridges in the Marches (they break up the long north-south valleys): a polyline, half width, height.

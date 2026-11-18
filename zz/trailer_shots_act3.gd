@@ -39,7 +39,7 @@ const CLEAR_LENS := ["quarry", "holds", "stillwater", "moor", "necropolis", "sie
 const FLY := {
 	"sleeper": [Vector2(168, 343), 6.0, 95.0, 40.0, -15.0, 22.0, 55.0],
 	"hollow_king": [Vector2(214, 350), 18.0, 80.0, 35.0, 10.0, 24.0, 58.0],
-	"salt_ship": [Vector2(232, 170), 4.0, 60.0, 30.0, -20.0, 26.0, 58.0],
+	"salt_ship": [Vector2(264, 196), 4.0, 60.0, 30.0, -20.0, 26.0, 58.0],
 	"titan_gate": [Vector2(-23, -24), 8.0, 55.0, 25.0, -10.0, 12.0, 60.0],
 	"wardens": [Vector2(124, 26), 10.0, 34.0, 13.0, 20.0, 28.0, 60.0],
 	"undercroft": [Vector2(-334, 85), 1.5, 24.0, 7.0, 15.0, 25.0, 60.0],

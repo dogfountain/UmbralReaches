@@ -35,6 +35,12 @@ var _key := ""                          ## the GenCache key of this kit's geomet
 var _loaded := false
 static var light_used := 0              ## every light the wonders add counts here; past LIGHT_CAP only the glow cards and glass remain (the light budget)
 const LIGHT_CAP := 72
+## (map audit, 18 Nov: the surface landmarks spent all 72 before the deep halls and caves were built, so all nine
+## underground complexes had NO light -- lit only by the night's blue ambient through the volumetric fog, flat blue murk with
+## flame cards. A light 3 m+ under the ground lights no one on the surface (it never reaches up through the hill and fades by
+## 26-52 m), so the underground keeps a budget of its own; zz/lamps_test's 14-in-40-m still holds room by room)
+static var under_used := 0
+const UNDER_CAP := 64
 
 
 func setup(root: Node, nm: String, seed_n: int) -> void:
@@ -599,9 +605,15 @@ func fire(at: Vector3, s := 1.0, energy := 2.2, light := true, own := false) -> 
 
 ## One unshadowed light under the host, within the wonders' light cap (null past it). Tagged for the light policy.
 func _light(pos: Vector3, col: Color, energy: float, rng_m: float, att: float, fade_b: float, fade_l: float) -> OmniLight3D:
-	if light_used >= LIGHT_CAP:
-		return null
-	light_used += 1
+	var wp := host.global_transform * pos if host.is_inside_tree() else pos
+	if wp.y < h(wp.x, wp.z) - 3.0:
+		if under_used >= UNDER_CAP:
+			return null
+		under_used += 1
+	else:
+		if light_used >= LIGHT_CAP:
+			return null
+		light_used += 1
 	var l := OmniLight3D.new()
 	l.name = "WonderLight"
 	l.light_color = col

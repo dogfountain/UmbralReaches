@@ -214,8 +214,9 @@ static func edges(holder: Node3D, space: PhysicsDirectSpaceState3D) -> int:
 			for u: float in [-7.5, -5.0, -2.5, 0.0, 2.5, 5.0, 7.5]:
 				for v: float in [-1.0, 1.5, 3.0]:
 					var sp := c + along * u + inward * v
-					if not WorldLanes.site_at(sp, 0.8).is_empty():
-						clash = true                   # the whole face, not just its centre: no rock in a site
+					if not WorldLanes.site_at(sp, 0.8).is_empty() or RealmLayout.path_dist(sp) < 1.5:
+						clash = true                   # the whole face, not just its centre: no rock in a site, none across a way
+						# (map audit: a cliff face stood across the road's west end at (-364.5, 48))
 			if clash:
 				continue
 			# two cliff sizes x four variants per style (RockKit caches one mesh per key: a handful of

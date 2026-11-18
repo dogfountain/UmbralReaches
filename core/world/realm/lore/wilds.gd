@@ -55,8 +55,11 @@ static func build(parent: Node) -> void:
 	var k: OssKit = L.k
 	var rng: RandomNumberGenerator = L.rng
 	# --- the abbey bounds: a long broken wall, a gap where the west way passes ------------------
-	var wa := Vector2(-56.0, 58.0)          # (18 Nov: from (-61, 31)..(-53.5, 4.5), on the henge's 1.6x floor; east of the chapel, clear of the orchard)
-	var wb := Vector2(-48.0, 36.0)
+	# (18 Nov: from (-61, 31)..(-53.5, 4.5), on the henge's 1.6x floor; map audit: then (-56, 58)..(-48, 36) lay across
+	# the Singing Stones (-46, 50) and never placed. Now east of the chapel yard, past the henge hill's skirt (64 m out),
+	# clear of the stones and of chapel_lane)
+	var wa := Vector2(-61.0, 49.0)
+	var wb := Vector2(-57.0, 33.5)
 	var r := Rect2(wa, Vector2.ZERO).expand(wb).grow(0.8)
 	if LK.clear_of(r, 0.6):
 		L.site("tw_bounds", r, L.g(r.get_center().x, r.get_center().y))
@@ -116,7 +119,7 @@ static func build(parent: Node) -> void:
 			cm.tube(PackedVector3Array([Vector3(0, -0.6, 0), Vector3(0, h * 0.4, 0), Vector3(0.06, h * 0.8, 0), Vector3(0.02, h, 0)]), PackedFloat32Array([0.55, 0.5, 0.42, 0.14]), 9, Color(1, 1, 1), 0.0, 0.14, 0.0, Vector2(1.0, 0.6))
 			LK.organic(k, "lore_moss", cm.commit(), xf2, true)
 	# --- the woodcutter's hut --------------------------------------------------------------------
-	var hc := Vector2(-101.0, 38.0)
+	var hc := Vector2(-104.0, 46.0)          # (map audit: from (-101, 38), on the henge hill's 1.6x skirt's fall: the hut stood level with its high side and tw_cutter floated 3.5 m)
 	var hr := Rect2(hc - Vector2(4.0, 4.0), Vector2(8.0, 8.0))
 	if LK.clear_of(hr, 0.6):
 		var hut: Dictionary = Cottage.build(L, "tw_hut", hc, 4.6, 3.8, 0.4, "ruin", "thatch")

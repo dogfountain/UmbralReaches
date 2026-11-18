@@ -5,7 +5,9 @@ extends RefCounted
 ## A cold light for the glimmers and the warm candles.
 
 const LK := preload("res://core/world/realm/lore/lore_kit.gd")
-const C := Vector2(-45.5, 17.5)
+const C := Vector2(-22.6, 32.6)          ## (map audit, 18 Nov: into the Glade (RealmLayout.GLADE_C), its birch-ringed clearing; at
+                                        ## (-45.5, 17.5) it stood on the henge hill's 1.6x skirt under a Titan warden)
+const HALF := 4.2
 
 
 static func build(parent: Node) -> void:
@@ -13,15 +15,15 @@ static func build(parent: Node) -> void:
 	var k: OssKit = L.k
 	var p: OssKit = L.p
 	var rng: RandomNumberGenerator = L.rng
-	var r := Rect2(C - Vector2(4.6, 4.6), Vector2(9.2, 9.2))
+	var r := Rect2(C - Vector2(HALF, HALF), Vector2(HALF, HALF) * 2.0)
 	if not LK.clear_of(r, 0.6):
 		print("REALM_LORE glade shrine spot not clear: ", C, " path ", RealmLayout.path_dist(C))
 	var gr: Vector2 = L.g_range(Rect2(C - Vector2(2.6, 2.6), Vector2(5.2, 5.2)))
 	var fy := lerpf(gr.x, gr.y, 0.6) + 0.15         # a low step on the uphill side, a plinth on the downhill
 	L.site("glade_shrine", r, fy)
 	var at := Vector3(C.x, fy, C.y)
-	var to_path := Vector2(-40.0, 12.0) - C
-	var yaw := atan2(-to_path.x, -to_path.y)       # the door faces the west way
+	var to_path := Vector2(-14.0, 26.6) - C
+	var yaw := atan2(-to_path.x, -to_path.y)       # the door faces the west way (where it leaves the square)
 	var b := Basis(Vector3.UP, yaw)
 	# round floor: a ring of kerb stones and flags, two steps
 	var n := 16

@@ -86,6 +86,10 @@ func _run() -> void:
 		if x:
 			x.process_mode = Node.PROCESS_MODE_DISABLED
 	var tq := Time.get_ticks_msec()
+	if "--sites" in OS.get_cmdline_user_args():
+		_sites()
+		get_tree().quit(0)
+		return
 	if _want("holes"):
 		_holes()
 	await get_tree().process_frame
@@ -106,6 +110,22 @@ func _run() -> void:
 
 
 ## Cluster points by 12 m cells: [[centre, count, sample note]].
+## --sites[=x0,z0,x1,z1]: every registered site that touches the box (name, rect or circle, floor), for placing things by hand.
+func _sites() -> void:
+	var box := Rect2(-370, -150, 740, 548)
+	for a in OS.get_cmdline_user_args():
+		if a.begins_with("--box="):
+			var v := a.trim_prefix("--box=").split_floats(",")
+			box = Rect2(Vector2(v[0], v[1]), Vector2(v[2] - v[0], v[3] - v[1]))
+	for st: Dictionary in WorldLanes.sites:
+		var r: Rect2 = st.rect
+		if r.intersects(box):
+			lines.append("site %s rect (%.1f,%.1f)-(%.1f,%.1f) floor %.1f%s" % [st.name, r.position.x, r.position.y, r.end.x, r.end.y, float(st.get("floor_y", 0.0)), (" circle " + str(st.circle)) if st.has("circle") else ""])
+	var f := FileAccess.open(out_path, FileAccess.WRITE)
+	f.store_string("\n".join(lines) + "\n")
+	f.close()
+
+
 static func _cluster(items: Array, cell := 12.0) -> Array:
 	var cells := {}
 	for it: Array in items:

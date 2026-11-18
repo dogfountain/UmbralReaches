@@ -11,7 +11,10 @@ checklist: every finding, its location, a screenshot, its fix and the commit. Re
 - [x] interiors shot and read (52: every Interiors room, every acoustic volume, the deep halls' and caves' stairs, the Ossuary's 18 stations)
 - [x] measured probe run (`zz/map_audit_probe.gd`: holes, floating/sunk props, lights in the air, ways blocked or under water)
 - [x] critique written (below)
-- [ ] fixes, worst first, each re-shot
+- [ ] fixes, worst first (Luke, 18 Nov 20:50, via the lead: **do NOT re-shoot after each fix.** Make every fix first (F1..F30,
+      T1..T8) from code, probes and notes; then ONE re-shoot pass of all the fixed spots, read those, fix what is still wrong,
+      then the one test run. Short headless probes/censuses to settle a specific doubt are fine; no capture run per fix)
+- [ ] one re-shoot pass of every fixed spot, read, fix the leftovers
 - [ ] tests once at the end (`--quick`, then the world tests the brief lists)
 
 Scratch: `/private/tmp/claude-501/-Users-luke-UmbralReaches/10dbc585-c502-4f27-b1e3-a047668e1104/scratchpad/map_audit/`

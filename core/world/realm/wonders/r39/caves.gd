@@ -40,7 +40,9 @@ func _run(root: Node) -> void:
 	# a warm boot builds the caves the last search picked (wonder_plan.gd), in the same order
 	var pk := Plan.key("caves", SELF, ["res://core/world/realm/wonders/r39/dungeon_kit.gd"])
 	var stored: Variant = Plan.load_plan(pk, SELF)
-	if stored is Dictionary:
+	# (map audit, 18 Nov: a stored pick is used only while it is still clear of every site the landmarks built before it
+	# reserved -- cave 4's stored spot lay inside the Sleeper, built after the plan was made; a stale plan is searched again)
+	if stored is Dictionary and _plan_clear((stored as Dictionary).spots):
 		var sd: Dictionary = stored
 		var spots: Array = sd.spots
 		for si in spots.size():
@@ -65,6 +67,15 @@ func _run(root: Node) -> void:
 	var line := "WONDER caves: %d of 7 (%d of %d candidates tried); rejected: %s" % [n, tried, cands.size(), WK.rejected(t)]
 	print(line)
 	Plan.save_plan(pk, SELF, {"spots": _picks, "log": line})
+
+
+## Every stored cave still clear of the sites reserved before the caves are built (the Sleeper, the Salt Ship, the halls).
+static func _plan_clear(spots: Array) -> bool:
+	for sp: Array in spots.slice(2):              # (the first two keep their fixed spots, sites or no)
+		var c: Vector2 = sp[0]
+		if WK.site_hit(Rect2(c - Vector2(10.0, 20.0), Vector2(20.0, 40.0)), 1.0):
+			return false
+	return true
 
 
 func _ok(c: Vector2, t: Dictionary) -> bool:
@@ -104,12 +115,14 @@ func _make(root: Node, i: int, c: Vector2, yaw: float) -> bool:
 	var start := c - fwd2 * 24.0
 	d.run = 20.0
 	d.o = Vector3(start.x, WK.h(start.x, start.y), start.y)
+	# (map audit: every 3 m over the whole footprint and 1.6 m more cover: caves 1, 2 and 4 showed their roof slabs and
+	# black walls through the turf of their hillsides)
 	var gmin := d.o.y
-	for ui in range(-10, 11, 5):
-		for vi in range(0, 37, 6):
+	for ui in range(-12, 13, 3):
+		for vi in range(-2, 40, 3):
 			var q := d.o + d.fwd * (d.run + float(vi)) + d.side * float(ui)
 			gmin = minf(gmin, WK.h(q.x, q.z))
-	d.yf = gmin - 7.4
+	d.yf = gmin - 9.0
 	d.wall = "cave"
 	d.trim = "cave"
 	d.ceil_key = "cave"

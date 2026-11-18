@@ -87,13 +87,16 @@ func _hall(root: Node, spec: Dictionary, c: Vector2, yaw: float) -> bool:
 	var start := c - fwd2 * 33.0
 	d.run = 30.0
 	d.o = Vector3(start.x, WK.h(start.x, start.y), start.y)
+	# (map audit, 18 Nov: sampled every 8 x 6 m to v 38, the ground's dips between and beyond the samples (the end room
+	# runs to v 44, its walls to 44.6) left 1.3 m of cover or less, and the undercroft's and the cisterns' masonry broke out
+	# of their hillsides. Every 3 m over the whole footprint and its walls, and 2 m more cover)
 	var gmin := INF
-	for ui in range(-16, 17, 8):
-		for vi in range(0, 39, 6):
+	for ui in range(-18, 19, 3):
+		for vi in range(-2, 48, 3):
 			var q := d.o + d.fwd * (d.run + float(vi)) + d.side * float(ui)
 			gmin = minf(gmin, WK.h(q.x, q.z))
 	gmin = minf(gmin, d.o.y)
-	d.yf = gmin - 8.6
+	d.yf = gmin - 10.6
 	_theme(d, String(spec.theme))
 	d.k.poi(String(spec.id), String(spec.title), String(spec.line), String(spec.region))
 	d.k.host.add_to_group("deep_hall")

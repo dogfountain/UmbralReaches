@@ -78,7 +78,8 @@ static func build(parent: Node) -> void:
 	var gr_e := Rect2(29.5, 44.0, 5.5, 5.0) if gw else Rect2(27.0, 43.5, 5.5, 5.0)
 	L.garden(gr_e, 3)
 	L.site("hw_garden_e", gr_e, L.g(gr_e.get_center().x, gr_e.get_center().y))
-	var gr_n := Rect2(-31.5, 5.5, 5.0, 4.5) if gw else Rect2(-27.5, 6.0, 5.0, 4.5)
+	# (map audit: off west_way and the henge stair's foot, which moved here with the 1.6x floor)
+	var gr_n := Rect2(-23.5, -1.5, 5.0, 4.5) if gw else Rect2(-27.5, 6.0, 5.0, 4.5)
 	L.garden(gr_n, 0)
 	L.site("hw_garden_n", gr_n, L.g(gr_n.get_center().x, gr_n.get_center().y))
 	# Ewan Reed's grave in the east garden's corner

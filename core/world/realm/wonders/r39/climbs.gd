@@ -141,9 +141,11 @@ func _tower(root: Node, i: int, c: Vector2, lo: float, hi: float, rng: RandomNum
 		k.kit.box("stone_big", o + Vector3(0.0, h * 0.5 - 2.0, 3.0), Vector3(6.0, h - 4.0, 0.9), b, true, 0.98)
 		k.kit.box("stone_big", o + Vector3(-3.0, h * 0.5, 0.0), Vector3(0.9, h, 5.2), b, true, 0.98)
 		k.kit.box("stone_big", o + Vector3(3.0, h * 0.5 - 3.0, 0.0), Vector3(0.9, h - 6.0, 5.2), b, true, 0.98)
+		# broken merlons on the south wall's head (map audit, 18 Nov: they stood on the north wall's line at 11-13.7 m, but that
+		# wall is breached to 9 m, so four black blocks hung 2-4 m in the air round every tower's top)
 		for j in 4:
-			var ry := h - 0.5 - 0.8 * float(j)
-			k.kit.box("ruin_big", o + Vector3(-1.2 + 1.3 * float(j % 2), ry + 0.8, 3.0), Vector3(1.2, 0.8, 0.9), b, true, 0.8)      # broken merlons
+			var mh := 0.9 - 0.25 * float(j % 2) - 0.1 * float(j)
+			k.kit.box("ruin_big", o + Vector3(-2.2 + 1.45 * float(j), h + mh * 0.5 - 0.05, -3.0), Vector3(1.0, mh, 0.9), b, true, 0.8)
 		k.window(o + Vector3(0.0, 6.0, -3.46), Vector3.RIGHT, Vector3.FORWARD, 0.7, 1.6)
 		k.window(o + Vector3(-3.46, 8.0, 0.0), Vector3.BACK, Vector3.LEFT, 0.7, 1.6)
 		k.lamp(o + Vector3(0.0, 6.4, -3.7), Color(1.0, 0.66, 0.36), 1.0, 8.0)

@@ -716,6 +716,10 @@ func _shoot_interior(s: Dictionary) -> void:
 				fl3 = e3.y
 			var eye3 := Vector3(e3.x, fl3 + 1.6, e3.z)
 			info.append("X %.1f Y %.1f Z %.1f  FLOOR %.1f" % [e3.x, e3.y, e3.z, fl3])
+			var crypt := main.find_child("Crypt", true, false)
+			if crypt != null:
+				var hn := crypt.get("hall") as Node3D
+				print("MAPAUDIT crypt %s: built %s hall.visible %s in_tree %s phys %s proc_mode %d cam_local %s" % [s.name, crypt.get("built"), hn.visible if hn else "-", hn.is_visible_in_tree() if hn else "-", crypt.is_physics_processing(), crypt.process_mode, OssFrame.l(cam.global_position)])
 			var face: Vector3 = s.face
 			var base := 0.0 if face.length() < 0.1 else rad_to_deg(atan2(face.x, -face.z))
 			if face.length() < 0.1:
@@ -726,6 +730,10 @@ func _shoot_interior(s: Dictionary) -> void:
 				var yd2 := base + 90.0 * k2
 				_park(eye3, eye3 + _dir(yd2) + Vector3(0, -0.12, 0), fl3)
 				await _secs(2.0 if first4 else 0.25)
+				if first4 and crypt != null:
+					var hn2 := crypt.get("hall") as Node3D
+					var anc := crypt.get_parent()
+					print("MAPAUDIT crypt after park %s: hall.visible %s in_tree %s cam_local %s cam_current %s area_mode %d area_proc %s" % [s.name, hn2.visible, hn2.is_visible_in_tree(), OssFrame.l(cam.global_position), get_viewport().get_camera_3d() == cam, anc.process_mode, anc.can_process()])
 				first4 = false
 				frames.append(await _grab(3))
 				labels.append(["AHEAD", "RIGHT", "BEHIND", "LEFT"][k2])

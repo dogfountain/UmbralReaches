@@ -56,7 +56,11 @@ func _w(x: float, y: float, z: float) -> Vector3:
 
 func _run(root: Node) -> void:
 	# the footprint is long along z; the yaw options turn it every which way across the flats
-	var f := WK.place_first([Vector2(232.0, 170.0)], HALF, [0.0, PI * 0.5, PI * 0.25, -PI * 0.25], 3.0, true)      # fixed: on the flats at (232, 170)
+	# fixed: on the pans' eastern shore at (264, 196), bow to the north. (map audit, 18 Nov: it stood at (232, 170) inside
+	# the East Marches salt-works -- the works' derrick through its hull, the shed's roof through its deck, a salt heap in its hold,
+	# salt_track under its keel. The flats west of the works are the star crater's and the ways'; east of them, between
+	# the works and cairn_track, the shore is open)
+	var f := WK.place_first([Vector2(264.0, 196.0)], HALF, [0.0, PI, 0.12, -0.12], 3.0, true)
 	var yaw := float(f.yaw)
 	var mid: Vector2 = f.pos
 	# the ship's z axis lies along the footprint's long side
@@ -70,7 +74,7 @@ func _run(root: Node) -> void:
 			low = minf(low, (rot * Vector3(sx * sec.x, sec.y, s * HALF_LEN)).y)
 	lvl = (float(f.lo) + float(f.hi)) * 0.5
 	base = Vector3(mid.x, lvl + 0.15 - low, mid.y)
-	WorldLanes.register_terrace("wonder_salt_ship", mid, 31.0, lvl)          # the flats are levelled under the hull (the stamp), so the ship never floats or sinks
+	WorldLanes.register_terrace("wonder_salt_ship", mid, 25.0, lvl)          # the flats are levelled under the hull (the stamp), so the ship never floats or sinks
 	WK.reserve("wonder_salt_ship_site", mid, HALF, yaw, lvl - 1.0, lvl + 18.0)
 	k = WK.new()
 	k.setup(root, "SaltShip", 5233)
