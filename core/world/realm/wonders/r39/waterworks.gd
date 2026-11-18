@@ -105,7 +105,7 @@ func _dock(root: Node, i: int, p: Vector2, d: Vector2, rng: RandomNumberGenerato
 		k.tube("wood_big", Vector3(end.x, deck, end.z) + s3 * -0.9, Vector3(end.x, deck + 0.7, end.z) + s3 * -0.9, 0.12, 0.1, 6, false, 0.6)
 		var lp := o + d3 * (ln - 0.3) + s3 * 1.05
 		k.tube("wood_big", Vector3(lp.x, deck, lp.z), Vector3(lp.x, deck + 2.6, lp.z), 0.07, 0.06, 5, false, 0.65)
-		k.kit.box("glow", Vector3(lp.x, deck + 2.75, lp.z), Vector3(0.3, 0.4, 0.3), b, false, 1.0)
+		k.kit.lantern(Vector3(lp.x, deck + 2.75, lp.z), Vector3(0.3, 0.4, 0.3), b)
 		k.lamp(Vector3(lp.x, deck + 2.7, lp.z), Color(1.0, 0.7, 0.4), 0.9, 8.0)
 		Dress.crate(k, Vector3(o.x, deck + 0.07, o.z) + d3 * 2.4 - s3 * 0.7, k.rng.randf() * TAU, 0.8)
 		Dress.barrel(k, Vector3(o.x, deck + 0.07, o.z) + d3 * 3.4 - s3 * 0.8, 0.0, 0.9)
@@ -218,7 +218,7 @@ func _bridges(root: Node, rng: RandomNumberGenerator) -> int:
 					k.kit.box("stone_big", Vector3(ab.x, (gy - 0.6 + deck) * 0.5, ab.z), Vector3(2.8, deck - gy + 0.6, 1.4), b, true, 0.85)
 				var lp := mid3 + s3 * 1.1
 				k.tube("wood_big", Vector3(lp.x, deck, lp.z), Vector3(lp.x, deck + 2.4, lp.z), 0.06, 0.05, 4, false, 0.65)
-				k.kit.box("glow", Vector3(lp.x, deck + 2.5, lp.z), Vector3(0.28, 0.36, 0.28), b, false, 1.0)
+				k.kit.lantern(Vector3(lp.x, deck + 2.5, lp.z), Vector3(0.28, 0.36, 0.28), b)
 				k.lamp(Vector3(lp.x, deck + 2.5, lp.z), Color(1.0, 0.7, 0.4), 0.8, 8.0)
 			else:
 				for j in 9:
@@ -226,7 +226,7 @@ func _bridges(root: Node, rng: RandomNumberGenerator) -> int:
 					k.kit.box("stone_big", Vector3(c.x, wl + 0.1, c.z), Vector3(0.9, 0.5, 0.8), Basis(Vector3.UP, float(j)), true, 0.8)
 				var sp := mid3 + d3 * 7.0 + s3 * 1.6
 				k.tube("wood_big", Vector3(sp.x, WK.h(sp.x, sp.z), sp.z), Vector3(sp.x, WK.h(sp.x, sp.z) + 2.4, sp.z), 0.07, 0.06, 4, false, 0.65)
-				k.kit.box("glow", Vector3(sp.x, WK.h(sp.x, sp.z) + 2.5, sp.z), Vector3(0.26, 0.34, 0.26), b, false, 1.0)
+				k.kit.lantern(Vector3(sp.x, WK.h(sp.x, sp.z) + 2.5, sp.z), Vector3(0.26, 0.34, 0.26), b)
 		WK.reserve("river_cross_%d" % made, m, Vector2(8.0, 8.0), 0.0, minf(ya, yb) - 2.0, deck + 4.0)
 		k.commit(150.0)
 		made += 1

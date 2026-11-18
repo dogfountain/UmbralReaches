@@ -27,6 +27,7 @@ var mid := Vector3.ZERO
 var rot := Basis.IDENTITY
 var y0 := 0.0
 var _gmin := 0.0
+var _placed_c: Array[Vector2] = []
 
 
 static func build(root: Node) -> void:
@@ -45,13 +46,20 @@ func _blk(key: String, x0: float, x1: float, z0: float, z1: float, y_lo: float, 
 ## The four first-merge spots of a station, then each shifted along the line (x +-14, +-28, +-44): never in a town, at Saltmarket, at Weirford or in the Bellfall.
 func _cands(x: float) -> Array:
 	var out: Array = []
+	var loose: Array = []
 	for dx: float in [0.0, 14.0, -14.0, 28.0, -28.0, 44.0, -44.0]:
 		for z: float in [26.0, 104.0, 14.0, 116.0, 60.0]:
 			var c := Vector2(x + dx, z)
 			if (dx != 0.0 and RealmLayout.path_dist(c) < 14.0) or WK.in_town(c, 8.0) or c.distance_to(Vector2(215.0, 97.0)) < 48.0 or c.distance_to(Vector2(-196.0, 70.0)) < 42.0 or Rect2(306.0, 84.0, 64.0, 38.0).grow(14.0).has_point(c):
 				continue
+			# (map audit, 18 Nov: tower 4 stood IN the East March Wall at (152, 104), its room full of the wall's courses;
+			# tower 3 against the West Wall's own tower at (-142, 104); towers 5 and 6 20 m apart at the Nave. The line keeps
+			# 20 m off the wall and 70 m between its towers)
+			loose.append(c)
+			if RealmMarch.wall_dist(c) < 20.0 or _placed_c.any(func(q: Vector2) -> bool: return q.distance_to(c) < 70.0) or WK.site_hit(Rect2(c - Vector2(9.0, 9.0), Vector2(18.0, 18.0)), 1.0):
+				continue
 			out.append(c)
-	return out
+	return out if not out.is_empty() else loose
 
 
 func _run(root: Node) -> void:
@@ -79,6 +87,7 @@ func _run(root: Node) -> void:
 		else:
 			var f := WK.place_first(_cands(x), Vector2(8.0, 8.0), [0.0], 2.5)
 			c = f.pos
+			_placed_c.append(c)
 			flo = float(f.lo)
 			fhi = float(f.hi)
 			spots.append([c, flo, fhi])

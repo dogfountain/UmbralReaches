@@ -388,6 +388,11 @@ static func _wall(host: Node3D, root: Node) -> void:
 		var c := Vector2(m.global_position.x, m.global_position.z)
 		var inward := Vector2(-signf(c.x), 0.0)
 		var foot := c + inward * 5.6 + Vector2(0.0, 2.2)
+		# off any way that runs past the tower's inner face (map audit, 18 Nov: the wall's end tower stood its lamp on fallow_way)
+		for alt: Vector2 in [Vector2(5.6, -2.2), Vector2(7.4, 3.4), Vector2(7.4, -3.4), Vector2(-5.6, 2.2), Vector2(-5.6, -2.2)]:
+			if RealmLayout.path_dist(foot) >= 1.6:
+				break
+			foot = c + inward * alt.x + Vector2(0.0, alt.y)          # (the last two: outside the wall, by the tower's outer face)
 		var top_y := _top_y(c + inward * 1.4, -100.0)
 		var s := _s("wall_t_%s" % String(m.name).trim_prefix("Tower_"), "post", foot.x, foot.y, {"face": float(hash(String(m.name)) % 628) / 100.0})
 		var lead := place(host, s)

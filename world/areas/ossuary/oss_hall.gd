@@ -1002,17 +1002,20 @@ func bell_at(i: int) -> Vector3:
 func _lights() -> void:
 	# candle-gold carries the room: the corona over the mound, a lamp over each gallery bay, the
 	# candles round the mound's foot; grave-light only in the chapels (and the deep when it opens)
-	_omni(hall, "Corona", C + Vector3.UP * 12.5, GOLD, 3.0, 19.0, 0.3)      # ends at the wall: the path outside is the night
+	# (map audit: the room grew 1.6x on 18 Nov but its lamps did not -- the gallery lamps hung over the fighting floor at
+	# the old 17.4 m and the corona's 19 m died 17 m short of the wall, so the hall read pitch black from its own door. Every
+	# lamp's place and reach x1.6 with the room; the same seven lamps, no shadows)
+	_omni(hall, "Corona", C + Vector3.UP * 18.0, GOLD, 3.0, 30.4, 0.3)      # ends at the wall: the path outside is the night
 	_omni(hall, "MoundFoot", C + Vector3.UP * 1.4, GOLD, 3.0, 6.0)
 	for i in 8:
 		var a := 22.5 + 45.0 * float(i)
-		_omni(hall, "Gallery%d" % i, at(a, 17.4, FLOOR_Y + 4.0), GOLD, 2.0, 6.0, 0.6)           # a lamp local to its bay
+		_omni(hall, "Gallery%d" % i, at(a, 27.8, FLOOR_Y + 4.0), GOLD, 2.0, 9.6, 0.6)           # a lamp local to its bay
 	for j in sockets.size():
 		_omni(hall, "Tally%d" % j, sockets[j] + Vector3.UP * 1.8, GRAVE, 1.8, 5.0)
 	_omni(hall, "Door", at(door_ang(), WALL_R - 0.5, FLOOR_Y + 3.2), GOLD, 3.0, 5.5)
 	for i in 4:
 		var a := 45.0 + 90.0 * float(i)
-		var l := _omni(hall, "Deep%d" % i, at(a, 14.0, DEEP_Y + 1.2), GRAVE, 3.0, 7.5)
+		var l := _omni(hall, "Deep%d" % i, at(a, 22.4, DEEP_Y + 1.2), GRAVE, 3.0, 12.0)
 		deep_lights.append(l)
 		l.visible = false
 

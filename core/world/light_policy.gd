@@ -126,7 +126,11 @@ static func apply_fade(light: Light3D) -> void:
 			light.distance_fade_begin = 28.0
 			light.distance_fade_shadow = 12.0
 			light.distance_fade_length = 8.0
-			light.light_volumetric_fog_energy = 1.15
+			# (map audit: was 1.15, 2.5x a lit beacon and 5x a lamp. The "fill" class is every light nobody classed: an
+			# UNLIT brazier's ember, a secret's glint, a room's fill. Near the ground each one lit the froxel fog into a 3-6 m
+			# white or pink ball, the brightest thing in its view -- an unlit fire glowing brighter than a kindled one breaks
+			# "warmth is earned", and the meadow fire's pink cloud was the rejected "wide fire bloom". A breath of fog only)
+			light.light_volumetric_fog_energy = 0.1
 
 
 static func apply_shadows(light: Light3D) -> void:

@@ -40,7 +40,9 @@ func _run(root: Node) -> void:
 	# a warm boot builds the caves the last search picked (wonder_plan.gd), in the same order
 	var pk := Plan.key("caves", SELF, ["res://core/world/realm/wonders/r39/dungeon_kit.gd"])
 	var stored: Variant = Plan.load_plan(pk, SELF)
-	if stored is Dictionary:
+	# (map audit, 18 Nov: a stored pick is used only while it is still clear of every site the landmarks built before it
+	# reserved -- cave 4's stored spot lay inside the Sleeper, built after the plan was made; a stale plan is searched again)
+	if stored is Dictionary and _plan_clear((stored as Dictionary).spots):
 		var sd: Dictionary = stored
 		var spots: Array = sd.spots
 		for si in spots.size():
@@ -67,6 +69,38 @@ func _run(root: Node) -> void:
 	Plan.save_plan(pk, SELF, {"spots": _picks, "log": line})
 
 
+## Every stored cave still clear of the sites reserved before the caves are built (the Sleeper, the Salt Ship, the halls).
+static func _plan_clear(spots: Array) -> bool:
+	for sp: Array in spots.slice(2):              # (the first two keep their fixed spots, sites or no)
+		var c: Vector2 = sp[0]
+		if WK.site_hit(Rect2(c - Vector2(10.0, 20.0), Vector2(20.0, 40.0)), 1.0) or _mouth_dir(c, float(sp[1])) == Vector2.ZERO:
+			return false
+	return true
+
+
+## Which way a cave at `c` runs (its stair's head is 24 m back from `c` against it): downhill first, the other way when the
+## downhill head stands on a reserved site; ZERO when both do. (map audit, 18 Nov: the chambers were tested, the stair's
+## head never was, and cave 4's mouth and stair stood in the Sleeper's arm.)
+static func _mouth_dir(c: Vector2, yaw: float) -> Vector2:
+	var ez := Vector2(-sin(yaw), cos(yaw))
+	var down := ez if WK.h(c.x - ez.x * 24.0, c.y - ez.y * 24.0) <= WK.h(c.x + ez.x * 24.0, c.y + ez.y * 24.0) else -ez
+	for f: Vector2 in [down, -down]:
+		var st := c - f * 24.0
+		if not _mass_hit(Rect2(st - Vector2(7.0, 7.0), Vector2(14.0, 14.0))) and not _mass_hit(Rect2(c - f * 13.0 - Vector2(4.0, 4.0), Vector2(8.0, 8.0))):
+			return f
+	return Vector2.ZERO
+
+
+## A landmark's or a place's own ground (a wonder's reserve, a raid floor, a POI, a deep hall) reaching `r`: the masses a stair
+## must not run into. The wayside's small dressing sites are left out (they turned away the Bat Cave and the Ember Cave both).
+static func _mass_hit(r: Rect2) -> bool:
+	for st: Dictionary in WorldLanes.sites:
+		var nm := String(st.name)
+		if (nm.begins_with("wonder_") or nm.begins_with("raid_") or nm.begins_with("poi_") or nm.begins_with("hall_")) and WorldLanes.site_hits_rect(st, r, 1.0):
+			return true
+	return false
+
+
 func _ok(c: Vector2, t: Dictionary) -> bool:
 	if RealmLayout.path_dist(c) < 12.0:
 		return WK.rej(t, "way")
@@ -87,15 +121,24 @@ func _cave(root: Node, i: int, c0: Vector2) -> bool:
 	if bool(f.get("site", true)):
 		return false
 	var c: Vector2 = f.pos
+	var yaw := float(f.yaw)
+	if i >= 2 and _mouth_dir(c, yaw) == Vector2.ZERO:
+		yaw += PI * 0.5                                   # the other axis: its stair may run clear where this one could not
+		if _mouth_dir(c, yaw) == Vector2.ZERO:
+			return false
 	_placed.append(c)
-	_picks.append([c, float(f.yaw)])
-	return _make(root, i, c, float(f.yaw))
+	_picks.append([c, yaw])
+	return _make(root, i, c, yaw)
 
 
 ## The cave `i` at centre `c`, its stair running along `yaw`: the build from a pick.
 func _make(root: Node, i: int, c: Vector2, yaw: float) -> bool:
 	var ez := Vector2(-sin(yaw), cos(yaw))
 	var fwd2 := ez if WK.h(c.x - ez.x * 24.0, c.y - ez.y * 24.0) <= WK.h(c.x + ez.x * 24.0, c.y + ez.y * 24.0) else -ez
+	if i >= 2:
+		var md := _mouth_dir(c, yaw)
+		if md != Vector2.ZERO:
+			fwd2 = md
 	var d := DK.new()
 	d.k = WK.new()
 	d.k.setup(root, "Cave%d" % i, 8300 + i)
@@ -104,12 +147,14 @@ func _make(root: Node, i: int, c: Vector2, yaw: float) -> bool:
 	var start := c - fwd2 * 24.0
 	d.run = 20.0
 	d.o = Vector3(start.x, WK.h(start.x, start.y), start.y)
+	# (map audit: every 3 m over the whole footprint and 1.6 m more cover: caves 1, 2 and 4 showed their roof slabs and
+	# black walls through the turf of their hillsides)
 	var gmin := d.o.y
-	for ui in range(-10, 11, 5):
-		for vi in range(0, 37, 6):
+	for ui in range(-12, 13, 3):
+		for vi in range(-2, 40, 3):
 			var q := d.o + d.fwd * (d.run + float(vi)) + d.side * float(ui)
 			gmin = minf(gmin, WK.h(q.x, q.z))
-	d.yf = gmin - 7.4
+	d.yf = gmin - 9.0
 	d.wall = "cave"
 	d.trim = "cave"
 	d.ceil_key = "cave"

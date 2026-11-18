@@ -28,7 +28,7 @@ func _ready() -> void:
 	_mat.billboard_mode = BaseMaterial3D.BILLBOARD_FIXED_Y
 	_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
 	_mat.albedo_texture = _tongue()
-	_mat.albedo_color = Color(0.55, 0.72, 1.0, 0.85)
+	_mat.albedo_color = Color(0.74, 0.76, 0.84, 0.7)        # a pale ash-silver ghost, not an electric blue (map audit, 18 Nov)
 	_mat.disable_fog = true
 	_mi = MeshInstance3D.new()
 	_mi.mesh = _mesh

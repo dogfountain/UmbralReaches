@@ -16,6 +16,9 @@ ashlar, slate), pivot at the base centre, Godot metres, y up, the front of a sta
   wall_low.glb             3.0 x 0.6 x 1.2    a coursed stone wall bay with a coping; wall_pier.glb 0.8 x 0.8 x 1.9
   hitch_rail.glb           2.4 x 0.3 x 1.25   two posts, a rail, iron rings
   washing_line.glb         5.0 x 0.1 x 2.6    two poles, a line, sheets and shirts (cloth)
+  fingerpost.glb           0.95 x 0.95 x 2.75 a junction's way-post: an oak post on crossed sole timbers and braces, iron bands,
+                           a gabled cap; fingerpost_arm.glb 0.93 x 0.17 x 0.04: one pointed arm (+x from the post's
+                           axis) with a cut name on both faces, set on the post once per way by realm_wayfinding.gd
 """
 import math
 import os
@@ -431,6 +434,54 @@ def build_hitch():
     return finish(p, "hitch_rail", (V(0, 0.62, 0), (2.4, 1.25, 0.3)))
 
 
+def build_fingerpost():
+    """A way-post for a junction: a weathered oak post on a cross of sole timbers with four braces, two iron bands, a
+    little gabled cap. The arms are fingerpost_arm.glb, set on it by the builder (realm_wayfinding.gd) one per way."""
+    p = P(131)
+    box(p, V(0, 1.2, 0), (0.15, 2.8, 0.15), tone="dark", jit=0.004, omit=('-y',), taper=(0.86, 0.86), R=rotm(0.0, 0.012, -0.01))
+    for y in (2.08, 0.62):
+        box(p, V(0, y, 0), (0.166, 0.05, 0.166), kind=IRON, col=p.iron())
+    # the cap: two boards pitched over the post's head, meeting at a ridge
+    for sg in (-1.0, 1.0):
+        box(p, V(sg * 0.06, 2.655, 0), (0.15, 0.03, 0.24), tone="grey", jit=0.002, R=rotm(0.0, 0.0, sg * -0.62))
+    box(p, V(0, 2.71, 0), (0.035, 0.035, 0.25), tone="dark")
+    # the foot: two crossed sole timbers half sunk in the ground and four braces up to the post
+    box(p, V(0, 0.03, 0), (0.95, 0.11, 0.12), tone="dark", jit=0.004, R=rotm(0.785))
+    box(p, V(0, 0.035, 0), (0.12, 0.11, 0.95), tone="dark", jit=0.004, R=rotm(0.785))
+    for k in range(4):
+        a = 0.785 + k * math.pi / 2
+        d = V(math.cos(a), 0, -math.sin(a))
+        beam_between(p, d * 0.4 + V(0, 0.08, 0), d * 0.075 + V(0, 0.5, 0), 0.065, tone="mid", jit=0.002)
+    return finish(p, "fingerpost", (V(0, 1.3, 0), (0.3, 2.75, 0.3)))
+
+
+def build_finger_arm():
+    """One arm of a way-post: a board pointing along +x from the post's axis (its root against the post's face), a
+    pointed tip, a raised rim along both edges, the place's name cut into both faces (dark grooves), an iron strap and
+    two nails at the root. Metres; the arm's centre line at y 0."""
+    p = P(137)
+    poly = [(0.07, -0.085), (0.8, -0.085), (0.93, 0.0), (0.8, 0.085), (0.07, 0.085)]
+    ext(p, poly, 0.032, V(0, 0, 0), tone="mid", jit=0.002)
+    for y in (-0.072, 0.072):
+        box(p, V(0.43, y, 0), (0.7, 0.014, 0.042), tone="grey", jit=0.001)
+    # the lettering: short cut strokes in a row on each face, darker in the grooves
+    for sz in (-1.0, 1.0):
+        x = 0.16
+        while x < 0.74:
+            w = p.rng.uniform(0.018, 0.05)
+            hgt = p.rng.uniform(0.05, 0.085)
+            box(p, V(x + w / 2, p.rng.uniform(-0.006, 0.006), sz * 0.0165), (w, hgt, 0.004), tone="dark", col=(0.36, 0.32, 0.28))
+            x += w + p.rng.uniform(0.012, 0.03)
+            if p.rng.random() < 0.2:
+                x += 0.04                                  # a space between words
+    # the strap round the root and its nails
+    box(p, V(0.11, 0, 0), (0.05, 0.19, 0.044), kind=IRON, col=p.iron())
+    for y in (-0.05, 0.05):
+        for sz in (-1.0, 1.0):
+            nail(p, V(0.11, y, sz * 0.023), (0, 0, sz))
+    return finish(p, "fingerpost_arm", (V(0.5, 0, 0), (0.9, 0.18, 0.05)))
+
+
 def line_y(x):
     """The line's height at x: a rope between two hooks, sagging in the middle."""
     return 2.34 - 0.21 * (1.0 - (x / 2.4) ** 2)
@@ -536,6 +587,8 @@ MODELS = [
     ("wall_pier", lambda: build_wall(True), V(0, 1.0, 0)),
     ("hitch_rail", build_hitch, V(0, 0.8, 0)),
     ("washing_line", build_line, V(0, 1.6, 0)),
+    ("fingerpost", build_fingerpost, V(0, 1.4, 0)),
+    ("fingerpost_arm", build_finger_arm, V(0.5, 0, 0)),
 ]
 
 for name, fn, focus in MODELS:

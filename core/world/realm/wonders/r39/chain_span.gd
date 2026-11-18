@@ -119,7 +119,7 @@ func _deck() -> void:
 		for s: float in [-1.0, 1.0]:
 			var p := _pt(t, s * 2.1, 1.0)
 			k.kit.box("iron", p + Vector3.UP * 0.2, Vector3(0.05, 0.4, 0.05), Basis.IDENTITY, false, 0.6)
-			k.kit.box("glow", p - Vector3.UP * 0.1, Vector3(0.3, 0.42, 0.3), Basis.IDENTITY, false, 1.0)
+			k.kit.lantern(p - Vector3.UP * 0.1, Vector3(0.3, 0.42, 0.3), Basis.IDENTITY)
 			if (i + (0 if s < 0.0 else 1)) % 2 == 0:
 				k.lamp(p, Color(1.0, 0.68, 0.38), 0.9, 7.5)
 

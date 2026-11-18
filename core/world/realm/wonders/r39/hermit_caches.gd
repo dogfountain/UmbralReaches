@@ -103,7 +103,7 @@ func _cache(root: Node, i: int, p: Vector2, level: float) -> void:
 		k.tube("wood_big", pole, pole + Vector3.UP * 7.2, 0.2, 0.14, 6, true, 0.7)
 		k.beam("wood_big", pole + Vector3.UP * 6.9, pole + Vector3.UP * 6.9 + rx * -1.1, 0.12, 0.12, false, 0.7)
 		k.kit.box("iron", pole + rx * -1.1 + Vector3.UP * 6.7, Vector3(0.04, 0.3, 0.04), Basis.IDENTITY, false, 0.6)
-		k.kit.box("glow", pole + rx * -1.1 + Vector3.UP * 6.35, Vector3(0.36, 0.5, 0.36), b, false, 1.0)
+		k.kit.lantern(pole + rx * -1.1 + Vector3.UP * 6.35, Vector3(0.36, 0.5, 0.36), b)
 		k.lamp(pole + rx * -1.1 + Vector3.UP * 6.3, Color(1.0, 0.68, 0.38), 1.6, 12.0)
 		var loot := {"grave_ash": 10 + i, "grave_iron": 1 + (i % 2)}
 		if i % 4 == 3:

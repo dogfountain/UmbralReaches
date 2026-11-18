@@ -66,8 +66,7 @@ it matters, what good looks like. Nothing is "fine". Look for at least:
 ## Fixing it
 
 Then fix every finding, worst first, end to end. You may edit world placement, layout tables, POI builders, dressing,
-lighting placement, terrain shaping and the arenas' surroundings. Every fix is verified by a new screenshot of the same
-spot, read at full size, before you tick it. Keep the rules:
+lighting placement, terrain shaping and the arenas' surroundings. Make every fix first; then ONE re-capture pass of everything you fixed, read at full size, before you tick them (Luke, 18 Nov: "it only gets reshot after everything is fixed to save time and tokens"). Keep the rules:
 - Zero perf cost: no new shadowed lights, lights inside each region's budget (`zz/lamps_test`: 14 in any 40 m disc),
   MultiMesh for repeats, nothing that hitches on first use. Frame stutter is Luke's top complaint.
 - Never cut content (Luke: the game is thin already): move it, mend it, or make it better.

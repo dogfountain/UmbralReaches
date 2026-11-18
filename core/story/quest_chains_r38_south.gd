@@ -67,7 +67,7 @@ const QUESTS := {
 		"text": "Sedge's gran sits on the bridge facing south every night and will not say why. She cooked for the Lines before the war-band went in. Sedge is not allowed past the second stone and so cannot walk her; Sedge says she can. Walk her gran to the palisade gate, give her a lamp to leave there, and bring her back.",
 		"steps": [
 			{"kind": "escort", "at": Vector2(-206.0, 110.0), "label": "Gran Ide", "hp": 22.0,
-				"path": [Vector2(-218.0, 66.0), Vector2(-215.0, 84.0), Vector2(-208.0, 99.0), Vector2(-206.0, 110.0)],
+				"path": [Vector2(-202.0, 66.0), Vector2(-209.0, 84.0), Vector2(-210.0, 98.0), Vector2(-206.0, 110.0)],     # (siege_track's line: map audit)
 				"ambush": {1: {"kinds": ["wretch"], "n": 2}, 2: {"kinds": ["wretch", "husk"], "n": 2}},
 				"rig": {"seed": 7312, "sex": "f", "age": "old", "garment": "dress", "shawl": true, "hood": true, "hair": "bun", "l": "lantern"},
 				"text": "Walk Gran Ide from the bridge down siege_track to the Lines' palisade gate; keep what rises off her"},

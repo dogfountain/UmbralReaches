@@ -6,6 +6,7 @@ extends RefCounted
 ## (clutter never blocks a stair). Deterministic from the kit's rng. No class_name: preload by path.
 
 const Frame := preload("res://core/world/realm/wonders/r39/wonder_frame.gd")
+const Land := preload("res://core/world/realm/realm_land.gd")
 
 
 static func rubble(k, c: Vector3, r: float, n: int, key := "stone_big") -> void:
@@ -15,6 +16,9 @@ static func rubble(k, c: Vector3, r: float, n: int, key := "stone_big") -> void:
 		var d := sqrt(rng.randf()) * r
 		var sz := Vector3(rng.randf_range(0.35, 1.5), rng.randf_range(0.25, 0.9), rng.randf_range(0.35, 1.3)) * (1.0 - 0.5 * d / maxf(r, 0.1))
 		var p := c + Vector3(cos(a) * d, sz.y * 0.35, sin(a) * d)
+		# on the ground under the piece, never above it: the heap's centre was the tower's footing, so on a slope the stones
+		# downhill hung 1-3 m in the air (map audit, 18 Nov). Underground (the halls' floors are under the land) it stays put.
+		p.y = minf(p.y, Land.height_at(p.x, p.z) + sz.y * 0.3)
 		k.kit.box(key, p, sz, Basis(Vector3.UP, rng.randf() * TAU) * Basis(Vector3.RIGHT, rng.randf_range(-0.35, 0.35)) * Basis(Vector3.FORWARD, rng.randf_range(-0.3, 0.3)), false, rng.randf_range(0.7, 1.0))
 
 

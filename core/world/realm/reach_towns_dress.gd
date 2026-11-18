@@ -67,6 +67,9 @@ const LIGHTS := [
 	["reedholm", -301.0, 2.6, 260.4, Color(1.0, 0.6, 0.28), 0.5, 6.0],
 	["reedholm", -324.6, 2.6, 292.4, Color(1.0, 0.6, 0.28), 0.5, 6.0],
 	["fallowmere", -178.0, 2.6, 290.4, Color(1.0, 0.64, 0.32), 0.55, 7.0],   # the Reeve's lantern in the barn's porch
+	# (map audit: the farmhouse's hearth and the inn's taproom, glowing through their doors and windows: towns people live in)
+	["fallowmere", -168.2, 1.8, 304.4, Color(1.0, 0.6, 0.28), 0.6, 7.0],
+	["lastlight", 322.0, 2.4, 40.0, Color(1.0, 0.6, 0.28), 0.7, 8.0],
 ]
 
 ## [town, lore id, x, y over the ground, z] or [town, lore id, "@piece", local Vector3 in that piece's frame]

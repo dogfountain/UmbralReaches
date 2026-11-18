@@ -31,7 +31,7 @@ const REALM_CAMPS: Array[Dictionary] = [
 	# roaming packs (they come back)
 	# r28 war bands: a guard (Bulwark) before a caster (Chanter), flankers on the sides
 	# r31: a Tollman rides with it (kill it before it rings, or the Thornwood comes) and a Gaunt darts
-	{"at": Vector3(-176.0, 60.0, -36.0), "kinds": ["bulwark", "chanter", "gaunt", "wretch", "tollman"], "probe": 0.0, "r": 3.0},   # Thornwood deep, west of west_track (18 Nov: -126,-32 was on the 1.6x raid floor)
+	{"at": Vector3(-152.0, 60.0, -38.0), "kinds": ["bulwark", "chanter", "gaunt", "wretch", "tollman"], "probe": 0.0, "r": 3.0},   # Thornwood deep, between west_track and the henge (18 Nov: -126,-32 was on the 1.6x raid floor; -176,-36 stood on the West March Wall once it bent out past the Holds)
 	{"at": Vector3(-90.0, 60.0, 46.0), "kinds": ["leaper", "husk"], "probe": 0.0},                 # Thornwood west (18 Nov: -84,22 was on the 1.6x raid floor)
 	{"at": Vector3(-80.0, 60.0, -88.0), "kinds": ["mite", "mite", "mite", "mite", "mite"], "probe": 0.0, "r": 1.6},   # Thornwood under the Crowns: a swarm nest (18 Nov: off the 1.6x raid floor)
 	{"at": Vector3(-66.0, 60.0, 24.0), "kinds": ["wretch", "spitter"], "probe": 0.0},              # Thornwood's village edge, back in the trees (47 m from the green and 5 m off west_way, it held the walk out of the village)

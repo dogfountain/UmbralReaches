@@ -433,7 +433,7 @@ static func _glass_mat(nm: String) -> StandardMaterial3D:
 	m.albedo_color = Color(0.9, 0.6, 0.3)
 	m.emission_enabled = true
 	m.emission = Color(1.0, 0.62, 0.28) if nm == "window_glass" else Color(1.0, 0.74, 0.42)
-	m.emission_energy_multiplier = 0.7 if nm == "window_glass" else 1.6      # windows read across a town, still under the bloom
+	m.emission_energy_multiplier = 1.05 if nm == "window_glass" else 1.6      # windows read across a town, still under the bloom (map audit: 0.7 left Fallowmere and Lastlight black from every side)
 	m.roughness = 0.4
 	_glass[nm] = m
 	return m

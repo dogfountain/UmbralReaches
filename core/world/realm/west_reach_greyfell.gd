@@ -6,6 +6,7 @@ extends RefCounted
 ## Same API as the Realm's other places (groups "world_poi", "loot_chest", "grapple_anchor", "glide_perch"). No class_name.
 
 const K := preload("res://core/world/realm/west_reach_kit.gd")
+const Wayfinding := preload("res://core/world/realm/realm_wayfinding.gd")
 
 const KEEP_C := Vector2(-318.0, -108.0)           ## RealmReaches.KEEP_C
 const PAD_Y := 12.0                                ## the keep's terrace (the crag's top is ~15.8; the hill rises behind it)
@@ -56,6 +57,10 @@ static func _keep(h: Node3D, space: PhysicsDirectSpaceState3D) -> void:
 	var land := at + Vector3(-3.45, 16.5, -17.95)
 	keep_top = land
 	K.chest(h, "keep_top", land + Vector3(0.0, 0.05, -0.1), PI * 0.5)
+	# (map audit, 18 Nov: "the garrison never stood down", yet the keep was the darkest thing in the Greyfell from every
+	# side. Their watch still keeps a fire on the donjon: a far spark over its landing that reads from the fell and the road,
+	# gone near the keep -- a landmark beacon, no light node, the dark stays the clock)
+	Wayfinding.beacon(h, land + Vector3(0.0, 1.5, 0.0), "", Color(1.0, 0.68, 0.36), 0.0, 1.0, 1.5, true, 0.0)
 	# a hall chest and a note in the bailey
 	K.chest(h, "keep_hall", at + Vector3(-12.0, 0.1, 4.0), 0.4)
 	# grapple anchors and a perch on the highest standing stone of the donjon

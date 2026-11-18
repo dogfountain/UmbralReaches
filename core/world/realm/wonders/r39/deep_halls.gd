@@ -87,13 +87,16 @@ func _hall(root: Node, spec: Dictionary, c: Vector2, yaw: float) -> bool:
 	var start := c - fwd2 * 33.0
 	d.run = 30.0
 	d.o = Vector3(start.x, WK.h(start.x, start.y), start.y)
+	# (map audit, 18 Nov: sampled every 8 x 6 m to v 38, the ground's dips between and beyond the samples (the end room
+	# runs to v 44, its walls to 44.6) left 1.3 m of cover or less, and the undercroft's and the cisterns' masonry broke out
+	# of their hillsides. Every 3 m over the whole footprint and its walls, and 2 m more cover)
 	var gmin := INF
-	for ui in range(-16, 17, 8):
-		for vi in range(0, 39, 6):
+	for ui in range(-18, 19, 3):
+		for vi in range(-2, 48, 3):
 			var q := d.o + d.fwd * (d.run + float(vi)) + d.side * float(ui)
 			gmin = minf(gmin, WK.h(q.x, q.z))
 	gmin = minf(gmin, d.o.y)
-	d.yf = gmin - 8.6
+	d.yf = gmin - 10.6
 	_theme(d, String(spec.theme))
 	d.k.poi(String(spec.id), String(spec.title), String(spec.line), String(spec.region))
 	d.k.host.add_to_group("deep_hall")
@@ -162,7 +165,7 @@ func _hidden(d, id: String, loot: Dictionary) -> void:
 	Dress.rubble(d.k, d.p(5.8, 0.0, 36.0), 1.5, 8, d.wall)
 	d.lamp(10.5, 2.0, 38.0, 0.8, 6.0)
 	d.k.chest(id, "iron", d.p(12.6, 0.3, 38.0), atan2(d.side.x, d.side.z) + PI, loot)
-	d.k.kit.box("glow", d.p(8.0, 2.6, 38.0), Vector3(0.2, 0.3, 0.2), d.basis(), false, 1.0)
+	d.k.kit.lantern(d.p(8.0, 2.6, 38.0), Vector3(0.2, 0.3, 0.2), d.basis())
 
 
 func _crypt(d, spec: Dictionary) -> void:
@@ -305,7 +308,7 @@ func _cellar(d, spec: Dictionary) -> void:
 		d.k.tube("wood_big", d.p(-5.2, 1.0 + 0.9 * float(i % 3), 10.5 + 2.1 * float(i / 3)), d.p(-5.2, 1.5 + 0.9 * float(i % 3), 10.5 + 2.1 * float(i / 3)), 0.22, 0.22, 7, false, 0.7, Vector2(1.0, -1.0), true)
 	for i in 3:
 		d.lamp(0.0, 3.2, 11.0 + 8.0 * float(i), 0.9, 8.0)
-		d.k.kit.box("glow", d.p(0.0, 3.2, 11.0 + 8.0 * float(i)), Vector3(0.22, 0.3, 0.22), d.basis(), false, 1.0)
+		d.k.kit.lantern(d.p(0.0, 3.2, 11.0 + 8.0 * float(i)), Vector3(0.22, 0.3, 0.22), d.basis())
 	# the herb store (west): drying racks, sacks, a mortar bench; the bedroom (east): a nest of furs, a chest, a mirror
 	for i in 4:
 		d.k.kit.box("wood_big", d.p(-14.0, 0.8, 13.0 + 2.2 * float(i)), Vector3(0.6, 1.6, 1.6), d.basis(), true, 0.75)
@@ -352,12 +355,16 @@ func _flooded(d, spec: Dictionary) -> void:
 	for i in 4:
 		d.sconce(-5.6, 3.2, 13.0 + 5.0 * float(i), 1.0, 0.9)
 	var wq: Vector3 = d.p(0.0, 0.0, 25.5)
-	for i in 6:
-		var g0: Vector3 = d.p(-0.9, 6.3, 24.6 + 0.4 * float(i))
-		var g1: Vector3 = d.p(0.9, 6.3, 24.6 + 0.4 * float(i))
-		var g2: Vector3 = d.p(0.9, 1.2, 25.0 + 0.2 * float(i))
-		var g3: Vector3 = d.p(-0.9, 1.2, 25.0 + 0.2 * float(i))
-		d.k.kit.quad("glow", g0, g1, g2, g3, -d.fwd, false, 0.4)      # the falling light, a sheet
+	# the light well: a grated opening in the vault, the shaft's stone pale over the bars and a cold lamp under it
+	# (map audit: six lit sheets of glass read as one flat salmon card on the end wall)
+	var wy := 6.4
+	d.blk(d.trim, -1.6, 1.6, 23.6, 24.0, wy - 0.45, wy, 0.85, false)
+	d.blk(d.trim, -1.6, 1.6, 27.0, 27.4, wy - 0.45, wy, 0.85, false)
+	for s: float in [-1.0, 1.0]:
+		d.blk(d.trim, s * 1.2 - 0.2 + s * 0.2, s * 1.2 + 0.2 + s * 0.2, 24.0, 27.0, wy - 0.45, wy, 0.85, false)
+	for i in 5:
+		d.k.kit.box("iron", d.p(-0.8 + 0.4 * float(i), wy - 0.3, 25.5), Vector3(0.07, 0.07, 3.0), d.basis(), false, 0.6)
+	d.k.kit.box("chalk", d.p(0.0, wy - 0.04, 25.5), Vector3(2.4, 0.04, 3.0), d.basis(), false, 1.3)
 	d.k.lamp(wq + Vector3.UP * 3.0, Color(0.6, 0.78, 1.0), 1.8, 11.0)
 	Dress.banner(d.k, d.p(-5.7, 5.5, 12.0), d.fwd, 2.0, 3.6, d.side)
 	Dress.banner(d.k, d.p(5.7, 5.5, 22.0), -d.fwd, 2.0, 3.0, -d.side)

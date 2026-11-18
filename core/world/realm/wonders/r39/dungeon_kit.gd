@@ -38,6 +38,10 @@ func p(u: float, y: float, v: float) -> Vector3:
 func zone(u0: float, u1: float, v0: float, v1: float, hh: float, room: String, label: String) -> void:
 	var pts: Array[Vector3] = [p(u0, -0.6, v0), p(u1, hh, v0), p(u0, hh, v1), p(u1, -0.6, v1)]
 	WK.acoustic(pts, room, label)
+	# and a cold room (Interiors: no weather, no ground haze, no moths or mist banks; map audit: the night's blue haze and
+	# its mist banks filled every hall and cave, because only the reverb knew they were indoors)
+	var c := p((u0 + u1) * 0.5, (hh - 0.6) * 0.5, (v0 + v1) * 0.5)
+	Interiors.add("under_%d_%d" % [roundi(c.x), roundi(c.z)], c, atan2(-side.z, side.x), Vector3((u1 - u0) * 0.5, (hh + 0.6) * 0.5, (v1 - v0) * 0.5), false)
 
 
 func basis() -> Basis:
@@ -109,7 +113,7 @@ func lamp(u: float, y: float, v: float, e := 1.0, rng_m := 8.0) -> void:
 func sconce(u: float, y: float, v: float, face: float, e := 0.9) -> void:
 	var q := p(u, y, v)
 	k.kit.box("iron", q, Vector3(0.1, 0.1, 0.3), basis(), false, 0.6)
-	k.kit.box("glow", q + side * face * 0.0 + Vector3.UP * 0.2, Vector3(0.2, 0.3, 0.2), basis(), false, 1.0)
+	k.kit.lantern(q + Vector3.UP * 0.2, Vector3(0.2, 0.3, 0.2), basis())
 	k.lamp(q + Vector3.UP * 0.3 + side * face * 0.4, light, e, 7.0)
 
 

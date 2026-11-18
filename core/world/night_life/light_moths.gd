@@ -5,6 +5,7 @@ extends Node3D
 ## he walks on. Cold mysteries draw slow cold motes instead of moths. One MultiMesh, about forty billboard quads moved
 ## by a formula (no node, no physics); the nearest rows are picked twice a second from the night registry.
 
+const Land := preload("res://core/world/realm/realm_land.gd")
 const Reg := preload("res://core/world/night_life/night_registry.gd")
 
 const SRC_N := 5
@@ -19,6 +20,7 @@ var _pick := 0.0
 var _rows: PackedInt32Array = PackedInt32Array()
 var _scatter := PackedFloat32Array()       ## per picked source: 0 calm .. 1 flown
 var _calm := 0.0                           ## seconds the wanderer has stood still
+var _shelter := 0.0                        ## 1 indoors or under the land: his lantern draws no moths there
 static var _tex: ImageTexture
 
 
@@ -101,13 +103,16 @@ func _process(delta: float) -> void:
 			var h := 0.15 * float(m % 5) - 0.2 + 0.22 * sin(_t * 1.6 + ph * 3.0) + _scatter[s] * 2.0
 			var q := p + Vector3(cos(a) * rad, h, sin(a) * rad)
 			var size := (0.09 if cold else 0.07) * (0.7 + 0.5 * absf(sin(_t * 17.0 + ph * 5.0)))   # the wings flapping, edge-on and flat
-			var glow := (0.45 + 0.55 * absf(sin(_t * 11.0 + ph * 4.0))) * vis * (1.0 - 0.5 * _scatter[s]) * (1.0 - 0.7 * Reg.indoor)
+			var glow := (0.45 + 0.55 * absf(sin(_t * 11.0 + ph * 4.0))) * vis * (1.0 - 0.5 * _scatter[s]) * (1.0 - Reg.indoor)
 			mm.set_instance_transform(n, Transform3D(Basis.IDENTITY.scaled(Vector3(size, size, size)), q))
 			mm.set_instance_color(n, Color(col.r, col.g, col.b, glow))
 			n += 1
-	# the wanderer's own lantern calls a few
-	if player != null and _calm > 1.5:
-		var k := clampf((_calm - 1.5) / 4.0, 0.0, 1.0)
+	# the wanderer's own lantern calls a few -- out of doors: not in a room, nor under the land (map audit, 18 Nov: they
+	# hung round him in the inn, the crypts and the Abbot's pit hall as pale orbs)
+	var under := 1.0 if player != null and pp.y < Land.height_at(pp.x, pp.z) - 4.0 else 0.0
+	_shelter = move_toward(_shelter, maxf(under, 1.0 if Reg.indoor > 0.5 else 0.0), delta * 2.0)
+	if player != null and _calm > 1.5 and _shelter < 1.0:
+		var k := clampf((_calm - 1.5) / 4.0, 0.0, 1.0) * (1.0 - _shelter)
 		var lantern := pp + Vector3(0.0, 1.15, 0.0) + pxf.basis.x * -0.35
 		for m in PER_PLAYER:
 			var ph2 := float(m) * 1.3
@@ -128,7 +133,7 @@ func _choose(pp: Vector3) -> void:
 		if Reg.on[i] == 0 or int(Reg.kind[i]) == Reg.Kind.COLD or int(Reg.kind[i]) == Reg.Kind.TOWER:
 			continue
 		var d2 := pp.distance_squared_to(Reg.pos[i])
-		if d2 < RANGE * RANGE:
+		if d2 < RANGE * RANGE and Interiors.at(Reg.pos[i]) == 0.0:      # a hearth in a room: no moths in the house (map audit: orbs indoors)
 			best.append([d2, i])
 	best.sort_custom(func(a: Array, b: Array) -> bool: return float(a[0]) < float(b[0]))
 	var want := PackedInt32Array()

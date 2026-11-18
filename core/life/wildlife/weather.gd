@@ -278,6 +278,10 @@ func _roofed(cam: Camera3D, delta: float) -> bool:
 		return _roof
 	_roof_t = 0.25
 	_roof = cam != null and cam.global_position.y < RL.height_at(cam.global_position.x, cam.global_position.z) - 4.0
+	# the Ossuary's open pit is carved into the land, so it is not "under" by the rule above, but its floor lies 25-33 m down
+	# where the ground haze is a wall of fog (map audit, 18 Nov: the pit's far face a pale wall): its air is the crypt's
+	if cam != null and not _roof and cam.global_position.y < 2.0 and RealmLayout.in_ossuary(cam.global_position):
+		_roof = true
 	return _roof
 
 
@@ -288,7 +292,9 @@ func _apply_env() -> void:
 	var mist := float(state.mist) * (1.0 - shut)
 	var rain := float(state.rain) * (1.0 - shut)
 	_env_offset("fog_depth_begin", mist * OFF_BEGIN_MIST + rain * OFF_BEGIN_RAIN + (_under + _cold_room) * UNDER_BEGIN + _indoor * UNDER_BEGIN, 0.05)
-	_env_offset("volumetric_fog_density", mist * OFF_VOL_MIST + rain * OFF_VOL_RAIN - _under * UNDER_VOL - _cold_room * UNDER_VOL - _indoor * INDOOR_VOL, 0.00002)
+	# (the three were summed: under the land in a cold room it took 0.014 off a 0.011 fog. The strongest one rules, and a
+	# cold room loses its haze like a warm one: the halls and caves were full of blue murk; map audit, 18 Nov)
+	_env_offset("volumetric_fog_density", mist * OFF_VOL_MIST + rain * OFF_VOL_RAIN - maxf(_under * UNDER_VOL, maxf(_cold_room, _indoor) * INDOOR_VOL), 0.00002)
 	_env_offset("fog_height_density", -shut * Atmosphere.HAZE_DENSITY, 0.0002)
 	_env_offset("ambient_light_energy", flash * OFF_AMBIENT_FLASH * _flash_gain * (1.0 - _indoor) + _pulse + _indoor * INDOOR_AMBIENT, 0.0)
 	Interiors.warm_ambient(_env, _indoor, _amb)

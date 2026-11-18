@@ -50,6 +50,7 @@ var cold_range := 9.0
 var _body: Node3D
 var _glow: Node3D
 var _glow_parts: Array[MeshInstance3D] = []
+var _flames: Node3D                       ## a camp fire's flame cards and halo (camp look only)
 var _light: OmniLight3D
 var _cold: OmniLight3D
 var _flame_at := Vector3.ZERO
@@ -117,6 +118,8 @@ func _ready() -> void:
 	_glow.name = "Glow"
 	_glow.position = _flame_at
 	add_child(_glow)
+	if look == "camp":
+		_camp_fire()
 	_phase = randf() * TAU
 	var sense := get_node_or_null("InteractSense") as Node3D
 	if sense:
@@ -129,6 +132,35 @@ func _ready() -> void:
 	if saved:
 		for f in followers:
 			f.light_from_leader(false)
+
+
+## A travellers' fire's flame: two crossed flame cards (the candle flame shader the wonders' fires use, WonderKit.fire) and
+## its halo, over the coals; shown while it burns.
+func _camp_fire() -> void:
+	_flames = Node3D.new()
+	_flames.name = "Flames"
+	_flames.position = _flame_at
+	add_child(_flames)
+	var q := QuadMesh.new()
+	q.size = Vector2(0.075, 0.17)
+	for i in 2:
+		var mi := MeshInstance3D.new()
+		mi.mesh = q
+		mi.material_override = OssKit.mat("flame")
+		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		mi.position = Vector3(0.13 * (float(i) - 0.5), 0.36, 0.09 * (0.5 - float(i)))
+		mi.scale = Vector3(5.6, 4.8 + 0.8 * float(i), 5.6)
+		mi.visibility_range_end = 260.0
+		_flames.add_child(mi)
+	var hm := MeshInstance3D.new()
+	var hq := QuadMesh.new()
+	hq.size = Vector2(3.6, 3.6)
+	hm.mesh = hq
+	hm.material_override = OssKit.mat("halo")
+	hm.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	hm.position = Vector3(0.0, 0.45, 0.0)
+	hm.visibility_range_end = 260.0
+	_flames.add_child(hm)
 
 
 func interact_reach() -> float:
@@ -189,6 +221,8 @@ func _set_lit(on: bool, animate: bool) -> void:
 	set_process(on)                          # an unlit lamp has nothing to do a frame
 	if _glow == null:
 		return
+	if _flames != null:
+		_flames.visible = on
 	for gp in _glow_parts:
 		if gp.get_meta(&"gk", "") == "flame":
 			gp.visible = on
@@ -433,7 +467,9 @@ static func _mesh_for(kind: String, free: bool, chain_len: float) -> Dictionary:
 			body.bar(Vector3(-0.4, 0.1, 0.12), Vector3(0.4, 0.16, -0.16), 0.11, wood)
 			body.bar(Vector3(-0.3, 0.1, -0.3), Vector3(0.28, 0.15, 0.3), 0.1, wood * 0.9)
 			body.lathe(Vector3(0, 0.02, 0), [Vector2(0.0, 0.0), Vector2(0.4, 0.0)], 8, Color(0.04, 0.03, 0.03))
-			glow.lathe(Vector3.ZERO, [Vector2(0.0, 0.0), Vector2(0.24, 0.1), Vector2(0.2, 0.3), Vector2(0.1, 0.55), Vector2(0.0, 0.8)], 7, HEART, TIP, 0.08)
+			# the bed of coals; the flame itself is two flame cards over it (_camp_fire: an 0.8 m lathed cone read as an orange
+			# traffic cone; map audit, 18 Nov)
+			glow.lathe(Vector3.ZERO, [Vector2(0.0, 0.0), Vector2(0.3, 0.02), Vector2(0.24, 0.07), Vector2(0.0, 0.11)], 7, HEART, TIP, 0.08)
 			d.flame = Vector3(0, 0.14, 0)
 			d.light = Vector3(0, 0.8, 0)
 			d.e = 1.7

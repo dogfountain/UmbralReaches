@@ -369,6 +369,50 @@ static func _house(k: OssKit, base: Vector3, yaw: float, size: Vector2, h: float
 		k.box("ruin", base + b * Vector3(cx + sx, h + rise * 1.35 + 0.95, cz), Vector3(0.3, 0.5, 0.3), b, false, 0.7)
 
 
+## The rooms' furniture (art/models/props: modelled, one mesh per material set per room), in the house's own frame (design
+## metres; x across, +z to the door; the floor's top at 0.66): [file, x, z, yaw, x scale, collider height (0: none)].
+## Kept off each room's door line and its hearth (back wall, x = 0.3 w), and off the inn's walk from the door to the hearth.
+## (map audit, 18 Nov: the inn, the cottages and the watch hut were the same empty plaster box inside)
+const FURNISH := {
+	"inn": [["bar_counter", -5.4, -2.875, PI, 1.0, 1.08], ["bar_counter", -4.2, -2.875, PI, 1.0, 1.08], ["bar_counter", -3.0, -2.875, PI, 1.0, 1.08],
+		["bar_shelf", -5.4, -3.985, PI, 1.0, 0.0], ["bar_shelf_b", -4.2, -3.985, PI, 1.0, 0.0], ["bar_shelf", -3.0, -3.985, PI, 1.0, 0.0],
+		["barrel", -1.7, -3.6, 0.0, 1.0, 0.85], ["barrel", -1.0, -3.65, 0.6, 1.0, 0.85],
+		["tavern_table", -3.6, 0.6, 0.0, 1.0, 0.8], ["bench", -3.6, -0.25, 0.0, 1.13, 0.0], ["bench", -3.6, 1.45, 0.0, 1.13, 0.0],
+		["tavern_table", -3.6, 3.0, 0.0, 1.0, 0.8], ["bench", -3.6, 2.15, 0.0, 1.13, 0.0],
+		["tavern_table", 3.6, 3.1, 0.0, 1.0, 0.8], ["bench", 3.6, 2.25, 0.0, 1.13, 0.0],
+		["firewood", 5.4, -3.2, 0.3, 1.0, 0.0], ["crate", -5.6, 3.55, 0.2, 1.0, 0.68], ["sack", -5.6, 2.8, 0.9, 1.0, 0.0]],
+	"cot_a": [["tavern_table", -1.4, -0.4, 0.0, 0.75, 0.8], ["tavern_chair", -1.4, 0.35, 0.0, 1.0, 0.0], ["tavern_chair", -1.4, -1.15, PI, 1.0, 0.0],
+		["barrel", -2.4, -1.75, 0.0, 1.0, 0.85], ["sack", -1.75, -1.8, 0.5, 1.0, 0.0], ["crate", 2.4, 1.6, 0.3, 1.0, 0.68],
+		["firewood", 2.4, 0.4, PI * 0.5, 1.0, 0.0], ["bench", -2.55, 1.0, PI * 0.5, 1.0, 0.0]],
+	"cot_b": [["tavern_table", -1.3, -0.4, 0.0, 0.75, 0.8], ["tavern_chair", -1.3, 0.35, 0.0, 1.0, 0.0], ["tavern_chair", -1.3, -1.15, PI, 1.0, 0.0],
+		["barrel", -2.2, -1.75, 0.0, 1.0, 0.85], ["sack_open", -1.6, -1.8, 0.5, 1.0, 0.0], ["crate", 2.2, 1.6, 0.3, 1.0, 0.68],
+		["firewood", 2.2, 0.4, PI * 0.5, 1.0, 0.0], ["bench", -2.3, 1.0, PI * 0.5, 1.0, 0.0]],
+	"watch_hut": [["tavern_table", -1.1, -0.5, 0.0, 0.6, 0.8], ["tavern_chair", -1.1, 0.25, 0.0, 1.0, 0.0],
+		["barrel", -1.8, -1.3, 0.0, 1.0, 0.85], ["crate", -1.75, 1.2, 0.2, 1.0, 0.68], ["firewood", 1.5, 0.9, 0.2, 1.0, 0.0]],
+}
+
+
+static func _furnish(host: Node3D, k: OssKit, id: String, at: Vector3, yaw: float, s: float) -> void:
+	if not FURNISH.has(id):
+		return
+	var b := Basis(Vector3.UP, yaw)
+	var pm := PropModels.new()
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash(id)
+	for f: Array in FURNISH[id]:
+		var file := String(f[0])
+		var lb := b * Basis(Vector3.UP, float(f[3]))
+		var pos := at + b * (Vector3(float(f[1]), 0.66, float(f[2])) * s)
+		pm.add(file + ".glb", Transform3D(lb.scaled(Vector3(float(f[4]), 1.0, 1.0) * s), pos))
+		var ch := float(f[5])
+		if ch > 0.0:
+			var sz := PropModels.size_of(file + ".glb")
+			k.collider(pos + Vector3.UP * (ch * 0.5 * s), Vector3(sz.x * float(f[4]), ch, sz.z) * s, lb)
+		if file == "tavern_table":
+			k.candle_cluster(pos + Vector3.UP * (0.8 * s), 3, 0.16, rng)
+	pm.commit(host, "Furn_" + id, false)
+
+
 static func _building(host: Node3D, space: PhysicsDirectSpaceState3D, id: String) -> Vector3:
 	var d: Dictionary = bld(id)
 	var s := float(d.get("s", 1.0))
@@ -382,6 +426,7 @@ static func _building(host: Node3D, space: PhysicsDirectSpaceState3D, id: String
 	k.at(at, s)
 	_house(k, at, float(d.yaw), d.size, float(d.h), d)
 	k.at(at, 1.0)
+	_furnish(host, k, id, at, float(d.yaw), s)
 	k.commit(host, "Bld_" + id)
 	if not bool(d.get("open", false)) and float(d.h) > 0.0:
 		var t := 0.34
