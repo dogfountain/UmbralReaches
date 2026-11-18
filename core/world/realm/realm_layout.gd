@@ -7,6 +7,8 @@ extends RefCounted
 ## terrain mesh (adding detail noise, path carving and site stamps); everyone else asks
 ## `RealmLayout.ground(space, x, z)` once the terrain exists, or `macro_height()` before it does.
 
+const PathIndex := preload("res://core/world/realm/path_index.gd")
+
 ## doubled again (docs/r37_expansion.md), then again (docs/far_reaches.md: the Far Reaches round the Marches,
 ## RealmReaches). The old Realm (x -155..155, z -150..175) is OLD_BOUNDS; the Marches' RealmReaches.MARCH_BOUNDS.
 const BOUNDS := Rect2(-370.0, -150.0, 740.0, 548.0)        ## playable xz (x -370..370, z -150..398); r37: 520 x 390, r34: 310 x 325
@@ -891,66 +893,11 @@ static func ground(space: PhysicsDirectSpaceState3D, x: float, z: float) -> floa
 
 
 ## Distance from p to the nearest path's edge (centreline minus half width). Called tens of thousands of times by
-## the build: PATHS' segments are packed with a grid of the segments near each cell (exactly the full scan's result).
+## the build: path_index.gd packs PATHS' segments into three grids of the segments near each cell (exactly the full scan's result).
 static func path_dist(p: Vector2) -> float:
-	if _seg_a.is_empty():
-		_build_segs()
-	var cx := int(floorf((p.x - BOUNDS.position.x) / _SEG_CELL))
-	var cz := int(floorf((p.y - BOUNDS.position.y) / _SEG_CELL))
-	if cx >= 0 and cz >= 0 and cx < _seg_gw and cz < _seg_gh:
-		var best := INF
-		for j in _seg_cells[cz * _seg_gw + cx] as PackedInt32Array:
-			best = minf(best, _seg_d(p, j))
-		# a segment not listed in this cell is further than _SEG_REACH from all of it
-		if best <= _SEG_REACH - _seg_wmax:
-			return best
-	var best := INF
-	for j in _seg_a.size():
-		best = minf(best, _seg_d(p, j))
-	return best
-
-
-static func _seg_d(p: Vector2, j: int) -> float:
-	var a := _seg_a[j]
-	var ab := _seg_ab[j]
-	var t := clampf((p - a).dot(ab) / maxf(ab.length_squared(), 0.0001), 0.0, 1.0)
-	return p.distance_to(a + ab * t) - _seg_w[j]
-
-
-const _SEG_CELL := 8.0
-const _SEG_REACH := 16.0
-static var _seg_a := PackedVector2Array()
-static var _seg_ab := PackedVector2Array()
-static var _seg_w := PackedFloat64Array()
-static var _seg_wmax := 0.0
-static var _seg_cells: Array = []        # PackedInt32Array per cell
-static var _seg_gw := 0
-static var _seg_gh := 0
-
-
-static func _build_segs() -> void:
-	var boxes: Array[Rect2] = []
-	for path: Dictionary in PATHS:
-		var pts: Array = path.pts
-		for i in pts.size() - 1:
-			var a: Vector2 = pts[i]
-			var b: Vector2 = pts[i + 1]
-			_seg_a.append(a)
-			_seg_ab.append(b - a)
-			_seg_w.append(float(path.w))
-			_seg_wmax = maxf(_seg_wmax, float(path.w))
-			boxes.append(Rect2(a, Vector2.ZERO).expand(b))
-	_seg_gw = int(ceilf(BOUNDS.size.x / _SEG_CELL))
-	_seg_gh = int(ceilf(BOUNDS.size.y / _SEG_CELL))
-	_seg_cells.resize(_seg_gw * _seg_gh)
-	for cz in _seg_gh:
-		for cx in _seg_gw:
-			var cell := Rect2(BOUNDS.position + Vector2(cx, cz) * _SEG_CELL, Vector2(_SEG_CELL, _SEG_CELL)).grow(_SEG_REACH + 0.01)
-			var ids := PackedInt32Array()
-			for j in boxes.size():
-				if boxes[j].intersects(cell, true):
-					ids.append(j)
-			_seg_cells[cz * _seg_gw + cx] = ids
+	if not PathIndex.built:
+		PathIndex.build(PATHS, BOUNDS)
+	return PathIndex.dist(p)
 
 
 ## The path segments that can come within `margin` of rect r (by their bounds): [a, b, w] each. A
