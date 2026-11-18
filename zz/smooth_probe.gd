@@ -56,7 +56,8 @@ func _process(d: float) -> void:
 		"settle":
 			if t < 6.0:
 				return
-			p.teleport(Vector3(-20.0, 0.6, 46.0))
+			# open ground on the road south of Hearthward, walking north (the old start, (-20, 46), is inside Maud's cottage now)
+			p.teleport(Vector3(0.0, RealmLayout.ground(p.get_world_3d().direct_space_state, 0.0, 92.0) + 0.3, 92.0))
 			p.set_view(0.0, -0.25)
 			p.debug_drive(Vector3(0, 0, -1), sprint)
 			for s in p.find_children("*", "Skeleton3D", true, false):

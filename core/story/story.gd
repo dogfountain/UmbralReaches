@@ -534,6 +534,8 @@ func _stage_opening(hud_node: Node) -> void:
 ## The Last Lantern (opening_shot.gd): the three lines are spoken at the shot's beats, the HUD arrives when the lens
 ## is given back. True when it played (or was skipped); false when there was nothing to shoot and the old beats run.
 func _play_opening(hud: HudUI, p: Node3D) -> bool:
+	if "--no-opening" in OS.get_cmdline_user_args():
+		return false                                  # (measuring tools: zz/smooth_probe.gd walks the wanderer at once)
 	Profile.ensure()
 	var again := Profile.endings > 0                  # a New Game after an ending: the second night's opening
 	var lines: Array = DialogueDB.OPENING_AGAIN if again else DialogueDB.OPENING
