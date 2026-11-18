@@ -1,5 +1,7 @@
 class_name MapSketch
 extends Node
+const CueBank := preload("res://core/audio/cue_bank.gd")
+static var _scratch_ms := -10000
 ## The charcoal sketch of the world map: ground the wanderer has seen is drawn in as she walks. A grid on the map's own fog grid
 ## (5 m cells over the sheet, ui/world_map.gd: SHEET and FOG) of bytes, 0 unseen to 255 seen. Once a second a timer asks whether the
 ## wanderer has moved to another cell; only then is a soft disc of 38 m drawn into the grid (about 180 cells), and the map reads the
@@ -155,3 +157,7 @@ func _tick() -> void:
 		_last = cell
 		if reveal(here, p.global_position.y + 1.6):
 			flush()                                   # a few microseconds: the grid is mostly zeros
+			var now := Time.get_ticks_msec()
+			if now - _scratch_ms > 6000:
+				_scratch_ms = now
+				CueBank.play(self, "charcoal", 0.0)         # the soft scratch of new ground inked, at most every six seconds

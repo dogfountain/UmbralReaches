@@ -34,6 +34,7 @@ var _boss_id := ""
 var _boss_phase := 0
 var _room := ""
 var _wet := false
+var _region := ""
 var _night := -1
 var _credits := false
 var _fight := false
@@ -75,6 +76,9 @@ func _ready() -> void:
 		CueBank.play(self, "fire_whoosh", 0.0)
 		CueBank.play(self, "toll_grains", 0.0))
 	Events.status_changed.connect(_on_status)
+	Events.region_discovered.connect(func(_id: String, _kind: String) -> void:       # new ground inked on the map: a soft scratch and two plucks
+		if _gate("inked", 3.0):
+			CueBank.play(self, "landmark_inked", 0.0))
 	Events.skill_failed.connect(func(_id: StringName, _r: String) -> void:
 		if _gate("denied", 0.4):
 			CueBank.play(self, "ui_deny", 0.0))
@@ -281,6 +285,12 @@ func _poll_world() -> void:
 		if wet and not _wet and _gate("wade", 1.0):
 			CueBank.play_at("wade_splash", pl.global_position, 0.0)
 		_wet = wet
+	if pl != null:
+		var rid := String(RealmLayout.region_at(pl.global_position.x, pl.global_position.z).get("id", ""))
+		if rid != _region:
+			_region = rid
+			if Danger.gear_note(pl.global_position) != "" and _gate("geargap", 45.0):
+				CueBank.play(self, "gear_gap", 0.0)             # the ground wants more than the gear: a short, grave note
 	var n := Days.current()
 	if _night >= 0 and n > _night:
 		CueBank.play(self, "night_turn", 0.0)

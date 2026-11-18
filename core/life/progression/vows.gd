@@ -11,6 +11,7 @@ extends Node
 const Danger := preload("res://core/life/encounters/danger.gd")
 const Tally := preload("res://core/story/tally.gd")
 const Chronicle := preload("res://core/story/chronicle.gd")
+const VowVoice := preload("res://core/story/vow_voice.gd")
 const Hearth := preload("res://core/life/progression/hearth.gd")
 const QuestBook := preload("res://core/story/quest_book.gd")
 const FireRoad := preload("res://core/world/fire_road.gd")
@@ -96,6 +97,7 @@ static func choose(tier: int, id: String) -> void:
 		return
 	_st()[str(TIERS[tier])] = id
 	Events.toast.emit("A vow is sworn: %s." % String((DEFS[id] as Array)[2]))
+	VowVoice.sworn(id)                                  # a bell, a held chord and one plain line
 	Chronicle.write("vow:" + id, "level", "Sworn at level %d: %s." % [int(TIERS[tier]), String((DEFS[id] as Array)[2])])
 	Travel.save_soon()
 
