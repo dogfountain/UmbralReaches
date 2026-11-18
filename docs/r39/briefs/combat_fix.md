@@ -131,7 +131,7 @@ Write the critique into `docs/r39/combat_fix.md` from each seat below. Nothing i
 
 Then fix every finding, worst first, end to end. Luke wants features massive and finished, not "partly worked".
 
-Each fix is verified by a fresh frame strip or a log of the same fight, read at full size, before you tick it.
+Make every fix first; then ONE re-capture pass of everything you fixed, read at full size, before you tick them (Luke, 18 Nov: "it only gets reshot after everything is fixed to save time and tokens").
 
 Rules:
 - **Perf:** zero perf cost. No new shadowed lights. Pool VFX and pre-warm every new material behind the loading screen (nothing compiles on first hit). MultiMesh for repeats.
