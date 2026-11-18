@@ -196,11 +196,14 @@ func _world_warm() -> void:
 	var a := text.find("static func mat(key: String)")
 	var b := text.find("_mats[key] = m\n\treturn m", a)
 	var rx := RegEx.new()
-	rx.compile("\"([a-z_0-9]+)\"")
+	rx.compile("^\\t\\t((?:\"[a-z_0-9]+\",\\s*)*\"[a-z_0-9]+\"):")      # a match arm, with code after it on the line or not
+	var rk := RegEx.new()
+	rk.compile("\"([a-z_0-9]+)\"")
 	var keys := {"hub": true}
 	for line in text.substr(a, b - a).split("\n"):
-		if line.begins_with("\t\t\"") and line.strip_edges().ends_with(":"):
-			for m in rx.search_all(line):
+		var arm := rx.search(line)
+		if arm != null:
+			for m in rk.search_all(arm.get_string(1)):
 				keys[m.get_string(1)] = true
 	for k: String in keys:
 		ok(WorldWarm.OSS_KEYS.has(k), "the kit material '%s' is in the world warm list" % k)

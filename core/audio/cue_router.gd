@@ -21,6 +21,7 @@ const Days := preload("res://core/story/days.gd")
 const ScoreDirector := preload("res://core/audio/score_director.gd")
 const CombatState := preload("res://core/skills/combat_state.gd")
 const RealmLand := preload("res://core/world/realm/realm_land.gd")
+const Danger := preload("res://core/life/encounters/danger.gd")
 
 const FOG_SCAPES := ["fen", "tally", "mere", "reedmere", "stillwater", "nave", "sorrow"]
 const MAIN_BOSSES := ["thornwarden", "bone_abbot", "ascended_warden"]
