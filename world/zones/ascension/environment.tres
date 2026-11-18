@@ -14,7 +14,7 @@ shader_parameter/twist = 3.8
 shader_parameter/arm_scale = 3.4
 shader_parameter/detail_scale = 11.0
 shader_parameter/spin_speed = 0.015
-shader_parameter/intensity = 0.79
+shader_parameter/intensity = 0.62
 
 [sub_resource type="Sky" id="Sky_j15d1"]
 sky_material = SubResource("ShaderMaterial_uwi7a")

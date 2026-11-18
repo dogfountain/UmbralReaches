@@ -28,7 +28,7 @@ uniform float moon_glow = 1.0;      // the disc, corona and streaks: an eclipse 
 uniform vec3 moon_tint = vec3(1.0); // and turns what is left of it copper
 uniform sampler2D constellations : source_color, hint_default_black, filter_linear, repeat_disable;
 uniform float const_vis = 1.0;
-uniform float aurora = 1.0;         // the veils' strength tonight (0.4 faint .. 1.8 a great night)
+uniform float aurora = 1.0;         // the veils' strength tonight (0.3 faint .. 1.0 a great night; a surge lifts it)
 uniform float dawn = 0.0;           // the grey before the morning, low in the east (the last tenth of the night)
 uniform float cloud_speed = 1.0;      // a gale scuds the cloud
 uniform float cloud_cover = 0.0;    // 0 clear .. 1 a deck of cloud (the weather's fronts raise it)

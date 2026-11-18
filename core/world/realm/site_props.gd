@@ -66,7 +66,7 @@ static func get_prop(key: String) -> Dictionary:
 		"cross": d = {"mesh": Market.cross(OssKit.mat("stone")), "mat": null, "shadow": true}
 		"saltheap": d = {"mesh": Market.saltheap(cloth()), "mat": null, "shadow": true}
 		"trestle": d = {"mesh": Market.trestle(wood(), cloth()), "mat": null, "shadow": true}
-		"goods": d = {"mesh": Market.goods(wood(), cloth()), "mat": null, "shadow": true}
+		"goods": d = {"mesh": _goods(), "mat": null, "shadow": true}
 		"loadcart": d = {"mesh": Market.load_cart(_cart(), wood(), cloth()), "mat": null, "shadow": true}
 		"hay": d = {"mesh": _hay(), "mat": cloth(), "shadow": true}
 		"straw": d = {"mesh": _straw(), "mat": cloth(), "shadow": false}
@@ -98,6 +98,35 @@ static func variant(kind: String, i: int, n: int) -> int:
 	if kind == "crate" and n == 2:
 		return 1 if i % 4 == 3 else 0
 	return (i * 7 + i / 3) % n                       # spread over every variant, not round-robin in a row
+
+
+## The market's stack of goods: the modelled crate three times in a pyramid (market_props.gd GOODS_CRATES), then the
+## sacks and the barrel. One surface per crate part, so the stack draws as before.
+static func _goods() -> ArrayMesh:
+	var am := Market.goods(wood(), cloth())
+	var ps := parts("crate")
+	if ps.is_empty():
+		return am
+	var box := AABB()
+	for i in ps.size():
+		var b: AABB = (ps[i].mesh as Mesh).get_aabb()
+		box = b if i == 0 else box.merge(b)
+	var sc := Market.GOODS_CRATE / maxf(0.01, maxf(box.size.x, box.size.z))
+	var foot := Vector3(box.get_center().x, box.position.y, box.get_center().z)
+	var xfs: Array[Transform3D] = []
+	for c: Array in Market.GOODS_CRATES:
+		var b3 := Basis(Vector3.UP, float(c[1])).scaled(Vector3(sc, sc, sc))
+		xfs.append(Transform3D(b3, c[0] as Vector3) * Transform3D(Basis.IDENTITY, -foot))
+	for pd: Dictionary in ps:
+		var m: Mesh = pd.mesh
+		for si in m.get_surface_count():
+			var st := SurfaceTool.new()
+			for xf in xfs:
+				st.append_from(m, si, xf)
+			st.commit(am)
+			var mat: Material = pd.mat if pd.mat != null else m.surface_get_material(si)
+			am.surface_set_material(am.get_surface_count() - 1, mat)
+	return am
 
 
 ## [{mesh, mat}] of a glb under art/models/props/ (cached): for builders that place a modelled prop themselves

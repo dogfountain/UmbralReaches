@@ -104,13 +104,15 @@ static func trestle(wood_mat: Material, cloth_mat: Material) -> ArrayMesh:
 	return _mesh(k, wood_mat, null, cloth, cm.commit(), cloth_mat)
 
 
-## A stack of goods: crates in a pyramid with sacks leaning on them and a barrel beside.
+## The crates of a stack of goods: where each stands (x, y of its foot, z) and its turn. site_props.gd puts the modelled
+## crate there (plain boxes read as black cubes at night).
+const GOODS_CRATES := [[Vector3(-0.35, 0.0, 0.0), 0.1], [Vector3(0.35, 0.0, 0.05), -0.12], [Vector3(0.0, 0.6, 0.02), 0.3]]
+const GOODS_CRATE := 0.62                ## a crate's width in the stack (m)
+
+
+## A stack of goods' sacks leaning on the crates and the barrel beside (the crates: GOODS_CRATES).
 static func goods(wood_mat: Material, cloth_mat: Material) -> ArrayMesh:
-	var k := OssKit.new()
-	k.keep_lanes = false
-	k.box("wood", Vector3(-0.35, 0.3, 0), Vector3(0.62, 0.6, 0.62), Basis(Vector3.UP, 0.1), false, 0.85)
-	k.box("wood", Vector3(0.35, 0.3, 0.05), Vector3(0.62, 0.6, 0.62), Basis(Vector3.UP, -0.12), false, 0.85)
-	k.box("wood", Vector3(0.0, 0.9, 0.02), Vector3(0.62, 0.6, 0.62), Basis(Vector3.UP, 0.3), false, 0.8)
+	var k: OssKit = null
 	var cm := CreatureMesh.new(79)
 	_sack(cm, Vector3(-0.9, 0.0, 0.3), 1.0)
 	_sack(cm, Vector3(-0.85, 0.0, -0.3), 0.9)

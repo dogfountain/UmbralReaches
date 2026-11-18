@@ -81,7 +81,7 @@ func _process(delta: float) -> void:
 	if n != _night:
 		_night = n
 	# the aurora of the night and the cloud of the night
-	var aur := 0.5 + 1.3 * fposmod(sin(float(n) * 12.9898) * 43758.5453, 1.0)
+	var aur := 0.3 + 0.7 * fposmod(sin(float(n) * 12.9898) * 43758.5453, 1.0)       # (0.5-1.8 outshone the landmarks' fires: the sky stays behind them)
 	# an aurora SURGE every seven to fourteen minutes: the veils swell over fifteen seconds, hold, and ease away over twenty-five (a moment of the sky)
 	var surge := 0.0
 	if _surge_t >= 0.0:

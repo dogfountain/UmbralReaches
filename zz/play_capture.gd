@@ -1563,7 +1563,44 @@ func _view_still(file: String, desc: String, cam_pos: Vector3, target: Vector3) 
 		if gl != null and gl.is_visible_in_tree():
 			beams += " %s@%.0f(a%.2f s%.1f vr%.0f lay%d at %s)" % [b.name, cam_pos.distance_to(b.get("anchor")), (gl.material_override as StandardMaterial3D).albedo_color.a, gl.scale.x, gl.visibility_range_end, gl.layers, gl.global_position]
 	print("PLAYCAP far glows in %s:%s" % [file, beams if beams != "" else " none"])
+	if "--probe" in OS.get_cmdline_user_args():
+		_probe_view(file)
 	await _still(file, desc, 4)
+
+
+## --probe: what stands under a 6 x 4 grid of points across the lower two thirds of the view (to name what a still shows).
+func _probe_view(file: String) -> void:
+	var cam := get_viewport().get_camera_3d()
+	if cam == null:
+		return
+	var vs := get_viewport().get_visible_rect().size
+	for j in 4:
+		for i in 6:
+			var px := Vector2(vs.x * (0.08 + 0.168 * float(i)), vs.y * (0.4 + 0.16 * float(j)))
+			var o := cam.project_ray_origin(px)
+			var hit := _space().intersect_ray(PhysicsRayQueryParameters3D.create(o, o + cam.project_ray_normal(px) * 120.0, 0xFFFF))
+			if not hit.is_empty():
+				print("PLAYCAP probe %s px (%.0f, %.0f): %s at %s" % [file, px.x / vs.x * 1600.0, px.y / vs.y * 900.0, (hit.collider as Node).get_path(), hit.position])
+	# the meshes along the ray through the middle of the lower view (things with no collider show here)
+	var pm := Vector2(vs.x * 0.56, vs.y * 0.7)
+	var o2 := cam.project_ray_origin(pm)
+	var dir := cam.project_ray_normal(pm)
+	var near: Array = []
+	for n: Node in get_tree().root.find_children("*", "GeometryInstance3D", true, false):
+		var gi := n as GeometryInstance3D
+		if not gi.is_visible_in_tree():
+			continue
+		var bx := gi.global_transform * gi.get_aabb()
+		if bx.size.length() > 60.0:
+			continue
+		var at: Variant = bx.intersects_ray(o2, dir)
+		if at != null:
+			near.append([o2.distance_to(at as Vector3), gi])
+	near.sort_custom(func(a: Array, b: Array) -> bool: return float(a[0]) < float(b[0]))
+	for k in mini(8, near.size()):
+		var g2 := near[k][1] as GeometryInstance3D
+		var ms: Variant = g2.get("mesh")
+		print("PLAYCAP probe %s mid-low mesh %.1f m: %s (%s %s)" % [file, float(near[k][0]), g2.get_path(), g2.get_class(), (ms as Resource).resource_path if ms is Resource else ""])
 
 
 ## Establishing-shot overrides per region id (everything else: the first "poi" slot, else the centre, from the walked

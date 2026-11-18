@@ -66,16 +66,14 @@ static func strands(k, a: Vector3, b: Vector3, n: int, len: float, key := "bark"
 			k.kit.box(key, lp, Vector3(0.28, 0.06, 0.2), Basis(Vector3.UP, rng.randf() * TAU), false, 0.9)
 
 
+## A barrel h high and a crate s wide: the modelled props (art/models/props), not boxes (a box and a band read as a black
+## block at night). Drawn by the kit as MultiMeshes (wonder_kit.gd prop()).
 static func barrel(k, c: Vector3, yaw := 0.0, h := 1.0) -> void:
-	k.tube("wood_big", c, c + Vector3.UP * h, 0.42, 0.42, 8, false, 0.8, Vector2(1.0, -1.0), true)
-	for y: float in [0.18, 0.78]:
-		k.tube("iron", c + Vector3.UP * (h * y), c + Vector3.UP * (h * y + 0.07), 0.45, 0.45, 8, false, 0.6)
+	k.prop("barrel", c, yaw, h, true)
 
 
 static func crate(k, c: Vector3, yaw := 0.0, s := 0.9) -> void:
-	var b := Basis(Vector3.UP, yaw)
-	k.kit.box("wood_big", c + Vector3.UP * s * 0.5, Vector3(s, s, s), b, false, 0.85)
-	k.kit.box("iron", c + Vector3.UP * s * 0.5, Vector3(s * 1.03, 0.08, s * 1.03), b, false, 0.6)
+	k.prop("crate", c, yaw, s)
 
 
 ## A looters' camp: a ring of stones with a small fire, a lean of two crates and barrels, a rope line with a lantern.

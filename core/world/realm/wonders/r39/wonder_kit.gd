@@ -13,6 +13,7 @@ const Chest := preload("res://core/world/realm/loot_chest.gd")
 const Land := preload("res://core/world/realm/realm_land.gd")
 const Wayfinding := preload("res://core/world/realm/realm_wayfinding.gd")
 const AcousticZones := preload("res://core/audio/acoustic_zones.gd")
+const Props := preload("res://core/world/realm/site_props.gd")
 
 const FIRE_COL := Color(1.0, 0.6, 0.28)
 
@@ -28,6 +29,8 @@ var _hl := {}                           ## halo size (x10) -> Array[Transform3D]
 var _lrec: Array = []                   ## recorded lights [pos, colour, energy, range, attenuation, fade begin, fade length]: made at commit
 var _crec: Array = []                   ## recorded chests [id, tier, at, yaw, loot]
 var _wrec: Array = []                   ## recorded water planes [centre, yaw, size, visibility]
+var _prec: Array = []                   ## modelled props [glb file under art/models/props, Transform3D]: one MultiMesh per part at commit
+static var _prop_box := {}              ## glb file -> its parts' merged AABB
 var _key := ""                          ## the GenCache key of this kit's geometry (cached())
 var _loaded := false
 static var light_used := 0              ## every light the wonders add counts here; past LIGHT_CAP only the glow cards and glass remain (the light budget)
@@ -658,6 +661,7 @@ func commit(range_end := 0.0) -> int:
 	if _key != "" and not _loaded:
 		_save()
 	var n := kit.commit(host, host.name + "Body")
+	n += _commit_props()
 	# flames and halos: one MultiMesh each (per halo size) for the whole kit
 	if not _fl.is_empty():
 		if _fire_mesh == null:
@@ -716,6 +720,53 @@ func commit(range_end := 0.0) -> int:
 				gi.visibility_range_end = range_end
 				gi.visibility_range_end_margin = range_end * 0.1
 				gi.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
+	return n
+
+
+## A modelled prop (art/models/props/<file>.glb, the yards' and squares' own crates and barrels) standing at `at`, turned
+## `yaw`, scaled so its width (or its height, `by_height`) is `size`. Drawn with the kit's other props of that file as
+## one MultiMesh per part; no collider (as the box crates had none).
+func prop(file: String, at: Vector3, yaw: float, size: float, by_height := false) -> void:
+	if not _prop_box.has(file):
+		var box := AABB()
+		var ps: Array = Props.parts(file)
+		for i in ps.size():
+			var b: AABB = ((ps[i] as Dictionary).mesh as Mesh).get_aabb()
+			box = b if i == 0 else box.merge(b)
+		_prop_box[file] = box
+	var bx: AABB = _prop_box[file]
+	var ext := bx.size.y if by_height else maxf(bx.size.x, bx.size.z)
+	if ext <= 0.001:
+		return
+	var sc := size / ext
+	var foot := Vector3(bx.get_center().x, bx.position.y, bx.get_center().z)
+	_prec.append([file, Transform3D(Basis(Vector3.UP, yaw).scaled(Vector3(sc, sc, sc)), at) * Transform3D(Basis.IDENTITY, -foot)])
+
+
+func _commit_props() -> int:
+	var by := {}
+	for pr: Array in _prec:
+		if not by.has(pr[0]):
+			by[pr[0]] = []
+		(by[pr[0]] as Array).append(pr[1])
+	var n := 0
+	for file: String in by:
+		var xfs: Array = by[file]
+		for pd: Dictionary in Props.parts(file):
+			var mm := MultiMesh.new()
+			mm.transform_format = MultiMesh.TRANSFORM_3D
+			mm.mesh = pd.mesh
+			mm.instance_count = xfs.size()
+			for i in xfs.size():
+				mm.set_instance_transform(i, xfs[i] as Transform3D)
+			var mmi := MultiMeshInstance3D.new()
+			mmi.name = "Prop_" + file
+			mmi.multimesh = mm
+			if pd.mat != null:
+				mmi.material_override = pd.mat
+			mmi.set_meta(&"site_owned", true)          # (placed by its builder: the scatter cull leaves it)
+			host.add_child(mmi)
+			n += 1
 	return n
 
 
@@ -783,6 +834,7 @@ func cached(key: String) -> bool:
 	_lrec = d.lrec
 	_crec = d.crec
 	_wrec = d.wrec
+	_prec = d.get("pr", [])
 	fires = int(d.fires)
 	_loaded = true
 	return true
@@ -793,4 +845,4 @@ func _save() -> void:
 	for k2: String in kit._st:
 		st[k2] = (kit._st[k2] as SurfaceTool).commit_to_arrays()
 	GenCache.save_var(_key, KIT_PATH, {"st": st, "col": kit.col_faces, "solids": kit.solids, "candles": kit.candles, "skulls": kit.skulls,
-		"bones": kit.bones, "puddles": kit.puddles, "fl": _fl, "hl": _hl, "lrec": _lrec, "crec": _crec, "wrec": _wrec, "fires": fires})
+		"bones": kit.bones, "puddles": kit.puddles, "fl": _fl, "hl": _hl, "lrec": _lrec, "crec": _crec, "wrec": _wrec, "pr": _prec, "fires": fires})
