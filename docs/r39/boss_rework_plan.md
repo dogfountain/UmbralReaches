@@ -1,6 +1,21 @@
 # The great ones: a plan to make the bosses look good and move (18 Nov)
 
-Luke, 18 Nov: "the bosses look bad and are static". This is the plan; nothing in it is built yet.
+Luke, 18 Nov: "the bosses look bad and are static". This is the plan and, below, how far it has got.
+
+## Progress
+- The Anchoress and the Speaking Crown act their moves on any rig (58cc1984).
+- **The Bone Abbot, rebuilt in Blender** (`tools/blender/vb_bone_abbot.py` on the kit `tools/blender/vb_kit.py`; the
+  model `art/models/bosses/vb_bone_abbot.glb`, its scene `art/blender/vb_bone_abbot.blend`):
+  - one skinned mesh in the villagers' data (sRGB tint and baked AO in the vertex colour, UV in metres, UV2.x the
+    material layer) worn with `DwarfLook.material_boss`, a lit "glow" surface for the eyes, candles and reliquary;
+  - 70 bones: the body, a crozier bone, the cord, a robe hem of 8 three-link chains, a mantle edge of 6;
+  - clips keyed in Blender with follow-through on the cloth chains: idle (weight shifts, breath, the head turning),
+    walk, windup/windup_hold/strike (the crozier raised over the shoulder and brought down into the floor ahead),
+    stagger, howl, death, and his own moves: toll (raised to the bell, driven down as it rings), bone_rain,
+    grave_spikes, sweep (wound back through the tell, the crook across the cone), requiem, tithe;
+  - the staff is aimed in the world per key (`aim()`), whatever the arm does;
+  - played by `ClipRig` (`villager_look`, `boss_move(clip, dur)`), hooked from `bone_abbot.gd` `_move()`; the old
+    code-built body stays as the fallback; `BossKit.AUTHORED` prefetches the glb in the arena's warm-up.
 
 ## What is wrong (from the code and the trailer footage)
 
@@ -123,4 +138,4 @@ after each family lands.
 
 ## Still to decide
 - The Blender connector (Anthropic + Blender Lab) for live modelling with renders each step, or the headless
-  `tools/blender` scripts as now?
+  `tools/blender` scripts as now? (The Abbot was done headless, with turnaround and posed renders each pass.)

@@ -97,7 +97,6 @@ var _reckon_n := 0
 var _hymn := false
 var _hymn_fx := 0.0
 var _falls: Array = []          ## pending sector falls: [sector, seconds]
-var _crozier_mi: Node3D
 var _attuned := false           ## Sister Agathe's chain done (QuestBook.attuned): his count comes up short
 
 
@@ -150,17 +149,24 @@ func _absorb(dmg: float, from: Node) -> float:
 
 func _build() -> void:
 	name = "BoneAbbot"
-	# (17 Nov, Luke: "reduce boss to simple model like villager, these models suck"; "the style, not the exact look")
-	# ("have some creativity") built in the villagers' style (their skeleton, soft skinning, shader, procedural
-	# primitives) to his own design (core/enemy/abbot_body.gd): hunched under a hooked hood with a bone crown, ember
-	# eyes in the dark, a ribcage torn open on a burning reliquary heart, a ragged mantle with candles, skeletal hands, a
-	# vertebra crozier; posed by formula (core/enemy/villager_boss_rig.gd). The Blender model and its clips
-	# (boss_bone_abbot.py, boss_humanoid_anim.py, ClipRig) are kept for the record.
-	var rig: CharacterRig = VillagerBossRig.new()
-	rig.set("body_script", AbbotBody)
-	rig.set("stoop", 0.04)                     # the hunch is in his own skeleton
-	rig.set("opts", {"seed": 6101, "sex": "m", "age": "adult"})
-	attach_rig(rig)
+	# (18 Nov, Luke: the bosses "look bad and are static"; "all models in the game should be blender") modelled and
+	# animated in Blender (tools/blender/vb_bone_abbot.py) in the villagers' style to his own design: hunched under a
+	# horned hood ringed with bone tines, ember eyes in a void, a ribcage torn open on a burning reliquary, a wine
+	# mantle set with candles, skeletal claws, a vertebra crozier with a lantern in its crook; a move of his own for
+	# each rite. The code-built body (abbot_body.gd on the villager rig) stays as the fallback.
+	var rig: CharacterRig
+	var model: String = BossKit.AUTHORED.get(&"bone_abbot", "")     # tools/blender/vb_bone_abbot.py: skeleton, mesh, clips
+	if model != "" and ResourceLoader.exists(model):
+		rig = ClipRig.fit(self, model, &"bone_abbot", {"body": "spine", "front": "chest", "muzzle": "head"},
+				{"walk_stride": 1.5, "villager_look": true})
+		weak_offset = Vector3(0.0, -0.05, -0.2)        # the reliquary in the torn breast, a hand before the chest joint
+	else:
+		rig = VillagerBossRig.new()
+		rig.set("body_script", AbbotBody)
+		rig.set("stoop", 0.04)                     # the hunch is in his own skeleton
+		rig.set("opts", {"seed": 6101, "sex": "m", "age": "adult"})
+		attach_rig(rig)
+		set_flesh(rig.dress(&"bone_abbot"))
 	_rig.scale = Vector3.ONE * 1.34          # 1.95 tall in body units: at SCALE 2.6 and this, about 7.5 m (Luke: bosses 4-5x a man)
 	_rig_xf = _rig.transform
 	var col := get_node_or_null("Collision") as CollisionShape3D
@@ -168,7 +174,6 @@ func _build() -> void:
 		var cap := col.shape as CapsuleShape3D
 		cap.height = CAPSULE_H * 0.92
 		col.position.y = cap.height * 0.5
-	set_flesh(rig.dress(&"bone_abbot"))
 	set_meta(&"yield_cast", "Bone Rain")           # the rain's long bar gives way to the next rite's
 	BossKit.embiggen(self, SCALE)
 	strike_range = 3.0                          # embiggen caps reach at 1.7x; his arms are 2.6x
@@ -186,25 +191,22 @@ func _build() -> void:
 		l.omni_range = 5.0
 		l.shadow_enabled = false
 		chest.add_child(l)
-		l.position = Vector3.ZERO if lamp != null else Vector3(0.0, -0.06, -0.5)
+		l.position = Vector3.ZERO if lamp != null else Vector3(0.0, -0.05, -0.28)
 
 
-## The crozier is carried upright in the right hand (it hung from the swinging arm like a cane, the
-## hook behind the head): each frame its mesh is turned back to vertical about the hand.
-func _process(_delta: float) -> void:
-	if _rig != null and (_rig.get_script() == ClipRig or _rig.get_script() == VillagerBossRig):
-		set_process(false)                   # the authored clips carry the crozier themselves
-		return
-	if _crozier_mi == null:
-		var hand := _rig.socket("hand_r") if _rig else null
-		_crozier_mi = hand.get_node_or_null("Kin_glow_hand_r") as Node3D if hand else null
-		if _crozier_mi == null:
-			return
-	if _state == DEAD or _face == null:
-		return
-	var f := _face.global_basis.z
-	var sc := _crozier_mi.global_basis.get_scale()
-	_crozier_mi.global_basis = Basis(Vector3.UP, atan2(f.x, f.z)).scaled(sc)
+## One of his own moves when the model has it (the clip of that name), else the shared pose `fallback` (with `arg`).
+## True when his own move played (it carries its own blow, so the fight skips the shared strike).
+func _rite(clip: StringName, dur: float, fallback := "", arg := -1.0) -> bool:
+	if _rig == null:
+		return false
+	if _rig.has_method("boss_move") and bool(_rig.call("boss_move", clip, dur)):
+		return true
+	if fallback != "" and _rig.has_method(fallback):
+		if arg >= 0.0:
+			_rig.call(fallback, arg)
+		else:
+			_rig.call(fallback)
+	return false
 
 
 func _hit_sound() -> String:
@@ -622,8 +624,7 @@ func _tolling() -> void:
 	Vfx.light(hole + Vector3.UP * 2.0, Color(GRAVE.r * 0.6, GRAVE.g * 0.6, GRAVE.b * 0.6), 2.4, SHADOW_R * 1.25, TOLL_TIME + 0.3)   # reaches the ring and stops
 	Vfx.ring(Vector3(c.x, c.y + 0.1, c.z), Hall.MOUND_R + 0.4, GRAVE, TOLL_TIME, 0.14, Vector3.UP, 1.4)   # the mound's foot is safe too
 	_glint = 1.0
-	if _rig and _rig.has_method("howl"):
-		_rig.call("howl", TOLL_TIME * 0.8)
+	_rite(&"toll", 0.0, "howl", TOLL_TIME * 0.8)          # raised to the bell, driven down as it rings
 	if _state != DEAD:
 		_set_state(RECOVER)
 		_state_t = -(TOLL_TIME - recover_time)
@@ -643,8 +644,7 @@ func _tolling() -> void:
 ## stay foul with ossuary dust for a while.
 func _bone_rain() -> void:
 	BossKit.cast(self, "Bone Rain", RAIN_TIME + 5.0)     # the bar stays up while the dust can hurt
-	if _rig and _rig.has_method("telegraph"):
-		_rig.call("telegraph", 0.8)
+	_rite(&"bone_rain", RAIN_TIME, "telegraph", 0.8)      # the claw raised to the vault
 	var under := _floor_at(_p.global_position)
 	var spots: Array[Vector3] = [under if under != Vector3.INF else _p.global_position]
 	for tries in 12:
@@ -814,6 +814,7 @@ func _grave_spikes() -> void:
 		spots.append(at + ahead)
 		spots.append(at + ahead.rotated(Vector3.UP, 1.9) * 0.9)
 	BossKit.cast(self, "Grave Spikes", 1.1)
+	_rite(&"grave_spikes", 0.0)                           # the crozier driven down as they burst
 	for s in spots:
 		BossKit.zone(get_parent(), s, 1.1, 22.0, {"by": self, "radius": 2.0, "color": BossKit.BONE, "spikes": "bone"})
 	Vfx.burst(global_position + Vector3.UP * hp_bar_y * 0.6, Color(1.4, 0.6, 2.6), {"count": 20, "life": 0.5, "speed": Vector2(1.0, 3.0), "size": 0.05, "gravity": 1.0})
@@ -832,14 +833,13 @@ func _sweep() -> void:
 	_sweep_t = SWEEP_EVERY
 	var yaw := atan2(-_to.x, -_to.z)
 	_face_dir = _to / maxf(_dist, 0.001)
-	if _rig and _rig.has_method("telegraph"):
-		_rig.call("telegraph", 1.05)
+	var own := _rite(&"sweep", 0.0, "telegraph", 1.05)    # wound back through the tell, the crook across the cone
 	_glint = 1.0
 	say("windup", global_position + Vector3.UP * 2.0, 3.0, 0.6)
 	BossKit.cast(self, "Crozier Sweep", 1.05)
 	BossKit.zone(get_parent(), global_position, 1.05, 30.0, {"by": self, "radius": 7.5, "half_angle": deg_to_rad(75.0), "yaw": yaw, "color": BossKit.BONE})
 	get_tree().create_timer(1.05, false).timeout.connect(func() -> void:
-		if is_instance_valid(self) and is_alive() and _rig and _rig.has_method("strike"):
+		if not own and is_instance_valid(self) and is_alive() and _rig and _rig.has_method("strike"):
 			_rig.call("strike"))
 
 
@@ -849,8 +849,7 @@ func _requiem() -> void:
 	_reliq_t = 2.4
 	_reliq_hits = 0
 	BossKit.cast(self, "Requiem", 3.0, true)       # up until the last drip has landed
-	if _rig and _rig.has_method("howl"):
-		_rig.call("howl", 2.2)
+	_rite(&"requiem", 0.0, "howl", 2.2)                   # arms wide, head back, rising
 	_glint = 1.0
 	Sfx.play_stream(Synth.get_stream("chant"), global_position + Vector3.UP * 2.5, 3.0, 0.6)
 	var c := global_position
@@ -886,8 +885,7 @@ func _tithe() -> void:
 	to.y = 0.0
 	var dir := to.normalized()
 	var n := int(clampf((to.length() + 3.0) / 2.0, 4.0, 11.0))
-	if _rig and _rig.has_method("telegraph"):
-		_rig.call("telegraph", 0.75 + 0.16 * float(n - 1))      # the arms stay up for the whole line
+	var own := _rite(&"tithe", 0.75 + 0.16 * float(n - 1) + 0.4, "telegraph", 0.75 + 0.16 * float(n - 1))   # beckoning the line out
 	_face_dir = dir
 	_glint = 1.0
 	Sfx.play_stream(Synth.get_stream("spike"), global_position + Vector3.UP, 0.0, 0.7)
@@ -900,8 +898,8 @@ func _tithe() -> void:
 		get_tree().create_timer(0.75 + 0.16 * float(i), false).timeout.connect(func() -> void:
 			if not (is_instance_valid(self) and is_alive()):
 				return
-			var r: Variant = _rig                                              # HunchRig or ClipRig: both strike
-			if r != null:
+			var r: Variant = _rig                                              # the shared rigs strike at each spike
+			if r != null and not own:
 				r.strike())                                # the crozier meets each spike
 
 

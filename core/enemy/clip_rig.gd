@@ -19,6 +19,19 @@ extends CharacterRig
 
 const GruntModel := preload("res://core/enemy/grunt_model.gd")
 const BossLook := preload("res://core/enemy/boss_look.gd")
+const DwarfLook := preload("res://core/npc/dwarf_look.gd")
+const VillagerBossRig := preload("res://core/enemy/villager_boss_rig.gd")
+## The glowing parts of a villager-look model (eyes, flames, the reliquary): its sRGB vertex colour, bright, unlit.
+const GLOW_CODE := """
+shader_type spatial;
+render_mode unshaded, shadows_disabled;
+instance uniform float dissolve = 0.0;
+void fragment() {
+	vec3 c = COLOR.rgb;
+	c = mix(c / 12.92, pow((c + 0.055) / 1.055, vec3(2.4)), step(vec3(0.04045), c));
+	ALBEDO = c * 2.4;
+}
+"""
 
 var scene_path := ""
 ## The model is built geometry with named surfaces (tools/blender/boss_build.py), not a baked atlas body.
@@ -32,6 +45,9 @@ var run_stride := 3.2
 var run_at := 5.0
 ## The model's own facing: glb exports here face -Z, as the rigs do.
 var model_yaw := 0.0
+## The model is authored for the villagers' shader (tools/blender/vb_kit.py: COLOR = sRGB tint and AO, UV in metres,
+## UV2.x = material layer; a surface named "glow" is lit), so it wears their look, not an atlas.
+var villager_look := false
 
 var _model: Node3D
 var _skeleton: Skeleton3D
@@ -60,6 +76,7 @@ static func fit(e: Node, scene: String, kind: StringName, bones: Dictionary, opt
 	rig.set("run_stride", float(opts.get("run_stride", 2.0)))
 	rig.set("run_at", float(opts.get("run_at", 99.0)))
 	rig.set("built", bool(opts.get("built", false)))
+	rig.set("villager_look", bool(opts.get("villager_look", false)))
 	var en: Variant = e
 	en.attach_rig(rig)
 	rig.scale = opts.get("scale", Vector3.ONE)
@@ -248,6 +265,8 @@ static func _ramp(a: float, b: float) -> Curve:
 
 ## The skinned meshes wearing the kind's material (flash, glint, dissolve): what Enemy.set_flesh wants.
 func dress(kind: StringName) -> Array[MeshInstance3D]:
+	if villager_look:
+		return _dress_villager()
 	# a BUILT model names its surfaces (wool, trim, bone...) and wears tiling materials; a baked one wears its atlas
 	if built and BossLook.has(kind) and not (GruntModel.KINDS.has(kind) and ResourceLoader.exists(GruntModel._tex(kind, "albedo"))):
 		return BossLook.dress(kind, _meshes)
@@ -259,6 +278,47 @@ func dress(kind: StringName) -> Array[MeshInstance3D]:
 			mi.set_instance_shader_parameter(&"pulse_phase", phase)
 		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
 	return _meshes
+
+
+static var _glow_mat: ShaderMaterial
+static var _fx_mat: ShaderMaterial
+
+
+## The villagers' boss material on the body, the glow surface lit, and the flesh overlay (hit flash, glint, dissolve).
+func _dress_villager() -> Array[MeshInstance3D]:
+	if _glow_mat == null:
+		var gs := Shader.new()
+		gs.code = GLOW_CODE
+		_glow_mat = ShaderMaterial.new()
+		_glow_mat.shader = gs
+		var fs := Shader.new()
+		fs.code = VillagerBossRig.FX_CODE
+		_fx_mat = ShaderMaterial.new()
+		_fx_mat.shader = fs
+	for mi in _meshes:
+		var mesh := mi.mesh
+		if mesh == null:
+			continue
+		for i in mesh.get_surface_count():
+			var sm := mesh.surface_get_material(i)
+			var nm: String = (sm.resource_name if sm != null else "") + " " + mesh.surface_get_name(i)
+			mi.set_surface_override_material(i, _glow_mat if nm.contains("glow") else DwarfLook.material_boss())
+		mi.material_overlay = _fx_mat
+		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+	return _meshes
+
+
+## A move of the boss's own (a clip named for it: "toll", "sweep"...), played once over `dur` seconds (its own length
+## when 0), then back to the idle. False when the model has no such clip, so the fight falls back to the shared calls.
+func boss_move(nm: StringName, dur := 0.0) -> bool:
+	if _dead or not has_clip(nm):
+		return false
+	_hold = &""
+	var l := _len(nm)
+	var d := l if dur <= 0.0 else maxf(dur, 0.2)
+	_play(nm, 0.2, l / d)
+	_lock_t = d
+	return true
 
 
 func has_clip(nm: StringName) -> bool:
@@ -329,6 +389,10 @@ func _capture_bones() -> void:
 
 
 func _process(_delta: float) -> void:
+	if _dead and villager_look and not _meshes.is_empty():
+		var d := float(_meshes[0].get_instance_shader_parameter(&"dissolve"))
+		for mi in _meshes:
+			mi.transparency = clampf(d * 1.15, 0.0, 1.0)
 	if _skeleton == null or not _bone_primed:
 		return
 	var live := is_physics_interpolated_and_enabled() and Engine.get_physics_frames() - _bone_frame < 2

@@ -43,11 +43,19 @@ static var _live: Array = []        ## [[zone mesh id, land time s], ...]: the z
 ## it (sounds, danger zones, rings, spike meshes, bursts and light), so an arena can spread the work
 ## over frames; -1 does it all. Anything drawn is a speck put in front of the camera for a few
 ## frames (culled things never compile), then freed.
+## The bosses rebuilt in Blender (18 Nov, every model authored there): skeleton, mesh and clips in one glb each,
+## worn with the villagers' look (tools/blender/vb_*.py).
+const AUTHORED := {&"bone_abbot": "res://art/models/bosses/vb_bone_abbot.glb"}
+
+
 static func warm(host: Node, stage := -1, boss := &"") -> void:
 	if host == null or not host.is_inside_tree():
 		return
 	if stage == 0 and boss != &"":
-		EnemyBody.prefetch(boss)                # the boss's model and textures load on a worker, ready for the rig
+		if AUTHORED.has(boss):                  # a Blender-authored boss (ClipRig, the villagers' look): just its glb
+			ResourceLoader.load_threaded_request(AUTHORED[boss])
+		else:
+			EnemyBody.prefetch(boss)            # the boss's model and textures load on a worker, ready for the rig
 	if stage == 0 or stage < 0:
 		for k: String in ["chant", "stagger", "roar", "bone", "spike", "block", "growl"]:
 			Synth.get_stream(k)
