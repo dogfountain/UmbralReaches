@@ -586,6 +586,17 @@ static func in_water(x: float, z: float) -> bool:
 	return _water[j * GNX + i] == 1 and height_at(x, z) < water_y_at(x, z)
 
 
+## A SHA-256 of the final ground and its pools: a placement cache keyed on it notices a moved hill or a changed lake.
+static func ground_digest() -> String:
+	var ctx := HashingContext.new()
+	ctx.start(HashingContext.HASH_SHA256)
+	if not _h.is_empty():
+		ctx.update(_h.to_byte_array())
+	if not _water.is_empty():
+		ctx.update(_water)
+	return ctx.finish().hex_encode()
+
+
 # -------------------------------------------------------------------------------------- meshes
 
 ## How much of the flagstone ground stays at (x, z): 1 outside the Siege Lines and on the pads round the siege tower

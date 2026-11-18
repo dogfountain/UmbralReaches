@@ -16,6 +16,7 @@ extends RefCounted
 const WK := preload("res://core/world/realm/wonders/r39/wonder_kit.gd")
 const Dress := preload("res://core/world/realm/wonders/r39/wonder_dress.gd")
 const Land := preload("res://core/world/realm/realm_land.gd")
+const Plan := preload("res://core/world/realm/wonders/r39/wonder_plan.gd")
 const COUNT := 32
 const SELF := "res://core/world/realm/wonders/r39/hidden_finds.gd"
 const TIERS := ["wood", "wood", "iron", "iron", "iron", "wood", "iron", "reliquary"]
@@ -34,6 +35,19 @@ func _run(root: Node) -> void:
 		_ids.append(String(reg.id))
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 3232
+	# the search is stored (wonder_plan.gd): a warm boot builds the finds the last one picked, trail by trail
+	var pk := Plan.key("hidden_finds", SELF)
+	var stored: Variant = Plan.load_plan(pk, SELF)
+	if stored is Dictionary:
+		var sd: Dictionary = stored
+		var trails: Array = sd.trails
+		for ti in trails.size():
+			var chain: Array[Vector2] = []
+			chain.assign(trails[ti] as Array)
+			_build(root, ti, chain, rng)
+		print(String(sd.log))
+		return
+	var picks: Array = []
 	var cands := WK.grid(3232, 14.0, 16.0)       # every candidate is a find; its three clues are laid back from it along the first direction that is clear
 	var t := {}
 	var n := 0
@@ -78,9 +92,12 @@ func _run(root: Node) -> void:
 			WK.rej(t, "trail")
 			continue
 		_found.append(f)
+		picks.append(c.duplicate())
 		_build(root, n, c, rng)
 		n += 1
-	print("WONDER hidden_finds: %d of %d (%d of %d candidates tried); rejected: %s" % [n, COUNT, tried, cands.size(), WK.rejected(t)])
+	var line := "WONDER hidden_finds: %d of %d (%d of %d candidates tried); rejected: %s" % [n, COUNT, tried, cands.size(), WK.rejected(t)]
+	print(line)
+	Plan.save_plan(pk, SELF, {"trails": picks, "log": line})
 
 
 func _spot(q: Vector2, t: Dictionary, strict := false) -> bool:

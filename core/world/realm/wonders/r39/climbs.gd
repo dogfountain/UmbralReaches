@@ -13,6 +13,7 @@ extends RefCounted
 const SELF := "res://core/world/realm/wonders/r39/climbs.gd"
 const WK := preload("res://core/world/realm/wonders/r39/wonder_kit.gd")
 const Dress := preload("res://core/world/realm/wonders/r39/wonder_dress.gd")
+const Plan := preload("res://core/world/realm/wonders/r39/wonder_plan.gd")
 
 var _placed: Array[Vector2] = []
 
@@ -25,6 +26,21 @@ static func build(root: Node) -> void:
 func _run(root: Node) -> void:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 7272
+	# the search is stored (wonder_plan.gd): a warm boot builds the towers and stairs the last one picked, in the same order
+	var pk := Plan.key("climbs", SELF)
+	var stored: Variant = Plan.load_plan(pk, SELF)
+	if stored is Dictionary:
+		var sd: Dictionary = stored
+		for e: Array in (sd.towers as Array):
+			_tower(root, int(e[0]), e[1] as Vector2, float(e[2]), float(e[3]), rng)
+		print(String((sd.log as Array)[0]))
+		for e: Array in (sd.stairs as Array):
+			_stair(root, int(e[0]), e[1] as Vector2, e[2] as Vector2, rng)
+		print(String((sd.log as Array)[1]))
+		return
+	var picks_t: Array = []
+	var picks_s: Array = []
+	var logs: Array = []
 	var tt := {}
 	var towers := 0
 	var tried := 0
@@ -47,10 +63,12 @@ func _run(root: Node) -> void:
 		if bool(f.get("site", true)):
 			WK.rej(tt, "site")
 			continue
+		picks_t.append([towers, f.pos, float(f.lo), float(f.hi)])
 		_tower(root, towers, f.pos, float(f.lo), float(f.hi), rng)
 		_placed.append(f.pos)
 		towers += 1
-	print("WONDER climbs towers: %d of 6 (%d candidates tried); rejected: %s" % [towers, tried, WK.rejected(tt)])
+	logs.append("WONDER climbs towers: %d of 6 (%d candidates tried); rejected: %s" % [towers, tried, WK.rejected(tt)])
+	print(logs[0])
 	# cliff stairs: every 12 m grid point is a foot; the first of eight directions that climbs 8-16 m over 26 m (then 5-16 m if too few) is the stair
 	var st := {}
 	var stairs := 0
@@ -80,6 +98,7 @@ func _run(root: Node) -> void:
 				if WK.site_hit(Rect2(top - Vector2(6.0, 6.0), Vector2(12.0, 12.0)), 2.0) or WK.site_hit(Rect2(p - Vector2(4.0, 4.0), Vector2(8.0, 8.0)), 2.0):
 					WK.rej(st, "site")
 					continue
+				picks_s.append([stairs, p, top])
 				_stair(root, stairs, p, top, rng)
 				_placed.append(p)
 				stairs += 1
@@ -89,7 +108,9 @@ func _run(root: Node) -> void:
 				WK.rej(st, "rise")
 		if stairs >= 6:
 			break
-	print("WONDER climbs stairs: %d of 6 (%d feet tried); rejected: %s" % [stairs, tried, WK.rejected(st)])
+	logs.append("WONDER climbs stairs: %d of 6 (%d feet tried); rejected: %s" % [stairs, tried, WK.rejected(st)])
+	print(logs[1])
+	Plan.save_plan(pk, SELF, {"towers": picks_t, "stairs": picks_s, "log": logs})
 
 
 func _free(c: Vector2, path_min: float, spacing: float, t: Dictionary) -> bool:

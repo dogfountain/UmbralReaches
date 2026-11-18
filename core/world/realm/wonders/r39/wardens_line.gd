@@ -14,6 +14,7 @@ extends RefCounted
 const WK := preload("res://core/world/realm/wonders/r39/wonder_kit.gd")
 const Cresset := preload("res://core/world/realm/wonders/r39/wardens_cresset.gd")
 const Dress := preload("res://core/world/realm/wonders/r39/wonder_dress.gd")
+const Plan := preload("res://core/world/realm/wonders/r39/wonder_plan.gd")
 
 const STATIONS := [-338.0, -232.0, -128.0, 124.0, 226.0, 330.0]
 const ALLOW := ["lanternwood", "kingsbarrows", "greyfell", "lastlight", "nave", "bellfall", "weirford", "sorrow", "downs"]
@@ -58,15 +59,34 @@ func _run(root: Node) -> void:
 	var meshes := 0
 	var fires := 0
 	var lights := 0
+	# the six spots are searched once and stored (wonder_plan.gd): a warm boot builds on the last picks
+	var pk := Plan.key("wardens_line", SELF, ["res://core/world/realm/wonders/r39/wardens_cresset.gd"])
+	var stored: Variant = Plan.load_plan(pk, SELF)
+	var spots: Array = []
+	if stored is Dictionary and ((stored as Dictionary).spots as Array).size() == STATIONS.size():
+		spots = (stored as Dictionary).spots
+	var warm := not spots.is_empty()
 	for i in STATIONS.size():
 		var x: float = STATIONS[i]
-		var f := WK.place_first(_cands(x), Vector2(8.0, 8.0), [0.0], 2.5)
-		var c: Vector2 = f.pos
-		WorldLanes.register_terrace("wonder_wardens_%d" % (i + 1), c, 9.0, (float(f.lo) + float(f.hi)) * 0.5)
+		var c: Vector2
+		var flo: float
+		var fhi: float
+		if warm:
+			var sp: Array = spots[i]
+			c = sp[0]
+			flo = float(sp[1])
+			fhi = float(sp[2])
+		else:
+			var f := WK.place_first(_cands(x), Vector2(8.0, 8.0), [0.0], 2.5)
+			c = f.pos
+			flo = float(f.lo)
+			fhi = float(f.hi)
+			spots.append([c, flo, fhi])
+		WorldLanes.register_terrace("wonder_wardens_%d" % (i + 1), c, 9.0, (flo + fhi) * 0.5)
 		k = WK.new()                                   # one kit (one set of meshes) per tower: each culls on its own
 		k.setup(root, "WardensTower%d" % (i + 1), 6101 + i)
 		k.poi("wardens_tower_%d" % (i + 1), "The Wardens' Line", "tower %d of six, dark since the west went out" % (i + 1), WK.region_at(c) if WK.region_at(c) != "" else "road")
-		var lv := (float(f.lo) + float(f.hi)) * 0.5
+		var lv := (flo + fhi) * 0.5
 		_tower(i + 1, c, lv, lv)
 		var tp: Array[Vector3] = [_w(-4.0, 0.2, -4.0), _w(4.0, 11.0, -4.0), _w(-4.0, 11.0, 4.0), _w(4.0, 0.2, 4.0)]
 		WK.acoustic(tp, "hall", "tower")
@@ -75,6 +95,8 @@ func _run(root: Node) -> void:
 		fires += k.fires
 		lights += k.lights
 		placed += 1
+	if not warm:
+		Plan.save_plan(pk, SELF, {"spots": spots})
 	print("WONDER wardens_line: %d of %d towers, %d meshes, %d fires, %d lights" % [placed, STATIONS.size(), meshes, fires, lights])
 
 
