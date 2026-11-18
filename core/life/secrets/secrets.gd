@@ -180,4 +180,9 @@ static func _clear_walks() -> void:
 						var c := a.lerp(q, float(k) / n)
 						discs.append(Vector3(c.x, c.y, 1.2))
 				prev = q
+		# the ridge's south nose, where the walk from Hearthward steps onto the crest: open ground round it, not
+		# only the line (19 Nov: a reshuffled trunk stood 6 m short of it, across the way in from the village)
+		if s.has("crest") and s.crest is Array and not (s.crest as Array).is_empty() and s.crest[0] is Vector3:
+			var nose: Vector3 = s.crest[0]
+			discs.append(Vector3(nose.x, nose.z, 8.0))
 	Kit.clear_flora(null, discs)

@@ -876,7 +876,9 @@ static func _force_spots(rd: Dictionary, stage: int) -> Array:
 	more.sort_custom(func(a: Array, b: Array) -> bool: return float(a[0]) < float(b[0]))
 	for m: Array in more:
 		qs.append(m[1])
-	return qs.slice(0, 150)                  # (a region with no room for the kind gives up soon)
+	# (a region with no room for the kind gives up soon; the last stage looks deeper in, past the ways' busy
+	# verges: 19 Nov, the downs' 150 nearest spots all had a place on them and the Lost Fold went unbuilt)
+	return qs.slice(0, 150 if stage < 3 else 450)
 
 
 ## Give a place its writing: its own carrier piece if it has one of the right kind, else a carrier beside it.

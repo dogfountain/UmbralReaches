@@ -124,7 +124,7 @@ func _run() -> void:
 	ok(is_equal_approx(p.gloom_max, base_max + 10.0), "Warm Hands: Gloom %.0f -> %.0f" % [base_max, p.gloom_max])
 	ok(String(h.call("take_path", "w_feet")) == "", "Light Feet remembered")
 	ok(is_equal_approx(p.walk_speed, base_walk * 1.05), "Light Feet: walk %.2f -> %.2f" % [base_walk, p.walk_speed])
-	ok(String(h.call("take_path", "r_will")) == "" and is_equal_approx(float(DB.live.power), 1.05), "Splinter of Sky: power %.2f" % float(DB.live.power))
+	ok(String(h.call("take_path", "r_will")) == "" and is_equal_approx(float(DB.live.power), 1.05 + _level_power()), "Splinter of Sky: power %.2f (%.2f from the level)" % [float(DB.live.power), _level_power()])
 	ok(p.skills().slots[0].get_script() != p.skills().slots[0].get_script().get_base_script() or true, "skills tuned")
 	ok(int(h.call("free_points")) == free - 3, "three points spent")
 	ok(String(h.call("why_not_unremember", false)) == "Only at Hearthward's fire.", "Unremember only at home")
@@ -246,3 +246,9 @@ func _run() -> void:
 	ok(int(Travel.system_state("hearth").get("tier", 0)) == 3, "the Hearthfire's tier came back")
 	ok((Travel.system_state("hearth").works as Dictionary).has("baskets"), "Hild's work came back")
 	ok((Travel.system_state("progression").paths as Dictionary).has("h_hands") and int(Travel.system_state("progression").memory) >= 2000, "the Paths and memory came back")
+
+
+## The Remembrance's level bonus on spell power (kindling.gd: +1.5 % a level since the combat pass, 19 Nov)
+func _level_power() -> float:
+	var lv := int(PathsDB.level_of(int(Travel.system_state("progression").get("memory", 0))).level)
+	return float(preload("res://core/life/progression/kindling.gd").POWER_PER_LEVEL) * float(lv)

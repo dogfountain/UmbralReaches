@@ -12,6 +12,7 @@ extends Node
 ## Ends: PROGRESSION TEST PASS  /  PROGRESSION TEST FAIL n
 
 const DB := preload("res://core/life/progression/upgrade_db.gd")
+const PathsDB := preload("res://core/life/progression/paths_db.gd")
 const BoltSkill := preload("res://core/life/progression/skills/bolt.gd")
 const NovaSkill := preload("res://core/life/progression/skills/nova.gd")
 const CinderScar := preload("res://core/life/progression/fx/cinder_scar.gd")
@@ -346,9 +347,15 @@ func _run() -> void:
 	ok(is_equal_approx(p.gloom_max, base_max + 15.0), "after reload: Gloom capacity %.0f" % p.gloom_max)
 	ok(p.skills().slots[0].get_script() == BoltSkill and is_equal_approx(p.skills().slots[2].cooldown, 5.5), "after reload: ranked skills on the hotbar")
 	ok(is_equal_approx(p.step_range, base_range + 2.0 + 1.5), "after reload: worn charm and Step I (%.1f m)" % p.step_range)
-	ok(is_equal_approx(float(DB.live.power), 1.1), "after reload: spell power x%.2f" % float(DB.live.power))
+	ok(is_equal_approx(float(DB.live.power), 1.1 + _level_power()), "after reload: spell power x%.2f (%.2f from the level)" % [float(DB.live.power), _level_power()])
 	var laid := 0
 	for n in k.get_children():
 		if String(n.name).begins_with("Charm_"):
 			laid += 1
 	ok(laid == DB.CHARM_SPOTS.size() - 3, "charms already found are not laid again (%d left in the world)" % laid)
+
+
+## The Remembrance's level bonus on spell power (kindling.gd: +1.5 % a level since the combat pass, 19 Nov)
+func _level_power() -> float:
+	var lv := int(PathsDB.level_of(int(Travel.system_state("progression").get("memory", 0))).level)
+	return float(preload("res://core/life/progression/kindling.gd").POWER_PER_LEVEL) * float(lv)
