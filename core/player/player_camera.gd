@@ -24,6 +24,8 @@ var _thin_q: PhysicsShapeQueryParameters3D
 var _thin_ray: PhysicsRayQueryParameters3D   ## reused by _thin_occluder (r35: five rays, no allocation each)
 var _sight_ray: PhysicsRayQueryParameters3D
 var _sight_hold := 0.0
+var _rise := 0.0                        ## metres the camera lifts over the hood while a wall presses the arm short
+var _rise_ray: PhysicsRayQueryParameters3D
 
 
 func _init(p: Player) -> void:
@@ -221,7 +223,21 @@ func _update_arm(delta: float) -> void:
 	else:
 		_cam_len = lerpf(_cam_len, reach, 1.0 - exp(-8.0 * delta))
 	player._arm.spring_length = _cam_len
-	player._cam.position = Vector3(0.0, 0.0, _cam_len)
+	# pressed against a wall (the pit hall's, a standing stone), the camera rose no higher and the hood filled a third of
+	# the view: it lifts over the shoulder as the arm shortens, as far as the space above it allows
+	var squeeze := clampf((want - _cam_len) / maxf(want * 0.6, 0.1), 0.0, 1.0)
+	var lift := 0.85 * squeeze
+	if lift > 0.02 and space:
+		if _rise_ray == null:
+			_rise_ray = PhysicsRayQueryParameters3D.create(Vector3.ZERO, Vector3.ONE, Layers.WORLD, [player.get_rid()])
+		var from := player._arm.global_position + player._arm.global_basis.z.normalized() * _cam_len
+		_rise_ray.from = from
+		_rise_ray.to = from + Vector3.UP * (lift + 0.35)
+		var up_hit := space.intersect_ray(_rise_ray)
+		if not up_hit.is_empty():
+			lift = maxf(0.0, from.distance_to(up_hit.position) - 0.35)
+	_rise = lerpf(_rise, lift, 1.0 - exp(-6.0 * delta))
+	player._cam.position = Vector3(0.0, _rise, _cam_len)
 
 
 ## r35: the boom sits SHOULDER m over the right shoulder, and the spring cast only watches the boom,

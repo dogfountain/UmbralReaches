@@ -12,7 +12,7 @@ var _rig_xf := Transform3D.IDENTITY
 
 func _init() -> void:
 	super._init()
-	max_hp = 4
+	max_hp = 8
 	glow_col = Color(2.2, 1.8, 1.2)
 	hp = 4.0
 	walk_speed = 2.7

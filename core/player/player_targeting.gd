@@ -244,14 +244,21 @@ func _lock_view(delta: float, body: Vector3) -> void:
 	# aim from the camera's own pivot (over the right shoulder), not the body: the target then sits
 	# on the crosshair, clear of the wanderer, instead of hiding behind the robe up close (r29)
 	var pivot := body + Vector3.UP * 1.3 + Basis(Vector3.UP, player._yaw) * Vector3(player._arm.position.x, 0.0, 0.0)
-	var to := tp - pivot
+	var aim := tp
+	aim.y = minf(aim.y, minf(player._lock.global_position.y + 3.0, body.y + 6.0))   # a 9 m boss or one risen into the sky: the view keeps the floor and its red
+	if player._lock._ballistic:
+		aim.y = minf(aim.y, body.y + player._lock.hp_bar_y * 0.55)   # a pounce in the air: the view keeps the ground it lands on
+	var to := aim - pivot
 	if Vector2(to.x, to.z).length() < 1.2:
 		to = tp - (body + Vector3.UP * 1.3)     # right on top of it: the shoulder offset would spin the view
 	var flat := Vector2(to.x, to.z).length()
 	if flat > 0.4:
 		var rate := 7.0 if flat > 3.0 else 4.0
 		player._yaw = lerp_angle(player._yaw, atan2(-to.x, -to.z), 1.0 - exp(-rate * delta))
-	var want_pitch := clampf(atan2(to.y, maxf(flat, 1.0)) * 0.6 - 0.2, player.pitch_min, 0.45)
+	# close in, the view tips down over the shoulder: the foe's wind-up and the red round your feet both in frame (level, the
+	# foe stood behind the robe and its cone lay under the hotbar)
+	var close := clampf(1.0 - (flat - 1.5) / 4.5, 0.0, 1.0)
+	var want_pitch := clampf(atan2(to.y, maxf(flat, 1.0)) * 0.6 - 0.2 - 0.26 * close, player.pitch_min, 0.45)
 	player._pitch = lerpf(player._pitch, want_pitch, 1.0 - exp(-4.0 * delta))
 	if _lock_mark:
 		_lock_mark.global_position = tp + Vector3.UP * 0.15

@@ -192,6 +192,7 @@ func _ready() -> void:
 	rest.add_child(load("res://ui/xp_bar.gd").new())                   # r33: XP strip along the bottom, once XP exists
 	rest.add_child(load("res://ui/unit_frames.gd").new())              # r33: player / target / boss frames, cast bar
 	root.add_child(load("res://ui/combat_text.gd").new())              # r33: the wanderer's side of a fight, as text
+	root.add_child(load("res://ui/threat_cues.gd").new())              # a foe winding up out of view: a painted mark at the edge
 	var hr := HudRest.new()
 	hr.name = "HudRest"
 	add_child(hr)

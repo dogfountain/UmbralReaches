@@ -14,7 +14,7 @@ var _spun := 0.0
 
 
 func _init() -> void:
-	max_hp = 4
+	max_hp = 8
 	hp = 4.0
 	walk_speed = 4.2
 	chase_range = 15.0

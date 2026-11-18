@@ -39,6 +39,8 @@ const ROCK_EVERY := 8.0
 const UNDER_EVERY := 21.0
 const UNDER_TIME := 3.4
 const UNDER_GLOOM := 44.0
+const UNDER_R := 30.0                  ## the Undertow's reach: the whole terrace (drawn, and nothing past it is hit)
+const LEE_R := 2.3                     ## a cairn's lee, as sheltered() tests it
 const PULL := 3.4                      ## m/s the undertow drags
 const GLOW := Color(2.4, 1.5, 0.5)
 const SALT := Color(1.8, 1.9, 2.0)
@@ -156,15 +158,21 @@ func _cairns() -> Array[Vector3]:
 
 ## Is `at` in the lee of a cairn against the Anchoress (the lit spot 1.6 m behind it)?
 func sheltered(at: Vector3) -> bool:
+	for spot: Vector3 in _lees():
+		if Vector2(at.x - spot.x, at.z - spot.z).length() < LEE_R:
+			return true
+	return false
+
+
+## The lit spot behind each cairn, away from her: where the Undertow cannot reach.
+func _lees() -> Array[Vector3]:
+	var out: Array[Vector3] = []
 	for c: Vector3 in _cairns():
 		var d := c - global_position
 		d.y = 0.0
-		if d.length() < 0.5:
-			continue
-		var spot := c + d.normalized() * 1.6
-		if Vector2(at.x - spot.x, at.z - spot.z).length() < 2.3:
-			return true
-	return false
+		if d.length() >= 0.5:
+			out.append(c + d.normalized() * 1.6)
+	return out
 
 
 func _physics_process(delta: float) -> void:
@@ -259,7 +267,7 @@ func _swing(turn: float) -> void:
 		_sig += 1 if phase == 1 else 0
 	BossKit.zone(get_parent(), global_position, 1.3, 30.0, {"by": self, "rect": Vector2(LANE_W, LANE_LEN), "yaw": yaw, "color": GLOW})
 	say("windup", global_position + Vector3.UP * 2.0, 1.0, 0.6)
-	_strike_after(1.15)
+	_strike_after(1.3 - 0.26)              # the strike clip's anchor meets the floor 0.26 s in: on the lane's landing
 
 
 func _double_swing() -> void:
@@ -411,6 +419,13 @@ func _undertow() -> void:
 	for c: Vector3 in _cairns():
 		shields.append(c)
 	BossKit.lee_marks(global_position, shields, UNDER_TIME, Color(1.4, 1.5, 1.9))
+	# the whole terrace fills toward her: the red is where it hits, the cairns' lees cut out of it (it had no red at all)
+	var holes: Array = []
+	for spot: Vector3 in _lees():
+		holes.append([spot, LEE_R])
+	var drag := SpellFx.danger(global_position, UNDER_TIME, {"radius": UNDER_R, "color": GLOW, "holes": holes})
+	if drag:
+		track_move(drag)
 	Vfx.ring(global_position + Vector3.UP * 0.2, 14.0, GLOW, UNDER_TIME, 0.1, Vector3.UP, 1.0)
 	Sfx.play_stream(Synth.get_stream("chant"), global_position + Vector3.UP * 2.0, 2.0, 0.4)
 
@@ -440,6 +455,8 @@ func _under_lands() -> void:
 		HitText.pop(p.global_position + Vector3.UP * 2.2, "sheltered", Color(0.75, 0.9, 1.0))
 	elif p.is_evading():
 		p.on_evaded(self)
+	elif Vector2(d.x, d.z).length() > UNDER_R:
+		pass                                   # off the terrace: past the red
 	elif Vector2(d.x, d.z).length() < 2.8:
 		HitText.pop(p.global_position + Vector3.UP * 2.2, "under the anchor", Color(1.0, 0.7, 0.4))
 		p.take_wound(UNDER_GLOOM * 0.6 * dmg_mult, global_position)

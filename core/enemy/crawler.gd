@@ -5,7 +5,7 @@ extends Enemy
 
 
 func _init() -> void:
-	max_hp = 2
+	max_hp = 4
 	hp = 2.0
 	walk_speed = 3.4
 	chase_range = 11.0

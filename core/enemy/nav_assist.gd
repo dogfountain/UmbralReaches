@@ -30,12 +30,13 @@ const MAX_POLYS := 100000               ## the server's default search stops aft
 
 
 ## A path over the shared map with the search cap lifted (map_get_path stops at 4096 polygons).
-static func path(from: Vector3, to: Vector3) -> PackedVector3Array:
+## `max_polys` limits the search (0: MAX_POLYS): a chase across a fight's few dozen metres needs a few thousand.
+static func path(from: Vector3, to: Vector3, max_polys := 0) -> PackedVector3Array:
 	var q := NavigationPathQueryParameters3D.new()
 	q.map = map
 	q.start_position = from
 	q.target_position = to
-	q.path_search_max_polygons = MAX_POLYS
+	q.path_search_max_polygons = max_polys if max_polys > 0 else MAX_POLYS
 	var r := NavigationPathQueryResult3D.new()
 	NavigationServer3D.query_path(q, r)
 	return r.path
@@ -43,6 +44,11 @@ static func path(from: Vector3, to: Vector3) -> PackedVector3Array:
 var pts := PackedVector3Array()
 var idx := 0
 var _since := 9.0                ## seconds since the last query
+var _wait := REQUERY             ## how long until the next query may go: doubles (to WAIT_MAX) while queries teach nothing
+const WAIT_MAX := 4.0
+## Polygons searched per metre to the goal (at least 4096). An unreachable goal searched the whole 75k-polygon mesh, 25 ms
+## of physics, every REQUERY: a boss whose wanderer stood off the mesh hitched the night twice a second (the Crown's yard).
+const POLYS_PER_M := 160
 var _goal := Vector3.INF
 var _clear := 0
 var _prog_pos := Vector3.INF
@@ -171,14 +177,14 @@ func next_point(pos: Vector3, goal: Vector3, blocked: bool, dt: float) -> Vector
 		reset()                                 # a different errand (chase -> home, a teleport): old corners are void
 	var need := blocked or stalled
 	if pts.is_empty():
-		if not need or _since < REQUERY:
+		if not need or _since < _wait:
 			return Vector3.INF
 		_query(pos, goal)
 	else:
 		if need:
 			_clear = 0
 			# a moving goal, a stall or a path used up: ask again, but not more than every REQUERY
-			if _since >= REQUERY and (stalled or idx >= pts.size() or Vector2(goal.x - _goal.x, goal.z - _goal.z).length() > 1.5):
+			if _since >= _wait and (stalled or idx >= pts.size() or Vector2(goal.x - _goal.x, goal.z - _goal.z).length() > 1.5):
 				_query(pos, goal)
 		else:
 			_clear += 1
@@ -197,12 +203,15 @@ func next_point(pos: Vector3, goal: Vector3, blocked: bool, dt: float) -> Vector
 
 func _query(pos: Vector3, goal: Vector3) -> void:
 	_since = 0.0
+	if _goal == Vector3.INF or Vector2(goal.x - _goal.x, goal.z - _goal.z).length() > 6.0:
+		_wait = REQUERY                           # a new errand: ask freely again
 	_goal = goal
 	_clear = 0
 	var t := Time.get_ticks_usec()
-	var p := NavAssist.path(pos, goal)
+	var p := NavAssist.path(pos, goal, maxi(4096, int(Vector2(goal.x - pos.x, goal.z - pos.z).length() * float(POLYS_PER_M))))
 	query_usec += Time.get_ticks_usec() - t
 	queries += 1
+	_wait = minf(_wait * 2.0, WAIT_MAX)       # until a query earns its corners, each waits twice as long
 	if p.size() < 2:
 		pts = PackedVector3Array()                # unreachable on the mesh: flat steering
 		return
@@ -221,3 +230,4 @@ func _query(pos: Vector3, goal: Vector3) -> void:
 		return
 	pts = p
 	idx = 1
+	_wait = REQUERY

@@ -664,7 +664,10 @@ func _subtitles(delta: float) -> void:
 		return                                 # the lane is not ours yet (a boss's emote): wait
 	_sub.text = _sub_queue.pop_front()
 	Access.subtitle(_sub)
-	TextDirector.plate(_sub, _sub.text, 960.0, -270.0)
+	if td:
+		td.plate_low(_sub, _sub.text, 960.0, -270.0)       # in a fight: the left column, off the foe and the ground round you
+	else:
+		TextDirector.plate(_sub, _sub.text, 960.0, -270.0)
 	_sub.visible_characters = 0
 	_sub_t = life
 	if _sub_tw:

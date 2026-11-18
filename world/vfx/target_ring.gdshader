@@ -22,7 +22,10 @@ void fragment() {
 	float core = (1.0 - smoothstep(0.0, 0.06, r)) * 0.8;
 	float pulse = 0.8 + 0.2 * sin(TIME * (6.0 + charge * 10.0));
 	vec3 c = mix(color, full, step(0.99, charge));
-	float m = (rim * 1.3 + ticks * 0.9 + chase * 1.2 + fill + core) * pulse * (0.45 + 0.55 * charge);
+	// aimed at a wall at your shoulder (a crevice, a tower's foot) the circle stood up across the whole view: it fades
+	// out as it nears the lens
+	float near = smoothstep(1.5, 4.5, length(VERTEX));
+	float m = (rim * 1.3 + ticks * 0.9 + chase * 1.2 + fill + core) * pulse * (0.45 + 0.55 * charge) * near;
 	ALBEDO = c * m;
 	ALPHA = clamp(m, 0.0, 1.0);
 }

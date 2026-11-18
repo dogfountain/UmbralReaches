@@ -22,6 +22,15 @@ instance uniform float progress = 0.0;
 instance uniform float fade = 1.0;
 instance uniform float soft = 0.0;   // 1 for a zone that is not the one landing next: outline only, dim
 instance uniform vec2 size_m = vec2(1.0, 1.0);   // half-extents in metres (x, z)
+// Safe ground inside the zone, never painted red: a ring's open middle (inner_m, a disc only) and up to four pools
+// (xy: centre in the zone's own metres, x -> +X, y -> +Z; z: radius, < 0 none). Each is cut out of the zone and
+// drawn with a pale contour, so the gap reads as the place to stand (BossKit.zone "holes").
+instance uniform float inner_m = 0.0;
+instance uniform vec3 hole0 = vec3(0.0, 0.0, -1.0);
+instance uniform vec3 hole1 = vec3(0.0, 0.0, -1.0);
+instance uniform vec3 hole2 = vec3(0.0, 0.0, -1.0);
+instance uniform vec3 hole3 = vec3(0.0, 0.0, -1.0);
+const vec3 SAFE = vec3(0.8, 0.95, 1.0);
 uniform sampler2D depth_tex : hint_depth_texture, filter_nearest;
 const float HIDE_M = 1.4;       // more than this in front of the zone hides it
 
@@ -30,6 +39,19 @@ float n2(vec2 p) {
 	vec2 i = floor(p), f = fract(p);
 	f = f * f * (3.0 - 2.0 * f);
 	return mix(mix(h2(i), h2(i + vec2(1.0, 0.0)), f.x), mix(h2(i + vec2(0.0, 1.0)), h2(i + vec2(1.0, 1.0)), f.x), f.y);
+}
+
+// distance (m) from `m` to the edge of the nearest safe pool: < 0 inside one
+float safe_d(vec2 m, float rm) {
+	float d = 1e6;
+	if (inner_m > 0.0) {
+		d = rm - inner_m;
+	}
+	if (hole0.z > 0.0) { d = min(d, length(m - hole0.xy) - hole0.z); }
+	if (hole1.z > 0.0) { d = min(d, length(m - hole1.xy) - hole1.z); }
+	if (hole2.z > 0.0) { d = min(d, length(m - hole2.xy) - hole2.z); }
+	if (hole3.z > 0.0) { d = min(d, length(m - hole3.xy) - hole3.z); }
+	return d;
 }
 
 void fragment() {
@@ -61,7 +83,27 @@ void fragment() {
 		edge_m = min(size_m.x - abs(m.x), size_m.y - abs(m.y));
 		t = (1.0 - p.y) * 0.5;
 	}
+	float sd = safe_d(m, length(m));
+	if (shape == 0 && inner_m > 0.0) {
+		t = clamp((length(m) - inner_m) / max(size_m.x - inner_m, 0.01), 0.0, 1.0);   // a ring fills from its inner edge out
+	}
 	float pr = clamp(progress, 0.0, 1.0);
+	if (sd < 0.0) {
+		// a safe pool: a pale contour just inside its edge and the faintest wash, the rest of the ground untouched
+		float ring_s = 1.0 - smoothstep(0.0, 0.14, -sd);
+		float wash = 0.05 + 0.04 * pr;
+		if (ring_s <= 0.001 && wash <= 0.0) {
+			discard;
+		}
+		float scene_zs = texture(depth_tex, SCREEN_UV).r;
+		vec4 svs = INV_PROJECTION_MATRIX * vec4(SCREEN_UV * 2.0 - 1.0, scene_zs, 1.0);
+		if ((-VERTEX.z) - (-svs.z / svs.w) > HIDE_M) {
+			discard;
+		}
+		ALBEDO = SAFE;
+		ALPHA = clamp((ring_s * (0.55 + 0.25 * pr) * mix(1.0, 0.5, soft) + wash * (1.0 - soft)) * fade, 0.0, 0.8);
+	} else {
+	edge_m = min(edge_m, sd);
 	float outline = 1.0 - smoothstep(0.0, 0.11, edge_m);   // r39: a wider line, it is the first thing the eye must find at night
 	// r30: read by FORM, not hue (ember is also the lava's and the lanterns' colour): a second, thin
 	// ring just inside the outline that pulses inward, dashed and marching round the edge
@@ -106,4 +148,5 @@ void fragment() {
 	col_out = mix(col_out, vec3(0.03, 0.025, 0.02), rim * (1.0 - edge));
 	ALBEDO = col_out;
 	ALPHA = clamp(max(k, rim_a), 0.0, 0.9);
+	}
 }

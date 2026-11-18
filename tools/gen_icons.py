@@ -43,6 +43,7 @@ import kindling_art  # noqa: E402,F401
 import marks  # noqa: E402,F401
 import lore  # noqa: E402,F401
 import gloom_hud  # noqa: E402,F401
+import threat_hud  # noqa: E402,F401
 import keys  # noqa: E402,F401
 import trail  # noqa: E402,F401
 

@@ -70,6 +70,13 @@ func _show(at: Vector3, txt: String, col: Color, big: bool) -> void:
 	text = txt
 	modulate = col
 	var s := 1.45 if big else 1.0
+	var cam := get_viewport().get_camera_3d() if is_inside_tree() else null
+	if cam != null:
+		s *= clampf(cam.global_position.distance_to(at) / 6.0, 0.5, 1.0)   # one popped at your own shoulder ran off the screen
+	var longest := 0
+	for ln in txt.split("\n"):
+		longest = maxi(longest, ln.length())
+	s *= clampf(14.0 / float(maxi(longest, 1)), 0.5, 1.0)                # a long line is set smaller, not wider than the view
 	# ENS art pass: the number punches in (x1.7 -> x1 in 0.12 s) so a hit lands on the beat, and a
 	# big hit gets a warm outline glow instead of the plain dark rim
 	scale = Vector3.ONE * s * 1.7

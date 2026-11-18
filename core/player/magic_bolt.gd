@@ -371,6 +371,10 @@ func _impact_fx(at: Vector3) -> void:
 	var n := _hit_normal
 	if _on_shade and not heavy and not empowered:
 		return
+	# a burst at the lens (a bolt into the parapet at your shoulder) is set smaller: the Lash's 3 m shell from a metre
+	# away was a lightning wheel over the whole view (the ground disc keeps its true radius)
+	var cam := get_viewport().get_camera_3d()
+	var near := clampf(cam.global_position.distance_to(at) / 5.0, 0.2, 1.0) if cam != null else 1.0
 	if heavy:
 		SpellFx.lance_impact(at, n, blast, pierce)   # round fire field at exactly the blast radius
 		StaffSfx.play("lance_hit", at, 0.0)
@@ -378,9 +382,21 @@ func _impact_fx(at: Vector3) -> void:
 		if p and p.global_position.distance_to(at) < 9.0:
 			p.kick(0.6)
 	elif empowered:
-		_burst(at)
-		SpellFx.disc(at, blast, 0, SpellFx.VIOLET, SpellFx.VIOLET_HOT, 0.7, n)
-		SpellFx.shell(at, 0.3, blast, Color(1.2, 0.5, 2.8), 0.3)
+		# the Lash's blast reads on the ground (the disc is its true radius); its dome is a quick thin shell, so the foe
+		# inside it still shows (a full-strength 3 m dome every third shot hid a 6 m Thornwarden)
+		_burst(at, 4.5 * near, 0.24)
+		# the disc lies on the ground under a Lash that burst on a body or a wall (laid across the hit's normal it stood up as a
+		# 6 m lightning wheel between the wanderer and the foe)
+		var gat := at
+		var gn := n
+		if n.y < 0.6:
+			gn = Vector3.UP
+			var down := PhysicsRayQueryParameters3D.create(at + Vector3.UP * 0.2, at + Vector3.DOWN * 4.0, Layers.WORLD)
+			var floor_hit := get_world_3d().direct_space_state.intersect_ray(down)
+			if not floor_hit.is_empty():
+				gat = floor_hit.position
+		SpellFx.disc(gat, blast, 0, SpellFx.VIOLET, SpellFx.VIOLET_HOT, 0.7, gn)
+		SpellFx.shell(at, 0.3 * near, blast * near, Color(0.7, 0.3, 1.6), 0.2)
 		Vfx.burst(at, Color(1.8, 0.9, 3.4), {"count": 36, "life": 0.45, "speed": Vector2(3.0, 8.0), "size": 0.045, "gravity": -6.0, "trail": 0.08, "dir": n, "spread": 80.0})
 		Vfx.light(at, SpellFx.VIOLET, 3.0, blast * 2.4, 0.3, 3)
 	else:
@@ -389,11 +405,11 @@ func _impact_fx(at: Vector3) -> void:
 			Vfx.ring(at, 0.7, bc, 0.2, 0.12, n)
 			Vfx.burst(at, bc, {"count": 12, "life": 0.3, "speed": Vector2(2.0, 5.0), "size": 0.035, "gravity": -6.0, "trail": 0.06, "dir": n, "spread": 75.0})
 			return
-		_burst(at)
+		_burst(at, 3.2 * near, 0.2)                    # a plain bolt's pop stays small: the target must read through a held trigger
 		if core != "":
 			Vfx.burst(at, bc, {"count": 30, "life": 0.45, "speed": Vector2(2.0, 5.5), "size": 0.06, "gravity": -3.0, "trail": 0.05})
-		Vfx.ring(at, 1.25, Color(1.6, 0.8, 3.4) if core == "" else bc, 0.28, 0.18, n)
-		SpellFx.shell(at, 0.15, 0.85, Color(1.2, 0.55, 2.8) if core == "" else Color(bc.r, bc.g, bc.b) * 0.7, 0.18)
+		Vfx.ring(at, 0.8 * near, Color(1.6, 0.8, 3.4) if core == "" else bc, 0.22, 0.14, n)
+		SpellFx.shell(at, 0.12 * near, 0.5 * near, Color(1.2, 0.55, 2.8) if core == "" else Color(bc.r, bc.g, bc.b) * 0.7, 0.14)
 		Vfx.burst(at, bc, {"count": 26, "life": 0.4, "speed": Vector2(2.5, 6.5), "size": 0.04, "gravity": -6.0, "trail": 0.08, "dir": n, "spread": 75.0})
 		match core:
 			"core_cinder":
@@ -682,7 +698,8 @@ static func make_shock() -> MeshInstance3D:
 	return shock
 
 
-func _burst(at: Vector3) -> void:
+## The impact dome swelling to `size` (x its 0.2 m mesh) over `life` seconds, with the pooled spark burst.
+func _burst(at: Vector3, size := 6.5, life := 0.32) -> void:
 	var pool := get_tree().get_first_node_in_group("bolt_pool") as BoltPool
 	var bang: GPUParticles3D
 	if pool:
@@ -714,8 +731,8 @@ func _burst(at: Vector3) -> void:
 	var tw := shock.create_tween()
 	shock.set_meta(&"burst_tween", tw)
 	tw.set_parallel(true)
-	tw.tween_property(shock, "scale", Vector3.ONE * 6.5, 0.32).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-	tw.tween_method(func(v: float) -> void: shock.set_instance_shader_parameter(&"progress", v), 0.0, 1.0, 0.32)
+	tw.tween_property(shock, "scale", Vector3.ONE * size, life).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	tw.tween_method(func(v: float) -> void: shock.set_instance_shader_parameter(&"progress", v), 0.0, 1.0, life)
 	tw.chain().tween_callback(func() -> void:
 		shock.visible = false
 		shock.scale = Vector3.ONE

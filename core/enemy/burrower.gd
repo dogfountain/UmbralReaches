@@ -25,7 +25,7 @@ var _dig_tw: Tween
 
 func _init() -> void:
 	super._init()
-	max_hp = 3
+	max_hp = 6
 	hp = 3.0
 	walk_speed = 3.0
 	chase_range = 14.0

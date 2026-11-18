@@ -312,6 +312,16 @@ static func danger(at: Vector3, life: float, opts := {}) -> MeshInstance3D:
 		mi.global_transform = xf
 	mi.set_instance_shader_parameter(&"size_m", half_m)
 	mi.set_instance_shader_parameter(&"fade", 1.0)
+	# the safe ground it leaves out (opts "holes": [[centre, radius], ...], BossKit.zone's): a ring's open middle (a hole
+	# on a disc's own centre) as inner_m, any other pool in one of four slots, in the zone's own metres; never painted red
+	var slot := 0
+	for hole: Array in opts.get("holes", []):
+		var loc := b.inverse() * ((hole[0] as Vector3) - origin)
+		if shape == 0 and Vector2(loc.x, loc.z).length() < 0.05:
+			mi.set_instance_shader_parameter(&"inner_m", float(hole[1]))
+		elif slot < 4:
+			mi.set_instance_shader_parameter(StringName("hole%d" % slot), Vector3(loc.x, loc.z, float(hole[1])))
+			slot += 1
 	var hold: float = opts.get("hold", 0.12)
 	var tw := mi.create_tween()
 	tw.tween_method(func(v: float) -> void: mi.set_instance_shader_parameter(&"progress", v), 0.0, 1.0, maxf(life, 0.05))
