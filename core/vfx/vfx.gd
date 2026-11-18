@@ -43,6 +43,8 @@ static func release() -> void:
 	_idle_total = 0
 	_star_tex = null
 	_flash_mats.clear()
+	_flash_pool.clear()                     # the pooled flash lights went with the night
+	_flash_host = 0
 	_flash_quad = null
 
 
@@ -460,17 +462,17 @@ static func light(at: Vector3, color: Color, energy: float, rng: float, time := 
 ## from light" when a light died the frame a body near it changed). A free one if any (hidden, out of LIGHT_GROUP);
 ## else room is made under LIGHT_CAP as before (a lower-priority, older flash gives its light up), else null.
 static var _flash_pool: Array = []
-static var _flash_host: Node = null
+static var _flash_host := 0                ## the instance id of the node the pool lives under (an id: no static holds a node across nights)
 
 
 static func _flash_light(h: Node, priority: int) -> OmniLight3D:
-	var stale := _flash_host != h
+	var stale := _flash_host != h.get_instance_id()
 	for i in _flash_pool.size():
 		if not is_instance_valid(_flash_pool[i]):
 			stale = true
 	if stale:
 		_flash_pool.clear()
-		_flash_host = h
+		_flash_host = h.get_instance_id()
 	for v: Variant in _flash_pool:
 		var o := v as OmniLight3D
 		if not o.visible:

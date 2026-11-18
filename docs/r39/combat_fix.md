@@ -4,32 +4,30 @@ Luke, 18 Nov: "Spawn another extra agent to fix combat." Brief: `docs/r39/briefs
 `/Users/luke/UmbralReaches_combat`. This file is the live checklist: every finding, its evidence, its fix and the
 commit. Resume from "State" below.
 
-## State (paused 18 Nov, 20:35, by Luke's order: combat runs only after the map audit is merged)
+## State (19 Nov: every finding fixed or handed on; the re-capture read; the tests last)
 
 Done:
-- [x] Brief, pillars, CRITIQUE, boss plan, skills and the last DECISIONS rows read; the combat code read (enemy.gd,
-      attack_kit, boss_kit, clip_rig, the five bosses' move code, player casting/vitals/targeting/camera, skills,
-      tiers, elites, the danger shader, the hurt wash).
-- [x] Harness written, NOT yet run once: `zz/combat_strip.tscn` (see "Harness" below). The first run was queued behind
-      the lock and cancelled at the pause; nothing was captured yet.
+- [x] Resumed after the map audit's merge (master merged into `combat-fix`, LFS objects copied, reimported).
+- [x] Captured every fight (`A`-`E5`, `P1`, `P2`), read every sheet and log, wrote the critique below by seat.
+- [x] Made every fix (the table at the end), then one re-capture pass of all of it (`R1`-`R8`) and read it; its
+      leftovers and the new findings it showed (QA6 the gold ghost, EB9, UX7-UX11, GF9, MA4) fixed and checked in short
+      runs (`X2`-`X5`, `V1`, `V2`, `P3`).
+- [x] The one test run (19 Nov, JOBS=1 under the lock): the quick tier 27 of 27, combat_qa, combat_r31, combat_r33,
+      floor_fight, boss, enemies_r34, raids_r34, crypt_r34 all PASS, combat_duel "COMBAT ok" (82 checks). The one
+      failure was the static lint: the flash-light pool kept its host in a Node-typed static; it keeps the host's
+      instance id now and Vfx.release() forgets the pool (the quick tier and combat_qa re-run after it). No test was
+      changed.
 
-Next, in order (resume here):
-1. Rebase/merge `combat-fix` onto master once the map audit is merged (the arenas' surroundings may have moved).
-2. First harness run to shake it out (it has never run; expect small script errors):
-   `gd.sh 300 <scratch>/t1/run.log -- --path . res://zz/combat_strip.tscn -- --out=<scratch>/t1 "--fights=wretch_stand=wretch@6;pack_fight=pack" --bot=stand --secs=8 --every=6 --full=hits`
-   (`gd.sh` is in the scratch folder: it takes /tmp/umbral_godot.lock, retrying every 30 s, runs godot with a hard
-   timeout and always frees the lock. Run it with run_in_background and wait for the notification.)
-3. Capture batches (each run under ~3 min): A stand-bot singles (wretch husk crawler leaper ossuant bulwark gaunt
-   pilgrim mite burrower); B stand-bot ranged/casters (spitter chanter quiller tollman cinder_caster brood_mother) and
-   elites (hobb, old_sunk, briar_hart: the harness spawns `elite_<id>.gd` by name); C fight-bot packs (pack warband
-   r31 casters burrow); D melee-bot (wretch husk bulwark); E-I each boss in its arena, `boss:<id>` and later phases
-   with `boss:<id>@0.6` / `@0.3` (thornwarden bone_abbot ascended_warden anchoress hierarch); a perf run with
-   `--every=0` for one big pack and each boss.
-4. Read every sheet at full size, run `calc/logsum.py` on the logs (scratch), write the critique below by seat.
-5. Fix worst first; verify each with a fresh strip/log; tests once at the end (the list in the brief).
+Not fixed here, and why:
+- The fight bot still clears regular packs nearly untouched (CD1): it is the harness's aim-assisted bot, held bolt and
+  perfect Rift Steps, not a player; the foes' side (twice the blows, a rhythm, spacing) is done.
+- PF1: the ~960-pipeline frame ~6 s after load is the world's post-build mesh merge (not a fight's); the rest was the
+  harness's own JPG writes. The first pull's `boss_engaged` costs 18.6 ms once; left for the perf owner.
+- QA7: one lava burn the logs cannot explain (not seen again).
+- MA1-MA4 are the map audit's (collision of the pit hall's wall, the Crown's earthwork and yard; the henge's spacing).
 
 Machine/lint notes for the fixer:
-- `tools/lint.sh` is a ratchet: `core/enemy/enemy.gd` is at its line cap (2352 = baseline 2302 + 50), so any
+- `tools/lint.sh` is a ratchet: `core/enemy/enemy.gd` has a line cap of 2352 (baseline 2302 + 50; 2344 now), so any
   change there must be net zero lines or move code out; `character_rig.gd` has 47 lines of room, `ui/unit_frames.gd`
   39. No new `.call("x")`, `has_method(`, `.get("_x")`, and no round tags (r12, r39...) in comments of shipping code.
 - Scratch: `/private/tmp/claude-501/-Users-luke-UmbralReaches/10dbc585-c502-4f27-b1e3-a047668e1104/scratchpad/combat/`
@@ -58,6 +56,10 @@ distance, whether the attacker is on screen); every HP change; every hurt with t
 | `D` | wretch husk bulwark Hobb, a three-pack | melee (staff chain) |
 | `E1`-`E5` | the five bosses in their 1.6x arenas, 135 s each, life stepped to phase II and III at 45 s and 90 s | fight |
 | `P1`, `P2` | packs and every boss with no frame capture (honest frame times) | fight |
+| `R1`-`R8` | the re-capture pass of everything fixed (19 Nov): `R1` singles, `R2` packs, `R3`-`R7` the five bosses (135 s, phases stepped), `R8` flankers (a wretch behind; a leaper and a Gaunt off-side) | stand / fight |
+| `X2`-`X5`, `P3`, `V1`, `V2` | short runs to settle a doubt: the gold ghost A/B (`X2`-`X4`), the Gaunt and the lesson column (`X5`), a pull probe with no capture (`P3`), the leftovers (`V1` the Warden from 60 %, `V2` the Anchoress, Thornwarden and Crown in melee) | fight / melee |
+
+Only the sheets this file names were kept (scratch was pruned); every log is kept.
 
 Every log line quoted below is `<batch>/<fight>.log`; every sheet `<batch>/<fight>_sNN.jpg` (frame numbers on the cells).
 
@@ -130,6 +132,13 @@ matters, what good looks like, and the fix (filled in as it lands).
   (good), the Warden blinks to its anchors; but a fight against a 9 m boss is played with the lock aimed at its chest:
   the Warden's deck and its lanes sit in the bottom fifth of the frame. See UX.
 
+- **EB9 (P1, re-capture `R5`) The Warden's tells are white on a white deck.** `R5/ascended_warden_s10.jpg` f910-f980: the
+  Radiant Fan's 32 m cone turns the summit's pale deck into a white sheet you cannot tell from moonlight on stone;
+  `R5/ascended_warden_s69.jpg` f6210-f6290: the Sky Breaks' deck-wide red (now drawn, EB2) barely tints the deck and the
+  lit pylons' safe rings cannot be found in it; at the fall the cast bar flashed "INTERRUPTED" (`R5` log f6302) as if the
+  wanderer had stopped it. Fix: the Warden's colour (BossKit.HOLY) is a saturated gold, not white-gold; the Sky Breaks'
+  bar closes as finished.
+
 ### Animator
 
 - **AN1 (P0) = EB3** (every boss clip 25 % slow).
@@ -166,8 +175,20 @@ matters, what good looks like, and the fix (filled in as it lands).
   at 8-11 m a leaper, gaunt or quiller is a black shape in the grass; only its health bar and the lock diamond say it
   is there, and its coil or draw cannot be read. (Dark night is Luke's direction; telegraphs are ours.) Fix: a tell lights
   the attacker: an ember rim on its silhouette over the windup (the flesh shaders' glint, no new material or light).
+- **GF8 (P1) The Rift Step's tear blinds the camera.** `R3/thornwarden_s73.jpg` f6640-6650: a step toward the lens puts the
+  camera through the departure tear, a screen of white-violet for three frames. Fix: the tear fades out within 2.4 m of
+  the camera.
 - **GF6 (P2) Being hit has no weight** (AN5). **GF7 (P2)** a kill's "SHELTERED"/"evaded" world text is drawn huge and
   clipped at the screen edge when the camera is close (`E1/thornwarden_s28.jpg` "HELTERED").
+
+- **GF10 (P1, re-capture `V1`) A bolt burst at the lens fills the view.** `V1/warden_s43.jpg` f3940-f3950: shooting
+  over the summit's parapet, the bolts burst on its coping a metre from the camera; the Lash's 3 m shell from there is a
+  violet lightning wheel over the whole frame, the Warden behind it. Fix: an impact's dome, shell and ring are set
+  smaller by its distance to the lens (full from 5 m out, a fifth at the lens); the Lash's ground disc keeps its true
+  radius.
+- **GF9 (P2, re-capture) The Lance's aim circle stood up across the view.** `R7/hierarch_s64.jpg` f5760-f5800: aimed
+  at a wall at the shoulder (the earthwork's crevice), the blast circle lies on the wall a metre from the lens, a 2 m
+  ring of ticks over half the frame. Fix: it fades out between 4.5 and 1.5 m from the lens.
 
 ### UX
 
@@ -194,7 +215,47 @@ matters, what good looks like, and the fix (filled in as it lands).
   fills half the frame. `E5/hierarch_s15.jpg` f1400-1430: after a Rift Step the view is inside rock. Partly map audit
   (the pit hall shows the sky and a lake through its wall at f990-1070); the camera's own part: when the arm is pressed
   short, rise and look down over the shoulder instead of crushing into the hood.
+- **UX7 (P1, re-capture `R5`) A lock on the risen Warden looks at the sky.** `R5/ascended_warden_s68.jpg` f6120-f6200:
+  15 m up through the pylon phase, the lock aims at his chest; the deck (and the Sky Breaks' red with its safe rings)
+  is a strip under the hotbar for the whole phase. Fix: the lock aims no higher than 6 m over the wanderer's own feet.
+- **UX8 (P1, re-capture) Lifted 500 px, the lesson sat on the boss.** `R6/anchoress_full_f4230_hurt5.jpg`: a three-line
+  lesson ("A blow of 2 or more breaks a red tell...") straight under the Anchoress's emote and over her head;
+  `R7/hierarch_s64.jpg`: over the Cantor's plate for 20 s; `R6/anchoress_full_f2886_hurt2.jpg`: a voice line across the
+  scaffold she stands on. It also crossed the banner lane (the boss emote's), which the director's own overlap check
+  forbids. Fix: in a fight the lower lane's lines (lessons, the wanderer's voice) go to a left column (28, 420), at most
+  600 px wide, between the banner lane and the toasts, left-aligned.
+- **UX9 (P2, re-capture) The gear-gap line under the minimap ran off the screen** ("NO GEAR WORN: GROUND LIKE THIS WANTS
+  ITEM LE", every `R6` frame): centred on the dial, wider than it. Fix: it keeps inside the screen's edge.
+- **UX10 (P1, re-capture) "RESONANCE x5  mends 75  breath 20" ran across and off the view** (`R7/hierarch_s39.jpg`
+  f3550-f3570, `X4/abbot_s04.jpg`): one 32-letter world line popped at the wanderer's head, big. Fix: the gains go on a
+  second line, and any long world line is set smaller (by its longest line), not wider than the view.
+- **UX11 (P1, re-capture) The wanderer inside a great one's body.** `R6/anchoress_s64.jpg` f5780-f5840: the Anchoress
+  walked onto the wanderer (0.91 m from her centre, her capsule 0.64 m: `embiggen` caps every boss's at 1.6x a grunt's so
+  it fits its arena's ways); the frame is her skirt, then the inside of her body, then her lantern at the lens. Fix: a
+  great one's body is solid to the wanderer out to its footprint (0.45 of the narrower side of its meshes' rest box, at
+  least the capsule, at most 2.4 m): one inside is eased out at up to 6 m/s (BossKit.keep_out).
 - **UX6 (P2)** "CHAIN x9" combo text drawn 4x larger than the boss name over the fight (`C2/f_warband_s01.jpg`).
+
+### Map audit (handed over, not mine to move)
+
+- **MA1 (P0) The Bone Abbot's pit hall can be left through its wall.** `R4` (first run) STATUS lines f698-f1178: the bot
+  backed out of the Crozier Sweep at the floor's edge (29.4 m from the centre), passed 37 m out at y -40.9 and fell,
+  thrown up and falling again for the rest of the fight (y -39 to -58), the fight held. `E2/bone_abbot_s11.jpg`: from the
+  floor's rim the night sky, a lake and mountains show through the hall's wall at eye level. The 1.6x hall's outer wall
+  (36 m) does not close it (no collider, or gaps, between the 29.6 m floor and the wall). Combat's part done: a held
+  fight resumes on the floor (EB4).
+- **MA2 (P1) The Speaking Crown's siege yard earthwork.** `E5/hierarch_s15.jpg` f1400-1430: a Rift Step out of the yard
+  toward the earthwork left the camera inside its rock for the rest of the run (its mesh and its collider disagree, or
+  the camera's spring misses it). Combat's part done: the held fight resumes anywhere in the yard (EB4).
+- **MA3 (P2) The henge's standing stones crowd the camera** (`E1/thornwarden_s26.jpg`, `R3/thornwarden_s27.jpg`): 16 stones
+  2.6 m wide on the 29.8 m ring are the Thornstorm's shelter by design; the camera's lift (UX5) helps, the spacing is the
+  room's.
+
+- **MA4 (P0, re-capture `R7`) The Crown's yard lets the wanderer fall through the ground.** `R7/hierarch.log` STATUS
+  f5930-f6050: from (-207.5, 0.8, 171.6) a Rift Step west into the earthwork's crevice (`R7/hierarch_s64.jpg`: rock walls
+  and an overhang either side of the lens) and then down through the yard to y -7.3, -35.1
+  (`R7/hierarch_s66.jpg` f5970-f6020: the yard's underside overhead), at about (-216.8, 169.7), 24 m from the yard's
+  centre; the fight held and took up again when the wanderer was put back. With MA2: the earthwork's collision.
 
 ### Systems / balance
 
@@ -223,6 +284,17 @@ matters, what good looks like, and the fix (filled in as it lands).
   kills (backtrace: `enemy.gd _die` hiding the health bar, while Vfx.light creates and frees a fresh OmniLight3D per hit,
   per death, per landing). The CRITIQUE's QA seat saw four. Fix: Vfx.light reuses a fixed pool of lights instead of
   new/free each flash.
+- **QA6 (P0, found in the re-capture) The bosses drew as gold ghosts.** `X2/abbot_s01.jpg` (and the first `R3`, `R4`
+  runs): the Abbot a solid gold-white body from the name card on, with hit_flash, glint and dissolve all 0 on the mesh
+  (the harness's LOOK probe) and the light pool ruled out (`X1`, the old vfx.gd: the same). Cause: the villager-look
+  glow surface (ClipRig GLOW_CODE) declared its own `dissolve`, so on the same mesh the engine kept that index and the
+  flesh overlay read its `dissolve` from a slot nobody writes (the log's "More than one material in instance export the
+  same instance shader uniform 'dissolve'" warning, 5 a run): gold whenever that slot held junk, by luck of the buffer
+  (`E2` happened to be clean, `X3` too). A master bug, not one of this round's. Fix: the glow shader has no instance
+  uniforms; the warning is gone (`X4/run.log`), the Abbot dark with a lit rim on a blow (`X4/abbot_s01.jpg`, `s04`).
+- **QA7 (P2) One unexplained lava burn.** `R5/ascended_warden.log` f0505: 35 wounds "from" (314.1, -15.2, -60.6), the
+  rift's lava 42 m under the summit, while the STATUS lines a second before and after have the wanderer on the deck
+  (y 27.4) and no Rift Step reaches 40 m. Not seen again in any run; logged, not chased.
 - **QA5 (P2)** The base enemy's knockback, hitstop and death are fine in the strips; no double hits found (HURT_GRACE
   holds); no i-frame failures in the logs (every "evaded" was inside the step's 0.35 s).
 
@@ -230,6 +302,11 @@ matters, what good looks like, and the fix (filled in as it lands).
 
 - **PF1 (P1) A 120-150 ms hitch at every fight's first frames** (`A`-`E5`, worst per batch 120-148 ms) — to be read in
   `P1`/`P2` (no capture) and attributed.
+  Read (`P3`, a pull probe with no frame capture, and every `R` log): (a) every run's ~960-pipeline frame (120-140 ms)
+  at ~6 s is the world's own post-build mesh merge ("ATMOS merged 2969 static meshes into 2693"), whatever the fight:
+  not combat's, a load-time cost for the perf owner; (b) the rest of the 120-150 ms "pull" frames were the harness's
+  own full-size JPG writes (`--full`). Uncaptured, the Thornwarden's and the Anchoress's pulls have no frame over 27 ms;
+  the first pull's `boss_engaged` signal costs 18.6 ms once (its listeners' first use), 0.2 ms after.
 - **PF2 (P2)** Vfx.light: a new OmniLight3D per flash (hit stars, swipes, deaths, landings, bolt impacts), freed 0.3 s
   later: light churn every hit (QA4). SpitOrb: a new Area3D + light per orb (seven per Radiant Fan).
 
@@ -237,30 +314,42 @@ matters, what good looks like, and the fix (filled in as it lands).
 
 | id | fix | files | commit | re-capture |
 | --- | --- | --- | --- | --- |
-| EB3/AN1 | ClipRig plays a stretched (24 fps-exported, 30 fps-keyed) model at 30/24: `clip_rate`, read off the clip lengths (all whole 24ths), applied to `advance` and to every authored length (`_len`) so boss_move/telegraph/howl/strike/locomotion keep their seconds | clip_rig.gd | | |
-| EB1 | danger shader: `inner_m` (a ring's open middle) and four safe pools (`hole0..3`), cut out and outlined pale; SpellFx.danger turns opts "holes" into them (so Bloom, Echo, Verdict, Flare, Eclipse, Tolling now draw their safe ground) | danger_zone.gdshader, spell_fx.gd | | |
-| EB2 | the Undertow draws its 30 m reach with the four cairns' lees cut out (and hits nothing past it); the Thornstorm draws round the Warden at its real 34 m with the four nearest stones' lees cut out; the Sky Breaks is cast and drawn for its last 3 s with the lit pylons' rings cut out | anchoress.gd, thornwarden.gd, ascended_warden.gd | | |
-| EB4 | a held fight resumes anywhere on its floor (radius, not the Crown's 20 m pull at the skull); holding takes back the boss's moves in the air and its cast bar | boss_arena.gd | | |
-| GF2/AN3 | the melee cone fills over windup + STRIKE_AT (full on the blow's frame); the rake's arc is drawn with the blow | enemy.gd | | |
-| GF3/QA1 | the blow tests the cone as drawn (the rig's yaw), not the yaw it is turning to | enemy.gd | | |
-| CD1 | melee kinds take twice the blows (wretch 6, husk 10, crawler 4, leaper 8, ossuant 8, bulwark 12, pilgrim 8, burrower 6, gaunt 4); the fragile support kinds stay one/two-hit kills | the kinds | | |
-| CD2/AI1 | after a strike a foe waits `attack_gap` (1.1 s x0.8-1.3; shorter each deeper tier) circling at the ring before its next tell; its lunge stops at max(0.75 reach, 1.1 m), not in the wanderer | enemy.gd, tiers.gd | | |
-| GF1 | a plain bolt's impact dome 0.64 m over 0.2 s (was 1.3 m, 0.32 s), its shell and ring smaller; the Lash's dome 0.9 m and its shell thin and quick (the ground disc keeps the true radius) | magic_bolt.gd | | |
-| GF4 | every pounce's disc fills over the coil and the flight (full as it lands; it was full 0.9 s early) | enemy.gd | | |
-| GF5 | a tell lights the attacker: glint held at 1 through a windup, a coil or a tell-bearing special; the flesh and grunt shaders add an ember rim with it | enemy.gd, flesh.gdshader, grunt_pbr.gdshader | | |
-| EB5 | the Radiant Fan keeps its 32 m cone when tracking and holds it while the orbs cross it | ascended_warden.gd | | |
-| EB6 | the Bramble Lash reaches round the whole 11 m body (LASH_R 4.6 -> 8.0) | thornwarden.gd | | |
-| EB7 | the henge's close is a 10 s cast bar (the Sky Breaks: EB2) | thornwarden.gd | | |
-| AN2 | the Anchoress's swing strikes 0.26 s before its lane lands (the clip's slam on the landing) | anchoress.gd | | |
-| AN4 | a great one's hit flash scales with the blow (0.3 for a plain bolt) and lights the rim, not the whole body | enemy.gd, villager_boss_rig.gd | | |
-| GF6/AN5 | a blow of 24+ catches the world for 0.05-0.1 s and shoves the wanderer off it | player_vitals.gd | | |
-| GF7/UX6 | world text near the camera shrinks (to half at 3 m): "SHELTERED", the kill chain, no longer run off the screen | hit_text.gd | | |
-| UX1 | a close lock tips the view down (up to 0.26 rad at 1.5 m) | player_targeting.gd | | |
-| UX4 | the lock aims at an airborne foe's ground height | player_targeting.gd | | |
-| EB8 | the lock aims no higher than 3 m over a foe's feet (a 9 m boss: the floor and its red stay in frame) | player_targeting.gd | | |
-| UX5 | a camera pressed short by a wall lifts over the hood (up to 0.85 m, as far as the space above allows) | player_camera.gd | | |
-| UX2 | in a fight the lesson and narration lines start 500 px higher (under the frames, off the ground round you); village barks wait for the fight's end | text_director.gd, dialogue.gd, village_barks.gd | | |
-| UX3 | ThreatCues: painted edge marks (new icons hud/threat_melee, hud/threat_ranged, tools/icon_kit/threat_hud.py) turned toward a foe winding up out of view, swelling with its tell | ui/threat_cues.gd, hud.gd | | |
-| SB1 | each Remembrance level: +3 Wounds (120 -> 210 at 30) and +1.5 % spell power; a level-up refreshes them | kindling.gd, hearth.gd | | |
-| QA4/PF2 | Vfx.light reuses a fixed pool of 12 OmniLights (hidden when out) instead of new/free per flash | vfx.gd | | |
-| PF3 | NavAssist: a query searches 160 polygons per metre to the goal (at least 4096, not the whole 75k mesh), and a query that teaches nothing doubles the wait before the next (to 4 s): the Crown's yard hitched 25 ms of physics every 0.58 s | nav_assist.gd | | |
+| EB3/AN1 | ClipRig plays a stretched (24 fps-exported, 30 fps-keyed) model at 30/24: `clip_rate`, read off the clip lengths (all whole 24ths), applied to `advance` and to every authored length (`_len`) so boss_move/telegraph/howl/strike/locomotion keep their seconds | clip_rig.gd | `d1b6296e` | `R3/run.log` "BOSS rig clip_rate 1.250" |
+| EB1 | danger shader: `inner_m` (a ring's open middle) and four safe pools (`hole0..3`), cut out and outlined pale; SpellFx.danger turns opts "holes" into them (so Bloom, Echo, Verdict, Flare, Eclipse, Tolling now draw their safe ground) | danger_zone.gdshader, spell_fx.gd | `d1b6296e` | `R3` Bloom rings drawn with their gaps; `R7/hierarch_s39.jpg` the Echo a ring with its middle open |
+| EB2 | the Undertow draws its 30 m reach with the four cairns' lees cut out (and hits nothing past it); the Thornstorm draws round the Warden at its real 34 m with the four nearest stones' lees cut out; the Sky Breaks is cast and drawn for its last 3 s with the lit pylons' rings cut out | anchoress.gd, thornwarden.gd, ascended_warden.gd | `d1b6296e` | `R6/anchoress_full_f2886_hurt2.jpg` the Undertow drawn, a cairn's lee pale; `R5` log f6122 the Sky Breaks drawn 3 s; `R3` the storm round the Warden |
+| EB4 | a held fight resumes anywhere on its floor (radius, not the Crown's 20 m pull at the skull); holding takes back the boss's moves in the air and its cast bar | boss_arena.gd | `d1b6296e` | `R7/hierarch.log` casts to the end (no soft-lock); a held fight took up again at f6110 |
+| GF2/AN3 | the melee cone fills over windup + STRIKE_AT (full on the blow's frame); the rake's arc is drawn with the blow | enemy.gd | `8f26201a` | `R1`: every melee hit at full +1/+2 f, fade 1.0 (was +13) |
+| GF3/QA1 | the blow tests the cone as drawn (the rig's yaw), not the yaw it is turning to | enemy.gd | `8f26201a` | `R1`, `R8`: every hurt inside the drawn zone |
+| CD1 | melee kinds take twice the blows (wretch 6, husk 10, crawler 4, leaper 8, ossuant 8, bulwark 12, pilgrim 8, burrower 6, gaunt 4); the fragile support kinds stay one/two-hit kills | the kinds | `8f26201a` | `R2`: a wretch 1.35 s (was 0.78), packs 6-9 s |
+| CD2/AI1 | after a strike a foe waits `attack_gap` (1.1 s x0.8-1.3; shorter each deeper tier) circling at the ring before its next tell; its lunge stops at max(0.75 reach, 1.1 m), not in the wanderer | enemy.gd, tiers.gd | `8f26201a` | `R1`, `R8`: blows at 0.97-1.19 m (was 0.7-0.9); a chain, then the gap |
+| GF1 | a plain bolt's impact dome 0.64 m over 0.2 s (was 1.3 m, 0.32 s), its shell and ring smaller; the Lash's dome 0.9 m and its shell thin and quick (the ground disc keeps the true radius) | magic_bolt.gd | `8f26201a` | `X4/abbot_s01.jpg`: the bolt's pop small and quick |
+| GF4 | every pounce's disc fills over the coil and the flight (full as it lands; it was full 0.9 s early) | enemy.gd | `8f26201a` | `R1/leaper`: full at the landing; `R8/flank2.log` f0094 the hit at 0.93 (it lands on contact, 0.1 s before the disc's end) |
+| GF5 | a tell lights the attacker: glint held at 1 through a windup, a coil or a tell-bearing special; the flesh and grunt shaders add an ember rim with it | enemy.gd, flesh.gdshader, grunt_pbr.gdshader | `8f26201a` | `R1`: the tell rim reads at night |
+| EB5 | the Radiant Fan keeps its 32 m cone when tracking and holds it while the orbs cross it | ascended_warden.gd | `d1b6296e` | `R5/ascended_warden.log` the cone 32 m and held: the orbs land +72 f after full, inside it |
+| EB6 | the Bramble Lash reaches round the whole 11 m body (LASH_R 4.6 -> 8.0) | thornwarden.gd | `d1b6296e` | `R3` the Bramble Lash fires |
+| EB7 | the henge's close is a 10 s cast bar (the Sky Breaks: EB2) | thornwarden.gd | `d1b6296e` | `R3` the henge's close a cast bar; `R5` f6122 "The Sky Breaks" 3 s |
+| AN2 | the Anchoress's swing strikes 0.26 s before its lane lands (the clip's slam on the landing) | anchoress.gd | `d1b6296e` | `R6/anchoress.log` f5812: the swing lands at its lane's 0.99 |
+| AN4 | a great one's hit flash scales with the blow (0.3 for a plain bolt) and lights the rim, not the whole body | enemy.gd, villager_boss_rig.gd | `d1b6296e` | `X4/abbot_s04.jpg` f380: a lit edge on a blow |
+| GF6/AN5 | a blow of 24+ catches the world for 0.05-0.1 s and shoves the wanderer off it | player_vitals.gd | `90b07676` | `R5`, `R6` logs: blows of 24-55 shove and catch |
+| GF7/UX6 | world text near the camera shrinks (to half at 3 m): "SHELTERED", the kill chain, no longer run off the screen | hit_text.gd | `8f26201a` | `R2`: the chain text no longer runs off the screen |
+| UX1 | a close lock tips the view down (up to 0.26 rad at 1.5 m) | player_targeting.gd | `90b07676` | `R1`: the close lock shows the foe and its cone |
+| UX4 | the lock aims at an airborne foe's ground height | player_targeting.gd | `90b07676` | `R1/leaper`: the landing disc stays in frame |
+| EB8 | the lock aims no higher than 3 m over a foe's feet (a 9 m boss: the floor and its red stay in frame) | player_targeting.gd | `90b07676` | `R4`, `R5`: the floor and its red in frame |
+| UX5 | a camera pressed short by a wall lifts over the hood (up to 0.85 m, as far as the space above allows) | player_camera.gd | `90b07676` | `R4`: the camera lifts over the hood at the hall's wall |
+| UX2 | in a fight the lesson and narration lines start 500 px higher (under the frames, off the ground round you); village barks wait for the fight's end | text_director.gd, dialogue.gd, village_barks.gd | `90b07676` | superseded by UX8 (the lift still sat on the boss) |
+| UX3 | ThreatCues: painted edge marks (new icons hud/threat_melee, hud/threat_ranged, tools/icon_kit/threat_hud.py) turned toward a foe winding up out of view, swelling with its tell | ui/threat_cues.gd, hud.gd | `90b07676` | `R8/flank2_s04.jpg` f216-f264: the mark at the edge toward the Gaunt behind; enlarged after (UX3b) |
+| SB1 | each Remembrance level: +3 Wounds (120 -> 210 at 30) and +1.5 % spell power; a level-up refreshes them | kindling.gd, hearth.gd | `90b07676` | `R4`: wounds 0/123 at level 1 |
+| QA4/PF2 | Vfx.light reuses a fixed pool of 12 OmniLights (hidden when out) instead of new/free per flash | vfx.gd | `8f26201a` | `R1`-`R7` logs: no "unpair" error in a fight |
+| GF8 | the Rift Step's tear fades out within 2.4 m of the camera | rift_tear.gdshader | `952f2098` | `V1/warden_s43.jpg` f3920-f3930: no tear at the lens; one 3 m off still a fifth of the frame for 0.3 s (left as is) |
+| GF1b | the Lash's ground disc lies on the ground under a burst on a body or a wall (laid across a body's normal it stood up as a 6 m lightning wheel in front of the foe) | magic_bolt.gd | `952f2098` | not caught in a strip (no Lash burst on a body in view in `R`/`V`); by code |
+| AN4b | the boss hit flash is a faint rim (0.4 x rim², a plain bolt 0.15): at 1.0 over the whole body (and 0.3 under a held trigger) every great one was a white silhouette all fight (`R3`, `R4` first runs) | villager_boss_rig.gd, enemy.gd | `952f2098` | `X4/abbot_s04.jpg` f380: a faint lit rim, no white body |
+| QA6 | the villager-look glow surface declares no instance uniforms (its `dissolve` took the overlay's slot: the gold ghost); the beast rig's hit flash is the rim one too | clip_rig.gd, beast_rig.gd | `952f2098` | `X4/run.log` no conflict warning; `X4/abbot_s01.jpg` the Abbot dark |
+| EB9/UX7 | the Warden's colour is a saturated gold (2.6, 1.5, 0.4), not white-gold; the lock aims no higher than 6 m over the wanderer's feet; the Sky Breaks' bar closes as finished at the fall | boss_kit.gd, player_targeting.gd, ascended_warden.gd | `52c3923e` | `V1/warden_s40.jpg` f3600: the deck gold under the Sky Breaks; `V1` log f3602 its bar ends as finished, the zone full at 3.00 s; `V1/warden_s30.jpg` the risen phase: the deck and the star discs in frame; `V1/warden_s43.jpg` the Radiant Fan's cone gold on the grey deck |
+| UX8 | in a fight lessons and the wanderer's voice lines go to a left column (left-aligned, at most 600 px), not lifted over the boss | text_director.gd, dialogue.gd | `52c3923e` | `X5/anch_s03.jpg` f348-f420: the lesson in the left column, the Anchoress clear |
+| UX9 | the minimap's gear-gap line keeps inside the screen | minimap.gd | `52c3923e` | `X5/anch_full_f1269_tell6460.jpg`: the whole line inside the screen |
+| UX10 | the Resonance spend pops its gains on a second line, from the shoulder (at 2.4 m it rose into the boss bar, `X5/anch_s03.jpg`); a long world line is set smaller by its longest line | skill_book.gd, hit_text.gd | `52c3923e` | `V1/warden_s41.jpg` f3700-f3720: two lines, from the shoulder |
+| UX3b | the threat marks 58 px (44 read as a speck in `R8/flank2_s04.jpg`), riding a little further in | threat_cues.gd | `52c3923e` | by code (the size); `R8` showed the marks working |
+| UX11 | a great one's body is solid to the wanderer out to its footprint; one inside is eased out | boss_kit.gd, enemy.gd | `52c3923e` | `V2/anch.log`: her footprint 1.98 m, the wanderer at 1.8-2.9 m from her centre in melee (was 0.91); `V2/anch_s06.jpg` the lens outside her skirt, her arms, chain and lantern in frame |
+| GF9 | the Lance's aim circle fades out near the lens | target_ring.gdshader | `52c3923e` | not caught in a strip after the fix (no Lance aimed into a wall in `V`); by code |
+| GF10 | a bolt's dome, shell and ring at the lens are set smaller by their distance to it | magic_bolt.gd | `52c3923e` | made after `V1`; by code |
+| PF3 | NavAssist: a query searches 160 polygons per metre to the goal (at least 4096, not the whole 75k mesh), and a query that teaches nothing doubles the wait before the next (to 4 s): the Crown's yard hitched 25 ms of physics every 0.58 s | nav_assist.gd | `8f26201a` | `R7/hierarch.log`: 2 physics spikes over 15 ms in 135 s (`E5`: 92, every 0.58 s) |
