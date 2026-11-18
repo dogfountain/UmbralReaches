@@ -40,6 +40,9 @@ func _run(root: Node) -> void:
 	var t := {}
 	var n := 0
 	var tried := 0
+	for fc: Vector2 in [Vector2(-302.8, 365.0), Vector2(-27.0, 278.4)]:       # the Crystal Grotto and the Root Cave keep the spots they had
+		if _cave(root, n, fc):
+			n += 1
 	for c: Vector2 in cands:
 		if n >= 7:
 			break
@@ -50,7 +53,7 @@ func _run(root: Node) -> void:
 
 
 func _ok(c: Vector2, t: Dictionary) -> bool:
-	if RealmLayout.path_dist(c) < 40.0:
+	if RealmLayout.path_dist(c) < 12.0:
 		return WK.rej(t, "way")
 	if WK.wet(c.x, c.y):
 		return WK.rej(t, "water")
@@ -65,7 +68,7 @@ func _ok(c: Vector2, t: Dictionary) -> bool:
 
 
 func _cave(root: Node, i: int, c0: Vector2) -> bool:
-	var f := WK.place([c0], Vector2(12.0, 26.0), [0.0, PI * 0.5, PI, PI * 1.5], 14.0)
+	var f := WK.place_first([c0], Vector2(12.0, 26.0), [0.0, PI * 0.5, PI, PI * 1.5], 14.0, c0 in [Vector2(-302.8, 365.0), Vector2(-27.0, 278.4)])
 	if bool(f.get("site", true)):
 		return false
 	var c: Vector2 = f.pos

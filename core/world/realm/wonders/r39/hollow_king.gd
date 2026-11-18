@@ -48,10 +48,7 @@ func _p(ang: float, rad: float, y: float) -> Vector3:
 
 
 func _run(root: Node) -> void:
-	var f := WK.place(CANDS, Vector2(RAD, RAD), [0.0], 6.0, RAD + 8.0)
-	if bool(f.get("site", true)):
-		print("WONDER hollow_king: no clean ground (reserved places and sites everywhere it fits): not placed")
-		return
+	var f := WK.place_first([Vector2(214.0, 350.0)], Vector2(RAD, RAD), [0.0], 6.0, true)      # fixed: in the Southwood at (214, 350)
 	c = f.pos
 	gy = lerpf(float(f.lo), float(f.hi), 0.5)
 	WorldLanes.register_terrace("wonder_hollow_king", c, RAD, gy)

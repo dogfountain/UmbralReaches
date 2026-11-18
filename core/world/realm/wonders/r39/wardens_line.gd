@@ -48,10 +48,7 @@ func _run(root: Node) -> void:
 	var lights := 0
 	for i in STATIONS.size():
 		var x: float = STATIONS[i]
-		var f := WK.place([Vector2(x, 26.0), Vector2(x, 104.0), Vector2(x, 14.0), Vector2(x, 116.0)], Vector2(8.0, 8.0), [0.0], 2.5, 16.0)
-		if bool(f.get("site", true)):
-			print("WONDER wardens_line: tower %d has no clean ground: not placed" % (i + 1))
-			continue
+		var f := WK.place_first([Vector2(x, 26.0), Vector2(x, 104.0), Vector2(x, 14.0), Vector2(x, 116.0)], Vector2(8.0, 8.0), [0.0], 2.5)
 		var c: Vector2 = f.pos
 		WorldLanes.register_terrace("wonder_wardens_%d" % (i + 1), c, 9.0, (float(f.lo) + float(f.hi)) * 0.5)
 		k = WK.new()                                   # one kit (one set of meshes) per tower: each culls on its own

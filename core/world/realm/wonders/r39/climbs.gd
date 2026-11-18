@@ -32,7 +32,7 @@ func _run(root: Node) -> void:
 		if towers >= 6:
 			break
 		tried += 1
-		if not _free(c, 40.0, 70.0, tt):
+		if not _free(c, 12.0, 70.0, tt):
 			continue
 		if WK.wet(c.x, c.y):
 			WK.rej(tt, "water")
@@ -43,7 +43,7 @@ func _run(root: Node) -> void:
 		if WK.site_hit(Rect2(c - Vector2(9.0, 9.0), Vector2(18.0, 18.0)), 2.0):
 			WK.rej(tt, "site")
 			continue
-		var f := WK.place([c], Vector2(6.0, 6.0), [0.0], 3.0)
+		var f := WK.place_first([c], Vector2(6.0, 6.0), [0.0], 3.0)
 		if bool(f.get("site", true)):
 			WK.rej(tt, "site")
 			continue
@@ -61,7 +61,7 @@ func _run(root: Node) -> void:
 			if stairs >= 6:
 				break
 			tried += 1
-			if not _free(p, 30.0, 70.0, st):
+			if not _free(p, 10.0, 70.0, st):
 				continue
 			if WK.wet(p.x, p.y):
 				WK.rej(st, "water")

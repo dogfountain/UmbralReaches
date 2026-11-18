@@ -42,37 +42,7 @@ func _taken(pa: Vector2, pb: Vector2, c: Vector2) -> bool:
 func _run(root: Node) -> void:
 	# five hand-chosen crossings in the Far Reaches (a centre and a bearing each), tried in order: the first whose two ends are
 	# dry wins, else the one with the deepest gulf between dry ends, else the first (the pylons simply stand taller)
-	var tries: Array = [[Vector2(-330.0, 20.0), 1.2], [Vector2(330.0, 160.0), 0.4], [Vector2(-340.0, 330.0), 0.3], [Vector2(150.0, 340.0), 0.0], [Vector2(-200.0, 340.0), 0.8]]
-	var more: Array = []                   # then each crossing turned a little and shifted: the span only needs its two ends and its middle clear
-	for tr0: Array in tries:
-		for da: float in [0.5, -0.5, 1.0, -1.0]:
-			for sh: Vector2 in [Vector2.ZERO, Vector2(40, 0), Vector2(-40, 0), Vector2(0, 40), Vector2(0, -40)]:
-				more.append([(tr0[0] as Vector2) + sh, float(tr0[1]) + da])
-	tries.append_array(more)
-	var best := {}
-	var best_s := -INF
-	for tr: Array in tries:
-		var c: Vector2 = tr[0]
-		var ang: float = tr[1]
-		var dv := Vector2(cos(ang), sin(ang))
-		var pa := c - dv * (LEN * 0.5)
-		var pb := c + dv * (LEN * 0.5)
-		var dry := 0
-		if not WK.wet(pa.x, pa.y) and RealmLayout.BOUNDS.grow(-12.0).has_point(pa):
-			dry += 1
-		if not WK.wet(pb.x, pb.y) and RealmLayout.BOUNDS.grow(-12.0).has_point(pb):
-			dry += 1
-		var mn := INF
-		for i in range(1, 8):
-			var p := pa.lerp(pb, float(i) / 8.0)
-			mn = minf(mn, WK.h(p.x, p.y))
-		var sc := float(dry) * 100.0 + minf(WK.h(pa.x, pa.y), WK.h(pb.x, pb.y)) - mn - (250.0 if _taken(pa, pb, c) else 0.0)
-		if dry == 2 and not _taken(pa, pb, c):
-			best = {"pos": c, "ang": ang}
-			break
-		if sc > best_s:
-			best_s = sc
-			best = {"pos": c, "ang": ang}
+	var best := {"pos": Vector2(-330.0, 20.0), "ang": 1.2}          # fixed: the first crossing, in the Lanternwood at (-330, 20)
 	var c: Vector2 = best.pos
 	var ang := float(best.ang)
 	var dv := Vector2(cos(ang), sin(ang))

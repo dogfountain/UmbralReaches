@@ -24,12 +24,12 @@ const CAMPS: Array[Dictionary] = [
 	# the pilgrims who turned back at the Last Milestone, and a pack that walks the road's last stretch.
 	{"name": "the deep wood's nest", "at": Vector3(-346.0, 60.0, -34.0), "kinds": ["mite", "mite", "mite", "mite", "crawler"], "probe": 0.0, "r": 1.8},
 	{"name": "the wood's north edge", "at": Vector3(-282.0, 60.0, -30.0), "kinds": ["leaper", "crawler", "spitter"], "probe": 0.0},
-	{"name": "the Last Milestone", "at": Vector3(-344.0, 60.0, 28.0), "kinds": ["wretch", "husk", "gaunt"], "probe": 0.0},
+	{"name": "the Last Milestone", "at": Vector3(-356.0, 60.0, 58.0), "kinds": ["wretch", "husk", "gaunt"], "probe": 0.0},
 	{"name": "the road's last stretch", "at": Vector3(-312.0, 60.0, 42.0), "kinds": ["gaunt", "gaunt", "crawler"], "probe": 0.0,
 		"patrol": [Vector2(-312, 42), Vector2(-328, 40), Vector2(-344, 38), Vector2(-328, 42)]},
 	# --- the Kings' Barrows (tier 3): barrow-wights between the mounds, the kings' war-band on the ridge's shoulder,
 	# the dead who lie along the stone row (they rise as you walk it), a round along the ridge's back.
-	{"name": "between the barrows", "at": Vector3(-344.0, 60.0, 120.0), "kinds": ["ossuant", "ossuant", "quiller"], "probe": 0.0},
+	{"name": "between the barrows", "at": Vector3(-312.0, 60.0, 170.0), "kinds": ["ossuant", "ossuant", "quiller"], "probe": 0.0},
 	{"name": "the stone row", "at": Vector3(-294.0, 60.0, 134.0), "kinds": ["pilgrim", "pilgrim", "pilgrim", "pilgrim"], "probe": 0.0, "r": 3.4},
 	{"name": "the ridge's south shoulder", "at": Vector3(-296.0, 60.0, 196.0), "kinds": ["husk", "bulwark", "chanter"], "probe": 0.0},
 	{"name": "the ridge round", "at": Vector3(-338.0, 60.0, 178.0), "kinds": ["ossuant", "husk", "quiller"], "probe": 0.0,
@@ -55,11 +55,11 @@ const CAMPS: Array[Dictionary] = [
 		"patrol": [Vector2(14, 332), Vector2(34, 330), Vector2(36, 310), Vector2(12, 312)]},
 	# --- the Southwood (tier 3): the charcoal burners stayed (cinder casters in their clearing), gaunts hunt the
 	# holly, leapers at the wood's north-east edge, a mite nest in the deep wood (the Hollow-Witch holds her hollow).
-	{"name": "the burners' clearing", "at": Vector3(130.0, 60.0, 352.0), "kinds": ["cinder", "cinder", "husk", "wretch"], "probe": 0.0, "r": 2.8},
-	{"name": "the holly brakes", "at": Vector3(212.0, 60.0, 320.0), "kinds": ["gaunt", "gaunt", "leaper"], "probe": 0.0,
+	{"name": "the burners' clearing", "at": Vector3(120.0, 60.0, 268.0), "kinds": ["cinder", "cinder", "husk", "wretch"], "probe": 0.0, "r": 2.8},
+	{"name": "the holly brakes", "at": Vector3(248.0, 60.0, 286.0), "kinds": ["gaunt", "gaunt", "leaper"], "probe": 0.0,
 		"patrol": [Vector2(212, 320), Vector2(228, 334), Vector2(206, 344), Vector2(194, 328)]},
 	{"name": "the wood's north-east edge", "at": Vector3(243.0, 60.0, 260.0), "kinds": ["leaper", "crawler", "crawler"], "probe": 0.0},
-	{"name": "the deep wood's nest", "at": Vector3(178.0, 60.0, 378.0), "kinds": ["mite", "mite", "mite", "mite", "mite"], "probe": 0.0, "r": 1.6},
+	{"name": "the deep wood's nest", "at": Vector3(170.0, 60.0, 394.0), "kinds": ["mite", "mite", "mite", "mite", "mite"], "probe": 0.0, "r": 1.6},
 	# --- the Bellfall (under Lastlight's south wall since the Stair took the Crowns' east corner): the bell's heat on the
 	# crater's west lip (cinder casters, a bulwark), tollmen on the east floor who ring when you come (the Eighth Ringer
 	# holds the bell); and a round on bell_link under the rift's west berm.

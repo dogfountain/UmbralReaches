@@ -93,7 +93,7 @@ const ELITES := {
 	# --- the east marches ---
 	"brine_wife": {
 		"title": "The Brine-Wife, Bitter Mother", "kind": "husk", "script": "res://core/life/encounters/elite_brine_wife.gd",
-		"haunt": [Vector2(232, 172), Vector2(228, 196), Vector2(240, 160), Vector2(222, 204)], "region": "saltpans",
+		"haunt": [Vector2(206, 222), Vector2(214, 228), Vector2(200, 216), Vector2(222, 232)], "region": "saltpans",
 		"hp": 34, "ash": 30, "scale": 1.36, "glow": Color(1.5, 1.7, 2.0), "loot": "brine_censer",
 		"where": "the White Pans, among the evaporation pans",
 		"note": "BOUNTY. She boiled the pans down for thirty years and has not stopped. Where she stands the brine comes up through the white: a wide ring that fills, then bursts. Past half her strength she grows crystals out of the crust round you. Do not stand in the white. Stand on the timber. -- Marl Pannick, reeve of Saltmarket",

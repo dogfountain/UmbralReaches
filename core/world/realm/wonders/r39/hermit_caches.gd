@@ -48,7 +48,7 @@ func _run(root: Node) -> void:
 func _ok(c: Vector2, t: Dictionary) -> bool:
 	if WK.in_town(c, 20.0):
 		return WK.rej(t, "town")
-	if RealmLayout.path_dist(c) < 40.0:
+	if RealmLayout.path_dist(c) < 12.0:
 		return WK.rej(t, "way")
 	for q: Vector2 in _placed_pts:
 		if q.distance_to(c) < 60.0:
