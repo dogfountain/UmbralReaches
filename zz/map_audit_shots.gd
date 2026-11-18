@@ -470,6 +470,21 @@ func _park(cam_pos: Vector3, target: Vector3, stand_y := NAN) -> void:
 	lamp.global_position = cam_pos + Vector3(0, 0.5, 0)
 
 
+## --near-debug: name every small drawn thing within 12 m of the camera (what are the orbs in a frame).
+func _near_debug() -> void:
+	var cp := cam.global_position
+	for n: Node in main.get_tree().root.find_children("*", "GeometryInstance3D", true, false):
+		var gi := n as GeometryInstance3D
+		if not gi.is_visible_in_tree():
+			continue
+		var bb: AABB = gi.global_transform * gi.get_aabb()
+		if bb.size.length() < 3.0 and bb.get_center().distance_to(cp) < 12.0:
+			print("MAPAUDIT near %s %s at %s size %s" % [gi.get_class(), main.get_tree().root.get_path_to(gi), bb.get_center(), bb.size])
+		elif gi is GPUParticles3D or gi is CPUParticles3D or gi is MultiMeshInstance3D:
+			if bb.grow(1.0).has_point(cp):
+				print("MAPAUDIT around %s %s box %s" % [gi.get_class(), main.get_tree().root.get_path_to(gi), bb])
+
+
 func _secs(s: float) -> void:
 	var end := Time.get_ticks_msec() + int(s * 1000.0)
 	while Time.get_ticks_msec() < end:
@@ -718,6 +733,13 @@ func _shoot_interior(s: Dictionary) -> void:
 			info.append("X %.1f Y %.1f Z %.1f  FLOOR %.1f" % [e3.x, e3.y, e3.z, fl3])
 			var crypt := main.find_child("Crypt", true, false)
 			if crypt != null:
+				# the AreaStreamer runs the Ossuary only round the wanderer, who is parked and not processing here: wake every
+				# disabled ancestor so the pit hall's own gate (OssHall._physics_process) can show it to the camera
+				var up_n := crypt.get_parent()
+				while up_n != null:
+					if up_n.process_mode == Node.PROCESS_MODE_DISABLED:
+						up_n.process_mode = Node.PROCESS_MODE_INHERIT
+					up_n = up_n.get_parent()
 				var hn := crypt.get("hall") as Node3D
 				print("MAPAUDIT crypt %s: built %s hall.visible %s in_tree %s phys %s proc_mode %d cam_local %s" % [s.name, crypt.get("built"), hn.visible if hn else "-", hn.is_visible_in_tree() if hn else "-", crypt.is_physics_processing(), crypt.process_mode, OssFrame.l(cam.global_position)])
 			var face: Vector3 = s.face
@@ -734,6 +756,8 @@ func _shoot_interior(s: Dictionary) -> void:
 					var hn2 := crypt.get("hall") as Node3D
 					var anc := crypt.get_parent()
 					print("MAPAUDIT crypt after park %s: hall.visible %s in_tree %s cam_local %s cam_current %s area_mode %d area_proc %s" % [s.name, hn2.visible, hn2.is_visible_in_tree(), OssFrame.l(cam.global_position), get_viewport().get_camera_3d() == cam, anc.process_mode, anc.can_process()])
+				if first4 and "--near-debug" in OS.get_cmdline_user_args():
+					_near_debug()
 				first4 = false
 				frames.append(await _grab(3))
 				labels.append(["AHEAD", "RIGHT", "BEHIND", "LEFT"][k2])

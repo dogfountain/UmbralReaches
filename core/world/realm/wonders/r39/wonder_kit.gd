@@ -40,7 +40,7 @@ const LIGHT_CAP := 72
 ## flame cards. A light 3 m+ under the ground lights no one on the surface (it never reaches up through the hill and fades by
 ## 26-52 m), so the underground keeps a budget of its own; zz/lamps_test's 14-in-40-m still holds room by room)
 static var under_used := 0
-const UNDER_CAP := 64
+const UNDER_CAP := 110
 
 
 func setup(root: Node, nm: String, seed_n: int) -> void:

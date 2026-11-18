@@ -335,8 +335,12 @@ void fragment(){
 	float v = heat * edge * src;
 	// the channel carries a skin of crust, broken where it speeds up at the lip
 	float vein = 1.0 - smoothstep(0.0, 0.08, abs(n(vec2(UV.x * 7.0, run * 1.6 - TIME * sp)) - 0.5));
-	vec3 col = falling ? mix(hot, core, smoothstep(0.55, 0.95, s) * edge) : mix(crust, mix(hot, core, smoothstep(0.6, 0.95, s)), clamp(heat * 0.6 + vein * 0.8 + smoothstep(lip - 1.5, lip, m), 0.0, 1.0));
-	ALBEDO = col * 1.6;
+	// pouring, it still carries rafts of dark crust between the hot threads (a sheet of even orange on the slope read as a
+	// flat card; map audit, 18 Nov)
+	float raft = smoothstep(0.42, 0.62, n(vec2(UV.x * 4.0, run * 0.7 - TIME * sp * 0.8)));
+	vec3 pour = mix(crust * 1.6, mix(hot, core, smoothstep(0.55, 0.95, s) * edge), raft);
+	vec3 col = falling ? pour : mix(crust, mix(hot, core, smoothstep(0.6, 0.95, s)), clamp(heat * 0.6 + vein * 0.8 + smoothstep(lip - 1.5, lip, m), 0.0, 1.0));
+	ALBEDO = col * 1.35;
 	ALPHA = clamp(falling ? v * 1.2 : edge * src, 0.0, 1.0);
 }"""
 ## A fall of light into the starwater: threads and streaks of violet and pale light sliding down,

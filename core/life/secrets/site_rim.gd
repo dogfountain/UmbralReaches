@@ -298,7 +298,24 @@ static func _ledge(node: Node3D, sp: PhysicsDirectSpaceState3D) -> void:
 	var gq := QuadMesh.new()
 	gq.size = Vector2(0.9, 0.7)
 	glow.mesh = gq
-	glow.material_override = Kit.mat("ember")
+	# the furnace's throat: a soft additive bloom of heat, brightest in its middle (a full-bright orange card read as a slab)
+	var gm := StandardMaterial3D.new()
+	gm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	gm.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+	gm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	gm.cull_mode = BaseMaterial3D.CULL_DISABLED
+	gm.albedo_color = Color(1.0, 0.45, 0.16, 0.9)
+	var gt := GradientTexture2D.new()
+	gt.fill = GradientTexture2D.FILL_RADIAL
+	gt.fill_from = Vector2(0.5, 0.5)
+	gt.fill_to = Vector2(1.0, 0.5)
+	var gg := Gradient.new()
+	gg.set_color(0, Color(1.0, 0.85, 0.6, 1.0))
+	gg.set_color(1, Color(0.0, 0.0, 0.0, 0.0))
+	gt.gradient = gg
+	gm.albedo_texture = gt
+	glow.material_override = gm
+	glow.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	node.add_child(glow)
 	glow.global_transform = Transform3D(Basis(Vector3.UP, PI * 0.5), kc + Vector3(1.06, 0.8, 0))
 	var nc := nb + Vector3(0.0, 0.55, 0)

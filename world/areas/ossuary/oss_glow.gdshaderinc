@@ -1,7 +1,7 @@
 // the body of oss_glow.gdshader and oss_glow_one.gdshader (the one-sided pane: glass drawn only from outside)
 
 uniform vec3 glass : source_color = vec3(1.0, 0.58, 0.28);
-uniform float energy = 1.1;
+uniform float energy = 0.95;
 uniform float quarry = 7.0;          // diamonds per metre along each diagonal
 
 varying vec3 wp;
@@ -29,9 +29,9 @@ void fragment() {
 		vec2 d = vec2(q.x + q.y, q.x - q.y) * quarry;
 		vec2 f = abs(fract(d) - 0.5);
 		float w = max(fwidth(d.x), fwidth(d.y));
-		float lead = smoothstep(0.43 - w, 0.43 + w, max(f.x, f.y));
+		float lead = smoothstep(0.39 - w, 0.39 + w, max(f.x, f.y));
 		lead *= 1.0 - smoothstep(0.2, 0.5, w);
-		float pane = 0.8 + 0.35 * hash(floor(d)) * (1.0 - smoothstep(0.2, 0.5, w));
+		float pane = mix(0.82, 0.5 + 0.55 * hash(floor(d)), 1.0 - smoothstep(0.2, 0.5, w));
 		hot = mix(pane, 0.06, lead);
 	}
 	float facing = abs(dot(normalize(NORMAL), normalize(VIEW)));

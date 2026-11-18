@@ -73,9 +73,32 @@ func _run(root: Node) -> void:
 static func _plan_clear(spots: Array) -> bool:
 	for sp: Array in spots.slice(2):              # (the first two keep their fixed spots, sites or no)
 		var c: Vector2 = sp[0]
-		if WK.site_hit(Rect2(c - Vector2(10.0, 20.0), Vector2(20.0, 40.0)), 1.0):
+		if WK.site_hit(Rect2(c - Vector2(10.0, 20.0), Vector2(20.0, 40.0)), 1.0) or _mouth_dir(c, float(sp[1])) == Vector2.ZERO:
 			return false
 	return true
+
+
+## Which way a cave at `c` runs (its stair's head is 24 m back from `c` against it): downhill first, the other way when the
+## downhill head stands on a reserved site; ZERO when both do. (map audit, 18 Nov: the chambers were tested, the stair's
+## head never was, and cave 4's mouth and stair stood in the Sleeper's arm.)
+static func _mouth_dir(c: Vector2, yaw: float) -> Vector2:
+	var ez := Vector2(-sin(yaw), cos(yaw))
+	var down := ez if WK.h(c.x - ez.x * 24.0, c.y - ez.y * 24.0) <= WK.h(c.x + ez.x * 24.0, c.y + ez.y * 24.0) else -ez
+	for f: Vector2 in [down, -down]:
+		var st := c - f * 24.0
+		if not _mass_hit(Rect2(st - Vector2(7.0, 7.0), Vector2(14.0, 14.0))) and not _mass_hit(Rect2(c - f * 13.0 - Vector2(4.0, 4.0), Vector2(8.0, 8.0))):
+			return f
+	return Vector2.ZERO
+
+
+## A landmark's or a place's own ground (a wonder's reserve, a raid floor, a POI, a deep hall) reaching `r`: the masses a stair
+## must not run into. The wayside's small dressing sites are left out (they turned away the Bat Cave and the Ember Cave both).
+static func _mass_hit(r: Rect2) -> bool:
+	for st: Dictionary in WorldLanes.sites:
+		var nm := String(st.name)
+		if (nm.begins_with("wonder_") or nm.begins_with("raid_") or nm.begins_with("poi_") or nm.begins_with("hall_")) and WorldLanes.site_hits_rect(st, r, 1.0):
+			return true
+	return false
 
 
 func _ok(c: Vector2, t: Dictionary) -> bool:
@@ -98,15 +121,24 @@ func _cave(root: Node, i: int, c0: Vector2) -> bool:
 	if bool(f.get("site", true)):
 		return false
 	var c: Vector2 = f.pos
+	var yaw := float(f.yaw)
+	if i >= 2 and _mouth_dir(c, yaw) == Vector2.ZERO:
+		yaw += PI * 0.5                                   # the other axis: its stair may run clear where this one could not
+		if _mouth_dir(c, yaw) == Vector2.ZERO:
+			return false
 	_placed.append(c)
-	_picks.append([c, float(f.yaw)])
-	return _make(root, i, c, float(f.yaw))
+	_picks.append([c, yaw])
+	return _make(root, i, c, yaw)
 
 
 ## The cave `i` at centre `c`, its stair running along `yaw`: the build from a pick.
 func _make(root: Node, i: int, c: Vector2, yaw: float) -> bool:
 	var ez := Vector2(-sin(yaw), cos(yaw))
 	var fwd2 := ez if WK.h(c.x - ez.x * 24.0, c.y - ez.y * 24.0) <= WK.h(c.x + ez.x * 24.0, c.y + ez.y * 24.0) else -ez
+	if i >= 2:
+		var md := _mouth_dir(c, yaw)
+		if md != Vector2.ZERO:
+			fwd2 = md
 	var d := DK.new()
 	d.k = WK.new()
 	d.k.setup(root, "Cave%d" % i, 8300 + i)
