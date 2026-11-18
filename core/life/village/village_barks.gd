@@ -11,6 +11,8 @@ const VState := preload("res://core/life/village/village_state.gd")
 const Reg := preload("res://core/world/night_life/night_registry.gd")
 const Soundstage := preload("res://core/audio/soundstage.gd")
 const DialogueUI := preload("res://ui/dialogue.gd")
+const Vows := preload("res://core/life/progression/vows.gd")
+const Tally := preload("res://core/story/tally.gd")
 
 const NEAR := 14.0
 const GAP_MS := 18000
@@ -128,6 +130,14 @@ func _when(tok: String) -> bool:
 			return _gloom > 0.7
 		"@horse":
 			return not _horse_name().is_empty()
+		"@nohorse":
+			return _horse_name().is_empty()
+		"@camped":
+			return int(Tally.data().get("camps", 0)) > 0
+		"@falls":
+			return int(Tally.data().get("falls", 0)) > 0
+	if tok.begins_with("@vow:"):
+		return Vows.has(tok.trim_prefix("@vow:"))
 	return false
 
 

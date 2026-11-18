@@ -3,7 +3,7 @@ extends RefCounted
 ## A bark is {who, if, when, say}: `who` an NPC id or "*" (anyone near); `if` a condition in the village's language (VState.test: boss:x,
 ## bosses:n, kindled:n, qp:<quest>:<pick>, qd:<quest>, flag:x, peal:n, bells:n ...); `when` the extra reads the barker tracks itself: "@eclipse"
 ## (the moon's totality, near it), "@dawn" (the last tenth of the night), "@late" (the cold hours), "@wounded", "@gloom" (the gloom nearly
-## full), "@horse" (the wanderer owns a horse; {horse} is its name). A scene is two people in earshot of each other who say a few lines in
+## full), "@horse" (the wanderer owns a horse; {horse} is its name), "@nohorse", "@camped" (the Count has a camp), "@falls" (the Count has a fall), "@vow:<id>" (that vow is held). A scene is two people in earshot of each other who say a few lines in
 ## turn. Every bark has a ten-minute memory; scenes play once a night. House style (docs/LORE.md): plain, dry, a little wry. No class_name.
 
 const BARKS := [
@@ -67,6 +67,23 @@ const BARKS := [
 	{"who": "ione", "if": "qd:last_ringer", "say": "He is mending my kettle. He does not remember my name. He says it very often, as if to be sure of it."},
 	{"who": "hild", "if": "qd:col_boots", "say": "Col has stopped coming into the forge to complain about his boots. He is wearing them. I am a little disappointed."},
 	{"who": "nan", "if": "qd:pell_stitches", "say": "Whoever mends Pell's shoe has a very steady hand. I have decided not to look for her. It would only spoil it."},
+	# --- the Count, the camp, the stable and the race (the opening seat's features) ---
+	{"who": "*", "when": "@camped", "say": "They say you sat at the fire and the night turned. I have not seen anyone do it so quietly. It was good to watch."},
+	{"who": "*", "when": "@falls", "say": "The Count has your falls written in it, and the number is not a shame. It is a ledger. We are all in one."},
+	{"who": "nan", "when": "@camped", "say": "You sat by the fire and let it turn the night. The Count reads that out in the evening, did you know? It is a kind sentence."},
+	{"who": "hild", "when": "@falls", "say": "The Count says you have been taken by the dark and come back. Edda used to say that was how you tempered a thing."},
+	{"who": "fennick", "when": "@nohorse", "say": "You have no horse, and the palfrey stands at the rail with nothing to do. There are four courses and a Cup. I am only saying."},
+	{"who": "*", "if": "bosses:1", "when": "@nohorse", "say": "A wanderer on foot with a night this long. There is a stable by the green, and a page in the Count for what is run there."},
+	{"who": "fennick", "if": "bosses:1", "say": "The Race page of the Count is kept in my own hand. Four courses, a purse for each, and a Cup for the one who has won them all."},
+	{"who": "grisel", "if": "bosses:1", "say": "The races are the one honest wager in the valley. The horse does not lie about how fast it is."},
+	{"who": "*", "when": "@vow:horse", "say": "They say you swore to the horse. Horse-Lord, they call it. It is a good vow. It is the only one with a stable door in it."},
+	{"who": "*", "when": "@vow:count", "say": "The Count's Lantern. You have sworn to be read aloud. I should like to hear it, when you are done."},
+	{"who": "*", "when": "@vow:keeper", "say": "Keeper of the Door, they say you are. It is a weighty vow. I hope it is not heavier than you are."},
+	{"who": "*", "when": "@vow:cartographer", "say": "Cartographer's Eye. You will draw the country as you walk it. I shall buy the first map."},
+	{"who": "*", "when": "@vow:lantern", "say": "Lantern-Bearer. You carry it as if it were someone. That is the right way. It nearly is."},
+	{"who": "nan", "when": "@vow:tithe", "say": "A grave ash more for every foe that falls near a fire. You will be rich. We will all be warm. It is a very sensible vow."},
+	{"who": "*", "when": "@vow:unburdened", "say": "The Unburdened Dead. Every twenty-fifth, a wound mended. It is said the dead are generous. They are, if you are careful with them."},
+	{"who": "abel", "when": "@vow:coin", "say": "The Bearers' Coin. A shard for every twelfth. I have dug a good many graves and never been paid so well as you."},
 	# --- the story's five ---
 	{"who": "perrin", "if": "qp:aurel_edicts:leave", "say": "I have stopped copying. I find my hand does not know what to do. It keeps making the shape of a letter in the air."},
 	{"who": "perrin", "when": "@eclipse", "say": "The Hierarch dictated the third edict at an eclipse of the sun, you know. Not a real one. A dimming. I thought it was the pen."},

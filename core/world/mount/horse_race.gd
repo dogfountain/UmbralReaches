@@ -23,6 +23,7 @@ const Chronicle := preload("res://core/story/chronicle.gd")
 const Tally := preload("res://core/story/tally.gd")
 const RealmLand := preload("res://core/world/realm/realm_land.gd")
 const UiSound := preload("res://ui/ui_sound.gd")
+const RaceVoice := preload("res://core/audio/race_voice.gd")
 
 signal finished(course: String, place: int, secs: float)
 
@@ -175,7 +176,7 @@ func begin(id: String) -> String:
 	_line_up(p)
 	_marks_update()
 	Events.toast.emit("%s. %s" % [String(Data.COURSES[id].name), String(Data.HERALD[randi() % Data.HERALD.size()])])
-	UiSound.play(self, "tab")
+	RaceVoice.begin(self)                                   # the start bell and the green's murmur
 	set_process(true)
 	return ""
 
@@ -325,10 +326,10 @@ func _countdown(p: Player) -> void:
 		if _beat < 3:
 			_big.text = String(Data.SET[_beat])
 			_big.visible = true
-			UiSound.play(self, "tab")
+			RaceVoice.beat(self, _beat)
 		else:
 			_big.text = "GO"
-			UiSound.play(self, "quest_new")
+			RaceVoice.go(self)
 			_phase = "run"
 			_stop_rivals(false)
 			get_tree().create_timer(1.2).timeout.connect(func() -> void:
@@ -339,6 +340,7 @@ func _countdown(p: Player) -> void:
 		_false = true
 		_pen = 2.0
 		Events.toast.emit(String(Data.FALSE_START[randi() % Data.FALSE_START.size()]))
+		RaceVoice.false_start(self)
 
 
 func _steer_rivals() -> void:
@@ -388,7 +390,7 @@ func _check_player(p: Player) -> void:
 	var gp := _pts[_gate]
 	if Vector2(p.global_position.x - gp.x, p.global_position.z - gp.z).length() < Data.GATE_R and absf(p.global_position.y - gp.y) < 8.0:
 		_gate += 1
-		UiSound.play(self, "confirm")
+		RaceVoice.gate(self)
 		if _gate >= _pts.size():
 			_finish()
 		else:
@@ -500,11 +502,14 @@ func _reward(place: int, secs: float) -> void:
 	Events.toast.emit("%s  %s in %s (%s)%s. +%d grave ash%s." % [line, Data.place_word(place), Courier.fmt(secs), medal, ", a best" if record else "", ash, (", +%d ember shard%s" % [shard, "" if shard == 1 else "s"]) if shard > 0 else ""])
 	if first:
 		Chronicle.write("race:" + _course, "road", "%s was won, with all Hearthward on the green." % String(c.name))
+	var cup_now := false
 	if place == 0 and won().size() >= Data.ORDER.size() and not bool(st.get("cup", false)):
 		st["cup"] = true
+		cup_now = true
 		Travel.give("ember_shard", 10, false)
 		Events.toast.emit("All four courses won: the Hearthward Cup is yours. Fennick has had it polished for a year. +10 ember shards.")
 		Chronicle.write("race:cup", "road", "The Hearthward Cup went to the wanderer, who had four courses and one horse.")
+	RaceVoice.finish(self, place, record, cup_now)             # the finish by place, a new best, the Cup
 	Travel.save_soon()
 
 

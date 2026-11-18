@@ -21,7 +21,7 @@ const QUESTS := {
 		],
 		"reward": {"ash": 30, "items": {"relic_fragment": 2, "ember_shard": 2}},
 		"choose": [{"set": "kindler", "slot": "lantern", "rarity": 3}, {"set": "bell", "slot": "vestment", "rarity": 3}, {"set": "tally", "slot": "focus", "rarity": 3}],
-		"outcome": {"": "The keep listened to every word with his cloth in his hand, and then put it down. 'Pour you one,' he said. 'On the house. On the valley.'"}},
+		"outcome": {"": "The keep listened to every word with his cloth in his hand, and then put it down. 'Pour you one,' he said. 'On the house. On the valley. And Fennick has the palfrey at the rail, if you wanted to run the Cup, now there is no hurry. The Count has the page.'"}},
 }
 
 const PICKUPS := {

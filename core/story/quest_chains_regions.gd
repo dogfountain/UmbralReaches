@@ -53,7 +53,7 @@ const QUESTS := {
 		"choose": [{"set": "kindler", "slot": "lantern", "rarity": 3}, {"set": "bell", "slot": "focus", "rarity": 3}, {"set": "tally", "slot": "girdle", "rarity": 3}],
 		"leaves": {"bow": {"at": Vector2(-336.0, 372.0), "prop": "lantern_lit"}, "shore": {"at": Vector2(-336.0, 372.0), "prop": "lantern_lit"}, "wood": {"at": Vector2(-336.0, 372.0), "prop": "mark"}},
 		"outcome": {"bow": "Ebba touched the cap in her bow with one finger. 'Then I carry it,' she said. 'I would sooner. A debt you hold is a thing you can pay.' She put a second knot in the net, her own, and it was not a cutter's.",
-			"shore": "Ebba laughed, a short wet startled sound, and went down on her knees on the jetty to look at the shore. 'Twelve by the morning,' she said. 'A wood on my landing. What will the cutters say?' She did not wait to find out.",
+			"shore": "Ebba laughed, a short wet startled sound, and went down on her knees on the jetty to look at the shore. 'Twelve by the morning,' she said. 'A wood on my landing. What will the cutters say?' She did not wait to find out. \"If you are going back by the road,\" she called, \"the stable at Hearthward will lend you a horse, and the Count keeps a Race page for the ones who ride.\"",
 			"wood": "'It went home.' Ebba sat on the punt's edge a long time. 'Then there is no debt, and I have been paying nothing for nine winters out of habit.' She looked at her hands. 'I think I should like to be told what to do with them.'",
 			"": "The count was left as it was."}},
 	"cairn_count": {"name": "The Cairns' Count", "giver": "wat", "zone": "eastreach", "offer": true, "avail": "qd:er_halter_bell",

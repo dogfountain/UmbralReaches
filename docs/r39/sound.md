@@ -144,3 +144,17 @@ does not touch it): **hall**, **cave**, **crypt**, **tower** (Wardens' towers: w
 **hold** (a ship's timbers and water), **nave** (a held chord and drips). A builder registers a zone with the label it wants; one without a bed of its own gets its room's. The reverb room (hall,
 cave, crypt) and indoor muffle are Ambience's. **Cost:** one non-positional player; a 0.5 s zone lookup over the registered boxes; the worker renders eight loops once.
 **Check:** the world seat's interiors (Sleeper's heart-hall, the ship's hold, a cathedral nave, the Wardens' halls) call `AcousticZones.register` with these labels when they land; until then only the Wardens' towers and the Hollow King's hall register (from `landmark_voices.gd`).
+
+## The opening seat's features (sixth wave)
+
+All through the cue bank (three takes each), with the hooks the opening seat left filled:
+- **The Hearthward races** (`race_voice.gd`, called from `horse_race.gd`): `race_bell` at the ritual's start, `race_tick` on each of the three beats (rising a little each), `race_go` (bell, horn, cheer), `race_gate` on every gate (varied pitch), `race_false` and a groan on a false start, `race_finish` or `race_first` by place with the green's cheer / murmur / groan, `race_place` for a new best, `race_cup` for the Hearthward Cup; Fennick's herald lines are subtitles with his babble (`spoken.gd`): Ready / Hold / Hold it / Now, a false start, a line per place, the best, the Cup. The crowd and the rail are `crowd_murmur`, `crowd_cheer`, `crowd_groan`.
+- **The Long Ledger** (`ledger_voice.gd`, hooked in `long_ledger.gd`): `ledger_post` when it is posted, `ledger_pay` per bounty (a line per bounty kind: kills, kind, great, clean, camps, places, runs, races, wins), `ledger_rank` and the rank's own line then the keep's; a Deeper Night line about the scaled numbers. The keep's words are only said within earshot of the Keg; the cues play anywhere.
+- **The charcoal sketch** (`map_sketch.gd`): `charcoal` when new ground is inked, at most every six seconds; `landmark_inked` (a scratch and two plucks) on every discovered region or named place.
+- **Vows** (`vow_voice.gd`, hooked in `Vows.choose`): `vow_sworn` and one plain line for each of the eighteen.
+- **The gear-gap warning:** `gear_gap`, a short grave two-note, when the region changes and `Danger.gear_note` is not empty (once a minute at most).
+**Cost:** none on the main thread (renders in the cue worker); the gear-gap check is one region comparison per tick and one `gear_note` call per region change.
+
+## Barks for the Count, the camp, the stable and the vows (story_depth.md, sixth wave)
+
+Sixteen barks (`village_bark_db.gd`) for the new tokens `@camped`, `@falls`, `@nohorse` and `@vow:<id>` (the Count's evening reading, Hild on a fall, Fennick on the palfrey and the Race page, villagers reacting to the vows held), and the Lamp-Road, the Cutters' Debt and the Long Walk outcomes now point at the stable and the Race page.
