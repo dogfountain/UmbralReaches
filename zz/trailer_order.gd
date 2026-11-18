@@ -7,19 +7,17 @@ extends RefCounted
 ## The cut that ships (Luke, 8 Nov): the shorter one, ~44 s of polished shots only; the equipment drop and the
 ## gear page, an ambush, and the Bone Abbot's last phase played out in one shot (abbot_iv).
 const ORDER := [
-	# act I: the last fire
-	["cold", 1.4, 0.0, "I", "CIN"], ["village", 2.4, 0.0, "I", "CIN"], ["tavern", 1.4, 0.0, "I", "CIN"], ["keep_talk", 3.4, 0.0, "I", "UI"],
-	["run_game", 1.8, 0.0, "I", "GAME"],
-	# act II: what climbs comes down hollow
-	["card_dark", 0.8, 0.0, "II", "CARD"], ["fight_otc", 3.0, 0.0, "II", "GAME"], ["familiar", 2.2, 0.0, "II", "CIN"],
-	["loot", 2.2, 0.0, "II", "CIN"], ["gear", 1.8, 0.0, "II", "UI"],
-	# act III: the Realm widens (the Chain Span's lanterns)
-	["card_realm", 0.8, 0.0, "III", "CARD"], ["horse_gallop", 2.4, 0.0, "III", "GAME"],
-	["chain_span", 2.2, 0.0, "III", "CIN"], ["weirford_life", 2.4, 0.0, "III", "CIN"], ["lamp_kindle", 2.0, 0.0, "III", "CIN"],
-	["escort_attack", 2.4, 0.0, "III", "GAME"],
-	# act IV: the great ones, rebuilt (the Warden, the Anchoress, the Speaking Crown, the Bone Abbot's four phases, the Thornwarden's fall)
-	["card_depths", 0.8, 0.0, "IV", "CARD"], ["warden", 2.0, 0.0, "IV", "CIN"], ["anchoress", 2.0, 0.0, "IV", "CIN"],
-	["hierarch_voice", 2.2, 0.0, "IV", "CIN"], ["abbot_iv", 12.0, 0.0, "IV", "CIN"], ["final_blow", 2.8, 0.0, "IV", "CIN"],
+	# the environment cut (Luke, 18 Nov: "just environment shots"): no fights, no menus; the Realm at night
+	# I: Hearthward, the last fire
+	["cold", 1.4, 0.0, "I", "CIN"], ["crowns", 2.6, 0.0, "I", "CIN"], ["village", 2.6, 0.0, "I", "CIN"], ["tavern", 1.8, 0.0, "I", "CIN"],
+	["keg_song", 2.0, 0.0, "I", "CIN"],
+	# II: the old Realm round it
+	["thornwood", 2.2, 0.0, "II", "CIN"], ["rain_mist", 2.2, 0.0, "II", "CIN"], ["necropolis", 2.2, 0.0, "II", "CIN"], ["orchard", 2.2, 0.0, "II", "CIN"],
+	["downs", 2.4, 0.0, "II", "CIN"],
+	# III: the Marches and the Far Reaches
+	["card_realm", 0.8, 0.0, "III", "CARD"], ["weirford", 2.2, 0.0, "III", "CIN"], ["weirford_life", 2.4, 0.0, "III", "CIN"], ["siege", 2.2, 0.0, "III", "CIN"],
+	["hierarch", 2.2, 0.0, "III", "CIN"], ["stillwater", 2.8, 0.0, "III", "CIN"], ["lamp_spire", 2.6, 0.0, "III", "FP"], ["saltmarket_life", 2.4, 0.0, "III", "CIN"],
+	["chain_span", 2.6, 0.0, "III", "CIN"],
 	# the title
 	["finale", 4.5, 0.0, "V", "CIN"],
 ]
