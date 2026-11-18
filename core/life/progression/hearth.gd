@@ -263,6 +263,7 @@ func give_memory(n: int, why: String) -> void:
 		Events.toast.emit("Something comes back to you. Level %d: a step on the Paths [%s]." % [after, InputSetup.live_label("kindling", Settings.using_pad, "K")])
 		_ding()
 		leveled_up.emit(after, free_points())
+		_refresh()                                       # a level is worth Wounds and power in a fight (kindling.gd)
 		Travel.save_soon()
 	xp_changed.emit(xp_info())
 

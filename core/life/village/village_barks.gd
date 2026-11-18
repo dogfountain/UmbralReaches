@@ -5,6 +5,7 @@ extends Node
 ## up, no pause); one bark every ~18 s at most, a bark's own ten-minute memory, a scene once a night. A line is shown as a subtitle
 ## ("Name: ...") with a few syllables of the speaker's babble voice (the kept voices). Added by the story director. No class_name.
 
+const TextDirector := preload("res://ui/text_director.gd")
 const BarkDB := preload("res://core/life/village/village_bark_db.gd")
 const Voice := preload("res://core/npc/npc_voice.gd")
 const VState := preload("res://core/life/village/village_state.gd")
@@ -155,6 +156,9 @@ func _say(n: Node3D, line: String) -> void:
 	var ui := _ui()
 	if ui == null or not is_instance_valid(ui):
 		return
+	var td := TextDirector.of(self)
+	if td != null and td.in_combat():
+		return                                   # a fight is on: the folk's chatter is not read out over it
 	var text := line.replace("{horse}", _horse_name())
 	ui.narrate(["%s: \"%s\"" % [String(n.get("display_name")), text]])
 	var voice := n.get_node_or_null("Voice")

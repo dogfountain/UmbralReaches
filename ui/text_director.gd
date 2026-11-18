@@ -52,6 +52,8 @@ var _toast_q: Array[Dictionary] = []   ## {"text", "kind"}
 var _lesson_q: Array[String] = []
 var _lesson_basic: Array[String] = []      ## the queued or showing lessons that teach controls: they step aside in a fight
 const TIP_UP := 282.0                      ## the lesson line rides over the interact prompt (its own lane), not on it
+const FIGHT_UP := 500.0                    ## in a fight the lower lane is the ground round the wanderer (the red): its
+                                           ## lines (lessons, narration) start this much higher, under the frames
 var _toasts: Array[Label] = []
 var _toast_box: VBoxContainer
 var _tip: Label
@@ -185,6 +187,11 @@ func lane_busy(lane: StringName) -> bool:
 
 func narration_or_dialogue() -> bool:
 	return _occ.has(&"narration") or _dialogue_open
+
+
+## Pixels the lower lane's lines start higher while a fight is on (0 out of one).
+func fight_lift() -> float:
+	return FIGHT_UP if in_combat() else 0.0
 
 
 ## A fight is on (a foe awake and near, or a lock-on): place banners wait until it ends.
@@ -475,7 +482,7 @@ func _lesson_tick(delta: float) -> void:
 	_tip_raw = _lesson_q.pop_front()
 	var keyed := KeyCap.has_tokens(_tip_raw)
 	_tip.text = KeyCap.plain(_tip_raw, bool(Settings.using_pad)) if keyed else _tip_raw
-	plate(_tip, _tip.text, 960.0, -TIP_UP + 36.0)
+	plate(_tip, _tip.text, 960.0, -TIP_UP + 36.0 - fight_lift())
 	_tip.self_modulate.a = 0.0 if keyed else 1.0          # a keyed lesson keeps the label (its rect, its words for tests) unseen
 	_set_keys(_tip_raw if keyed else "")
 	_tip_t = 5.6
@@ -530,7 +537,7 @@ func _centre_keys() -> void:
 
 func _tip_rect() -> Rect2:
 	var v := _vs()
-	return Rect2(v.x * 0.5 - 480.0, v.y - TIP_UP - 94.0, 960.0, 130.0)
+	return Rect2(v.x * 0.5 - 480.0, v.y - TIP_UP - 94.0 - fight_lift(), 960.0, 130.0)
 
 
 ## A lesson is on screen or queued (the guided opening waits for the move prompt's turn before it speaks on).

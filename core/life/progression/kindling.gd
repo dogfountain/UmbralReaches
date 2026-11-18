@@ -41,6 +41,10 @@ const OrbCore := preload("res://core/skills/orb_core.gd")
 const CorePickup := preload("res://core/life/progression/core_pickup.gd")
 const FIRE_REACH := 5.0            ## metres from a lit brazier that count as "at the fire"
 const SID := "progression"
+## What a level of the Remembrance is worth in a fight: every felled keeper deepens the night (Tiers: blows x1.6 and foes x3
+## by the Umbral Night) and nothing raised the wanderer to meet it (wounds_max a flat 120, power from gear alone).
+const WOUNDS_PER_LEVEL := 3.0      ## 120 Wounds at level 0, 210 at 30
+const POWER_PER_LEVEL := 0.015     ## +45 % spell power at 30
 
 var _player: Player
 var _base := {}                    ## the player's own numbers, read once per player
@@ -124,6 +128,9 @@ func refresh() -> void:
 	# the Paths (Remembrances), the Hearthfire, Hild's works, meals and Rested (hearth.gd)
 	PathsDB.apply(m, state())
 	HearthDB.apply(m, Travel.system_state("hearth"))
+	var lv := int(PathsDB.level_of(int(Travel.system_state("progression").get("memory", 0))).level)
+	m["power"] = float(m.get("power", 1.0)) + POWER_PER_LEVEL * float(lv)
+	m["wounds_add"] = WOUNDS_PER_LEVEL * float(lv)
 	DB.live = m
 	apply()
 
@@ -143,7 +150,7 @@ func apply() -> void:
 		return
 	var p := _player
 	if _base.is_empty():
-		for k: String in ["gloom_max", "gloom_rate_dark", "gloom_rate_rift", "gloom_drain_lit", "wounds_mend_lit", "step_range", "step_evade",
+		for k: String in ["gloom_max", "gloom_rate_dark", "gloom_rate_rift", "gloom_drain_lit", "wounds_mend_lit", "wounds_max", "step_range", "step_evade",
 				"walk_speed", "sprint_speed", "jump_velocity"]:
 			_base[k] = float(p.get(k))
 	var m := DB.live
@@ -152,6 +159,7 @@ func apply() -> void:
 	p.gloom_rate_rift = _base.gloom_rate_rift * float(m.get("dark_mult", 1.0))
 	p.gloom_drain_lit = _base.gloom_drain_lit * float(m.get("lit_mult", 1.0))
 	p.wounds_mend_lit = _base.wounds_mend_lit * float(m.get("lit_mult", 1.0))   # r35: a fire's relief mends Wounds too
+	p.wounds_max = _base.wounds_max + float(m.get("wounds_add", 0.0))    # the Remembrance: each level a little more to give
 	p.step_range = _base.step_range + (2.0 if int(m.get("step", 0)) >= 1 else 0.0) + float(m.get("step_range", 0.0))
 	p.step_evade = (0.6 if int(m.get("step", 0)) >= 2 else _base.step_evade) + float(m.get("step_evade_add", 0.0))
 	# the Road (paths_db.gd): pace and spring

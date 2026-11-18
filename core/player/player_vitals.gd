@@ -268,6 +268,15 @@ func take_wound(amount: float, from_pos := Vector3.INF) -> void:
 	if player._book != null:
 		player._book.on_hurt(whole)                    # r33: a hard blow interrupts a cast, a light one pushes it back
 	player.camera_ctl.kick(clampf(amount / 30.0, 0.3, 1.0))
+	if amount >= 24.0:
+		# a heavy blow lands on the wanderer too: the world catches for a beat and the body is shoved off the hit (a mite's
+		# nibble and a crozier felt the same before)
+		player.hitstop(0.05 + clampf((amount - 24.0) / 160.0, 0.0, 0.05), 0.2)
+		if from_pos != Vector3.INF:
+			var away := player.global_position - from_pos
+			away.y = 0.0
+			if away.length_squared() > 0.01:
+				player.velocity += away.normalized() * clampf(1.5 + amount / 20.0, 1.5, 4.0)
 	if not EnemyAudio.player("hurt", player.global_position + Vector3.UP, -1.0):
 		Sfx.play(Player.SFX_HURT, player.global_position + Vector3.UP, -3.0)
 	Events.player_hurt.emit(amount, from_pos)
