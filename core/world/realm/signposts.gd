@@ -3,7 +3,8 @@ extends RefCounted
 ## another, or two ways' ends meet, a post (art/models/props/fingerpost.glb) stands beside the meeting, on its outside,
 ## clear of the ways, the places and the trees, with one arm (fingerpost_arm.glb) pointing down each way that leaves it.
 ## Built after the flora by RealmWayfinding.build; one merged mesh per material set per 96 m cell (a couple of draws in
-## view), faded out past 150 m; a thin collider on each post. Each post registers a small site so later builders keep off.
+## view), faded out past 150 m. Non-solid, like the kits' other dressing (a post stood a walk into the Barrow Field's
+## chamber short); each registers a small site so later builders keep off.
 ## No class_name: preload by path.
 
 const PropModels := preload("res://core/world/realm/prop_models.gd")
@@ -79,7 +80,6 @@ static func build(holder: Node3D, space: PhysicsDirectSpaceState3D) -> int:
 			aim = aim.normalized()
 			pm.add("fingerpost_arm.glb", Transform3D(Basis(Vector3.UP, atan2(-aim.y, aim.x)), at + Vector3.UP * float(ARM_Y[k])))
 			k += 1
-		_collider(holder, at)
 		WorldLanes.register_site("signpost_%d" % n, Rect2(at.x - 0.6, at.z - 0.6, 1.2, 1.2), at.y, at.y)
 		posts.append(at)
 		n += 1
@@ -124,20 +124,6 @@ static func _near_tree(c: Vector2) -> bool:
 		if Vector2(p.x, p.z).distance_to(c) < float(t[2]) + 0.9:
 			return true
 	return false
-
-
-static func _collider(holder: Node3D, at: Vector3) -> void:
-	var body := StaticBody3D.new()
-	body.name = "SignpostBody"
-	body.collision_layer = Layers.WORLD
-	body.collision_mask = 0
-	var cs := CollisionShape3D.new()
-	var bs := BoxShape3D.new()
-	bs.size = Vector3(0.18, 2.7, 0.18)
-	cs.shape = bs
-	body.add_child(cs)
-	holder.add_child(body)
-	body.global_position = at + Vector3.UP * 1.35
 
 
 ## The direction a way leaves its end `q` by: toward its own polyline AHEAD m on (ZERO for a way too short).

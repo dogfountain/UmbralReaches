@@ -127,7 +127,7 @@ const SLOTS := {
 ## Ways (RealmLayout.BASE_PATHS' schema). The road itself runs on to the new edges (RealmLayout's road entry).
 ## Junctions sit exactly on another way's vertex.
 const PATHS := [
-	{"id": "fell_track", "w": 1.4, "pts": [Vector2(-300, 56.4), Vector2(-298, 30), Vector2(-300, 0), Vector2(-306, -30), Vector2(-312, -50), Vector2(-318, -61)]},     # (map audit: ends at the keep stair's foot; it ended 6 m east of the stair's middle, among the crag's boulders)
+	{"id": "fell_track", "w": 1.4, "pts": [Vector2(-300, 56.4), Vector2(-298, 30), Vector2(-300, 0), Vector2(-306, -30), Vector2(-312, -49), Vector2(-317, -55)]},     # (map audit: ends at the keep stair's foot; it ended 6 m east of the stair's middle, among the crag's boulders)
 	{"id": "barrow_track", "w": 1.4, "pts": [Vector2(-330, 52), Vector2(-326, 80), Vector2(-318, 110), Vector2(-320, 150), Vector2(-318, 190), Vector2(-320, 232), Vector2(-318, 272), Vector2(-316, 296)]},
 	{"id": "reed_ford", "w": 1.4, "pts": [Vector2(-316, 296), Vector2(-292, 304), Vector2(-266, 306), Vector2(-236, 302), Vector2(-196, 298), Vector2(-152, 296)]},
 	{"id": "fallow_way", "w": 1.6, "pts": [Vector2(-150, 196), Vector2(-150, 230), Vector2(-148, 262), Vector2(-152, 296)]},
@@ -321,7 +321,7 @@ static func _crag(p: Vector2) -> float:
 	var cliff := 1.0 - smoothstep(edge, edge + 5.5, d)
 	var talus := 1.0 - smoothstep(edge + 2.0, edge + 26.0, d)
 	var hh := top * maxf(cliff, talus * 0.36)
-	var to_track := (Vector2(-318.0, -61.0) - KEEP_C).normalized()     # fell_track's end, the stair's foot (straight down the stair)
+	var to_track := (Vector2(-317.0, -55.0) - KEEP_C).normalized()     # fell_track's end, the stair's foot (straight down the stair)
 	var ramp_w := smoothstep(0.84, 0.97, u.dot(to_track)) if d > 0.5 else 0.0
 	var ramp := top * clampf(1.0 - (d - edge + 1.0) / 22.0, 0.0, 1.0)
 	return lerpf(hh, maxf(hh, ramp), ramp_w)

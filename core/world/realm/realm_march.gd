@@ -20,7 +20,7 @@ const WALL_EAST := [Vector2(157, -112), Vector2(163, -92), Vector2(171, -70), Ve
 ## Short spurs: the wall runs out from its line to a tower on a knoll (the land lifts under the tip).
 ## (map audit: the west spur stood across the Holds' fire and kin-caller ground (its wall ran through (-167, 15)); the east
 ## one's tower stood on anchor_track at (176, 49): both moved north, where nothing walks)
-const SPURS := [{"side": -1, "base": Vector2(-165, -90), "tip": Vector2(-179, -87)}, {"side": 1, "base": Vector2(163, -92), "tip": Vector2(177, -97)}]
+const SPURS := [{"side": -1, "base": Vector2(-165, -90), "tip": Vector2(-176, -99)}, {"side": 1, "base": Vector2(163, -92), "tip": Vector2(177, -97)}]
 ## The long fall: [side, z0, z1] where the wall has come down (stubs and rubble, nothing to bar the way).
 ## (map audit: to z 198, past downs_track's crossing at z 191, which the breach rule could not open so near the fall's end)
 const RUINS := [[-1, 112.0, 198.0]]

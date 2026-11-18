@@ -55,11 +55,11 @@ static func build(parent: Node) -> void:
 	var k: OssKit = L.k
 	var rng: RandomNumberGenerator = L.rng
 	# --- the abbey bounds: a long broken wall, a gap where the west way passes ------------------
-	# (18 Nov: from (-61, 31)..(-53.5, 4.5), on the henge's 1.6x floor; map audit: then (-56, 58)..(-48, 36) lay across
-	# the Singing Stones (-46, 50) and never placed. Now east of the chapel yard, past the henge hill's skirt (64 m out),
-	# clear of the stones and of chapel_lane)
-	var wa := Vector2(-61.0, 49.0)
-	var wb := Vector2(-57.0, 33.5)
+	# (18 Nov: from (-61, 31)..(-53.5, 4.5), on the henge's 1.6x floor; map audit: (-56, 58)..(-48, 36) lay across the
+	# Singing Stones and never placed, everything round the chapel yard is the sexton's ground and Perrin's camp, and the
+	# meadow west of meadow_way is the henge hill's skirt. Now in the old rift's meadow east of meadow_way, open ground)
+	var wa := Vector2(-3.0, -30.0)
+	var wb := Vector2(9.0, -42.0)
 	var r := Rect2(wa, Vector2.ZERO).expand(wb).grow(0.8)
 	if LK.clear_of(r, 0.6):
 		L.site("tw_bounds", r, L.g(r.get_center().x, r.get_center().y))

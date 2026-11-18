@@ -21,6 +21,7 @@ const SHAFT_WOODS := {"sorrow": 3, "oak": 2}
 const CLEARINGS := [Vector2(-354.0, -36.0), Vector2(-318.0, 32.0), Vector2(-296.0, -14.0), Vector2(-350.0, 2.0),
 	Vector2(112.0, 272.0), Vector2(188.0, 282.0), Vector2(250.0, 334.0), Vector2(178.0, 380.0), Vector2(116.0, 384.0)]
 const CLEARING_R := 8.5
+const QUARRY_SKY := 17.0           ## no tree within this (plus 0.6 of its spread) of the quarry's centre
 const FIRE_SKY := 3.0               ## no crown within this (plus 0.6 of its spread) of a campfire slot
 const SHAFT_SIZE := Vector2(4.2, 20.0)
 ## Lookouts: [xz, the way it looks (xz)]
@@ -47,6 +48,9 @@ static func reserve(_root: Node) -> void:
 			for s: Dictionary in slots[id]:
 				if String(s.kind) == "fire":
 					Flora.tree_clear.append([s.at as Vector2, FIRE_SKY])
+	# the Saints' Quarry's cut floor and benches open to the sky (its rubble, blocks and scaffold still grow there: a pine
+	# wood stood on it and the quarry read as a wood; map audit, 18 Nov)
+	Flora.tree_clear.append([RealmLayout.QUARRY_C, QUARRY_SKY])
 	# and over every raid floor (its trunks were kept off; pines leaned over the Anchoress's terrace and the summit deck)
 	for r: Dictionary in RealmLayout.RAIDS:
 		Flora.tree_clear.append([r.c as Vector2, float(r.r) - 1.0])

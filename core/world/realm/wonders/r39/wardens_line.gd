@@ -56,7 +56,7 @@ func _cands(x: float) -> Array:
 			# tower 3 against the West Wall's own tower at (-142, 104); towers 5 and 6 20 m apart at the Nave. The line keeps
 			# 20 m off the wall and 70 m between its towers)
 			loose.append(c)
-			if RealmMarch.wall_dist(c) < 20.0 or _placed_c.any(func(q: Vector2) -> bool: return q.distance_to(c) < 70.0):
+			if RealmMarch.wall_dist(c) < 20.0 or _placed_c.any(func(q: Vector2) -> bool: return q.distance_to(c) < 70.0) or WK.site_hit(Rect2(c - Vector2(9.0, 9.0), Vector2(18.0, 18.0)), 1.0):
 				continue
 			out.append(c)
 	return out if not out.is_empty() else loose
