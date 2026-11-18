@@ -72,7 +72,7 @@ const REALM_CAMPS: Array[Dictionary] = [
 	{"at": Vector3(144.0, 60.0, 2.0), "kinds": ["husk", "wretch"], "probe": 0.0,
 		"patrol": [Vector2(144, 2), Vector2(140, -4)]},                                            # under the tor
 	# The Cinder Orchard (tier 1): what roots in the ash -- burrowers under the burned rows, mite nests.
-	{"at": Vector3(-132.0, 60.0, 101.0), "kinds": ["burrower", "burrower", "crawler"], "probe": 0.0},   # the west rows
+	{"at": Vector3(-132.0, 60.0, 100.0), "kinds": ["burrower", "burrower", "crawler"], "probe": 0.0},   # the west rows
 	{"at": Vector3(-80.0, 60.0, 142.0), "kinds": ["mite", "mite", "mite", "mite", "mite"], "probe": 0.0, "r": 1.6},   # the south rows: a nest in the ash
 	{"at": Vector3(-120.0, 60.0, 112.0), "kinds": ["burrower", "mite", "mite", "mite"], "probe": 0.0, "r": 1.8},     # the press-house rows
 	# The Waiting Field (tier 1): the pilgrims, buried facing the mountain, waiting. Risen Pilgrims lie

@@ -56,15 +56,15 @@ const CAMPS: Array[Dictionary] = [
 	# --- the Southwood (tier 3): the charcoal burners stayed (cinder casters in their clearing), gaunts hunt the
 	# holly, leapers at the wood's north-east edge, a mite nest in the deep wood (the Hollow-Witch holds her hollow).
 	{"name": "the burners' clearing", "at": Vector3(120.0, 60.0, 268.0), "kinds": ["cinder", "cinder", "husk", "wretch"], "probe": 0.0, "r": 2.8},
-	{"name": "the holly brakes", "at": Vector3(249.0, 60.0, 290.0), "kinds": ["gaunt", "gaunt", "leaper"], "probe": 0.0,
-		"patrol": [Vector2(249, 290), Vector2(258, 296), Vector2(240, 306), Vector2(232, 290)]},
+	{"name": "the holly brakes", "at": Vector3(252.0, 60.0, 293.0), "kinds": ["gaunt", "gaunt", "leaper"], "probe": 0.0,
+		"patrol": [Vector2(252, 293), Vector2(258, 296), Vector2(240, 306), Vector2(232, 290)]},
 	{"name": "the wood's north-east edge", "at": Vector3(243.0, 60.0, 260.0), "kinds": ["leaper", "crawler", "crawler"], "probe": 0.0},
-	{"name": "the deep wood's nest", "at": Vector3(170.0, 60.0, 394.0), "kinds": ["mite", "mite", "mite", "mite", "mite"], "probe": 0.0, "r": 1.6},
+	{"name": "the deep wood's nest", "at": Vector3(174.0, 60.0, 384.0), "kinds": ["mite", "mite", "mite", "mite", "mite"], "probe": 0.0, "r": 1.6},
 	# --- the Bellfall (under Lastlight's south wall since the Stair took the Crowns' east corner): the bell's heat on the
 	# crater's west lip (cinder casters, a bulwark), tollmen on the east floor who ring when you come (the Eighth Ringer
 	# holds the bell); and a round on bell_link under the rift's west berm.
 	{"name": "the crater's west lip", "at": Vector3(332.0, 60.0, 110.0), "kinds": ["cinder", "cinder", "bulwark"], "probe": 0.0, "r": 2.8},
-	{"name": "the crater's east floor", "at": Vector3(333.0, 60.0, 127.0), "kinds": ["tollman", "husk", "gaunt"], "probe": 0.0},
+	{"name": "the crater's east floor", "at": Vector3(334.0, 60.0, 125.0), "kinds": ["tollman", "husk", "gaunt"], "probe": 0.0},
 	{"name": "the round below bell_link", "at": Vector3(250.0, 60.0, -48.0), "kinds": ["husk", "gaunt", "wretch"], "probe": 0.0,
 		"patrol": [Vector2(250, -48), Vector2(256, -40), Vector2(248, -30), Vector2(242, -40)]},
 	# --- Lastlight (tier 2): the walled waystation is a safe place, and the road from Saltmarket to its gate is the

@@ -263,7 +263,7 @@ const SLOTS := {
 		{"kind": "fire", "at": Vector2(-99, 104), "note": "beside orchard_lane"},
 		{"kind": "poi", "at": Vector2(-128, 132), "note": "the press-house ruin"},
 		{"kind": "poi", "at": Vector2(-86, 122), "note": "the burned rows' heart (a night event ground)"},
-		{"kind": "camp", "at": Vector2(-132, 101), "note": "the west rows"},
+		{"kind": "camp", "at": Vector2(-132, 100), "note": "the west rows"},
 		{"kind": "camp", "at": Vector2(-80, 142), "note": "the south rows"}],
 	"necropolis": [
 		{"kind": "fire", "at": Vector2(8, 108), "note": "at the field's gate, off necropolis_way"},
