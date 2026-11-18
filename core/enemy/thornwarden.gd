@@ -53,6 +53,7 @@ const ERUPT_EVERY := 5.5
 const BLOOM_EVERY := 15.0
 const HP := 600
 const BeastRig := preload("res://core/enemy/beast_rig.gd")
+const ClipRig := preload("res://core/enemy/clip_rig.gd")
 const ThornBody := preload("res://core/enemy/thorn_body.gd")
 const QuestBook := preload("res://core/story/quest_book.gd")
 var _attuned := false
@@ -117,10 +118,19 @@ func _absorb(dmg: float, from: Node) -> float:
 
 func _build() -> void:
 	name = "Thornwarden"
-	# (17 Nov, Luke: bosses "simple like the villager", "4/5x size") built in the villagers' style to its own design
-	# (core/enemy/thorn_body.gd): a great stag-wolf of bark and thorn, briar antlers, a glowing heart-knot at its breast;
-	# posed by formula on a beast's skeleton (core/enemy/beast_rig.gd). The Blender model and its clips stay in art/.
-	var _r: CharacterRig = BeastRig.fit(self, ThornBody, {"scale": 1.25, "walk_stride": 0.9, "run_stride": 1.9, "run_at": 0.95})
+	# (18 Nov, Luke: "all models in the game should be blender") modelled and animated in Blender
+	# (tools/blender/vb_thornwarden.py): a stag-wolf of bark scales over muscled shoulders and haunches, thorn hackles
+	# and a spine of thorns, moss, legs of corded root with root claws, a crown of briar antlers with berries, a bramble
+	# tail, and the heart-knot of woven roots glowing at its breast (the weak point); its own moves keyed in Blender. The
+	# code-built body (thorn_body.gd on the beast rig) stays as the fallback.
+	var model: String = BossKit.AUTHORED.get(&"thornwarden", "")
+	if model != "" and ResourceLoader.exists(model):
+		ClipRig.fit(self, model, &"thornwarden", {"body": "spine", "front": "chest", "muzzle": "jaw", "tail": "tail_3"},
+				{"walk_stride": 1.2, "run_stride": 2.2, "run_at": 0.95, "villager_look": true})
+		_rig.scale = Vector3.ONE * 1.1              # 2.6 m nose to tail in body units: about 11 m at SCALE
+		weak_offset = Vector3(0.0, -0.22, -0.36)     # the heart-knot under the neck, before the chest joint
+	else:
+		var _r: CharacterRig = BeastRig.fit(self, ThornBody, {"scale": 1.25, "walk_stride": 0.9, "run_stride": 1.9, "run_at": 0.95})
 	var col := get_node_or_null("Collision") as CollisionShape3D
 	if col and col.shape is CapsuleShape3D:
 		var cap := col.shape as CapsuleShape3D
@@ -128,6 +138,12 @@ func _build() -> void:
 		cap.radius = 0.42
 		col.position.y = 0.6
 	BossKit.embiggen(self, SCALE)
+
+
+## One of its own moves when the model has it (a clip of that name, timed to the cast), else false; `then` a clip held
+## after it (rooted in the altar).
+func _rite(clip: StringName, then := &"") -> bool:
+	return _rig != null and _rig.has_method("boss_move") and bool(_rig.call("boss_move", clip, 0.0, then))
 
 
 ## Living Thornspeakers (its priority adds).
@@ -261,7 +277,7 @@ func _snare() -> void:
 	var toward := global_position - c
 	toward.y = 0.0
 	var gap_a := atan2(toward.z, toward.x)
-	if _rig and _rig.has_method("howl"):
+	if not _rite(&"snare") and _rig and _rig.has_method("howl"):     # the crown raking the ground side to side
 		_rig.call("howl", 1.0)
 	BossKit.cast(self, "Briar Snare", 1.3)
 	say("alert", global_position + Vector3.UP * 2.0, 2.0, 0.6)
@@ -287,7 +303,7 @@ func _thornstorm() -> void:
 	_state_t = -STORM_TIME
 	velocity = Vector3.ZERO
 	_glint = 1.0
-	if _rig and _rig.has_method("howl"):
+	if not _rite(&"thornstorm") and _rig and _rig.has_method("howl"):     # reared on its hind legs, crashing down as it lands
 		_rig.call("howl", STORM_TIME)
 	BossKit.cast(self, "Thornstorm", STORM_TIME, false, _storm_lands)
 	BossKit.emote(self, "Every thorn in the henge rises.", Color(1.0, 0.55, 0.3))
@@ -367,7 +383,7 @@ func _sap_mending() -> void:
 	_state_t = -MEND_TIME
 	_knot_t = MEND_TIME
 	_glint = 1.0
-	if _rig and _rig.has_method("howl"):
+	if not _rite(&"mend") and _rig and _rig.has_method("howl"):     # lying down, curled round, drinking from the henge
 		_rig.call("howl", MEND_TIME)
 	BossKit.cast(self, "Sap Mending", MEND_TIME, true, _mended)
 	BossKit.emote(self, "The Thornwarden drinks from the henge.", Color(0.85, 1.0, 0.45))
@@ -458,7 +474,7 @@ func _begin_rooting() -> void:
 	SpellFx.rift_in(to)
 	_set_state(RECOVER)
 	_state_t = -1.0
-	if _rig and _rig.has_method("howl"):
+	if not _rite(&"rooting", &"rooted_hold") and _rig and _rig.has_method("howl"):     # its legs sink into the altar, and stay
 		_rig.call("howl", 2.0)
 	BossKit.roar(self, "", BossKit.THORN)
 	BossKit.emote(self, "It roots into the henge's heart.", Color(0.9, 1.0, 0.45))
@@ -509,6 +525,8 @@ func _tick_rooted(delta: float) -> void:
 ## Out of the altar: all knots burned (`left` 0), or the henge closed on the ones still beating.
 func _end_rooting(left: int) -> void:
 	rooted = false
+	if _rig and _rig.has_method("stagger"):
+		_rig.call("stagger")                    # it tears itself up out of the altar, reeling
 	set_meta(&"phase_label", "")
 	remove_meta(&"ward_hint")
 	_finish_cast(true, false)
@@ -564,7 +582,7 @@ func _bloom() -> void:
 	_state_t = -1.2
 	velocity = Vector3.ZERO
 	_glint = 1.0
-	if _rig and _rig.has_method("howl"):
+	if not _rite(&"bloom") and _rig and _rig.has_method("howl"):     # the spine arching, a shudder, the thorns standing
 		_rig.call("howl", 1.2)
 	BossKit.cast(self, "Bloom of Thorns", 1.4)
 	BossKit.emote(self, "The bark splits. Something in it blooms, red, all at once.", Color(1.0, 0.5, 0.35))

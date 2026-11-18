@@ -48,7 +48,8 @@ static var _live: Array = []        ## [[zone mesh id, land time s], ...]: the z
 const AUTHORED := {&"bone_abbot": "res://art/models/bosses/vb_bone_abbot.glb",
 		&"r37_anchoress": "res://art/models/bosses/vb_anchoress.glb",
 		&"ascended_warden": "res://art/models/bosses/vb_ascended_warden.glb",
-		&"r37_hierarch": "res://art/models/bosses/vb_speaking_crown.glb"}
+		&"r37_hierarch": "res://art/models/bosses/vb_speaking_crown.glb",
+		&"thornwarden": "res://art/models/bosses/vb_thornwarden.glb"}
 
 
 static func warm(host: Node, stage := -1, boss := &"") -> void:

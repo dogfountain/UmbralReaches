@@ -140,8 +140,8 @@ func _build() -> void:
 			_sockets[k] = _chest if k in ["chest", "front"] else (_head if k == "head" else _pelvis)
 	if _anim != null:
 		_anim.callback_mode_process = AnimationMixer.ANIMATION_CALLBACK_MODE_PROCESS_MANUAL
-		for nm: String in ["idle", "walk", "run", "windup_hold", "air"]:
-			if _anim.has_animation(nm):
+		for nm: String in _anim.get_animation_list():
+			if nm in ["idle", "walk", "run", "air"] or nm.ends_with("_hold"):
 				_anim.get_animation(nm).loop_mode = Animation.LOOP_LINEAR
 		_play(&"idle", 0.0)
 	_spring_cloth()
@@ -180,6 +180,7 @@ var _bc_pos := PackedVector3Array()
 var _bp_pos := PackedVector3Array()
 var _bone_frame := -10
 var _bone_primed := false
+var _hold_forever := false                        ## the held clip after a boss move stays until the next call
 
 
 func _spring_cloth() -> void:
@@ -310,10 +311,12 @@ func _dress_villager() -> Array[MeshInstance3D]:
 
 ## A move of the boss's own (a clip named for it: "toll", "sweep"...), played once over `dur` seconds (its own length
 ## when 0), then back to the idle. False when the model has no such clip, so the fight falls back to the shared calls.
-func boss_move(nm: StringName, dur := 0.0) -> bool:
+## `then`: a looping clip held after it until the next move, stagger or strike (a boss rooted for its intermission).
+func boss_move(nm: StringName, dur := 0.0, then := &"") -> bool:
 	if _dead or not has_clip(nm):
 		return false
-	_hold = &""
+	_hold = then if then != &"" and has_clip(then) else &""
+	_hold_forever = _hold != &""
 	var l := _len(nm)
 	var d := l if dur <= 0.0 else maxf(dur, 0.2)
 	_play(nm, 0.2, l / d)
@@ -357,7 +360,8 @@ func animate(vel: Vector3, on_floor: bool, delta: float) -> void:
 			if _hold != &"":
 				_play(_hold, 0.12)
 				_hold = &""
-				_lock_t = INF if _state == &"windup_hold" else 0.0     # a tell is held until the strike or a stagger ends it
+				_lock_t = INF if (_state == &"windup_hold" or _hold_forever) else 0.0     # a tell is held until the strike or a stagger ends it
+				_hold_forever = false
 			elif _state != &"windup_hold":
 				_locomote(vel, on_floor)
 	_anim.advance(delta)
