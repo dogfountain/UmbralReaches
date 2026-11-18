@@ -196,7 +196,10 @@ func _physics_process(_d: float) -> void:
 		if themes != null:
 			themes.prepare(boss_id)             # the theme's stems read or rendered on a thread, not at the pull
 		_warm_step(0)
-	if Vector2(d.x, d.z).length() > (pull_radius if pull_radius > 0.0 else radius) or d.y < -1.0 or d.y > ceiling:
+	# a held fight takes up again anywhere on its floor (the Crown's pull is at the skull, but the fight is the whole yard:
+	# a wanderer back in the yard and not at the skull found him frozen and blow-proof, his cast bar stuck)
+	var wake_r := radius if _held else (pull_radius if pull_radius > 0.0 else radius)
+	if Vector2(d.x, d.z).length() > wake_r or d.y < -1.0 or d.y > ceiling:
 		return
 	if not _past_gate(p.global_position):
 		return                                  # still on the stair outside: the gate must not shut in your face
@@ -397,6 +400,9 @@ func _hold_fight() -> void:
 		return
 	_active = false
 	_held = true
+	if is_instance_valid(_boss):
+		_boss.cancel_moves()                     # what was in the air is taken back (it landed on a wanderer outside the fight)
+		_boss._finish_cast(true, false)          # and its bar with it: it starts fresh when the fight resumes
 	_freeze(true)
 	_hide_bar()
 	_open_gates()

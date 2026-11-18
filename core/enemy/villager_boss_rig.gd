@@ -49,7 +49,8 @@ instance uniform float glint = 0.0;
 instance uniform float dissolve = 0.0;
 void fragment() {
 	float rim = pow(1.0 - clamp(dot(NORMAL, VIEW), 0.0, 1.0), 2.0);
-	ALBEDO = vec3(1.0, 0.95, 0.88) * hit_flash * 0.5 + vec3(1.0, 0.52, 0.16) * (glint * 0.4 * rim + dissolve * (0.3 + 1.4 * rim));
+	// a blow lights the edge, it does not white the body out (under a held bolt the Anchoress was a white shape half the time)
+	ALBEDO = vec3(1.0, 0.95, 0.88) * hit_flash * (0.06 + 0.5 * rim) + vec3(1.0, 0.52, 0.16) * (glint * 0.4 * rim + dissolve * (0.3 + 1.4 * rim));
 }
 """
 

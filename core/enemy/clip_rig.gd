@@ -140,6 +140,7 @@ func _build() -> void:
 			_sockets[k] = _chest if k in ["chest", "front"] else (_head if k == "head" else _pelvis)
 	if _anim != null:
 		_anim.callback_mode_process = AnimationMixer.ANIMATION_CALLBACK_MODE_PROCESS_MANUAL
+		clip_rate = _authored_rate()
 		for nm: String in _anim.get_animation_list():
 			if nm in ["idle", "walk", "run", "air"] or nm.ends_with("_hold"):
 				_anim.get_animation(nm).loop_mode = Animation.LOOP_LINEAR
@@ -181,6 +182,11 @@ var _bp_pos := PackedVector3Array()
 var _bone_frame := -10
 var _bone_primed := false
 var _hold_forever := false                        ## the held clip after a boss move stays until the next call
+## Authored seconds per glb second. tools/blender/vb_kit.py keys every clip at FPS = 30 (frame 1 + t * 30) in a Blender scene
+## that exports at 24 frames a second, so each glb clip is 30/24 of the length it was keyed at (the abbot's 6 s idle is
+## 7.54 s). The fights are timed to the authored seconds (the Crown's verdict jolts at 1.4/2.3/3.2 s, its rings land
+## then), so the rig plays at this rate (_authored_rate: 1.0 again for a model exported at the rate it was keyed).
+var clip_rate := 1.0
 
 
 func _spring_cloth() -> void:
@@ -328,15 +334,29 @@ func has_clip(nm: StringName) -> bool:
 	return _anim != null and _anim.has_animation(nm)
 
 
+## A clip's length in authored seconds (what the fight times its moves by).
 func _len(nm: StringName) -> float:
-	return _anim.get_animation(nm).length if has_clip(nm) else 0.0
+	return _anim.get_animation(nm).length / clip_rate if has_clip(nm) else 0.0
 
 
 func _play(nm: StringName, blend := 0.2, speed := 1.0) -> void:
 	if _anim == null or not _anim.has_animation(nm):
 		return
 	_state = nm
-	_anim.play(nm, blend, speed)
+	_anim.play(nm, blend * clip_rate, speed)
+
+
+## 30/24 when the model's clips were keyed at 30 frames a second and exported at 24. The importer moves every first key to 0
+## and resamples, so the tell is the lengths: a 24 fps export ends each clip on a whole 24th of a second (1 + the clip's
+## frames, over 24); a clip keyed and exported at 30 does that only one time in five. All of them on a 24th: stretched.
+func _authored_rate() -> float:
+	var n := 0
+	for nm: String in _anim.get_animation_list():
+		var f := _anim.get_animation(nm).length * 24.0
+		if absf(f - roundf(f)) > 0.01:
+			return 1.0
+		n += 1
+	return 1.25 if n >= 4 else 1.0
 
 
 func animate(vel: Vector3, on_floor: bool, delta: float) -> void:
@@ -364,7 +384,7 @@ func animate(vel: Vector3, on_floor: bool, delta: float) -> void:
 				_hold_forever = false
 			elif _state != &"windup_hold":
 				_locomote(vel, on_floor)
-	_anim.advance(delta)
+	_anim.advance(delta * clip_rate)
 	_capture_bones()
 	_place_sockets()
 

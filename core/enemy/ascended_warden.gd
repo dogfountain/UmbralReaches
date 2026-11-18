@@ -28,6 +28,7 @@ const VillagerBossRig := preload("res://core/enemy/villager_boss_rig.gd")
 const ClipRig := preload("res://core/enemy/clip_rig.gd")
 const WardenBody := preload("res://core/enemy/warden_body.gd")
 const FAN_WINDUP := 0.85
+const FAN_R := 32.0              ## the Radiant Fan's cone, as far as its orbs carry (18 Nov: x1.6 with the deck)
 const HP := 760
 const QuestBook := preload("res://core/story/quest_book.gd")
 var _attuned := false
@@ -67,6 +68,8 @@ const ASCEND_TIME := 60.0
 const ASCEND_H := 15.0           ## r35: 10 -> 15 with the 5x scale, so the risen Warden still clears the deck
 const SKY_GLOOM := 55.0
 const ACOLYTE := preload("res://core/enemy/chanter.gd")
+const SummitRaid := preload("res://core/world/summit_raid.gd")
+const SKY_TELL := 3.0            ## the sky's fall is cast and drawn for its last seconds (it used to land with no red)
 var _flare_t := 14.0
 var _acolytes_t := 10.0
 var _gale_t := 12.0
@@ -318,7 +321,10 @@ func _aim_fan(double: bool) -> void:
 		_rig.call("telegraph", FAN_WINDUP)
 	_glint = 1.0
 	BossKit.cast(self, "Radiant Fan", FAN_WINDUP, true)
-	var cone := SpellFx.danger(global_position, FAN_WINDUP, {"radius": 32.0, "half_angle": deg_to_rad(33.0), "yaw": atan2(-to.x, -to.z), "color": BossKit.HOLY})
+	# the cone stays while the orbs cross it (they fly at SpitOrb.SPEED for SpitOrb.LIFE: gone 0.3 s after the windup, it
+	# left them landing with no red)
+	var cone := SpellFx.danger(global_position, FAN_WINDUP, {"radius": FAN_R, "half_angle": deg_to_rad(33.0), "yaw": atan2(-to.x, -to.z), "color": BossKit.HOLY,
+		"hold": FAN_R / SpitOrb.SPEED})
 	if cone:
 		track_move(cone)
 	_fan_cone = cone
@@ -338,7 +344,7 @@ func _track_fan() -> void:
 	_fan_yaw = atan2(-to.x, -to.z)
 	_face_dir = to.normalized()
 	var origin := _fan_cone.global_position
-	_fan_cone.global_transform = Transform3D(Basis(Vector3.UP, _fan_yaw) * Basis.from_scale(Vector3(20.0, 1.0, 20.0)), origin)
+	_fan_cone.global_transform = Transform3D(Basis(Vector3.UP, _fan_yaw) * Basis.from_scale(Vector3(FAN_R, 1.0, FAN_R)), origin)   # its own size (it shrank to 20 m)
 
 
 func _fan() -> void:
@@ -577,6 +583,8 @@ func _tick_ascended(delta: float) -> void:
 	var asc_end := ASCEND_TIME + (15.0 if _attuned else 0.0)
 	if _asc_t >= asc_end - 10.0 and _asc_t - delta < asc_end - 10.0:
 		BossKit.emote(self, "The sky is breaking.", Color(1.0, 0.6, 0.4))
+	if _asc_t >= asc_end - SKY_TELL and _asc_t - delta < asc_end - SKY_TELL:
+		_sky_tell()
 	_star_t -= delta
 	_star_p_t -= delta
 	if _star_t <= 0.0:
@@ -585,6 +593,20 @@ func _tick_ascended(delta: float) -> void:
 	if _star_p_t <= 0.0 and _p != null:
 		_star_p_t = 3.0
 		_room.call("star", _p.global_position, self)
+
+
+## The sky's fall, told for its last seconds as a cast and on the deck: the red is the deck, every lit pylon's ring
+## cut out of it (in_light is what it tests). A pylon lit inside those seconds still shelters; its ring shows on the floor.
+func _sky_tell() -> void:
+	var holes: Array = []
+	var room := _room as SummitRaid
+	if room != null and is_instance_valid(room):
+		for at: Vector3 in room.pylon_points(true):
+			holes.append([at, SummitRaid.RING_R])
+	BossKit.cast(self, "The Sky Breaks", SKY_TELL)
+	var z := SpellFx.danger(_arena_c, SKY_TELL, {"radius": _arena_r + 1.0, "color": BossKit.HOLY, "holes": holes})
+	if z:
+		track_move(z)
 
 
 ## A pylon was rekindled (the room tells us).

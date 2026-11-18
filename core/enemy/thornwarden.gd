@@ -38,7 +38,7 @@ var _behind_t := 0.0
 var _lash_cd := 3.0
 var _snare_t := 9.0
 var _knot_t := 0.0              ## seconds the heart-knot stays open (the lanes' windup)
-const LASH_R := 4.6
+const LASH_R := 8.0               ## round its whole body (about 11 m nose to tail at SCALE): at 4.6 it only fired on a wanderer under its belly
 const SNARE_R := 4.4
 const SNARE_EVERY := 13.0
 const MEND_EVERY := 26.0
@@ -48,6 +48,7 @@ const WAVE_EVERY := 32.0
 const STORM_EVERY := 34.0
 const STORM_TIME := 3.2
 const STORM_GLOOM := 48.0
+const STORM_R := 34.0           ## the storm reaches this far from the Warden (drawn round it: the red is the reach)
 const KNOT_TIME := 55.0         ## seconds to burn the knots before the henge closes
 const ERUPT_EVERY := 5.5
 const BLOOM_EVERY := 15.0
@@ -314,13 +315,32 @@ func _thornstorm() -> void:
 			if st is Node3D and is_instance_valid(st):
 				shields.append((st as Node3D).global_position)
 		BossKit.lee_marks(global_position, shields, STORM_TIME, Color(1.0, 1.7, 0.8))
-	var c: Vector3 = _arena_c if _arena_c != Vector3.INF else global_position
-	var r := 30.0 if _arena_c != Vector3.INF else 20.0
-	var cone := SpellFx.danger(c, STORM_TIME, {"radius": r, "color": BossKit.THORN})
+	# the red is round the Warden, as far as the storm reaches (it was 30 m round the henge's centre while it hit 34 m
+	# round the Warden), and the lee of the four stones nearest the wanderer is cut out of it (the stone's shadow from it)
+	var cone := SpellFx.danger(global_position, STORM_TIME, {"radius": STORM_R, "color": BossKit.THORN, "holes": _storm_lees()})
 	if cone:
 		track_move(cone)
 	Vfx.ring(global_position + Vector3.UP * 0.2, 6.0, BossKit.THORN, STORM_TIME, 0.12, Vector3.UP, 1.3)
 	Sfx.play_stream(Synth.get_stream("chant"), global_position + Vector3.UP * 2.0, 2.0, 0.4)
+
+
+## The middle of the shadow behind the four standing stones nearest the wanderer, as seen from the Warden: holes the
+## storm's red leaves (a stone is 2.6 m wide and 1.8 m deep: a 0.9 m pool 2.2 m behind it is inside its shadow from anywhere).
+func _storm_lees() -> Array:
+	var out: Array = []
+	if _room == null or not ("stones" in _room) or _p == null:
+		return out
+	var st: Array = []
+	for n: Variant in _room.get("stones"):
+		if n is Node3D and is_instance_valid(n):
+			st.append((n as Node3D).global_position)
+	st.sort_custom(func(a: Vector3, b: Vector3) -> bool: return a.distance_squared_to(_p.global_position) < b.distance_squared_to(_p.global_position))
+	for at: Vector3 in st.slice(0, 4):
+		var away := at - global_position
+		away.y = 0.0
+		if away.length() > 1.0:
+			out.append([at + away.normalized() * 2.2, 0.9])
+	return out
 
 
 func _storm_lands() -> void:
@@ -338,7 +358,7 @@ func _storm_lands() -> void:
 	if _room != null and _room.has_method("shelter"):
 		safe = bool(_room.call("shelter", global_position + Vector3.UP * 1.0, p.global_position))
 	var d := p.global_position - global_position
-	if Vector2(d.x, d.z).length() > 34.0:
+	if Vector2(d.x, d.z).length() > STORM_R:
 		safe = true
 	if safe:
 		HitText.pop(p.global_position + Vector3.UP * 2.2, "sheltered", Color(0.75, 0.9, 1.0))
@@ -509,6 +529,8 @@ func _tick_rooted(delta: float) -> void:
 		return
 	if _root_t >= KNOT_TIME - 10.0 and _root_t - delta < KNOT_TIME - 10.0:
 		BossKit.emote(self, "The henge is closing. %d heart-knot%s still beat%s." % [left, "" if left == 1 else "s", "s" if left == 1 else ""], Color(1.0, 0.45, 0.3))
+		_finish_cast(true, false)              # its last ten seconds are the bar: the close is a timer, not a blow from nowhere
+		BossKit.cast(self, "The Henge Closes", KNOT_TIME - _root_t)
 	_erupt_t -= delta
 	if _erupt_t <= 0.0 and _p != null:
 		_erupt_t = ERUPT_EVERY
