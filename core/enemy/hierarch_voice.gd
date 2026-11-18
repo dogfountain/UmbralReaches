@@ -75,7 +75,19 @@ func _build() -> void:
 	# (17 Nov, Luke: bosses "simple like the villager", "4/5x size") built in the villagers' style to its own design
 	# (core/enemy/crown_body.gd): a squat stone husk under a cracked cope, a bronze speaking-horn for a head; posed by
 	# formula (core/enemy/villager_boss_rig.gd)
-	VillagerBossRig.fit(self, CrownBody, {}, {"scale": 1.17, "cap": 0.86, "stoop": 0.08})
+	# (18 Nov, Luke: "all models in the game should be blender") modelled and animated in Blender
+	# (tools/blender/vb_speaking_crown.py): a squat stone cope cracked with embers, great pauldrons and bronze-bound
+	# fists, a bronze speaking-horn whose six petals close to a bud and flower open when it speaks (the tell; the
+	# throat glowing within is the weak point), a crown of stone tines round its root; a move of its own for each
+	# edict. The code-built body above stays as the fallback.
+	var model: String = BossKit.AUTHORED.get(&"r37_hierarch", "")
+	if model != "" and ResourceLoader.exists(model):
+		ClipRig.fit(self, model, &"hierarch", {"body": "spine", "front": "chest", "muzzle": "head"},
+				{"walk_stride": 1.4, "villager_look": true, "cap": 0.86})
+		_rig.scale = Vector3.ONE * 1.1              # 2.1 m to the horn's rim in body units: about 7.9 m at SCALE
+		weak_offset = Vector3(0.0, 0.33, -0.29)      # the glowing throat, up the horn from its root on the shoulders
+	else:
+		VillagerBossRig.fit(self, CrownBody, {}, {"scale": 1.17, "cap": 0.86, "stoop": 0.08})
 	name = "HierarchVoice"
 	BossKit.embiggen(self, SCALE)
 	posture({"hunch": 0.0, "crouch": 0.0, "arm_reach": 0.12, "head_jut": 0.0, "limp": 0.0, "sway": 0.25, "twitch": 0.0, "splay": 0.2})
@@ -114,6 +126,11 @@ func _absorb(dmg: float, from: Node) -> float:
 ## The rig's roar, when it has one (the husk's hunch rig does).
 ## Its body acts each move (18 Nov: in the trailer it stood still through every attack; this drove only the old
 ## HunchRig). VillagerBossRig and the Blender ClipRig answer the same calls.
+## One of its own moves when the model has it (a clip of that name, timed to the cast), else false.
+func _rite(clip: StringName) -> bool:
+	return _rig != null and _rig.has_method("boss_move") and bool(_rig.call("boss_move", clip, 0.0))
+
+
 func _howl(t: float) -> void:
 	if _rig is VillagerBossRig:
 		(_rig as VillagerBossRig).howl(t)
@@ -220,7 +237,8 @@ func _physics_process(delta: float) -> void:
 		_choir_t = CHOIR_EVERY
 		BossKit.cast(self, "Call the Choir", 1.6, false, _choir)
 		BossKit.emote(self, "Cantors answer out of the cracks. While they sing, the stone takes a third less from you.")
-		_howl(1.4)
+		if not _rite(&"choir"):
+			_howl(1.4)
 	elif _edict_t <= 0.0 and _dist < 24.0:
 		_edict_t = EDICT_EVERY * quick - (1.5 if phase == 2 else 0.0)
 		_fall_t = maxf(_fall_t, EDICT_TIME + 1.0)
@@ -243,7 +261,8 @@ func _edict(n: int) -> void:
 	velocity = Vector3.ZERO
 	_glint = 1.0
 	_open_t = EDICT_TIME + 0.05
-	_howl(EDICT_TIME)
+	if not _rite(&"edict"):                  # it plants its feet; the horn tips at you and flowers open
+		_howl(EDICT_TIME)
 	var label := "Edict of Silence" if n == 1 else "Double Edict"
 	BossKit.cast(self, label, EDICT_TIME, true, _edict_lands)
 	BossKit.emote(self, "The horn opens toward you. The mouth of it is the one soft place in the stone.", Color(1.0, 0.82, 0.45))
@@ -269,8 +288,9 @@ func _echo() -> void:
 	if not is_alive() or _ward_t > 0.0:
 		return
 	BossKit.cast(self, "Echo", 1.3)
-	_tell(1.0)
-	_strike_after(1.0)                       # it shudders as the ring breaks
+	if not _rite(&"echo"):                   # it shudders, the petals rattling, as the ring breaks
+		_tell(1.0)
+		_strike_after(1.0)
 	var c := global_position
 	BossKit.zone(get_parent(), c, 1.3, 24.0, {"by": self, "radius": 8.0, "holes": [[c, 2.4]], "color": Color(2.0, 1.4, 0.6), "h": 2.5})
 
@@ -308,8 +328,9 @@ func _falling_crown() -> void:
 	var space := get_world_3d().direct_space_state
 	var c: Vector3 = _arena_c if _arena_c != Vector3.INF else global_position
 	BossKit.cast(self, "Falling Crown", 1.5)
-	_tell(1.2)
-	_strike_after(1.2)                       # the head jerks; the stones go
+	if not _rite(&"falling_crown"):          # it hunches; the horn jerks side to side; the stones go
+		_tell(1.2)
+		_strike_after(1.2)
 	BossKit.emote(self, "The skull sheds its crown.", Color(1.0, 0.7, 0.4))
 	for i in n:
 		var at := _p.global_position
@@ -342,7 +363,8 @@ func _toll() -> void:
 	_state_t = -2.6
 	velocity = Vector3.ZERO
 	_glint = 1.0
-	_howl(2.4)
+	if not _rite(&"toll"):                   # the horn bowed, the trunk turning like the clock hand of its lanes
+		_howl(2.4)
 	BossKit.cast(self, "Toll of the Crown", 2.4)
 	BossKit.emote(self, "The crown sheds its tines one after another, round the floor, like the hand of a clock.", Color(1.0, 0.6, 0.35))
 	var c: Vector3 = _arena_c if _arena_c != Vector3.INF else global_position
@@ -362,7 +384,8 @@ func _verdict() -> void:
 	_state_t = -1.6
 	velocity = Vector3.ZERO
 	_glint = 1.0
-	_howl(1.4)
+	if not _rite(&"verdict"):                # three blasts from the open horn, a jolt at each ring
+		_howl(1.4)
 	BossKit.cast(self, "Verdict", 1.5)
 	BossKit.emote(self, "Three voices go out from the horn, one after another. The quiet is between them.", Color(1.0, 0.45, 0.3))
 	var c := global_position

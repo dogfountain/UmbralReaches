@@ -47,7 +47,8 @@ static var _live: Array = []        ## [[zone mesh id, land time s], ...]: the z
 ## worn with the villagers' look (tools/blender/vb_*.py).
 const AUTHORED := {&"bone_abbot": "res://art/models/bosses/vb_bone_abbot.glb",
 		&"r37_anchoress": "res://art/models/bosses/vb_anchoress.glb",
-		&"ascended_warden": "res://art/models/bosses/vb_ascended_warden.glb"}
+		&"ascended_warden": "res://art/models/bosses/vb_ascended_warden.glb",
+		&"r37_hierarch": "res://art/models/bosses/vb_speaking_crown.glb"}
 
 
 static func warm(host: Node, stage := -1, boss := &"") -> void:
