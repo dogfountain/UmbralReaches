@@ -437,8 +437,9 @@ func _draw_place(c: Vector2, r: float) -> void:
 		draw_string(_font, Vector2(c.x - tw * 0.5, top + 50.0), _tier, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(col, 0.9))
 		if _gear != "":                                           # the gear is behind the ground's call: a hint under the plate
 			var gw := _font.get_string_size(_gear, HORIZONTAL_ALIGNMENT_LEFT, -1, 13).x
-			Forge.tab(self, Rect2(c.x - gw * 0.5 - 10.0, top + 58.0, gw + 20.0, 20.0))
-			draw_string(_font, Vector2(c.x - gw * 0.5, top + 72.0), _gear, HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color(Danger.color(3), 0.95))
+			var gx := minf(c.x - gw * 0.5, size.x + MARGIN - 18.0 - gw)   # wider than the dial: it keeps inside the screen's edge
+			Forge.tab(self, Rect2(gx - 10.0, top + 58.0, gw + 20.0, 20.0))
+			draw_string(_font, Vector2(gx, top + 72.0), _gear, HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color(Danger.color(3), 0.95))
 
 
 ## r33: the moon on the rim, toward where it hangs (the zone's Moon light), a pale disc and crescent.

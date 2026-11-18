@@ -13,8 +13,8 @@ const FoeIndex := preload("res://core/enemy/foe_index.gd")
 const Access := preload("res://ui/access.gd")
 const REACH := 20.0
 const MAX := 4
-const SIZE := 44.0
-const EDGE := Vector2(0.43, 0.40)       ## the ellipse the marks ride on, as a share of the screen's width and height
+const SIZE := 58.0                        ## 44 read as a speck at the edge in the flank strips
+const EDGE := Vector2(0.42, 0.38)       ## the ellipse the marks ride on, as a share of the screen's width and height
 const MELEE_COL := Color(1.0, 0.86, 0.78)
 const RANGED_COL := Color(0.86, 1.0, 0.96)
 

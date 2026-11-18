@@ -382,12 +382,15 @@ func _spend(s: Skill, spent: int, surged: bool) -> void:
 				breath = CombatState.RES_BREATH * float(spent)
 				st.refund(breath)
 		var word := "RESONANCE x%d" % spent if spent >= 3 else ""
+		var gain := ""                                   # under the word, a line of its own: one long line ran off the screen
 		if closed > 0.0:
-			word += ("  " if word != "" else "") + "mends %s" % _num(closed)
+			gain = "mends %s" % _num(closed)
 		if breath > 0.0:
-			word += "  breath %s" % _num(breath)
+			gain += ("  " if gain != "" else "") + "breath %s" % _num(breath)
+		if gain != "":
+			word += ("\n" if word != "" else "") + gain
 		if word != "" and player.is_inside_tree():
-			HitText.pop(player.global_position + Vector3.UP * 2.4, word, Color(1.3, 0.7, 2.8), spent >= RESONANCE_BIG)
+			HitText.pop(player.global_position + Vector3.UP * 1.9, word, Color(1.3, 0.7, 2.8), spent >= RESONANCE_BIG)   # from the shoulder: at 2.4 m it rose into the boss bar
 	if s.id == &"nova":
 		var r: float = float(s.call("radius")) if s.has_method("radius") else SkillNova.RADIUS
 		combat.nova_burst(r, spent, surged)

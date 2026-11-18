@@ -24,7 +24,9 @@ extends RefCounted
 const Synth := preload("res://core/vfx/synth.gd")
 const THORN := Color(2.6, 0.5, 0.1)          ## r29: was (2.6, 0.32, 0.18), which the grade turned blue
 const BONE := Color(2.2, 1.9, 1.4)
-const HOLY := Color(2.6, 2.1, 1.1)           ## r30: white-gold (violet was the player's own bolt colour, and the grade turned it blue)
+## Gold, not white-gold: the Warden's red on the summit's pale deck was a white sheet you could not tell from moonlit stone,
+## and the Sky Breaks' deck-wide red hid the lit pylons' safe rings (violet is the player's own bolt colour)
+const HOLY := Color(2.6, 1.5, 0.4)
 
 const Hints := preload("res://ui/hints.gd")
 const BOLT_CHIP := 0.7          ## r30: a boss takes this from a plain (non-heavy) Rift Bolt; Lance, Nova, Shatter stay full
@@ -417,6 +419,42 @@ static func embiggen(e: Enemy, s: float) -> void:
 	e.lunge = 6.0
 	e.recover_time = 0.8
 	e.poise = float(e.max_hp) * 0.22
+
+
+## A great one's body is solid to the wanderer out to its robe's or flank's edge, not only its capsule (kept narrow so it
+## fits its own arena's ways): one inside it (walked in, pushed in, landed in by a step) is eased out, so the lens is never
+## in its body (the Anchoress's skirt filled the view, the camera inside it) and no blow is traded from within it.
+static func keep_out(e: Enemy, delta: float) -> void:
+	var p := e._p
+	if p == null or not is_instance_valid(p) or p.is_evading():
+		return
+	if not e.has_meta(&"foot_r"):
+		e.set_meta(&"foot_r", _footprint(e))
+	var r := float(e.get_meta(&"foot_r"))
+	var d := Vector2(p.global_position.x - e.global_position.x, p.global_position.z - e.global_position.z)
+	var dy := p.global_position.y - e.global_position.y
+	if d.length_squared() >= r * r or dy > e.hp_bar_y or dy < -2.0:
+		return
+	var out := d.normalized() if d.length() > 0.05 else Vector2(-sin(e.rotation.y), -cos(e.rotation.y))
+	p.move_and_collide(Vector3(out.x, 0.0, out.y) * minf(r - d.length(), 6.0 * delta))
+
+
+## The body's footprint radius: the narrower side of its meshes' box at rest (a staff or a tail on the long side), never
+## less than its capsule.
+static func _footprint(e: Enemy) -> float:
+	var col := e.get_node_or_null("Collision") as CollisionShape3D
+	var cap := (col.shape as CapsuleShape3D).radius if col != null and col.shape is CapsuleShape3D else 0.5
+	var box := AABB()
+	var first := true
+	for mi in e._flesh:
+		if mi == null or not is_instance_valid(mi) or mi.mesh == null:
+			continue
+		var bb := (e.global_transform.affine_inverse() * mi.global_transform) * mi.get_aabb()
+		box = bb if first else box.merge(bb)
+		first = false
+	if first:
+		return cap
+	return clampf(0.45 * minf(box.size.x, box.size.z), cap, 2.4)
 
 
 ## A boss rising (BossArena._begin -> on_engaged): it stands shelled ("warded") for INTRO seconds

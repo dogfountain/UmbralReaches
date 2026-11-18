@@ -621,6 +621,8 @@ func on_pylon_lit(_p2: Node) -> void:
 ## Back to the deck: all pylons lit (`left` 0), or the sky broke on those still dark.
 func _descend(left: int) -> void:
 	ascended = false
+	if cast_name == "The Sky Breaks":
+		_finish_cast(false, false)              # it ran its course: the bar fills and closes, it does not flash "interrupted"
 	set_meta(&"phase_label", "")
 	remove_meta(&"ward_hint")
 	gravity = _grav

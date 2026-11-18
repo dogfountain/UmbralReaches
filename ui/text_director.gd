@@ -52,11 +52,12 @@ var _toast_q: Array[Dictionary] = []   ## {"text", "kind"}
 var _lesson_q: Array[String] = []
 var _lesson_basic: Array[String] = []      ## the queued or showing lessons that teach controls: they step aside in a fight
 const TIP_UP := 282.0                      ## the lesson line rides over the interact prompt (its own lane), not on it
-const FIGHT_UP := 500.0                    ## in a fight the lower lane is the ground round the wanderer (the red): its
-                                           ## lines (lessons, narration) start this much higher, under the frames
+const ASIDE := Vector2(28.0, 420.0)        ## in a fight the lower lane's lines (lessons, the wanderer's voice) sit here
+const ASIDE_W := 600.0                     ## (their left, top), clear of the banner lane above and the toasts below
 var _toasts: Array[Label] = []
 var _toast_box: VBoxContainer
 var _tip: Label
+var _tip_aside := false                    ## the lesson showing went to the fight's column (plate_low)
 var _tip_raw := ""                         ## the lesson as posted ({action} tokens kept): _tip shows its plain words
 var _keys_plate: PanelContainer            ## a lesson with {action} tokens draws here: painted caps and words (ui/key_cap.gd)
 var _tip_t := 0.0
@@ -189,9 +190,25 @@ func narration_or_dialogue() -> bool:
 	return _occ.has(&"narration") or _dialogue_open
 
 
-## Pixels the lower lane's lines start higher while a fight is on (0 out of one).
-func fight_lift() -> float:
-	return FIGHT_UP if in_combat() else 0.0
+## Plate a lower-lane line (a lesson, the wanderer's voice) at `bottom`, or in a fight in the left column, as narrow as
+## its words allow: the middle is the foe, the red round the wanderer and a great one's head under its bar (lifted 500 px,
+## a lesson still sat on the Anchoress, under her emote).
+## True when it went to the column.
+func plate_low(l: Label, text: String, max_w: float, bottom: float) -> bool:
+	if not in_combat():
+		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		plate(l, text, max_w, bottom)
+		return false
+	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	plate(l, text, minf(max_w, ASIDE_W), 0.0)
+	var v := _vs()
+	var w := l.offset_right - l.offset_left
+	var h := l.offset_bottom - l.offset_top
+	l.offset_left = -v.x * 0.5 + ASIDE.x                  # the labels hang from the bottom centre
+	l.offset_right = l.offset_left + w
+	l.offset_top = -v.y + ASIDE.y
+	l.offset_bottom = l.offset_top + h
+	return true
 
 
 ## A fight is on (a foe awake and near, or a lock-on): place banners wait until it ends.
@@ -482,7 +499,7 @@ func _lesson_tick(delta: float) -> void:
 	_tip_raw = _lesson_q.pop_front()
 	var keyed := KeyCap.has_tokens(_tip_raw)
 	_tip.text = KeyCap.plain(_tip_raw, bool(Settings.using_pad)) if keyed else _tip_raw
-	plate(_tip, _tip.text, 960.0, -TIP_UP + 36.0 - fight_lift())
+	_tip_aside = plate_low(_tip, _tip.text, 960.0, -TIP_UP + 36.0)
 	_tip.self_modulate.a = 0.0 if keyed else 1.0          # a keyed lesson keeps the label (its rect, its words for tests) unseen
 	_set_keys(_tip_raw if keyed else "")
 	_tip_t = 5.6
@@ -537,7 +554,9 @@ func _centre_keys() -> void:
 
 func _tip_rect() -> Rect2:
 	var v := _vs()
-	return Rect2(v.x * 0.5 - 480.0, v.y - TIP_UP - 94.0 - fight_lift(), 960.0, 130.0)
+	if _tip_aside and _tip != null:
+		return Rect2(v.x * 0.5 + _tip.offset_left, v.y + _tip.offset_top, _tip.offset_right - _tip.offset_left, _tip.offset_bottom - _tip.offset_top)
+	return Rect2(v.x * 0.5 - 480.0, v.y - TIP_UP - 94.0, 960.0, 130.0)
 
 
 ## A lesson is on screen or queued (the guided opening waits for the move prompt's turn before it speaks on).

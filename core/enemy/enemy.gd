@@ -821,6 +821,7 @@ func _physics_process(delta: float) -> void:
 		_shudder()
 		return
 	_cache_player()
+	if boss: BossKit.keep_out(self, delta)       # the wanderer is eased out of a great one's body (boss_kit.gd)
 	_vb.tick(self, voice_family(), delta, _dist, boss, _state == IDLE or _state == CHASE or _state == RECOVER, _voice_pitch())
 	_poise_dmg = maxf(0.0, _poise_dmg - delta * poise / POISE_WINDOW)
 	_stagger_cd = maxf(0.0, _stagger_cd - delta)

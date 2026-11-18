@@ -245,7 +245,7 @@ func _lock_view(delta: float, body: Vector3) -> void:
 	# on the crosshair, clear of the wanderer, instead of hiding behind the robe up close (r29)
 	var pivot := body + Vector3.UP * 1.3 + Basis(Vector3.UP, player._yaw) * Vector3(player._arm.position.x, 0.0, 0.0)
 	var aim := tp
-	aim.y = minf(aim.y, player._lock.global_position.y + 3.0)    # a 9 m boss: the view keeps the floor and its red, not his chest
+	aim.y = minf(aim.y, minf(player._lock.global_position.y + 3.0, body.y + 6.0))   # a 9 m boss or one risen into the sky: the view keeps the floor and its red
 	if player._lock._ballistic:
 		aim.y = minf(aim.y, body.y + player._lock.hp_bar_y * 0.55)   # a pounce in the air: the view keeps the ground it lands on
 	var to := aim - pivot

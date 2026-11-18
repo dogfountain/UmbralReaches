@@ -396,10 +396,11 @@ func _fight(nm: String, spec: String, ground: Vector3) -> void:
 			_log("LOOK hit_fx %.2f glint %.2f flash %.2f | mesh hit_flash %s glint %s dissolve %s | lights within 8 m %d" % [boss._hit_fx, boss._glint, boss._flash,
 				(fl as MeshInstance3D).get_instance_shader_parameter(&"hit_flash") if fl else "-", (fl as MeshInstance3D).get_instance_shader_parameter(&"glint") if fl else "-",
 				(fl as MeshInstance3D).get_instance_shader_parameter(&"dissolve") if fl else "-", lights_near])
-			_log("STATUS boss hp %.0f state %s st %.2f cast '%s' %.2f/%.2f proc %d floor %s ward %.1f | arena active %s held %s | player %s %.1f m from centre, %.1f m from boss" % [
+			_log("STATUS boss hp %.0f state %s st %.2f cast '%s' %.2f/%.2f proc %d floor %s ward %.1f | arena active %s held %s | player %s %.1f m from centre, %.1f m from boss (flat %.1f, body %.2f m)" % [
 				boss.hp, STATE_N[boss._state], boss._state_t, boss.cast_name, boss.cast_elapsed, boss.cast_time, boss.process_mode, boss.is_on_floor(),
 				boss._ward_t, ar._active if ar else false, ar.is_held() if ar else false, p.global_position.snapped(Vector3.ONE * 0.1),
-				Vector2(p.global_position.x - arena_c.x, p.global_position.z - arena_c.z).length(), boss.global_position.distance_to(p.global_position)])
+				Vector2(p.global_position.x - arena_c.x, p.global_position.z - arena_c.z).length(), boss.global_position.distance_to(p.global_position),
+				Vector2(p.global_position.x - boss.global_position.x, p.global_position.z - boss.global_position.z).length(), float(boss.get_meta(&"foot_r", -1.0))])
 		if is_instance_valid(boss) and boss.is_alive() and not phase_at.is_empty():
 			var k := phase_at.size()
 			for j in k:
