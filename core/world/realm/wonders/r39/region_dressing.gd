@@ -13,7 +13,11 @@ extends RefCounted
 ##   nave         drowned column stubs, leaning pillars, pew rows, lit glass shards
 ##   cairns       cairn stacks, wind-flag poles, windbreaks
 ## Props are small and many, so they are built per 96 m cell: one kit (a handful of meshes) per cell with props, faded at
-## 140 m, flame-free (glass and glow cards only, a lantern pole's one lamp counts against the light cap). Placement:
+## 140 m, flame-free (glass and glow cards only, a lantern pole's one lamp counts against the light cap). Each prop's LOOK is
+## a modelled glb (art/models/props/sig_<kind>.glb, tools/blender/signature_props.py; the map audit's F28: they were kit
+## boxes and prisms), drawn as one MultiMesh per part per cell (WK.prop_xf); the kit still lays its blocks with its visual
+## off (OssKit.visual), so the colliders are as before, and keeps the lit and moving parts visible (lanterns, glow caps
+## and candles, banners, ropes, the hung strands, the nave's glass). Placement:
 ## flat, dry, unclaimed ground (WK.span / WK.taken), 9 m off every way, 4-40 props per region by area. Build-time only.
 ## No class_name.
 
@@ -21,6 +25,13 @@ const SELF := "res://core/world/realm/wonders/r39/region_dressing.gd"
 const WK := preload("res://core/world/realm/wonders/r39/wonder_kit.gd")
 const Dress := preload("res://core/world/realm/wonders/r39/wonder_dress.gd")
 const Plan := preload("res://core/world/realm/wonders/r39/wonder_plan.gd")
+
+## The kinds with a modelled look (art/models/props/sig_<kind>.glb); the trough is the village square's own model.
+const KINDS_MODELLED := ["ballista", "helmet_cairn", "shield_pole", "pikes", "lantern_pole", "fungus_ring", "string_poles",
+	"grave_mound", "carved_stone", "wreath_stake", "fish_rack", "eel_basket", "boat_hull", "reed_fence", "haystack", "scarecrow",
+	"plough", "fallen_arch", "pipe", "sluice_wheel", "charcoal_clamp", "bark_rack", "snare", "wood_stack", "bell_half",
+	"scorch_post", "lamp_post", "signal_pole", "notice_board", "column_stub", "leaning_pillar", "pews", "cairn_stack",
+	"wind_flag", "windbreak"]
 
 const KINDS := {
 	"greyfell": ["ballista", "helmet_cairn", "shield_pole", "pikes"],
@@ -93,6 +104,7 @@ func _run(root: Node) -> void:
 					var c: Vector2 = it[0]
 					_prop(k, String(it[2]), Vector3(c.x, float(it[1]), c.y), float(it[3]))
 			k.commit(140.0)
+			k.host.set_meta(&"props", cells[key])         # [where, ground, kind, yaw] each (the probes and shots read it)
 		total += placed
 	if warm.is_empty():
 		Plan.save_plan(pk, SELF, {"regions": picks})
@@ -102,12 +114,15 @@ func _run(root: Node) -> void:
 func _prop(k, kind: String, o: Vector3, yaw: float) -> void:
 	var b := Basis(Vector3.UP, yaw)
 	var rng: RandomNumberGenerator = k.rng
+	var tall := 1.0                                   # the model's height scale (the kit's random column and post heights)
+	k.kit.visual = false
 	match kind:
 		"ballista":
 			k.beam("wood_big", o + b * Vector3(-1.2, 0.0, 0.0), o + b * Vector3(-0.6, 1.4, 0.0), 0.18, 0.18, false, 0.7)
 			k.beam("wood_big", o + b * Vector3(1.2, 0.0, 0.0), o + b * Vector3(0.6, 1.4, 0.0), 0.18, 0.18, false, 0.7)
 			k.beam("wood_big", o + b * Vector3(0.0, 1.3, -1.6), o + b * Vector3(0.0, 1.5, 1.5), 0.22, 0.22, true, 0.75)
 			k.beam("wood_big", o + b * Vector3(-1.6, 1.5, 1.2), o + b * Vector3(1.6, 1.7, 1.2), 0.1, 0.1, false, 0.7)
+			k.kit.visual = true
 			Dress.rope(k, o + b * Vector3(-1.6, 1.5, 1.2), o + b * Vector3(1.6, 1.7, 1.2), 0.2, 0.03)
 		"helmet_cairn":
 			for i in 4:
@@ -116,6 +131,7 @@ func _prop(k, kind: String, o: Vector3, yaw: float) -> void:
 				k.kit.box("iron", o + b * Vector3(rng.randf_range(-1.0, 1.0), 1.7 + 0.1 * float(i % 2), rng.randf_range(-0.7, 0.7)), Vector3(0.34, 0.3, 0.34), Basis(Vector3.UP, rng.randf() * TAU), false, 0.55)
 		"shield_pole", "wind_flag":
 			k.tube("wood_big", o, o + Vector3.UP * 4.2, 0.1, 0.07, 5, true, 0.7)
+			k.kit.visual = true
 			Dress.banner(k, o + Vector3.UP * 4.0, b * Vector3(1.0, 0.0, 0.0), 1.8 if kind == "shield_pole" else 3.2, 1.2 if kind == "shield_pole" else 0.9, b * Vector3(0.0, 0.0, 1.0))
 		"pikes":
 			for i in 5:
@@ -125,6 +141,7 @@ func _prop(k, kind: String, o: Vector3, yaw: float) -> void:
 		"lantern_pole":
 			k.tube("wood_big", o, o + Vector3.UP * 5.2, 0.13, 0.1, 5, true, 0.7)
 			k.beam("wood_big", o + Vector3.UP * 5.0, o + Vector3.UP * 5.0 + b * Vector3(1.0, 0.0, 0.0), 0.08, 0.08, false, 0.7)
+			k.kit.visual = true
 			k.kit.lantern(o + Vector3.UP * 4.6 + b * Vector3(1.0, 0.0, 0.0), Vector3(0.3, 0.4, 0.3), b)
 			if rng.randf() < 0.3:
 				k.lamp(o + Vector3.UP * 4.6 + b * Vector3(1.0, 0.0, 0.0), Color(0.6, 0.82, 1.0), 0.9, 8.0)
@@ -133,6 +150,7 @@ func _prop(k, kind: String, o: Vector3, yaw: float) -> void:
 			var c2 := o + b * Vector3(7.0, 4.4, 0.0)
 			k.tube("wood_big", o, a, 0.1, 0.08, 5, true, 0.7)
 			k.tube("wood_big", o + b * Vector3(7.0, 0.0, 0.0), c2, 0.1, 0.08, 5, true, 0.7)
+			k.kit.visual = true
 			Dress.rope(k, a, c2, 0.9, 0.03)
 			for i in 4:
 				var q := a.lerp(c2, (float(i) + 0.5) / 4.0) + Vector3.DOWN * 0.7
@@ -142,10 +160,13 @@ func _prop(k, kind: String, o: Vector3, yaw: float) -> void:
 				var a2 := TAU * float(i) / 9.0
 				var p2 := o + Vector3(cos(a2), 0.0, sin(a2)) * 2.0
 				k.tube("chalk", p2, p2 + Vector3.UP * (0.3 + 0.2 * rng.randf()), 0.05, 0.04, 5, false, 0.9)
+				k.kit.visual = true
 				k.kit.box("glow", p2 + Vector3.UP * 0.4, Vector3(0.28, 0.1, 0.28), Basis(Vector3.UP, a2), false, 0.85)
+				k.kit.visual = false
 		"grave_mound":
 			k.kit.box("cave_moss", o + Vector3.UP * 0.25, Vector3(2.8, 0.7, 1.6), b, false, 0.85)
 			k.kit.box("stone_big", o + b * Vector3(0.0, 0.8, -0.95), Vector3(0.7, 1.4, 0.2), b * Basis(Vector3.RIGHT, rng.randf_range(-0.1, 0.1)), true, 0.9)
+			k.kit.visual = true
 			k.kit.box("glow", o + b * Vector3(0.7, 0.5, -0.95), Vector3(0.14, 0.2, 0.14), b, false, 1.0)
 		"carved_stone":
 			k.kit.box("stone_big", o + Vector3.UP * 1.6, Vector3(0.9, 3.2, 0.5), b * Basis(Vector3.RIGHT, rng.randf_range(-0.08, 0.08)), true, 0.9)
@@ -157,9 +178,11 @@ func _prop(k, kind: String, o: Vector3, yaw: float) -> void:
 			for s: float in [-1.0, 1.0]:
 				k.tube("wood_big", o + b * Vector3(s * 1.4, 0.0, 0.0), o + b * Vector3(s * 1.4, 1.8, 0.0), 0.07, 0.07, 4, false, 0.7)
 			k.beam("wood_big", o + b * Vector3(-1.4, 1.7, 0.0), o + b * Vector3(1.4, 1.7, 0.0), 0.08, 0.08, false, 0.7)
+			k.kit.visual = true
 			Dress.strands(k, o + b * Vector3(-1.2, 1.65, 0.0), o + b * Vector3(1.2, 1.65, 0.0), 7, 0.8, "bone")
 		"eel_basket":
 			k.tube("wood_big", o, o + Vector3.UP * 0.9, 0.35, 0.18, 7, false, 0.75, Vector2(1.0, -1.0), true)
+			k.kit.visual = true
 			Dress.rope(k, o + Vector3.UP * 0.5, o + b * Vector3(1.8, 0.0, 0.0), 0.2, 0.03)
 		"boat_hull":
 			for i in 5:
@@ -207,6 +230,7 @@ func _prop(k, kind: String, o: Vector3, yaw: float) -> void:
 				k.beam("wood_big", o + b * Vector3(-1.2 + 0.8 * float(i), 0.0, 0.0), o + b * Vector3(-1.0 + 0.8 * float(i), 1.9, 0.5), 0.12, 0.06, false, 0.65)
 		"snare":
 			k.tube("wood_big", o, o + Vector3.UP * 1.4, 0.04, 0.04, 4, false, 0.7)
+			k.kit.visual = true
 			Dress.rope(k, o + Vector3.UP * 1.4, o + b * Vector3(1.0, 0.1, 0.0), 0.3, 0.02)
 		"wood_stack":
 			for i in 3:
@@ -216,9 +240,12 @@ func _prop(k, kind: String, o: Vector3, yaw: float) -> void:
 			k.tube("iron", o + Vector3.DOWN * 0.3, o + Vector3.UP * 1.3, 1.2, 0.5, 10, false, 0.55, Vector2(0.6, 1.8))
 			k.kit.box("iron", o + Vector3(1.4, 0.2, 0.3), Vector3(0.6, 0.4, 0.5), b, false, 0.5)
 		"scorch_post":
-			k.tube("dark", o, o + Vector3.UP * (1.8 + rng.randf()), 0.14, 0.1, 5, false, 0.4)
+			var ph := 1.8 + rng.randf()
+			k.tube("dark", o, o + Vector3.UP * ph, 0.14, 0.1, 5, false, 0.4)
+			tall = ph / 2.0
 		"lamp_post", "signal_pole":
 			k.tube("iron", o, o + Vector3.UP * (3.2 if kind == "lamp_post" else 5.0), 0.1, 0.07, 6, true, 0.6)
+			k.kit.visual = true
 			k.kit.lantern(o + Vector3.UP * (3.4 if kind == "lamp_post" else 5.2), Vector3(0.34, 0.42, 0.34), b)
 		"notice_board":
 			k.kit.box("wood_big", o + Vector3.UP * 1.5, Vector3(1.6, 1.0, 0.1), b, false, 0.8)
@@ -226,7 +253,9 @@ func _prop(k, kind: String, o: Vector3, yaw: float) -> void:
 				k.tube("wood_big", o + b * Vector3(s * 0.7, 0.0, 0.0), o + b * Vector3(s * 0.7, 1.9, 0.0), 0.05, 0.05, 4, false, 0.7)
 			k.kit.quad("chalk", o + b * Vector3(-0.5, 1.2, -0.06), o + b * Vector3(-0.1, 1.2, -0.06), o + b * Vector3(-0.1, 1.8, -0.06), o + b * Vector3(-0.5, 1.8, -0.06), b * Vector3(0.0, 0.0, -1.0), false, 0.9)
 		"column_stub":
-			k.tube("chalk", o + Vector3.DOWN * 0.2, o + Vector3.UP * (1.2 + 1.6 * rng.randf()), 0.6, 0.55, 8, true, 0.9)
+			var ch := 1.2 + 1.6 * rng.randf()
+			k.tube("chalk", o + Vector3.DOWN * 0.2, o + Vector3.UP * ch, 0.6, 0.55, 8, true, 0.9)
+			tall = ch / 2.3
 			Dress.rubble(k, o + b * Vector3(1.4, 0.0, 0.5), 1.0, 5, "chalk")
 		"leaning_pillar":
 			k.tube("chalk", o, o + b * Vector3(1.8, 3.6, 0.0), 0.55, 0.5, 8, true, 0.9)
@@ -234,6 +263,7 @@ func _prop(k, kind: String, o: Vector3, yaw: float) -> void:
 			for i in 4:
 				k.kit.box("wood_big", o + b * Vector3(0.0, 0.4, float(i) * 1.0 - 1.5), Vector3(2.6, 0.7, 0.4), b, false, 0.6)
 		"glass_shards":
+			k.kit.visual = true
 			for i in 6:
 				var gp := o + b * Vector3(rng.randf_range(-1.0, 1.0), 0.05, rng.randf_range(-1.0, 1.0))
 				k.kit.quad("glow", gp, gp + b * Vector3(0.4, 0.0, 0.1), gp + b * Vector3(0.3, 0.0, 0.5), gp + b * Vector3(0.0, 0.0, 0.3), Vector3.UP, false, 0.5)
@@ -244,4 +274,10 @@ func _prop(k, kind: String, o: Vector3, yaw: float) -> void:
 			for i in 5:
 				k.kit.box("stone_big", o + b * Vector3(float(i) * 0.9 - 1.8, 0.5, 0.2 * sin(float(i))), Vector3(0.9, 1.0 + 0.2 * float(i % 2), 0.5), b * Basis(Vector3.UP, 0.15 * float(i)), true, 0.8)
 		_:
+			k.kit.visual = true
 			Dress.rubble(k, o, 1.2, 6, "stone_big")
+	k.kit.visual = true
+	if kind == "trough":
+		k.prop("trough", o, yaw, 2.0)
+	elif kind != "glass_shards" and KINDS_MODELLED.has(kind):
+		k.prop_xf("sig_" + kind, Transform3D(b.scaled(Vector3(1.0, tall, 1.0)), o))
