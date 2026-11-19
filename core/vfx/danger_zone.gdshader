@@ -118,6 +118,15 @@ void fragment() {
 	float calm = mix(1.0, 0.22, soft);
 	float base = (0.045 + 0.03 * g) * calm;   // r39: a visible floor for the whole zone before the fill arrives
 	float fill = filled * (0.10 + 0.08 * g + 0.2 * pr * pr) * calm;
+	// a zone the size of a deck (the Thornstorm, the Sky Breaks) filled solid and the floor under it was gone: the wanderer
+	// lost the ground he dodges on (bosses_a/thornwarden_p1_thornstorm_3q, combat V1/warden_s41; 19 Nov). Past ~8 m across
+	// the fill is a hatch of broad diagonal bands (about half the ground still shows between them), the outline, the
+	// marching ring and the travelling front unchanged: the fill still says "it is coming", the ground stays readable.
+	float big = smoothstep(7.0, 14.0, max(size_m.x, size_m.y));
+	float hs = fract((m.x - m.y) * 0.4);
+	float hatch = smoothstep(0.0, 0.06, hs) * (1.0 - smoothstep(0.48, 0.54, hs));
+	fill *= mix(1.0, 0.25 + 0.75 * hatch, big);
+	base *= mix(1.0, 0.55 + 0.45 * hatch, big);
 	// the last 12 % of the windup pulses: it is about to land
 	float urgent = smoothstep(0.88, 1.0, pr) * (0.5 + 0.5 * sin(TIME * 40.0));
 	// what stands in front of this pixel of the zone, in metres along the view
