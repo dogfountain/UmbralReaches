@@ -17,6 +17,7 @@ const ShopPanel := preload("res://ui/shop.gd")
 const StoryDirector := preload("res://core/story/story.gd")
 const DialogueDB := preload("res://core/story/dialogue_db.gd")
 const DwarfRigScript := preload("res://core/npc/dwarf_rig.gd")
+const BossTitleScript := preload("res://core/enemy/boss_title.gd")
 
 const PAGES := [["wanderer", "gear"], ["wanderer", "charms"], ["wanderer", "relics"], ["wanderer", "staff"],
 	["kindling", "embers"], ["kindling", "spells"], ["kindling", "loadout"], ["kindling", "oaths"],
@@ -51,10 +52,35 @@ func run() -> void:
 	await _dialogue()
 	await _shop()
 	await _map()
+	await _boss_cards()
 	UiSound.muted = false
 	get_tree().paused = was_paused
 	Input.mouse_mode = mouse
 	done = true
+
+
+## A great one's name card and the bar's labels, made once with every letter (19 Nov, the visual pass: the first pull of the
+## night paid 18.6 ms once, the title's 64 px glyphs and the bar's outlined labels rasterised in the pull's frame).
+func _boss_cards() -> void:
+	var t0 := Time.get_ticks_usec()
+	var t := BossTitleScript.new()
+	t.layer = 41                                  # (drawn, under the loading cover's layer 120: hidden text is never shaped)
+	add_child(t)
+	t._build("ABCDEFGHIJKLMNOPQRSTUVWXYZ'", "abcdefghijklmnopqrstuvwxyz ABCDEFGHIJKLMNOPQRSTUVWXYZ,'·-", BossTitleScript.GOLD)
+	var layer := CanvasLayer.new()
+	layer.layer = 40
+	add_child(layer)
+	for sz: int in [22, 16, 21]:
+		var l := Label.new()
+		l.text = "ABCDEFGHIJKLMNOPQRSTUVWXYZ abcdefghijklmnopqrstuvwxyz 0123456789 ·:,'-"
+		l.add_theme_font_size_override("font_size", sz)
+		if sz == 21:
+			l.add_theme_constant_override("outline_size", 6)
+		layer.add_child(l)
+	await _frames()
+	t.queue_free()
+	layer.queue_free()
+	_lap("boss cards", t0)
 
 
 func _frames() -> void:
