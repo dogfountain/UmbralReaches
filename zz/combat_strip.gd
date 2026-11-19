@@ -840,8 +840,18 @@ func _arena_boss(key: String) -> Enemy:
 	var hit := _space().intersect_ray(PhysicsRayQueryParameters3D.create(at + Vector3.UP * 4.0, at + Vector3.DOWN * 8.0, Layers.WORLD, [p.get_rid()]))
 	if not hit.is_empty():
 		at = hit.position
+	# the walk starts on ground outside the arena: the 1.6x summit's radius + 14 m stood over the rift, and every Warden
+	# fight began with a fall into its lava (35 wounds "from" the lava 8 s in, and back to the spawn: 19 Nov)
 	var far := c + gout * (arena.radius + 14.0)
 	far.y = c.y + 0.5
+	var out_m := arena.radius + 14.0
+	while out_m > 4.0:
+		var q := c + gout * out_m
+		var g := _space().intersect_ray(PhysicsRayQueryParameters3D.create(Vector3(q.x, c.y + 12.0, q.z), Vector3(q.x, c.y - 6.0, q.z), Layers.WORLD, [p.get_rid()]))
+		if not g.is_empty():
+			far = (g.position as Vector3) + Vector3.UP * 0.2
+			break
+		out_m -= 2.0
 	_stand(far, _yaw_of(c - far))
 	await get_tree().create_timer(2.0).timeout
 	# walk in, as a wanderer would (a teleport to the pull streamed the place in on the pull's own frames)

@@ -275,6 +275,29 @@ func _physics_process(_d: float) -> void:
 		_phys_us += Time.get_ticks_usec() - _phys_begin
 
 
+## A conversation or an offer that opens by itself where the tour stands (a found start by the towns) pauses the night,
+## and every later view measured a paused tree from one frozen camera (19 Nov: the towns and the Far Reaches all read
+## "120 fps, 2126 draws"). Close it and go on.
+const _DialogueUI := preload("res://ui/dialogue.gd")
+const _QuestOffer := preload("res://ui/quest_offer.gd")
+
+
+func _unpause() -> void:
+	if not get_tree().paused:
+		return
+	var what: PackedStringArray = []
+	for n in get_tree().get_nodes_in_group(&"dialogue_open"):
+		if n is _DialogueUI:
+			(n as _DialogueUI).close()
+			what.append(String(n.name))
+	for n in get_tree().get_nodes_in_group(&"quest_offer"):
+		if n is _QuestOffer and (n as _QuestOffer).is_open():
+			(n as _QuestOffer).close()
+			what.append(String(n.name))
+	get_tree().paused = false
+	print("PERF unpaused (opened by itself: %s)" % (", ".join(what) if not what.is_empty() else "a panel"))
+
+
 ## Enemies are switched off and hidden, not freed: a freed camp member respawns every 10 s
 ## (EnemySpawner.RESPAWN) and each spawn builds its creature meshes, which put 40-140 ms frames
 ## into every window that the views themselves do not cause. (--with-enemies keeps them.)
@@ -376,6 +399,12 @@ func _process(d: float) -> void:
 		return
 	if not main.has_meta("realm_done"):
 		return
+	if load_ms > 0:
+		_unpause()
+		# the dark is not what is measured: a long stand away from light hollowed the wanderer mid-tour (19 Nov, at the
+		# Long Arches), a respawn and a teleport inside a measured window
+		p.gloom = 0.0
+		p.wounds = 0.0
 	if load_ms == 0 and main.get_node_or_null("LoadingScreen") != null:
 		if "--hitches-under" in OS.get_cmdline_user_args():
 			_hitch_log(d)                        # (the frames under the cover too)
