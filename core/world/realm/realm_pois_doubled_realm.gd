@@ -39,6 +39,7 @@ const MOTHER := "res://art/models/orchard_mother_tree.glb"
 const MOTHER_FAR := 90.0                 ## the Mother Tree's far silhouette takes over here
 const Stair := preload("res://core/world/realm/timber_stair.gd")
 const LK := preload("res://core/world/realm/lore/lore_kit.gd")
+const WestKit := preload("res://core/world/realm/west_marches_kit.gd")
 const PropModels := preload("res://core/world/realm/prop_models.gd")
 const SHRINE := "ruin_shrine.glb"
 const WINCH := "works_winch.glb"
@@ -1259,6 +1260,10 @@ static func _necro_mausoleum(host: Node3D, space: PhysicsDirectSpaceState3D, s: 
 	var pz0 := -6.0
 	var pz1 := 2.6
 	var t := 0.6
+	# the tomb's look is a modelled glb (necro_mausoleum.glb, tools/blender/necro_mausoleum.py; the map audit's F28): the kit
+	# lays the podium, the deck, the coffins, the tomb house, its roof and the porch with its visual off (their colliders as
+	# before); the vault floor, both stairs, the candles and the climb's stand points stay the kit's
+	k.visual = false
 	# the podium: a hollow box of ashlar -- the burial vault is inside it
 	k.box("lore_ashlar", xf * Vector3(0, -0.3, (pz0 + pz1) * 0.5), Vector3(px * 2.0 + 0.2, 0.7, pz1 - pz0 + 0.2), b, true, 0.75)
 	for wl: Array in [[Vector3(-px + t * 0.5, POD_H * 0.5, (pz0 + pz1) * 0.5), Vector3(t, POD_H, pz1 - pz0)], [Vector3(px - t * 0.5, POD_H * 0.5, (pz0 + pz1) * 0.5), Vector3(t, POD_H, pz1 - pz0)],
@@ -1266,7 +1271,9 @@ static func _necro_mausoleum(host: Node3D, space: PhysicsDirectSpaceState3D, s: 
 		k.box("lore_ashlar", xf * (wl[0] as Vector3), wl[1], b, true, 0.82)
 	k.box("lore_ashlar", xf * Vector3(0, POD_H + 0.06, (pz0 + pz1) * 0.5), Vector3(px * 2.0 + 0.3, 0.14, pz1 - pz0 + 0.3), b, false, 0.9)
 	# the vault floor and its roof (the tomb house's floor), open over the stair down (east side)
+	k.visual = true
 	k.box("floor", xf * Vector3(0, 0.04, (pz0 + pz1) * 0.5), Vector3(px * 2.0 - t * 2.0, 0.12, pz1 - pz0 - t * 2.0), b, true, 0.8)
+	k.visual = false
 	var sx0 := 1.9                       # the stair well: x 1.9 .. 3.5 (inside the tomb house), z -4.6 .. 0
 	var sx1 := 3.5
 	var wz0 := -4.6
@@ -1279,18 +1286,22 @@ static func _necro_mausoleum(host: Node3D, space: PhysicsDirectSpaceState3D, s: 
 	k.box("lore_ashlar", xf * Vector3((sx0 + sx1) * 0.5, slab_y, (iz0 + wz0) * 0.5), Vector3(sx1 - sx0, 0.3, wz0 - iz0), b, true, 0.86)
 	k.box("lore_ashlar", xf * Vector3((sx0 + sx1) * 0.5, slab_y, (wz1 + iz1) * 0.5), Vector3(sx1 - sx0, 0.3, iz1 - wz1), b, true, 0.86)
 	# the stair down inside, from the tomb house floor (by the door) back and down into the vault
+	k.visual = true
 	k.stairs("lore_ashlar", xf * Vector3((sx0 + sx1) * 0.5, 0.1, wz0 + 0.3), xf * Vector3((sx0 + sx1) * 0.5, POD_H, wz1), sx1 - sx0 - 0.04, 9, o.y)
 	# in the vault: three stone coffins of the first pilgrims, feet to the mountain, candles
 	for i in 3:
 		var cz := -4.4 + 1.9 * float(i)
+		k.visual = false
 		k.box("lore_tstone", xf * Vector3(-1.4, 0.45, cz), Vector3(2.4, 0.8, 1.0), b, true, 0.86)
 		k.box("lore_tstone", xf * Vector3(-1.4, 0.92, cz), Vector3(2.5, 0.14, 1.1), b * Basis(Vector3.UP, 0.03 * float(i - 1)), true, 0.92)
+		k.visual = true
 		k.candle_cluster(xf * Vector3(0.2, 0.1, cz), 3, 0.15, rng)
 	# the tomb house on the podium: walls, a door to the north (+z) under a pediment, a roof slab
 	var tx := 4.2
 	var tz0 := -5.6
 	var tz1 := 0.6
 	var ty := POD_H
+	k.visual = false
 	for wl: Array in [[Vector3(-tx + t * 0.5, ty + TOMB_H * 0.5, (tz0 + tz1) * 0.5), Vector3(t, TOMB_H, tz1 - tz0)], [Vector3(tx - t * 0.5, ty + TOMB_H * 0.5, (tz0 + tz1) * 0.5), Vector3(t, TOMB_H, tz1 - tz0)],
 			[Vector3(0, ty + TOMB_H * 0.5, tz0 + t * 0.5), Vector3(tx * 2.0, TOMB_H, t)],
 			[Vector3(-2.5, ty + TOMB_H * 0.5, tz1 - t * 0.5), Vector3(3.4, TOMB_H, t)], [Vector3(2.5, ty + TOMB_H * 0.5, tz1 - t * 0.5), Vector3(3.4, TOMB_H, t)],
@@ -1302,14 +1313,18 @@ static func _necro_mausoleum(host: Node3D, space: PhysicsDirectSpaceState3D, s: 
 		k.box("lore_ashlar", xf * Vector3(0, roof_y + 0.36 + 0.22 + 0.36 * float(row), tz0 + 0.4), Vector3((tx * 2.0) * (1.0 - float(row) / 3.4), 0.36, 0.5), b, true, 0.88)
 	# a porch: two columns before the door holding the roof's front edge
 	for sx: float in [-1.0, 1.0]:
-		_cyl(k, "lore_ashlar", xf * Vector3(sx * 2.4, ty, tz1 + 1.1), xf * Vector3(sx * 2.4, roof_y, tz1 + 1.1), 0.32, 0.28, true, 12)
+		_cyl(k, "lore_ashlar", xf * Vector3(sx * 2.4, ty, tz1 + 1.1), xf * Vector3(sx * 2.4, roof_y, tz1 + 1.1), 0.32, 0.28, true, 12, false)
 	# the front steps from the forecourt up to the podium
+	k.visual = true
 	k.stairs("lore_ashlar", xf * Vector3(0, 0.0, pz1 + 3.6), xf * Vector3(0, POD_H, pz1 - 0.2), 2.6, 9)
 	# the climb, on the west side: a run of fallen ashlar blocks stepping up against the podium, the
 	# last against the tomb house's wall, and the roof
+	k.visual = false
 	var climb := _steps(k, xf, [[-px - 1.2, 0.6, 1.6, Vector2(2.2, 1.5)], [-px - 1.2, -0.9, 3.2, Vector2(2.2, 1.5)], [-px - 1.2, -2.4, 4.8, Vector2(2.2, 1.5)],
 			[-px + 0.5, -2.4, 6.0, Vector2(1.0, 1.5), POD_H]], "lore_ashlar", 0.0)
+	k.visual = true
 	k.commit(host, "TombBody")
+	WestKit.place(host, "necro_mausoleum.glb", xf)
 	climb.append(xf * Vector3(-tx + 1.0, roof_y + 0.36, -2.4))
 	host.set_meta("route", climb)
 	host.set_meta("walk", [false, false, false, false, false])
