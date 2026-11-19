@@ -21,6 +21,7 @@ extends Node3D
 ## Light: candle-gold (the corona over the mound, the galleries, the door) and grave-light (the
 ## chapels' Tallies, the deep when it opens); nothing brighter than the candles.
 
+const OssHallSafety := preload("res://world/areas/ossuary/oss_hall_safety.gd")
 const Kit := preload("res://core/life/secrets/kit.gd")
 
 ## (18 Nov, Luke: the arenas 1.6x, the world reshaped round them) every radius x1.6, the centre moved 16 m south and 19 m
@@ -47,6 +48,8 @@ const FALL_III := [0, 2, 5, 7]                 ## phase III: "The Floor Remember
 const FALL_IV := [1, 3, 6]                     ## the final count
 const CHAPELS := [45.0, 315.0, 225.0]          ## SE, NE, NW (deg): the Tallies' plinths
 const CHAPEL_W := 6.5
+const APSE_END := 42.4                         ## where a chapel's charnel wall closes its apse (see _chapels)
+const SINK := 0.5                               ## how far a wall's foot goes down into the floor slab (see _chapels)
 const CHAPEL_BACK := 43.8
 const SOCKET_R := 41.0                         ## a Tally stands here (r) in its chapel
 const BELLS := [0.0, 90.0, 190.0, 270.0]       ## E, S, W, N
@@ -84,6 +87,7 @@ var fallen: Array[bool] = []                   ## the stone is gone (collider of
 var marked: Array[bool] = []                   ## the warning has begun (the stone still stands)
 var bells: Array[Node3D] = []
 var sockets: Array[Vector3] = []               ## the three chapel plinth tops
+var _apse: Array = []                          ## [centre, basis, size] of each chapel's floor and walls (_apse_solids)
 var deep_lights: Array[OmniLight3D] = []
 var draws := 0
 var built := false
@@ -179,6 +183,7 @@ func build(a: Node3D) -> void:
 	_vault(k)
 	_chapels(k)
 	draws += k.commit(hall, "VaultBody")
+	OssHallSafety.apse_solids(hall, _apse)
 	await area.call("slice")
 	k = _kit()
 	_mound(k)
@@ -605,8 +610,8 @@ func _door_way(k: OssKit) -> void:
 	k.box("floor", mid + Vector3.DOWN * 0.3, Vector3(w + 0.2, 0.6, length + 0.4), bas)
 	# side walls, the corridor's roof outside the hall (it runs under the bank)
 	for s: float in [-1.0, 1.0]:
-		var wc := mid + side * (s * (w * 0.5 + 0.35)) + Vector3.UP * 2.4
-		k.box("stone", wc, Vector3(0.7, 4.8, length), bas, true, 0.84)
+		var wc := mid + side * (s * (w * 0.5 + 0.35)) + Vector3.UP * (2.4 - SINK * 0.5)
+		k.box("stone", wc, Vector3(0.7, 4.8 + SINK, length), bas, true, 0.84)
 	var outer_len := r_out - WALL_R
 	var oc := at(da, (r_out + WALL_R) * 0.5, FLOOR_Y + 4.5)
 	k.box("stone", oc, Vector3(w + 1.4, 0.6, outer_len + 0.2), bas, true, 0.8)
@@ -691,17 +696,23 @@ func _chapels(k: OssKit) -> void:
 		var mid := C + radial * ((r0 + r1) * 0.5)
 		var w := CHAPEL_W
 		k.box("floor", mid + Vector3.DOWN * 0.3, Vector3(w + 0.4, 0.6, r1 - r0), bas)
-		# side walls through the galleries and out to the apse, a back wall, a low vault
+		var rb := Basis(side, Vector3.UP, side.cross(Vector3.UP))          # (right-handed, for the solids)
+		_apse.append([mid + Vector3.DOWN * 0.6, rb, Vector3(w + 0.4, 1.2, r1 - r0)])
+		# side walls through the galleries and out to the apse, a back wall, a low vault; their feet go down into the floor
+		# slab (SINK: no underside in the floor's face) and they are convex solids too (OssHallSafety.apse_solids)
 		var vh := 9.0
 		for s: float in [-1.0, 1.0]:
-			k.box("stone", mid + side * (s * (w * 0.5 + 0.35)) + Vector3.UP * (vh * 0.5), Vector3(0.7, vh, r1 - r0), bas, true, 0.84)
+			k.box("stone", mid + side * (s * (w * 0.5 + 0.35)) + Vector3.UP * ((vh - SINK) * 0.5), Vector3(0.7, vh + SINK, r1 - r0), bas, true, 0.84)
 		var back := C + radial * (r1 + 0.35)
-		k.box("plaster", back + Vector3.UP * (vh * 0.5), Vector3(w + 1.4, vh, 0.7), bas, true)
+		k.box("plaster", back + Vector3.UP * ((vh - SINK) * 0.5), Vector3(w + 1.4, vh + SINK, 0.7), bas, true)
+		for s: float in [-1.0, 1.0]:
+			_apse.append([mid + side * (s * (w * 0.5 + 0.35)) + Vector3.UP * ((vh - SINK) * 0.5), rb, Vector3(0.7, vh + SINK, r1 - r0)])
+		_apse.append([back + Vector3.UP * ((vh - SINK) * 0.5), rb, Vector3(w + 1.4, vh + SINK, 0.7)])
 		# vault: a barrel of three arch rings and a roof slab outside the hall's wall
 		var outer := C + radial * ((WALL_R + r1) * 0.5 + 0.4)
 		k.box("dark", outer + Vector3.UP * (vh + 0.2), Vector3(w + 1.4, 0.4, r1 - WALL_R + 1.2), bas, true, 0.7)
 		for rr: float in [WALL_R + 1.0, (WALL_R + r1) * 0.5 + 0.4, r1 - 0.3]:
-			k.arch_panel("stone", C + radial * rr, side, w, 5.6, vh, 0.4, 0.3, 0.8, 0.0, "stone")
+			k.arch_panel("stone", C + radial * rr + Vector3.DOWN * SINK, side, w, 5.6 + SINK, vh + SINK, 0.4, 0.3, 0.8, 0.0, "stone")
 		# bone walls in the apse: skull rows on both sides, femur courses
 		for s: float in [-1.0, 1.0]:
 			for row in 5:
@@ -711,7 +722,7 @@ func _chapels(k: OssKit) -> void:
 					(k.skulls[(j + row) % 2] as Array).append(Transform3D(Basis(Vector3.UP, atan2(-s * side.x, -s * side.z) + PI + _rng.randf_range(-0.1, 0.1)), p))
 		# the plinth (a stepped block) and its iron cage
 		var sp := C + radial * SOCKET_R
-		k.block("stone", sp + Vector3(-1.0, 0.0, -1.0), sp + Vector3(1.0, 0.9, 1.0))
+		k.block("stone", sp + Vector3(-1.0, -SINK, -1.0), sp + Vector3(1.0, 0.9, 1.0))
 		k.block("stone", sp + Vector3(-0.8, 0.9, -0.8), sp + Vector3(0.8, 1.15, 0.8), true, 0.9)
 		for q: Vector2 in [Vector2(-1, -1), Vector2(1, -1), Vector2(1, 1), Vector2(-1, 1)]:
 			k.box("iron", sp + Vector3(q.x * 0.62, 1.15 + 0.9, q.y * 0.62), Vector3(0.07, 1.8, 0.07), Basis.IDENTITY, false)
@@ -722,6 +733,19 @@ func _chapels(k: OssKit) -> void:
 		k.candle_cluster(sp + radial * -1.6 - side * 1.4, 7, 0.35, _rng)
 		k.candle_cluster(sp + Vector3.UP * 1.15 + radial * 0.5, 3, 0.15, _rng)
 		_heap(k, sp + radial * -3.0 + side * 1.6, 0.7)
+		# the apse's end behind the Tally: a charnel wall of skulls 2.6 m high (past a mantle) closing its last 1.4 m. A body
+		# that walked into that end lost every contact in Jolt's motion queries (rays still met the floor) and sank through
+		# the floor out under the hall (the map audit's MA1, zz/visual_probe.tscn --only=deadzone,chapel: 19 Nov)
+		var ew := C + radial * ((APSE_END + r1) * 0.5)
+		k.box("stone", ew + Vector3.UP * ((2.6 - SINK) * 0.5), Vector3(w, 2.6 + SINK, r1 - APSE_END), bas, true, 0.8)
+		_apse.append([ew + Vector3.UP * ((2.6 - SINK) * 0.5), rb, Vector3(w, 2.6 + SINK, r1 - APSE_END)])
+		var srng := RandomNumberGenerator.new()                 # its own (the hall's dressing stream is unchanged)
+		srng.seed = 34090 + int(cd)
+		for row in 11:
+			var cnt := int(w / 0.24)
+			for j in cnt:
+				var q := ew - radial * ((r1 - APSE_END) * 0.5 + 0.06) + side * (-w * 0.5 + 0.12 + 0.24 * float(j)) + Vector3.UP * (0.12 + 0.23 * float(row))
+				(k.skulls[(j + row) % 2] as Array).append(Transform3D(Basis(Vector3.UP, atan2(-radial.x, -radial.z) + srng.randf_range(-0.12, 0.12)), q))
 
 
 # --- the mound ------------------------------------------------------------------------------------
@@ -1064,28 +1088,14 @@ func _catch() -> void:
 	ar.body_entered.connect(_on_caught)
 
 
-## Under the fighting floor outside the deep (map audit MA1: in a combat strip the wanderer was 37 m out at 1.5 m under the
-## floor's level and fell to y -58 for the rest of the fight; the wall and floor rays find no gap, so whatever let him
-## through, under the floor is never a place to be): a band under the whole hall's footprint, from just under the floor to
-## the bottom of the hall's box, sends him back up onto the inner disc as the deep does. The deep's own catch keeps its circle.
+## Under the fighting floor (OssHallSafety.catch_under), except in the deep, which has its own catch. The band runs west
+## under the stair's shaft and the pit too (a Rift Step out of the hall's door across the shaft's foot ended 6 m under the
+## floor at local x 20: visual_probe --only=hallwalk, 19 Nov): nothing in the Ossuary is lower than the hall's floor.
 func _catch_under() -> void:
-	var ar := Area3D.new()
-	ar.name = "UnderCatch"
-	ar.collision_layer = 0
-	ar.collision_mask = Layers.PLAYER
-	ar.monitorable = false
-	var cs := CollisionShape3D.new()
-	var bx := BoxShape3D.new()
-	var top := FLOOR_Y - 1.3
-	var bottom := BOX.position.y - 30.0
-	bx.size = Vector3(BOX.size.x + 6.0, top - bottom, BOX.size.z + 6.0)
-	cs.shape = bx
-	ar.add_child(cs)
-	hall.add_child(ar)
-	ar.position = Vector3(C.x, (top + bottom) * 0.5, C.z)
-	ar.body_entered.connect(func(body: Node3D) -> void:
+	var wide := AABB(Vector3(-6.0, BOX.position.y, -128.0), Vector3(BOX.end.x + 6.0, BOX.size.y, 116.0))
+	OssHallSafety.catch_under(hall, wide.get_center(), wide, FLOOR_Y - 1.3, func(body: Node3D) -> void:
 		if wflat_r(body.global_position) < FLOOR_R + 0.6 and OssFrame.l(body.global_position).y > DEEP_Y - 1.0:
-			return                                         # in the deep: its own catch
+			return
 		_on_caught(body))
 
 
@@ -1173,7 +1183,9 @@ func _physics_process(delta: float) -> void:
 			if q == null:
 				continue
 			var lq := OssFrame.l(q.global_position)         # (local: the hall's own frame)
-			if lq.x > 2.0 and lq.x < 86.0 and lq.z > -128.0 and lq.z < -20.0 and lq.y < 11.0:
+			# the crypt and the whole hall: x to the hall's box (it stopped at x 86 from before the hall grew 1.6x and moved,
+			# so in its east third, the NE and SE chapels, the whole hall went undrawn round the wanderer: 19 Nov)
+			if lq.x > 2.0 and lq.x < BOX.end.x + 2.0 and lq.z > -128.0 and lq.z < -20.0 and lq.y < 11.0:
 				want = true
 		if hall.visible != want:
 			hall.visible = want

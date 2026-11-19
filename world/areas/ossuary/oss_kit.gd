@@ -173,7 +173,7 @@ func quad(key: String, a: Vector3, b: Vector3, c: Vector3, d: Vector3, out: Vect
 		tri = [a, c, b, a, d, c]
 	if not visual:
 		if solid:
-			col_faces.append_array(PackedVector3Array(tri))
+			_quad_col(tri)
 		return
 	var st := _tool(key)
 	var col := Color(shade, shade, shade)
@@ -182,7 +182,15 @@ func quad(key: String, a: Vector3, b: Vector3, c: Vector3, d: Vector3, out: Vect
 		st.set_color(col)
 		st.add_vertex(v)
 	if solid:
-		col_faces.append_array(PackedVector3Array(tri))
+		_quad_col(tri)
+
+
+## A quad's two triangles into the collision, leaving out a zero-area one (a fan's quad closing on its centre): degenerate
+## triangles broke Jolt's contacts round them (see box()).
+func _quad_col(tri: Array[Vector3]) -> void:
+	for i in [0, 3]:
+		if (tri[i + 1] - tri[i]).cross(tri[i + 2] - tri[i]).length_squared() > 1e-10:
+			col_faces.append_array(PackedVector3Array([tri[i], tri[i + 1], tri[i + 2]]))
 
 
 ## Oriented box. `b` columns are the box axes (unit); size is full extents along them.
@@ -199,7 +207,10 @@ func box(key: String, c: Vector3, size: Vector3, b := Basis.IDENTITY, solid := t
 	var h := size.abs() * 0.5
 	if solid and size.x > 0.05 and size.y > 0.05 and size.z > 0.05:
 		solids.append([c, b.orthonormalized(), h, key])
-	if solid:
+	# (19 Nov) a box with no thickness on an axis (an arch panel's jamb of 0) gave the collision zero-area triangles and a
+	# pair of coincident opposite faces; at the pit hall's chapels Jolt let a walking body through everything round them
+	# (the map audit's MA1, zz/visual_probe.tscn --only=chapel): such a box lays no collision
+	if solid and h.x > 0.0005 and h.y > 0.0005 and h.z > 0.0005:
 		_box_col(c, ex * h.x, ey * h.y, ez * h.z)
 	if not visual:
 		return
@@ -403,8 +414,10 @@ func arch_panel(key: String, c: Vector3, along: Vector3, w: float, spring: float
 	var apex := curve[curve.size() / 2].y
 	var top_y: float = maxf(top, spring + apex + 0.3)
 	var p := func(x: float, y: float, side: float) -> Vector3: return c + along * x + Vector3.UP * y + nrm * (side * thick * 0.5)
-	# jambs (solid both sides of the opening, full height)
+	# jambs (solid both sides of the opening, full height; none when the wall beside it is its own)
 	for s: float in [-1.0, 1.0]:
+		if jamb <= 0.0:
+			break
 		var x0: float = s * w * 0.5
 		var x1: float = s * half
 		var mid := c + along * ((x0 + x1) * 0.5) + Vector3.UP * (top_y * 0.5)
