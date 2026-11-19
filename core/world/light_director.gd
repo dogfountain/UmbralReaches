@@ -75,7 +75,10 @@ func _govern_later(w: WeakRef) -> void:
 		LightPolicy.apply_shadows(l)            # one shadow policy for every light
 	if kind in BUDGETED and not _under_enemy(l):
 		_own[l] = l.distance_fade_begin
-		_prio[l] = float(PRIORITY.get(kind, 1.0))
+		# a room's key lights can ask to be kept first (meta ld_prio, the distance multiplier): in the Bone Abbot's hall the
+		# hundred candle clusters near the camera filled the budget and the corona and the bays' lamps were cut (the floor
+		# read black: 19 Nov, the visual pass)
+		_prio[l] = float(l.get_meta(&"ld_prio", PRIORITY.get(kind, 1.0)))
 		_lights.append(l)
 
 

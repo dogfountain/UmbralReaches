@@ -197,6 +197,7 @@ func build(a: Node3D) -> void:
 	_bells()
 	_lights()
 	_catch()
+	_catch_under()
 	_ambience()
 	_underground()
 	built = true
@@ -1005,11 +1006,15 @@ func _lights() -> void:
 	# (map audit: the room grew 1.6x on 18 Nov but its lamps did not -- the gallery lamps hung over the fighting floor at
 	# the old 17.4 m and the corona's 19 m died 17 m short of the wall, so the hall read pitch black from its own door. Every
 	# lamp's place and reach x1.6 with the room; the same seven lamps, no shadows)
-	_omni(hall, "Corona", C + Vector3.UP * 18.0, GOLD, 3.0, 30.4, 0.3)      # ends at the wall: the path outside is the night
-	_omni(hall, "MoundFoot", C + Vector3.UP * 1.4, GOLD, 3.0, 6.0)
+	# (19 Nov, the visual pass) the floor between the mound and the galleries was black: the gallery lamps' pools ended at
+	# the balustrade and the corona's was spent on the vault. The same lamps (the candles on the treads, the corona's wheel)
+	# reach the fighting floor now: the bays' pools 13.5 m and a little brighter, the corona a third stronger, the mound's
+	# candle ring out to 9 m. No new lights.
+	_omni(hall, "Corona", C + Vector3.UP * 18.0, GOLD, 4.0, 31.0, 0.3)      # ends at the wall: the path outside is the night
+	_omni(hall, "MoundFoot", C + Vector3.UP * 1.4, GOLD, 3.0, 9.0, 0.8)
 	for i in 8:
 		var a := 22.5 + 45.0 * float(i)
-		_omni(hall, "Gallery%d" % i, at(a, 27.8, FLOOR_Y + 4.0), GOLD, 2.0, 9.6, 0.6)           # a lamp local to its bay
+		_omni(hall, "Gallery%d" % i, at(a, 27.4, FLOOR_Y + 4.0), GOLD, 2.6, 13.5, 0.6)           # a lamp local to its bay
 	for j in sockets.size():
 		_omni(hall, "Tally%d" % j, sockets[j] + Vector3.UP * 1.8, GRAVE, 1.8, 5.0)
 	_omni(hall, "Door", at(door_ang(), WALL_R - 0.5, FLOOR_Y + 3.2), GOLD, 3.0, 5.5)
@@ -1030,6 +1035,7 @@ func _omni(parent: Node3D, n: String, p: Vector3, col: Color, e: float, r: float
 	l.shadow_enabled = false
 	l.set_meta(&"light_class", "fill")
 	l.set_meta(&"base", {"e": e, "r": r, "a": 1.0})
+	l.set_meta(&"ld_prio", 0.35)                # the hall's own lamps before its candles (LightDirector's budget)
 	parent.add_child(l)
 	l.position = p
 	LightPolicy.apply_fade(l)
@@ -1056,6 +1062,31 @@ func _catch() -> void:
 	hall.add_child(ar)
 	ar.position = Vector3(C.x, DEEP_Y + 1.6, C.z)
 	ar.body_entered.connect(_on_caught)
+
+
+## Under the fighting floor outside the deep (map audit MA1: in a combat strip the wanderer was 37 m out at 1.5 m under the
+## floor's level and fell to y -58 for the rest of the fight; the wall and floor rays find no gap, so whatever let him
+## through, under the floor is never a place to be): a band under the whole hall's footprint, from just under the floor to
+## the bottom of the hall's box, sends him back up onto the inner disc as the deep does. The deep's own catch keeps its circle.
+func _catch_under() -> void:
+	var ar := Area3D.new()
+	ar.name = "UnderCatch"
+	ar.collision_layer = 0
+	ar.collision_mask = Layers.PLAYER
+	ar.monitorable = false
+	var cs := CollisionShape3D.new()
+	var bx := BoxShape3D.new()
+	var top := FLOOR_Y - 1.3
+	var bottom := BOX.position.y - 30.0
+	bx.size = Vector3(BOX.size.x + 6.0, top - bottom, BOX.size.z + 6.0)
+	cs.shape = bx
+	ar.add_child(cs)
+	hall.add_child(ar)
+	ar.position = Vector3(C.x, (top + bottom) * 0.5, C.z)
+	ar.body_entered.connect(func(body: Node3D) -> void:
+		if wflat_r(body.global_position) < FLOOR_R + 0.6 and OssFrame.l(body.global_position).y > DEEP_Y - 1.0:
+			return                                         # in the deep: its own catch
+		_on_caught(body))
 
 
 func _on_caught(body: Node3D) -> void:
