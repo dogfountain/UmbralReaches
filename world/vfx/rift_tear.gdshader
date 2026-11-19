@@ -35,7 +35,11 @@ void fragment() {
 	float sparks = step(0.93, h2(floor(vec2(p.x * 20.0, p.y * 40.0 - TIME * 30.0)))) * (1.0 - smoothstep(0.0, 0.3, abs(d))) * open;
 	vec3 c = mix(vec3(0.004, 0.0, 0.012), edge_col * 2.0, clamp(seam + sparks, 0.0, 1.0));
 	ALBEDO = c;
-	// a tear the camera passes through (a Rift Step toward the lens) fades out close to it instead of filling the screen
-	float near = smoothstep(0.7, 2.4, length(VERTEX));
-	ALPHA = clamp(inside * 0.95 + seam + sparks, 0.0, 1.0) * step(0.001, open) * near;
+	// near the lens the tear is only its seam: the departure tear of a forward step stands ~3 m in front of the camera
+	// and its black void covered a fifth of the frame for 0.3 s (19 Nov). The void thins from 7 m in and is gone by
+	// 2 m; the burning seam thins to a third and goes at the lens.
+	float dist = length(VERTEX);
+	float void_k = smoothstep(2.0, 7.0, dist);
+	float seam_k = mix(0.35, 1.0, smoothstep(2.0, 7.0, dist)) * smoothstep(0.6, 1.6, dist);
+	ALPHA = clamp(inside * 0.95 * void_k + (seam + sparks) * seam_k, 0.0, 1.0) * step(0.001, open);
 }

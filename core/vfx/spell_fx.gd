@@ -224,7 +224,13 @@ static func implosion(feet: Vector3, radius: float) -> void:
 static func rift_out(at: Vector3) -> void:
 	tear(at, 2.6, 0.5)
 	Vfx.burst(at + Vector3.UP, Color(1.4, 0.6, 3.0), {"count": 40, "life": 0.35, "speed": Vector2(0.0, 0.5), "size": 0.05, "radius": 1.3, "radial": -22.0, "gravity": 0.0, "trail": 0.08})
-	Vfx.burst(at + Vector3.UP, Color(0.02, 0.0, 0.05, 0.85), {"count": 16, "life": 0.5, "speed": Vector2(0.2, 0.8), "size": 0.5, "radius": 0.5, "gravity": 0.4, "additive": false})
+	# the dark puff of the departure: smaller and thinner when it is close to the lens (a forward step leaves it ~3 m
+	# in front of the camera, where sixteen half-metre smoke cards were a black blot over the tear)
+	var tree := Engine.get_main_loop() as SceneTree
+	var near := 1.0
+	if tree != null and tree.root.get_camera_3d() != null:
+		near = clampf((tree.root.get_camera_3d().global_position.distance_to(at + Vector3.UP) - 1.5) / 5.0, 0.25, 1.0)
+	Vfx.burst(at + Vector3.UP, Color(0.02, 0.0, 0.05, 0.85 * near), {"count": int(16.0 * near), "life": 0.5, "speed": Vector2(0.2, 0.8), "size": 0.5 * lerpf(0.6, 1.0, near), "radius": 0.5, "gravity": 0.4, "additive": false})
 
 
 static func rift_in(at: Vector3) -> void:
