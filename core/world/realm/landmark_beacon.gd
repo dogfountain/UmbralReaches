@@ -9,7 +9,12 @@ extends Node3D
 
 const NEAR_OFF := 22.0                  ## closer than this the glow is out (the asset's own light is in)
 const NEAR_ON := 70.0                   ## fully in from here
-const ANGLE := 0.02                   ## on-screen size, radians (about 1.1 degrees): a point, not a beacon
+const ANGLE := 0.011                  ## on-screen size, radians (about 0.6 degrees): a point of light, not a ball
+## (19 Nov, the visual pass) at 1.1 degrees with a wide white skirt the seventeen far glows read as pale orbs sprinkled over
+## every vista and the sky (vista_realm_from_se, region_downs_0): lens dust, not places. Now a far glow is a small
+## saturated point in its own colour with a short halo; a warm one (a fire, a lit window) flickers like a flame, a cold one
+## breathes; and a place's glow thins past FAR_OFF so the whole Realm is not lit at once (a great one's arena keeps its)
+const FAR_OFF := Vector2(300.0, 460.0)
 
 var anchor := Vector3.ZERO              ## the marker's world position (compass, map)
 var tint := Color(1.0, 0.8, 0.5)        ## the compass diamond and the glow
@@ -21,6 +26,8 @@ var ember := false                      ## taller than wide, with a slow breath
 var _mi: MeshInstance3D
 var _mat: StandardMaterial3D
 var _t := 0.0
+var _col := Color.WHITE
+var _warm := false
 static var _tex: ImageTexture
 static var _mesh: QuadMesh
 
@@ -42,7 +49,10 @@ func _ready() -> void:
 	_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
 	_mat.disable_fog = true
 	_mat.albedo_texture = _spark()
-	_mat.albedo_color = Color(tint.r, tint.g, tint.b, 0.0)
+	var hsv := Vector3(tint.h, minf(1.0, tint.s * 1.35 + 0.12), tint.v)
+	_col = Color.from_hsv(hsv.x, hsv.y, hsv.z)
+	_warm = tint.r > tint.b * 1.15
+	_mat.albedo_color = Color(_col.r, _col.g, _col.b, 0.0)
 	_mi = MeshInstance3D.new()
 	_mi.name = "FarGlow"
 	_mi.mesh = _mesh
@@ -67,11 +77,15 @@ func _process(delta: float) -> void:
 	var a := smoothstep(NEAR_OFF, NEAR_ON, d)
 	if reach > 0.0:
 		a *= 1.0 - smoothstep(reach * 2.2, reach * 3.4, d)
+	if not ember:
+		a *= 1.0 - smoothstep(FAR_OFF.x, FAR_OFF.y, d)
 	_mi.visible = a > 0.01
 	if not _mi.visible:
 		return
 	_t += delta
 	var breath := 0.88 + 0.12 * sin(_t * 0.9) + 0.05 * sin(_t * 2.7)
+	if _warm:
+		breath = 0.8 + 0.1 * sin(_t * 7.3) + 0.07 * sin(_t * 13.1 + 1.7) + 0.05 * sin(_t * 3.1)   # a flame, far off
 	var s := d * ANGLE
 	_mi.scale = Vector3(s, s * (1.7 if ember else 1.0), 1.0)
 	_mat.albedo_color.a = minf(a * strength * breath, 1.0)
@@ -87,7 +101,7 @@ static func _spark() -> ImageTexture:
 		for x in n:
 			var r := Vector2(float(x) + 0.5 - n * 0.5, float(y) + 0.5 - n * 0.5).length() / (n * 0.5)
 			var a := clampf(1.0 - r, 0.0, 1.0)
-			a = a * a * 0.5 + pow(a, 5.0) * 0.35
+			a = a * a * 0.14 + pow(a, 9.0) * 0.95                # a hot point with a short halo (was a wide soft ball)
 			img.set_pixel(x, y, Color(1, 1, 1, clampf(a, 0.0, 1.0)))
 	_tex = ImageTexture.create_from_image(img)
 	return _tex

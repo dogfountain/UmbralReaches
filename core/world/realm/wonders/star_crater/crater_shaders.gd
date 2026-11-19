@@ -273,15 +273,15 @@ void fragment() {
 	float flick = 0.7 + 0.3 * sin(TIME * (0.4 + ray.x * 4.0) + ray.y * 6.28);
 	float body = pow(1.0 - t, 1.7) * smoothstep(0.0, 0.08, t) * exp(-across * across * 4.0);
 	float dist = length(VERTEX);
-	ALBEDO = mix(vec3(1.0, 0.9, 0.72), vec3(0.75, 0.7, 1.0), t) * 1.4;
-	ALPHA = body * flick * 0.55 * (1.0 - smoothstep(90.0, 160.0, dist));
+	ALBEDO = mix(vec3(1.0, 0.82, 0.6), vec3(0.72, 0.62, 1.0), t) * 1.1;
+	ALPHA = body * flick * 0.3 * (1.0 - smoothstep(90.0, 160.0, dist));
 }"""
 
 ## A soft additive disc that always faces the eye and thins out when you are close: the star as a point of light.
 const HALO := """shader_type spatial;
 render_mode unshaded, blend_add, depth_draw_never, cull_disabled, fog_disabled;
-uniform vec3 tint = vec3(1.0, 0.9, 0.74);
-uniform float amount = 0.85;
+uniform vec3 tint = vec3(1.0, 0.8, 0.58);
+uniform float amount = 0.7;
 void vertex() {
 	MODELVIEW_MATRIX = VIEW_MATRIX * mat4(INV_VIEW_MATRIX[0], INV_VIEW_MATRIX[1], INV_VIEW_MATRIX[2], MODEL_MATRIX[3]);
 	MODELVIEW_NORMAL_MATRIX = mat3(MODELVIEW_MATRIX);
@@ -291,11 +291,11 @@ void fragment() {
 	float r = length(p);
 	float core = exp(-r * r * 26.0);
 	float body = exp(-r * 4.2) * (1.0 - smoothstep(0.7, 1.0, r));
-	float streak = exp(-abs(p.x) * 80.0) * exp(-abs(p.y) * 3.4) * 0.45 + exp(-abs(p.y) * 90.0) * exp(-abs(p.x) * 5.0) * 0.35;
-	core += streak * (1.0 - smoothstep(0.55, 1.0, r));
+	// (19 Nov, the visual pass: no cross streak. With the rays it bloomed into a white eight-pointed lens star over every view
+	// of the pans, vista_realm_from_se; umbral-donts: no anamorphic streaks. A warm point with a soft body.)
 	float pulse = 0.9 + 0.1 * sin(TIME * 0.8);
 	float dist = length(VERTEX);
 	float near = smoothstep(22.0, 80.0, dist);
-	ALBEDO = tint * (core * 1.8 + body * 0.55) * pulse * amount;
+	ALBEDO = tint * (core * 1.25 + body * 0.45) * pulse * amount;
 	ALPHA = clamp((core + body * 0.5) * near, 0.0, 1.0);
 }"""

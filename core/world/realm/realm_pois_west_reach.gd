@@ -83,6 +83,9 @@ static func _mat(kind: String) -> Material:
 		m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 		m.vertex_color_use_as_albedo = true
 		m.cull_mode = BaseMaterial3D.CULL_DISABLED
+		# a cold glow under the gills, not a neon band (region_lanternwood_0, 19 Nov: the brightest, most saturated thing in
+		# the Far Reaches, as loud as a UI mark): darker and a little greyed toward the night
+		m.albedo_color = Color(0.62, 0.68, 0.7)
 	else:
 		m = Kit37.mat("daub").duplicate() as StandardMaterial3D
 		m.albedo_texture = null                       # the skin's colour is the vertex tone; the set gives it grain

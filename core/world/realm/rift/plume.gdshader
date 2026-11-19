@@ -90,5 +90,9 @@ void fragment() {
 	c += glow_color * glow_energy * under * under * mix(0.15, 1.0, smoothstep(0.35, 0.8, 1.0 - puff)) * (0.5 + 0.5 * n);
 	c = mix(c, haze_color, smoothstep(60.0, haze_far, -VERTEX.z) * 0.5);
 	ALBEDO = c;
+	// close to, the column thins away: from the summit's deck (its spine passes 18 m east of the Warden's floor) its shells
+	// were a black curtain over half the arena (places/arena_ascended_warden: 19 Nov, the visual pass); a column is read
+	// from afar, and near its foot the slow puffs carry it
+	a *= smoothstep(24.0, 62.0, -VERTEX.z);
 	ALPHA = clamp(a * density, 0.0, 1.0);
 }
