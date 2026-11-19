@@ -742,6 +742,22 @@ func _pool() -> void:
 	kill.add_child(cs)
 	holder.add_child(kill)
 	kill.position = Vector3(8.0, OssFrame.POOL_Y - 2.4, -66.0)      # (Lava lifts its shape 1.2 m: the top face stands just under the surface)
+	# the pool's face: the Realm floods the pit with its open-water sheet, which takes the vortex sky and read from the
+	# Count door and the tiers as a pale void at the quarry's foot (the map audit's F27). Black still water lies over it, a
+	# few centimetres up: the candles' light glints on it, the sky does not.
+	var face := MeshInstance3D.new()
+	face.name = "PoolFace"
+	var pm := PlaneMesh.new()
+	pm.size = Vector2(OssFrame.PIT_X1_HALL - OssFrame.PIT_X0 + 6.0, OssFrame.PIT_Z1 - OssFrame.PIT_Z0 + 6.0)
+	face.mesh = pm
+	var wm := StandardMaterial3D.new()
+	wm.albedo_color = Color(0.012, 0.016, 0.02)
+	wm.roughness = 0.3
+	wm.metallic_specular = 0.2
+	face.material_override = wm
+	face.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	holder.add_child(face)
+	face.position = Vector3((OssFrame.PIT_X0 + OssFrame.PIT_X1_HALL) * 0.5, OssFrame.POOL_Y + 0.04, (OssFrame.PIT_Z0 + OssFrame.PIT_Z1) * 0.5)
 
 
 func _spawns() -> void:
@@ -874,13 +890,75 @@ func _count_cut() -> void:
 	k.commit(host, "CountCutBody")
 	while is_inside_tree() and root and not root.has_meta("realm_done") and Time.get_ticks_msec() - t0 < 180000:
 		await get_tree().process_frame
-	var n := punch_terrain(root, OssFrame.wrect(Rect2(COUNT_DOOR_X - 0.6, z0 + 0.2, 4.6, z1 - z0 - 0.4)))
-	print("OSSUARY counting door cut: face to y %.1f, %d ground triangles lifted" % [crest, n])
+	var hole: Array = []
+	var n := punch_terrain(root, OssFrame.wrect(Rect2(COUNT_DOOR_X - 0.6, z0 + 0.2, 4.6, z1 - z0 - 0.4)), hole)
+	var skirt := 0.0
+	if not hole.is_empty():
+		skirt = _count_skirt(host, space, hole[0] as AABB, z0, z1, crest)
+	_count_bank(host, crest)
+	print("OSSUARY counting door cut: face to y %.1f, %d ground triangles lifted, the face carried %.1f m past the shaft" % [crest, n, skirt])
+
+
+## The bank's face between the shaft's south end and the gallery: from the Count door, looking down the Counting Stair,
+## the quarry's east face there was open (the land's underside and the pit's pool showed as a pale void: the map audit's
+## F27). A face of great rock slabs closes it, from the pool to the bank's crest, standing on the bank's foot (local
+## x 29) south of the shaft (z -81.6 .. -67.3): off the threshold, the stair and the gallery.
+func _count_bank(host: Node3D, crest: float) -> void:
+	var rk := load("res://core/world/realm/rock_kit.gd")
+	var wb := Basis(Vector3(0.0, 0.0, 1.0), Vector3.UP, Vector3(-1.0, 0.0, 0.0))      # width along local z, depth into the bank
+	var zs := [-79.2, -74.4, -69.6]
+	var y := LAVA_Y - 1.0
+	var row := 0
+	while y < crest:
+		var hgt := minf(8.4, crest + 0.6 - y)
+		for i in zs.size():
+			var c := Vector3(30.3 + 0.25 * float((i + row) % 2), y + hgt * 0.5, float(zs[i]) + 0.3 * float(row % 2))
+			rk.spawn(host, rk.slab(3480 + row * 7 + i, Vector3(5.3, hgt + 0.5, 2.6), "granite", 0.06), OssFrame.xf() * Transform3D(wb, c), true, 160.0)
+		y += hgt - 0.4
+		row += 1
+
+
+## The ground's triangles come out whole, so the cut reaches past the shaft as far as its last triangle does: from the Count
+## door, looking down the Counting Stair, the bank's underside showed through beside the face as a pale void (the map audit's
+## F27, 19 Nov). The face and the cap are carried on over the whole hole (`wb`, the lifted triangles' box, world): along the
+## pit side in the same dressed stone, an end wall back into the bank, the cap flush with its top. The shaft itself (z0 .. z1)
+## is untouched, so the stair is never in the way. Returns how far the face runs past the shaft's ends, in all.
+func _count_skirt(host: Node3D, space: PhysicsDirectSpaceState3D, wb: AABB, z0: float, z1: float, crest: float) -> float:
+	var a := OssFrame.l(wb.position)
+	var b := OssFrame.l(wb.end)
+	var lo := Vector3(minf(a.x, b.x), minf(a.y, b.y), minf(a.z, b.z))
+	var hi := Vector3(maxf(a.x, b.x), maxf(a.y, b.y), maxf(a.z, b.z))
+	var k := OssKit.new()
+	k.keep_lanes = false
+	var fx := COUNT_DOOR_X - 0.25
+	var xe := maxf(hi.x + 0.6, COUNT_DOOR_X + 5.0)
+	var ran := 0.0
+	for side: float in [1.0, -1.0]:
+		var za := (z1 + 0.3) if side > 0.0 else (z0 - 0.3)       # the cap's edge as built
+		var zb := (hi.z + 0.6) if side > 0.0 else (lo.z - 0.6)
+		if (zb - za) * side <= 0.05:
+			continue
+		var top := crest
+		var z := za
+		while (zb - z) * side > -0.01:
+			top = maxf(top, _ground_l(space, xe + 0.6, z) + 0.45)
+			z += 1.0 * side
+		_wall(k, "stone", Vector3(fx, PIT_Y, za), Vector3(fx, PIT_Y, zb), top - PIT_Y, 0.5, [])
+		k.block("floor", Vector3(COUNT_DOOR_X, top - 0.4, minf(za, zb)), Vector3(xe, top, maxf(za, zb)))
+		k.block("stone", Vector3(fx - 0.25, PIT_Y - 1.0, zb - 0.25), Vector3(xe, top - 0.4, zb + 0.25), true, 0.86)
+		k.pinnacle("stone", Vector3(fx - 0.45, top, zb), 0.62, 0.8, 1.7)
+		ran += absf(zb - za)
+	if hi.x + 0.6 > COUNT_DOOR_X + 5.0:
+		k.block("floor", Vector3(COUNT_DOOR_X + 5.0, crest - 0.4, z0 - 0.3), Vector3(hi.x + 0.6, crest, z1 + 0.3))
+	if ran > 0.0 or hi.x + 0.6 > COUNT_DOOR_X + 5.0:
+		k.commit(host, "CountSkirtBody")
+	return ran
 
 
 ## r34 crypt: take the terrain triangles whose centres lie in `r` out of Zone/Terrain and its body.
-static func punch_terrain(root: Node, r: Rect2) -> int:
+static func punch_terrain(root: Node, r: Rect2, hole: Array = []) -> int:
 	var n := 0
+	var box := AABB()
 	var terrain := root.find_child("Terrain", true, false) as MeshInstance3D
 	if terrain and terrain.mesh is ArrayMesh:
 		var m := terrain.mesh as ArrayMesh
@@ -892,6 +970,9 @@ static func punch_terrain(root: Node, r: Rect2) -> int:
 			for t in range(0, idx.size(), 3):
 				var c := xf * ((verts[idx[t]] + verts[idx[t + 1]] + verts[idx[t + 2]]) / 3.0)
 				if r.has_point(Vector2(c.x, c.z)):
+					for q in 3:
+						var vw := xf * verts[idx[t + q]]
+						box = AABB(vw, Vector3.ZERO) if n == 0 and q == 0 else box.expand(vw)
 					idx[t + 1] = idx[t]
 					idx[t + 2] = idx[t]
 					n += 1
@@ -902,6 +983,7 @@ static func punch_terrain(root: Node, r: Rect2) -> int:
 				m.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
 				if mat:
 					m.surface_set_material(0, mat)
+				hole.append(box)
 	var body := root.find_child("TerrainBody", true, false) as StaticBody3D
 	if body:
 		for cs in body.find_children("*", "CollisionShape3D", true, false):
