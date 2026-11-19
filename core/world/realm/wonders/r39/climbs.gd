@@ -134,6 +134,9 @@ func _tower(root: Node, i: int, c: Vector2, lo: float, hi: float, rng: RandomNum
 	var b := Basis.IDENTITY
 	var o := Vector3(c.x, y0, c.y)
 	if not k.cached(WK.fp(SELF, ["tower", i, o, WK.tsig(c, 10.0)])):
+		# the shaft, its merlons, the landing and its posts, the second flight, the deck and its hearth stones are a modelled glb
+		# (wonder_climb_tower.glb, tools/blender/wonder_towers.py, placed below); the kit lays the same blocks with its visual off
+		k.kit.visual = false
 		k.kit.box("stone_big", Vector3(o.x, (low + y0) * 0.5, o.z), Vector3(7.4, y0 - low, 7.4), b, true, 0.86)
 		# the shaft: four walls 0.9 thick, breached (one low section, a window slit each side), 13 m
 		var h := 13.0
@@ -146,6 +149,7 @@ func _tower(root: Node, i: int, c: Vector2, lo: float, hi: float, rng: RandomNum
 		for j in 4:
 			var mh := 0.9 - 0.25 * float(j % 2) - 0.1 * float(j)
 			k.kit.box("ruin_big", o + Vector3(-2.2 + 1.45 * float(j), h + mh * 0.5 - 0.05, -3.0), Vector3(1.0, mh, 0.9), b, true, 0.8)
+		k.kit.visual = true
 		k.window(o + Vector3(0.0, 6.0, -3.46), Vector3.RIGHT, Vector3.FORWARD, 0.7, 1.6)
 		k.window(o + Vector3(-3.46, 8.0, 0.0), Vector3.BACK, Vector3.LEFT, 0.7, 1.6)
 		k.lamp(o + Vector3(0.0, 6.4, -3.7), Color(1.0, 0.66, 0.36), 1.0, 8.0)
@@ -153,6 +157,7 @@ func _tower(root: Node, i: int, c: Vector2, lo: float, hi: float, rng: RandomNum
 		# deck at 12.2 m
 		var ga := WK.h(c.x - 3.0, c.y - 8.0)
 		k.kit.stairs("stone_big", Vector3(o.x - 3.0, ga + 0.1, o.z - 8.4), Vector3(o.x - 3.0, y0 + 6.0, o.z - 4.4), 1.8, int(ceilf((y0 + 6.0 - ga) / 0.36)), ga - 0.8)
+		k.kit.visual = false
 		k.kit.box("stone_big", o + Vector3(0.5, 5.8, -4.9), Vector3(10.0, 0.4, 2.0), b, true, 0.9)
 		k.kit.box("stone_big", o + Vector3(-3.0, 3.0, -4.4), Vector3(0.8, 6.0, 0.8), b, true, 0.85)
 		k.kit.box("stone_big", o + Vector3(4.8, 3.0, -5.4), Vector3(0.8, 6.0, 0.8), b, true, 0.85)
@@ -165,6 +170,7 @@ func _tower(root: Node, i: int, c: Vector2, lo: float, hi: float, rng: RandomNum
 		for j in 6:
 			var a := TAU * float(j) / 6.0
 			k.kit.box("stone_big", o + Vector3(cos(a) * 1.2, 12.2, sin(a) * 1.2 + 0.2), Vector3(0.5, 0.35, 0.4), Basis(Vector3.UP, a), false, 0.8)
+		k.kit.visual = true
 		k.fire(o + Vector3(0.0, 12.5, 0.2), 0.8, 1.6)
 		k.chest("climb_tower_%d" % i, "iron", o + Vector3(-1.8, 12.0, 1.4), 0.5, {"grave_ash": 14 + i, "grave_iron": 2, "relic_fragment": 1 if i % 2 == 0 else 0})
 		Dress.rubble(k, o + Vector3(5.0, 0.0, 3.0), 3.0, 12, "ruin_big")
@@ -172,6 +178,7 @@ func _tower(root: Node, i: int, c: Vector2, lo: float, hi: float, rng: RandomNum
 		Dress.strands(k, o + Vector3(-3.2, 11.0, -3.5), o + Vector3(3.2, 11.0, -3.5), 7, 3.0)
 		Dress.banner(k, o + Vector3(-3.0, 11.8, 3.5), Vector3.RIGHT, 1.8, 3.6, Vector3.BACK)
 	k.host.set_meta("find_at", o + Vector3(-1.8, 12.0, 1.4))
+	k.model("wonder_climb_tower.glb", Transform3D(Basis.IDENTITY, o))
 	k.commit(150.0)
 
 

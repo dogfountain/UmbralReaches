@@ -121,6 +121,9 @@ func _tower(no: int, c: Vector2, glo: float, ghi: float) -> void:
 	var rise := 2.75
 	var dk := fl + 4.0 * rise
 	if not k.cached(WK.fp(SELF, [mid, a, y0, no, WK.tsig(c, 14.0)])):
+		# the keep's masonry, stair, deck and cresset are a modelled glb (wonder_wardens_tower.glb, tools/blender/wonder_towers.py,
+		# placed below); the kit lays the same blocks with its visual off: their collision, stair ramps and solids as before
+		k.kit.visual = false
 		# the plinth (its top is the hall's floor), a thin floor slab, the four walls (the west one with the door z 0..1.6, 2.9 m high)
 		k.kit.box("stone_big", Vector3(mid.x, (low + y0 + fl - 0.04) * 0.5, mid.z), Vector3(11.8, y0 + fl - 0.04 - low, 11.8), rot, true, 0.86)
 		_blk("floor", -HI, HI, -HI, HI, fl - 0.04, fl, 0.9)
@@ -151,6 +154,7 @@ func _tower(no: int, c: Vector2, glo: float, ghi: float) -> void:
 		for sx: float in [-1.0, 1.0]:
 			for sz: float in [-1.0, 1.0]:
 				_blk("stone_big", sx * (HI + WALL * 0.5) - 0.7, sx * (HI + WALL * 0.5) + 0.7, sz * (HI + WALL * 0.5) - 0.7, sz * (HI + WALL * 0.5) + 0.7, top, top + 1.8, 0.9)
+		k.kit.visual = true
 		# windows: lit slits on all four faces at two heights, a lamp in the hall, a fire by the door
 		var ex := rot * Vector3(1.0, 0.0, 0.0)
 		var ez := rot * Vector3(0.0, 0.0, 1.0)
@@ -182,12 +186,11 @@ func _tower(no: int, c: Vector2, glo: float, ghi: float) -> void:
 		k.chest("wardens_tower_%d" % no, tier, _w(-1.5, fl, -1.4), a, loot)
 		# the cresset on the roof: an iron tripod and basin (its flame is hidden until lit, a cold pilot glow shows until then)
 		var cc0 := _w(0.0, dk, 0.0)
+		k.kit.visual = false                           # (the glb's cast-iron basin on its footing)
 		k.kit.box("iron", cc0 + Vector3.UP * 0.5, Vector3(1.6, 1.0, 1.6), rot, true, 0.7)
-		k.kit.box("dark", cc0 + Vector3.UP * 1.02, Vector3(1.9, 0.14, 1.9), rot, false, 0.5)
-		for i in 3:
-			var ang := float(i) * TAU / 3.0
-			k.tube("iron", cc0 + Vector3(cos(ang) * 1.0, 0.0, sin(ang) * 1.0), cc0 + Vector3(cos(ang) * 0.5, 1.05, sin(ang) * 0.5), 0.1, 0.1, 4, false, 0.6)
+		k.kit.visual = true
 		_dress(no)
+	k.model("wonder_wardens_tower.glb", Transform3D(rot, mid + Vector3(0.0, y0, 0.0)))
 	# the cresset's own nodes (never cached: they are toggled and saved by the player's lighting)
 	var cc := _w(0.0, dk, 0.0)
 	var flames: Array[Node3D] = k.fire(cc + Vector3.UP * 1.1, 2.8, 4.6, true, true)
@@ -246,7 +249,5 @@ func _dress(no: int) -> void:
 	Dress.crate(k, _w(-HI - WALL - 2.6, 0.3, 4.6), 0.3, 0.9)
 	Dress.strands(k, _w(-5.0, 12.4, e), _w(5.0, 12.4, e), 6, 4.0)
 	Dress.strands(k, _w(e, 12.4, -5.0), _w(e, 12.4, 5.0), 6, 3.5)
-	Dress.crack(k, _w(-5.2, 3.0, -4.0), _w(-5.2, 9.0, -1.0), 0.14)
-	Dress.carved_band(k, _w(-5.0, 11.2, -e - 0.1), _w(5.0, 11.2, -e - 0.1), 8, Vector3(1.0, 0.45, 0.3))
 	if no == 6:
 		Dress.camp(k, _w(-HI - WALL - 4.5, 0.3, 0.4), 0.0)

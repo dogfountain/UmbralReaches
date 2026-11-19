@@ -32,6 +32,10 @@ var keep_lanes := true                  ## reject floor clutter on FIXED_LANES
 var always_lanes := false
 ## r34 crypt: prop cell size (a big room like the pit hall draws far fewer, larger cells)
 var chunk := CHUNK
+## false: box(), quad() and everything built from them (stairs, arch panels, foundations) lay their collision and their
+## solids but draw nothing: a structure whose look is a modelled glb (Blender, Luke's asset bar) keeps exactly the walk,
+## the stairs' ramps and the props' clipping test it had (the visual pass, 19 Nov)
+var visual := true
 
 static var _mats: Dictionary = {}
 static var _skulls: Array[ArrayMesh] = []
@@ -163,11 +167,15 @@ func _tool(key: String) -> SurfaceTool:
 
 ## One quad a-b-c-d (any rotation), facing `out`. Flat-shaded. `solid` adds it to collision.
 func quad(key: String, a: Vector3, b: Vector3, c: Vector3, d: Vector3, out: Vector3, solid := true, shade := 1.0) -> void:
-	var st := _tool(key)
 	var n := out.normalized()
 	var tri: Array[Vector3] = [a, b, c, a, c, d]
 	if (b - a).cross(c - a).dot(n) > 0.0:     # counter-clockwise from outside -> flip
 		tri = [a, c, b, a, d, c]
+	if not visual:
+		if solid:
+			col_faces.append_array(PackedVector3Array(tri))
+		return
+	var st := _tool(key)
 	var col := Color(shade, shade, shade)
 	for v in tri:
 		st.set_normal(n)
@@ -193,6 +201,8 @@ func box(key: String, c: Vector3, size: Vector3, b := Basis.IDENTITY, solid := t
 		solids.append([c, b.orthonormalized(), h, key])
 	if solid:
 		_box_col(c, ex * h.x, ey * h.y, ez * h.z)
+	if not visual:
+		return
 	var mn := minf(size.x, minf(size.y, size.z))
 	# small, uneven arris (1-3 cm, never a fixed 4.5 cm chamfer): real dressed stone is eased, not milled
 	var rb := float(absi(hash(Vector3i((c * 37.0).round()))) % 1000) / 1000.0

@@ -14,6 +14,8 @@ const Land := preload("res://core/world/realm/realm_land.gd")
 const Wayfinding := preload("res://core/world/realm/realm_wayfinding.gd")
 const AcousticZones := preload("res://core/audio/acoustic_zones.gd")
 const Props := preload("res://core/world/realm/site_props.gd")
+const WestKit := preload("res://core/world/realm/west_marches_kit.gd")
+const MeshMerge := preload("res://core/util/mesh_merge.gd")
 
 const FIRE_COL := Color(1.0, 0.6, 0.28)
 
@@ -664,13 +666,38 @@ func beacon(at: Vector3, col: Color, radius := 1.0, ceiling := 9.0, reach := 0.0
 ## top by `taper`) carries the silhouette to the horizon: a landmark's whole mass costs a hull's few triangles far away, so
 ## the near detail (relief, ornament) is free at distance. The flame cards, halos and lit glass stay (a fire is still a fire
 ## from afar); the lights and beacons are separate nodes. Call after commit().
+## The structure's look as a modelled glb (art/models/<file>, Blender: Luke's asset bar, 18 Nov), standing at `xf` (world)
+## under the kit's host, its sets dressed as the West Marches' models are (their tiling PBR sets). The kit's own boxes for it are
+## laid with `kit.visual` off, so the collision, stair ramps and solids are the kit's as before. With `far_end` > 0 the
+## model (and the kit's own meshes) hand over to a matte hull of the model's box from that distance.
+func model(file: String, xf: Transform3D, far_end := 0.0, taper := 0.0, col := Color(0.2, 0.2, 0.22)) -> Node3D:
+	var root := WestKit.place(host, file, xf)
+	if root == null:
+		return null
+	root.name = "Model_" + file.get_file().get_basename()
+	var box := AABB()
+	var first := true
+	for n in root.find_children("*", "MeshInstance3D", true, false):
+		var mi := n as MeshInstance3D
+		if String(mi.name).ends_with("__far") or String(mi.name).contains("__far."):
+			mi.get_parent().remove_child(mi)            # the file's own silhouette: the kit's hull stands for it
+			mi.free()
+			continue
+		var b := (host.global_transform.affine_inverse() * mi.global_transform) * mi.get_aabb()
+		box = b if first else box.merge(b)
+		first = false
+	if far_end > 0.0 and not first:
+		FarDetail.register(host, FarDetail.hull(box, taper, col), Transform3D.IDENTITY, far_end)
+	return root
+
+
 func far(near_end := 150.0, taper := 0.0, col := Color(0.16, 0.17, 0.2)) -> void:
 	var box := AABB()
 	var first := true
 	for ch in host.get_children():
 		var mi := ch as MeshInstance3D
-		if mi != null and String(mi.name).begins_with("Mesh_") and String(mi.name) != "Mesh_glow":
-			var a := mi.get_aabb()
+		if mi != null and (String(mi.name).begins_with("Mesh_") or mi.has_meta(&"model_part")) and String(mi.name) != "Mesh_glow":
+			var a := mi.transform * mi.get_aabb()
 			box = a if first else box.merge(a)
 			first = false
 	if first:
@@ -683,9 +710,35 @@ func far(near_end := 150.0, taper := 0.0, col := Color(0.16, 0.17, 0.2)) -> void
 				gi.visibility_range_end = 0.0
 
 
+## The modelled glbs under the host (model()) become plain meshes of the host, merged by material (MeshMerge: one draw a
+## material for the whole kit, as the kit's own boxes were; an avenue of ten obelisks would otherwise be thirty draws).
+func _merge_models() -> void:
+	var roots: Array[Node] = []
+	for ch in host.get_children():
+		if String(ch.name).begins_with("Model_"):
+			roots.append(ch)
+	if roots.is_empty():
+		return
+	for r in roots:
+		for n in r.find_children("*", "MeshInstance3D", true, false):
+			var mi := n as MeshInstance3D
+			var xf := host.global_transform.affine_inverse() * mi.global_transform
+			mi.get_parent().remove_child(mi)
+			host.add_child(mi)
+			mi.transform = xf
+			mi.set_meta(&"model_part", true)
+		r.get_parent().remove_child(r)
+		r.free()
+	MeshMerge.merge_children(host)
+	for ch in host.get_children():
+		if ch is MeshInstance3D and not String(ch.name).begins_with("Mesh_") and String(ch.name).contains("__"):
+			ch.set_meta(&"model_part", true)            # (the merged ones carry no meta of their pieces)
+
+
 func commit(range_end := 0.0) -> int:
 	if _key != "" and not _loaded:
 		_save()
+	_merge_models()
 	var n := kit.commit(host, host.name + "Body")
 	n += _commit_props()
 	# flames and halos: one MultiMesh each (per halo size) for the whole kit
@@ -741,11 +794,12 @@ func commit(range_end := 0.0) -> int:
 			host.set_meta("radius", clampf(bb.size.length() * 0.35, 8.0, 40.0))
 	if range_end > 0.0:
 		for ch in host.get_children():
-			if ch is MeshInstance3D or ch is MultiMeshInstance3D:
-				var gi := ch as GeometryInstance3D
-				gi.visibility_range_end = range_end
-				gi.visibility_range_end_margin = range_end * 0.1
-				gi.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
+			if not (ch is MeshInstance3D or ch is MultiMeshInstance3D):
+				continue
+			var gi := ch as GeometryInstance3D
+			gi.visibility_range_end = range_end
+			gi.visibility_range_end_margin = range_end * 0.1
+			gi.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
 	return n
 
 
@@ -767,6 +821,12 @@ func prop(file: String, at: Vector3, yaw: float, size: float, by_height := false
 	var sc := size / ext
 	var foot := Vector3(bx.get_center().x, bx.position.y, bx.get_center().z)
 	_prec.append([file, Transform3D(Basis(Vector3.UP, yaw).scaled(Vector3(sc, sc, sc)), at) * Transform3D(Basis.IDENTITY, -foot)])
+
+
+## A modelled prop (art/models/props/<file>.glb) at `xf` as it was authored (no fit to a size): the regions' signature props,
+## modelled to the kit's own measures (tools/blender/signature_props.py), so they stand where the kit's colliders do.
+func prop_xf(file: String, xf: Transform3D) -> void:
+	_prec.append([file, xf])
 
 
 func _commit_props() -> int:

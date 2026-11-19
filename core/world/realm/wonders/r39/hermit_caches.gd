@@ -94,6 +94,9 @@ func _cache(root: Node, i: int, p: Vector2, level: float) -> void:
 	var c := Vector3(p.x, g, p.y)
 	var kind := i % 3
 	if not k.cached(WK.fp(SELF, [c, i, level, WK.tsig(p, 7.0)])):
+		# the pad, the pole and its crook, and each kind's shelter are modelled glbs (hermit_<kind>.glb, tools/blender/wonder_hermit.py,
+		# placed below); the kit lays the same blocks with its visual off (their collision as before)
+		k.kit.visual = false
 		# the footing: a stone pad under everything
 		k.kit.box("stone", Vector3(c.x, (lo - 0.8 + g + 0.12) * 0.5, c.z), Vector3(9.0, g + 0.12 - (lo - 0.8), 9.0), b, true, 0.86)
 		var rx := b * Vector3(1.0, 0.0, 0.0)
@@ -103,11 +106,13 @@ func _cache(root: Node, i: int, p: Vector2, level: float) -> void:
 		k.tube("wood_big", pole, pole + Vector3.UP * 7.2, 0.2, 0.14, 6, true, 0.7)
 		k.beam("wood_big", pole + Vector3.UP * 6.9, pole + Vector3.UP * 6.9 + rx * -1.1, 0.12, 0.12, false, 0.7)
 		k.kit.box("iron", pole + rx * -1.1 + Vector3.UP * 6.7, Vector3(0.04, 0.3, 0.04), Basis.IDENTITY, false, 0.6)
+		k.kit.visual = true
 		k.kit.lantern(pole + rx * -1.1 + Vector3.UP * 6.35, Vector3(0.36, 0.5, 0.36), b)
 		k.lamp(pole + rx * -1.1 + Vector3.UP * 6.3, Color(1.0, 0.68, 0.38), 1.6, 12.0)
 		var loot := {"grave_ash": 10 + i, "grave_iron": 1 + (i % 2)}
 		if i % 4 == 3:
 			loot["relic_fragment"] = 1
+		k.kit.visual = false
 		match kind:
 			0:
 				# lean-to: a pitched shed of planks against the back, a bedroll, a hearth ring with a fire
@@ -119,6 +124,7 @@ func _cache(root: Node, i: int, p: Vector2, level: float) -> void:
 				for q in 8:
 					var a := TAU * float(q) / 8.0
 					k.kit.box("stone", c + rz * 1.6 + Vector3(cos(a) * 0.9, 0.12, sin(a) * 0.9), Vector3(0.4, 0.3, 0.34), Basis(Vector3.UP, a), false, 0.82)
+				k.kit.visual = true
 				k.fire(c + rz * 1.6 + Vector3.UP * 0.2, 0.7, 1.6)
 				k.chest("hermit_%d" % i, "iron", c + rz * -1.6 + rx * 1.4 + Vector3.UP * 0.12, yaw, loot)
 			1:
@@ -129,8 +135,9 @@ func _cache(root: Node, i: int, p: Vector2, level: float) -> void:
 					k.kit.box("brick_big", c + rz * 2.2 + rx * (s * 1.5) + Vector3.UP * 1.5, Vector3(1.6, 3.0, 0.5), b, true, 0.96)
 				k.kit.box("brick_big", c + rz * 2.2 + Vector3.UP * 2.7, Vector3(1.6, 0.7, 0.5), b, true, 0.94)
 				k.kit.box("stone_big", c + Vector3.UP * 3.2, Vector3(5.2, 0.5, 5.0), b, true, 0.9)
-				k.window(c + rz * -1.94 + Vector3.UP * 1.3, rx, rz, 0.5, 1.2)
 				k.kit.box("stone_big", c + rz * -1.2 + Vector3.UP * 0.45, Vector3(1.8, 0.9, 0.9), b, true, 0.94)
+				k.kit.visual = true
+				k.window(c + rz * -1.94 + Vector3.UP * 1.3, rx, rz, 0.5, 1.2)
 				k.lamp(c + Vector3.UP * 1.8, Color(1.0, 0.66, 0.36), 1.2, 7.0)
 				k.kit.candle_cluster(c + rz * -1.2 + Vector3.UP * 0.9, 4, 0.2, k.rng)
 				k.chest("hermit_%d" % i, "iron", c + rx * 1.2 + rz * -0.6 + Vector3.UP * 0.12, yaw + PI * 0.5, loot)
@@ -141,6 +148,7 @@ func _cache(root: Node, i: int, p: Vector2, level: float) -> void:
 					var mp := c + Vector3(cos(a) * 3.0, 0.0, sin(a) * 3.0)
 					k.kit.box("stone_big", mp + Vector3.UP * 2.0, Vector3(1.0, 4.0 + 0.5 * float(q % 3), 0.8), Basis(Vector3.UP, a + PI * 0.5) * Basis(Vector3.RIGHT, 0.05 * float(q - 2)), true, 0.92)
 				k.kit.box("stone_big", c + rx * 0.0 + Vector3.UP * 0.45, Vector3(2.6, 0.9, 2.6), b, true, 0.9)
+				k.kit.visual = true
 				k.fire(c + Vector3.UP * 1.0, 0.9, 1.8)
 				k.chest("hermit_%d" % i, "iron", c + rx * 4.5 + Vector3.UP * 0.12, yaw, loot)
 		# secondary forms: stores, rope, rubble, a bedroll or cairn, strands on the pole
@@ -151,4 +159,5 @@ func _cache(root: Node, i: int, p: Vector2, level: float) -> void:
 		Dress.strands(k, pole + Vector3.UP * 6.8, pole + Vector3.UP * 6.8 + rx * -1.1, 3, 1.2)
 		if kind != 0:
 			Dress.camp(k, c + rx * 2.2 + rz * 4.2, yaw, false)
+	k.model(["hermit_leanto.glb", "hermit_cell.glb", "hermit_ring.glb"][kind], Transform3D(b, c))
 	k.commit(150.0)

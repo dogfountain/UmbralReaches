@@ -29,6 +29,7 @@ const Wayfinding := preload("res://core/world/realm/realm_wayfinding.gd")
 const Works := preload("res://core/world/realm/realm_pois_east_works.gd")
 const Saltmarket := preload("res://core/world/realm/realm_pois_east_saltmarket.gd")
 const EastKit := preload("res://core/world/realm/east_works_kit.gd")
+const WestKit := preload("res://core/world/realm/west_marches_kit.gd")
 const M := "res://art/models/"
 const SPIRE := M + "r37e_spire.glb"
 const CELLS := M + "r37e_cells.glb"
@@ -742,6 +743,7 @@ static func _anchorholds(holder: Node3D, space: PhysicsDirectSpaceState3D) -> vo
 	cairns.clear()
 	var k := OssKit.new()
 	k.keep_lanes = false
+	k.visual = false                      # the cairns' look is a modelled glb (anchor_cairn.glb, tools/blender/wonder_hermit.py); the kit's blocks keep the lee
 	for i in 4:
 		var a := deg_to_rad(45.0 + 90.0 * float(i)) + 0.18
 		var q := Vector3(C.x + cos(a) * 9.6 * 1.6, 0, C.z + sin(a) * 9.6)      # (18 Nov: stretched east-west with the terrace)
@@ -752,7 +754,7 @@ static func _anchorholds(holder: Node3D, space: PhysicsDirectSpaceState3D) -> vo
 			var w := 2.3 - 0.36 * float(j)
 			k.box("stone", q + Vector3(rng.randf_range(-0.08, 0.08), 0.35 + 0.62 * float(j), rng.randf_range(-0.08, 0.08)), Vector3(w, 0.62, w * 0.9),
 				Basis(Vector3.UP, yaw + rng.randf_range(-0.3, 0.3)), true, 0.8)
-		k.box("iron", q + Vector3(0, 3.55, 0), Vector3(0.14, 0.4, 0.14), Basis.IDENTITY, false, 0.8)
+		WestKit.place(room, "anchor_cairn.glb", Transform3D(Basis(Vector3.UP, yaw), q + Vector3.DOWN * 0.04))
 	k.commit(room, "CairnBody")
 	room.set_meta("cairns", cairns.duplicate())
 	# the cliff: portals cut into its face, the timber walk over the rim, the chapel at the north
