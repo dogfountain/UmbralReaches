@@ -9,6 +9,12 @@ extends RefCounted
 ## bridge to the open hand (a bonfire in a basin, a second chest, the fingers curled round it).
 ## Built once from the kit's boxes (about 230, one mesh per material, collision from the same faces) over ground it
 ## sinks its footings into. Placed by WK.find_any in the Kings' Barrows (or the Arches): nothing else is moved.
+## Its LOOK is a modelled glb (art/models/wonder_sleeper.glb, tools/blender/wonder_sleeper.py; the map audit's F28: "a
+## stepped block tower"): armour over the legs, hips and belt, the breastplate's flanks in coursed masonry with the slits
+## and the wound, the deck's slabs and oculi, the arms, the gauntlet round the fire, the gorget, the great helm face-up,
+## its crown and horns. The kit lays the body's blocks with its visual off (OssKit.visual), so the colliders, ramps and
+## solids are as before; the heart-hall's floor, flights, landing, ribs and dais, the furnace, the lit slits and eyes, the
+## fires, lamps, chests and the dressing stay the kit's.
 
 const WK := preload("res://core/world/realm/wonders/r39/wonder_kit.gd")
 const Dress := preload("res://core/world/realm/wonders/r39/wonder_dress.gd")
@@ -81,6 +87,7 @@ func _run(root: Node) -> void:
 		_arms()
 		_head()
 		_dress()
+	k.model("wonder_sleeper.glb", Transform3D(rot, Vector3(o.x, y0, o.y)))
 	var n: int = k.commit()
 	var hp: Array[Vector3] = [_p(-9.0, 0.0, 0.0), _p(9.0, 10.0, 0.0), _p(-9.0, 10.0, 26.0), _p(9.0, 0.0, 26.0)]
 	WK.acoustic(hp, "hall", "heart-hall")
@@ -91,6 +98,7 @@ func _run(root: Node) -> void:
 # --- the legs and hips ----------------------------------------------------------------------------------
 
 func _legs() -> void:
+	k.kit.visual = false                                                  # the look is the model's
 	for s: float in [-1.0, 1.0]:
 		var xa := s * 1.4
 		var xb := s * 9.2
@@ -107,6 +115,7 @@ func _legs() -> void:
 	for i in 7:
 		var bx := -9.0 + 3.0 * float(i)
 		_slab("iron", bx - 0.5, bx + 0.5, -6.1, -1.9, 9.0, 9.9, 0.7)   # buckle studs along the belt
+	k.kit.visual = true
 
 
 # --- the heart-hall -------------------------------------------------------------------------------------
@@ -114,6 +123,7 @@ func _legs() -> void:
 func _torso() -> void:
 	var fl := 0.3
 	_seg("floor", -9.0, 9.0, 0.0, 26.0, fl, 0.9)                          # the hall's floor
+	k.kit.visual = false                                                  # the flanks, the walls and the deck: the model's
 	for s: float in [-1.0, 1.0]:
 		var xa := s * 9.0
 		var xb := s * 11.0
@@ -142,6 +152,7 @@ func _torso() -> void:
 				continue
 			_slab("stone_big", hx - 2.0, hx + 2.0, hz, hz + 3.0, 10.0, 11.0, 0.9 + 0.1 * float((ci + cj) % 2))
 	_slab("stone_big", 9.0, 11.0, 12.0, 26.0, 10.0, 11.0, 0.96)
+	k.kit.visual = true
 	# ribs under the roof, and a cross-beam with the hung lamps
 	for zi in 4:
 		var bz := 4.0 + 6.0 * float(zi)
@@ -192,6 +203,7 @@ func _torso() -> void:
 # --- the arms -------------------------------------------------------------------------------------------
 
 func _arms() -> void:
+	k.kit.visual = false                                                  # the look is the model's (the fire and the chest stay)
 	# the left arm folded along the flank, the fist on the belly's edge
 	_seg("stone_big", -17.0, -11.0, 2.0, 20.0, 7.0, 0.96)
 	_seg("ruin_big", -17.5, -10.5, 18.0, 25.0, 8.2, 0.88)
@@ -216,6 +228,7 @@ func _arms() -> void:
 	bc = palm
 	k.kit.box("iron", bc + Vector3.UP * 0.45, Vector3(3.4, 0.9, 3.4), Basis(Vector3.UP, yaw + 0.4), true, 0.8)
 	k.kit.box("dark", bc + Vector3.UP * 0.95, Vector3(2.6, 0.3, 2.6), Basis(Vector3.UP, yaw + 0.4), false, 0.5)
+	k.kit.visual = true
 	k.fire(bc + Vector3.UP * 1.1, 3.4, 4.2)
 	k.chest("sleeper_hand", "iron", _p(37.0, 9.0, 27.0), yaw + PI * 0.6, {"grave_ash": 12, "grave_iron": 2})
 	k.lamp(bc + Vector3.UP * 3.0, Color(1.0, 0.6, 0.3), 2.6, 24.0)
@@ -224,6 +237,7 @@ func _arms() -> void:
 # --- the neck and the head -----------------------------------------------------------------------------
 
 func _head() -> void:
+	k.kit.visual = false                                                  # the look is the model's (the eyes and the fire stay)
 	_seg("stone_big", -5.0, 5.0, 28.0, 36.0, 11.0, 0.96)                  # the neck
 	_flight("stone_big", _p(0.0, 11.0, 28.5), _p(0.0, 14.2, 35.0), 3.0, 10.6)
 	_seg("stone_big", -8.0, 8.0, 36.0, 52.0, 14.2, 1.0)                    # the head (the face looks up)
@@ -236,7 +250,9 @@ func _head() -> void:
 		var e := _p(s * 3.6, 14.25, 44.0)
 		var ex := rot * Vector3(1.5, 0.0, 0.0)
 		var ez := rot * Vector3(0.0, 0.0, 0.7)
+		k.kit.visual = true
 		k.kit.quad("glow", e - ex - ez, e + ex - ez, e + ex + ez, e - ex + ez, Vector3.UP, false, 1.0)
+		k.kit.visual = false
 		k.lamp(e + Vector3.UP * 2.2, Color(1.0, 0.62, 0.3), 1.2, 8.0)
 	_slab("dark", -3.5, 3.5, 37.2, 38.0, 14.2, 14.45, 0.5)
 	# the crown: a ring of stone spikes rising from the head's far end, and two great horns
@@ -248,6 +264,7 @@ func _head() -> void:
 	for s: float in [-1.0, 1.0]:
 		var hb := _p(s * 8.4, 13.0, 41.0)
 		k.tube("ruin_big", hb, hb + rot * Vector3(s * 6.5, 0.0, 3.0) + Vector3(0.0, 9.0, 0.0), 1.6, 0.2, 6, false, 0.9)
+	k.kit.visual = true
 	k.fire(_p(0.0, 14.2, 49.0), 1.4, 2.0)                                 # a small fire on the crown: the sleeper's brow lit
 
 
@@ -273,7 +290,9 @@ func _dress() -> void:
 	Dress.banner(k, _p(49.0, 12.2, 24.0), al, 3.0, 5.5, ac)
 	Dress.chain(k, _p(51.0, 11.8, 17.5), _p(51.0, 11.8, 24.5), 1.3)
 	Dress.chain(k, _p(-8.0, 10.9, 36.0), _p(8.0, 10.9, 36.0), 1.0)
+	k.kit.visual = false                                                  # (the cracks and carved bands are the model's work)
 	Dress.crack(k, _p(-6.0, 11.03, 5.0), _p(8.0, 11.03, 24.0), 0.16)
 	Dress.crack(k, _p(-9.0, 7.1, 2.0), _p(-11.2, 4.0, 20.0), 0.14)
 	Dress.carved_band(k, _p(-10.0, 8.6, -7.3), _p(10.0, 8.6, -7.3), 12, Vector3(1.3, 0.5, 0.35))
 	Dress.carved_band(k, _p(-10.5, 10.6, 27.6), _p(10.5, 10.6, 27.6), 12, Vector3(1.3, 0.5, 0.35))
+	k.kit.visual = true
