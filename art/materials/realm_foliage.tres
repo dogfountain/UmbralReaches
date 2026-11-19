@@ -7,12 +7,14 @@
 render_priority = 0
 shader = ExtResource("1_sh")
 shader_parameter/albedo_tex = ExtResource("2_tex")
-shader_parameter/tint = Color(1.25, 1.45, 1.5, 1)
+shader_parameter/tint = Color(1.16, 1.36, 1.28, 1)
 shader_parameter/alpha_cut = 0.42
 shader_parameter/mip_boost = 0.32
 shader_parameter/ground = false
 shader_parameter/sway = 0.10
 shader_parameter/flutter = 0.035
 shader_parameter/backlight = 1.35
+shader_parameter/base_dark = 0.34
+shader_parameter/tip_light = 0.2
 shader_parameter/rim_strength = 0.16
 shader_parameter/wind_sheen = 0.12
