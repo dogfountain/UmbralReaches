@@ -476,7 +476,9 @@ static func post_build(root: Node) -> void:
 	# the main thread's culling and draw encoding, ~1 us a draw in each pass
 	if not ("--no-merge" in OS.get_cmdline_user_args()):
 		var tm := Time.get_ticks_usec()
-		var mg: Vector2i = MeshMerge.merge_world(root, MERGE_ROOTS)
+		var mg: Vector2i = await MeshMerge.merge_world(root, MERGE_ROOTS)
+		if not is_instance_valid(root):
+			return
 		print("ATMOS merged %d static meshes into %d (%.1f ms)" % [mg.x, mg.y, (Time.get_ticks_usec() - tm) / 1000.0])
 	root.set_meta("post_done", true)                # the loading screen waits for this
 

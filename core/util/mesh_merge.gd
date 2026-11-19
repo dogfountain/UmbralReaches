@@ -90,6 +90,7 @@ static func _key(mi: MeshInstance3D) -> String:
 	var fmt := 0
 	for k in [Mesh.ARRAY_NORMAL, Mesh.ARRAY_TANGENT, Mesh.ARRAY_COLOR, Mesh.ARRAY_TEX_UV, Mesh.ARRAY_TEX_UV2]:
 		fmt = fmt * 2 + (1 if a[k] != null else 0)
+	fmt = fmt * 2 + (1 if _compressed(mi.mesh) else 0)
 	return "%d|%d|%d|%d|%.3f|%.3f|%.3f|%.3f|%d|%.3f|%d|%s" % [mat_of(mi).get_instance_id(), mi.cast_shadow, mi.layers, mi.gi_mode,
 		mi.visibility_range_begin, mi.visibility_range_begin_margin, mi.visibility_range_end, mi.visibility_range_end_margin,
 		mi.visibility_range_fade_mode, mi.extra_cull_margin, fmt, str(mi.get_groups())]
@@ -104,6 +105,14 @@ static func _arrays(m: Mesh) -> Array:
 	var a: Array = (m as PrimitiveMesh).get_mesh_arrays() if m is PrimitiveMesh else m.surface_get_arrays(0)
 	_arr_cache[m] = a
 	return a
+
+
+## Does the mesh draw from compressed attributes (a glTF import: 16-bit positions, octahedral normals and tangents)?
+## The merged mesh keeps the same vertex format, so it draws with the pipelines its pieces already compiled (19 Nov:
+## merged plain-float copies of compressed props were a second vertex format for every material they used, ~960
+## pipelines compiled in the frame the merged meshes first drew, 120-140 ms).
+static func _compressed(m: Mesh) -> bool:
+	return m is ArrayMesh and ((m as ArrayMesh).surface_get_format(0) & Mesh.ARRAY_FLAG_COMPRESS_ATTRIBUTES) != 0
 
 
 ## "Stem3" -> "Stems", "Rock" -> "Rocks" (the name rules in atmosphere.gd read words, not numbers).
@@ -185,7 +194,8 @@ static func bake(list: Array, parent: Node3D, origin := Transform3D.IDENTITY) ->
 		arr[Mesh.ARRAY_TEX_UV2] = uv2
 	arr[Mesh.ARRAY_INDEX] = idx
 	var m := ArrayMesh.new()
-	m.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arr)
+	var flags := Mesh.ARRAY_FLAG_COMPRESS_ATTRIBUTES if _compressed((list[0] as MeshInstance3D).mesh) and has_n == has_t else 0
+	m.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arr, [], {}, flags)
 	return m
 
 
@@ -280,7 +290,15 @@ const MAX_TRIS := 3000              ## a heavier mesh keeps its own draw (and it
 ## still moves, hides or frees it; the plain nodes in between are only containers no script reaches. Per parent the
 ## pass made 3,156 meshes into 2,971 draws; across parents 3,029 into 2,771 (16 Nov). With no hierarchy limit at all
 ## the same meshes would make 2,693 (`--merge-why` prints this ceiling): the rest differ by material, range or cell.
+## Spread over frames (19 Nov): the pass ran in one frame, 850 ms under the loading cover (the bar froze) and a
+## 120-140 ms frame ~6 s in wherever the night runs without the cover (the harnesses); now it yields whenever a
+## frame's share (SLICE_US) is spent. Callers await it.
+const SLICE_US := 5000
+
+
 static func merge_world(root: Node, roots: Array) -> Vector2i:
+	var tree := root.get_tree()
+	var slice := Time.get_ticks_usec()
 	var cands := {}
 	var root_ids := {}
 	for rn: String in roots:
@@ -309,7 +327,14 @@ static func merge_world(root: Node, roots: Array) -> Vector2i:
 		return Vector2i.ZERO
 	var n0 := cands.size()
 	var held := {}
-	_drop_held(root.get_tree().root, cands, held)
+	await tree.process_frame
+	await _drop_held(root.get_tree().root, cands, held)
+	await tree.process_frame
+	slice = Time.get_ticks_usec()
+	for id: int in cands.keys():
+		var c: Variant = cands[id]
+		if not is_instance_valid(c) or not (c as Node).is_inside_tree() or (c as Node).get_parent() == null:
+			cands.erase(id)                           # (freed or taken out while the pass waited a frame)
 	_drop_animated(root, roots, cands, held)
 	if "--merge-why" in OS.get_cmdline_user_args():
 		print("MERGE held by scripts: %d of %d" % [n0 - cands.size(), n0])
@@ -357,8 +382,15 @@ static func merge_world(root: Node, roots: Array) -> Vector2i:
 	var after := 0
 	var climbed := 0
 	for key: String in groups:
+		if Time.get_ticks_usec() - slice > SLICE_US:
+			await tree.process_frame
+			slice = Time.get_ticks_usec()
 		var list: Array = (groups[key] as Array).slice(1)
 		var parent := (groups[key] as Array)[0] as Node3D
+		if not is_instance_valid(parent) or not parent.is_inside_tree() or list.any(func(m: Variant) -> bool: return not is_instance_valid(m) or not (m as Node).is_inside_tree()):
+			before += list.size()
+			after += list.size()
+			continue                                  # (a frame passed: something freed or moved a piece of this group)
 		before += list.size()
 		if list.size() < 2:
 			after += 1
@@ -486,7 +518,14 @@ static func _tris(m: Mesh) -> int:
 static func _drop_held(top: Node, cands: Dictionary, held := {}) -> void:
 	var by := {}
 	var vars_of := {}                                 # Script -> the names of its variables that can hold an Object
+	var tree := top.get_tree()
+	var slice := Time.get_ticks_usec()
 	for n in top.find_children("*", "", true, false):
+		if Time.get_ticks_usec() - slice > SLICE_US:
+			await tree.process_frame
+			slice = Time.get_ticks_usec()
+		if not is_instance_valid(n):
+			continue
 		var sc: Variant = n.get_script()
 		if sc == null or String(n.name) == "FadeGuard":
 			continue                                  # (the fade guard tracks every instance; a freed one leaves it)
