@@ -49,6 +49,7 @@ func _ready() -> void:
 	_mi = MultiMeshInstance3D.new()
 	_mi.set_meta(&"live_pool", true)            # (WorldLanes.cull_scatter leaves a runtime pool alone)
 	_mi.name = "MistBanks"
+	_mi.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF   # moved every rendered frame (a warning a frame otherwise)
 	_mi.multimesh = _mm
 	_mi.material_override = mat
 	_mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
