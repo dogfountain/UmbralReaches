@@ -169,6 +169,7 @@ func _rest() -> void:
 	check("rest: roaming dead wait for a rest", EnemySpawner.hold_for_rest and float(sp.call("_respawn_delay", target)) == EnemySpawner.REST_HOLD)
 	check("rest: still dead before resting", not (is_instance_valid(target.pawn) and (target.pawn as Enemy).is_alive()))
 	var n := int(d.call("rest", "test"))
+	await _frames(n + 4)                     # (19 Nov) the refill raises its pawns one a frame (EnemySpawner._refill_step)
 	check("rest: the camp refills", n >= 1 and is_instance_valid(target.pawn) and (target.pawn as Enemy).is_alive(), "%d rose" % n)
 	var seal_dead := 0
 	for slot: Dictionary in sp.call("slots"):
