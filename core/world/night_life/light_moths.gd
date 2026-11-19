@@ -46,6 +46,7 @@ func _ready() -> void:
 	_mm.material_override = mat
 	_mm.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	_mm.custom_aabb = AABB(Vector3(-2000, -400, -2000), Vector3(4000, 1200, 4000))
+	_mm.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF   # moved every rendered frame (a warning a frame otherwise)
 	_mm.add_to_group(Groups.CULL_SKIP)
 	add_child(_mm)
 
@@ -62,6 +63,11 @@ static func material() -> StandardMaterial3D:
 	m.vertex_color_use_as_albedo = true
 	m.albedo_texture = _moth()
 	m.albedo_color = Color(1.4, 1.4, 1.4, 1.0)
+	# one passing the lens was a pale orb the size of a fist (the pit hall, the meadow fire: 19 Nov): within ~2.5 m of the
+	# camera a moth fades out, and it is drawn as a moth (two wings), not a soft ball
+	m.distance_fade_mode = BaseMaterial3D.DISTANCE_FADE_PIXEL_ALPHA
+	m.distance_fade_min_distance = 0.9
+	m.distance_fade_max_distance = 2.6
 	return m
 
 
@@ -151,6 +157,8 @@ func _choose(pp: Vector3) -> void:
 				_scatter[at] = 0.0
 
 
+## A moth seen against the light: two pairs of wings (the fore wings broad and swept, the hind ones small) about a thin
+## body, soft at the edges, with a faint halo so a far one still reads as a fleck of light.
 static func _moth() -> ImageTexture:
 	if _tex:
 		return _tex
@@ -158,8 +166,15 @@ static func _moth() -> ImageTexture:
 	var img := Image.create(n, n, false, Image.FORMAT_RGBA8)
 	for y in n:
 		for x in n:
-			var r := Vector2(float(x) + 0.5 - n * 0.5, float(y) + 0.5 - n * 0.5).length() / (n * 0.5)
-			var a := clampf(1.0 - r, 0.0, 1.0)
-			img.set_pixel(x, y, Color(1, 1, 1, a * a * (3.0 - 2.0 * a)))
+			var q := Vector2(float(x) + 0.5 - n * 0.5, float(y) + 0.5 - n * 0.5) / (n * 0.5)
+			var ax := absf(q.x)
+			var fore := Vector2((ax - 0.42) / 0.46, (q.y + 0.16 - ax * 0.32) / 0.3)     # fore wing: broad, swept up and out
+			var hind := Vector2((ax - 0.22) / 0.26, (q.y - 0.3) / 0.22)                  # hind wing: small, below
+			var wing := maxf(1.0 - fore.length(), 1.0 - hind.length())
+			var body := (1.0 - smoothstep(0.05, 0.11, ax)) * (1.0 - smoothstep(0.5, 0.62, absf(q.y)))
+			var halo := 0.18 * clampf(1.0 - q.length(), 0.0, 1.0)
+			var a := clampf(maxf(smoothstep(0.0, 0.35, wing), body) + halo, 0.0, 1.0)
+			img.set_pixel(x, y, Color(1, 1, 1, a))
+	img.generate_mipmaps()
 	_tex = ImageTexture.create_from_image(img)
 	return _tex

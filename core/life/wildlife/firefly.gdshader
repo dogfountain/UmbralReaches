@@ -36,5 +36,8 @@ void fragment() {
 	float r = dot(q, q);
 	float core = exp(-r * 9.0);
 	float halo = exp(-r * 2.5) * 0.25;
-	ALBEDO = glow_col * (core + halo) * energy * v_glow;
+	// one drifting past the lens was a soft orange ball the size of a fist (close_oak, 19 Nov): within ~2.5 m of the
+	// camera a firefly fades out, so it stays a spark in the grass
+	float near = smoothstep(0.7, 2.5, length(VERTEX));
+	ALBEDO = glow_col * (core + halo) * energy * v_glow * near;
 }
