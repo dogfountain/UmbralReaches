@@ -14,8 +14,11 @@ const More := preload("res://core/world/realm/site_props_more.gd")
 
 ## Props modelled in Blender (tools/blender/props_square.py, art/models/props/): key -> glb variants. Each glb is
 ## `<part>__<set>` meshes dressed with the prop-size PBR sets; site_dress draws one MultiMesh per (variant, set).
+## The market's stalls and cross are the square's own models too (props_market.py: the yards' were still kit boxes, the map
+## audit's F28; 19 Nov), and the salt heap is modelled (signature_props.py).
 const GLB := {"crate": ["crate", "crate_broken"], "barrel": ["barrel"], "firewood": ["firewood"], "bench": ["bench"],
-	"trough": ["trough"], "cart": ["handcart"], "sack": ["sack", "sack_open"]}
+	"trough": ["trough"], "cart": ["handcart"], "sack": ["sack", "sack_open"], "stall": ["market_stall_a"],
+	"stall2": ["market_stall_b"], "stall3": ["market_stall_c"], "cross": ["market_cross"], "saltheap": ["sig_saltheap"]}
 
 static var _meshes: Dictionary = {}
 static var _cloth: StandardMaterial3D
@@ -60,11 +63,6 @@ static func get_prop(key: String) -> Dictionary:
 		"bucket": d = _wood(_bucket(), false)
 		"log": d = _wood(_log(), false)
 		"kindling": d = _wood(_kindling(), false)
-		"stall": d = {"mesh": Market.stall(0, wood(), cloth()), "mat": null, "shadow": true}
-		"stall2": d = {"mesh": Market.stall(1, wood(), cloth()), "mat": null, "shadow": true}
-		"stall3": d = {"mesh": Market.stall(2, wood(), cloth()), "mat": null, "shadow": true}
-		"cross": d = {"mesh": Market.cross(OssKit.mat("stone")), "mat": null, "shadow": true}
-		"saltheap": d = {"mesh": Market.saltheap(cloth()), "mat": null, "shadow": true}
 		"trestle": d = {"mesh": Market.trestle(wood(), cloth()), "mat": null, "shadow": true}
 		"goods": d = {"mesh": _goods(), "mat": null, "shadow": true}
 		"loadcart": d = {"mesh": Market.load_cart(_cart(), wood(), cloth()), "mat": null, "shadow": true}

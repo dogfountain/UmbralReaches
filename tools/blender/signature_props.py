@@ -644,7 +644,25 @@ def b_charcoal_clamp(P, rnd):
         cyl(P, "timber", (math.cos(a) * 1.95, math.sin(a) * 1.95, 0.1), (math.cos(a + 0.2) * 2.05, math.sin(a + 0.2) * 2.05, 0.15), 0.08, 0.08, seg=6)
 
 
-DARK_OF = {"scorch_post": {"timber": 0.28}, "charcoal_clamp": {"stone": 0.42, "timber": 0.35}}
+def b_saltheap(P, rnd):
+    # the yards' salt heaps (site_props "saltheap": the market kit's smooth lumpy cones): a raked heap of coarse salt with two
+    # spills against it, its skin broken into facets and clods, a wooden shovel driven into it (lime-white daub)
+    for (cx, cy, r, h) in ((0.0, 0.0, 0.8, 0.95), (0.62, -0.28, 0.45, 0.5), (-0.5, 0.4, 0.38, 0.42)):
+        rings = []
+        for j, t in enumerate((0.0, 0.25, 0.5, 0.72, 0.88, 1.0)):
+            rr = r * (1.0 - t ** 1.4) + 0.02
+            z = h * (1.0 - (1.0 - t) ** 1.8)
+            rings.append([Vector((cx + math.cos(a) * rr * (1 + rnd.uniform(-0.12, 0.12)), cy + math.sin(a) * rr * (1 + rnd.uniform(-0.12, 0.12)),
+                                  z + rnd.uniform(-0.03, 0.03) * (1 - t))) for a in [math.tau * q / 11 + j * 0.3 for q in range(11)]])
+        ring_loft(P, "daub", rings)
+        for q in range(4):
+            a = rnd.random() * math.tau
+            box(P, "daub", (cx + math.cos(a) * r * 0.95, cy + math.sin(a) * r * 0.95, 0.04), (0.12, 0.1, 0.08), yaw=a, pitch=rnd.uniform(-0.4, 0.4))
+    beam(P, "timber", (0.25, 0.1, 0.55), (0.55, 0.25, 1.55), 0.045, 0.045)
+    box(P, "iron", (0.2, 0.08, 0.42), (0.22, 0.03, 0.3), yaw=0.45, pitch=-0.28)
+
+
+DARK_OF = {"scorch_post": {"timber": 0.28}, "charcoal_clamp": {"stone": 0.42, "timber": 0.35}, "saltheap": {"daub": 1.45}}
 
 
 BUILD = {"haystack": b_haystack, "scarecrow": b_scarecrow, "plough": b_plough, "lamp_post": b_lamp_post,
@@ -655,7 +673,7 @@ BUILD = {"haystack": b_haystack, "scarecrow": b_scarecrow, "plough": b_plough, "
          "column_stub": b_column_stub, "leaning_pillar": b_leaning_pillar, "pews": b_pews, "fallen_arch": b_fallen_arch, "pipe": b_pipe,
          "sluice_wheel": b_sluice_wheel, "ballista": b_ballista, "shield_pole": b_shield_pole, "pikes": b_pikes,
          "lantern_pole": b_lantern_pole, "string_poles": b_string_poles, "fungus_ring": b_fungus_ring, "wind_flag": b_wind_flag,
-         "windbreak": b_windbreak}
+         "windbreak": b_windbreak, "saltheap": b_saltheap}
 
 _tone_base = W.tone_for
 
