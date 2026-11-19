@@ -258,11 +258,14 @@ func _charge_vis(c: float, at := Vector3.INF) -> void:
 	var t := Time.get_ticks_msec() * 0.001
 	var flick := 1.0 + 0.08 * sin(t * 37.0) + 0.05 * sin(t * 23.0 + 1.3)
 	var full := c >= 1.0
-	var r := lerpf(0.05, 0.2, smoothstep(0.0, 1.0, c)) * flick * (1.15 if full else 1.0)
-	player._charge_orb.global_transform = Transform3D(Basis.IDENTITY.scaled(Vector3.ONE * r * 2.0), at)
-	player._charge_halo.global_transform = Transform3D(Basis.IDENTITY.scaled(Vector3.ONE * r * 4.2), at)
-	(player._charge_orb.material_override as StandardMaterial3D).albedo_color = Color(3.2, 1.3, 0.45).lerp(Color(4.2, 3.4, 2.4), 0.6 if full else 0.0)
-	(player._charge_halo.material_override as StandardMaterial3D).albedo_color.a = 0.22 + 0.25 * c
+	# (19 Nov, the visual pass) a coal held at the staff head, not a lamp: at full it was a white-hot 0.46 m ball in a 1 m
+	# additive halo, bloomed into a white blob over the wanderer's hands in every strip (combat R8/flank2). It swells to
+	# 0.26 m, stays ember-orange (hotter, not whiter, when full) and pulses; the halo hugs it
+	var r := lerpf(0.04, 0.12, smoothstep(0.0, 1.0, c)) * flick * (1.12 if full else 1.0)
+	player._charge_orb.global_transform = Transform3D(Basis.IDENTITY.scaled(Vector3.ONE * r * 2.2), at)
+	player._charge_halo.global_transform = Transform3D(Basis.IDENTITY.scaled(Vector3.ONE * r * 3.2), at)
+	(player._charge_orb.material_override as StandardMaterial3D).albedo_color = Color(3.0, 1.15, 0.38).lerp(Color(3.6, 1.9, 0.7), 0.7 if full else 0.0)
+	(player._charge_halo.material_override as StandardMaterial3D).albedo_color.a = 0.1 + 0.14 * c
 	player._charge_light.global_position = at
 	var peak := full and _over_pulsed
 	player._charge_light.light_energy = (3.4 if peak else 0.6 + 2.2 * c) * flick
