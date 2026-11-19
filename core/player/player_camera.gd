@@ -26,6 +26,8 @@ var _sight_ray: PhysicsRayQueryParameters3D
 var _sight_hold := 0.0
 var _rise := 0.0                        ## metres the camera lifts over the hood while a wall presses the arm short
 var _rise_ray: PhysicsRayQueryParameters3D
+var _excl: Array[RID] = []              ## what the boom's casts pass through: the wanderer and the CAMERA_PASS bodies near him
+var _pass_t := 0.0
 
 
 func _init(p: Player) -> void:
@@ -136,13 +138,13 @@ func _thin_occluder(from: Vector3, dir: Vector3, want: float) -> bool:
 		_thin_q = PhysicsShapeQueryParameters3D.new()
 		_thin_q.shape = sph
 		_thin_q.collision_mask = Layers.WORLD
-		_thin_q.exclude = [player.get_rid()]
+		_thin_q.exclude = _excl
 	var q := _thin_q
 	q.transform = Transform3D(Basis.IDENTITY, cam_at)
 	if not space.intersect_shape(q, 1).is_empty():
 		return false
 	if _thin_ray == null:
-		_thin_ray = PhysicsRayQueryParameters3D.create(Vector3.ZERO, Vector3.ONE, Layers.WORLD, [player.get_rid()])
+		_thin_ray = PhysicsRayQueryParameters3D.create(Vector3.ZERO, Vector3.ONE, Layers.WORLD, _excl)
 	var side := player._arm.global_basis.x.normalized()
 	var blocked := 0
 	for i in Player.THIN_RAYS:
@@ -194,6 +196,7 @@ func _update_arm(delta: float) -> void:
 	var space := player.get_world_3d().direct_space_state if player.is_inside_tree() else null
 	var reach := want
 	if space:
+		_pass_tick(delta)
 		_shoulder_tick(space, want, delta)
 		if _arm_q == null:                       # one query object, not two allocations per rendered frame
 			var sph := SphereShape3D.new()
@@ -201,7 +204,7 @@ func _update_arm(delta: float) -> void:
 			_arm_q = PhysicsShapeQueryParameters3D.new()
 			_arm_q.shape = sph
 			_arm_q.collision_mask = Layers.WORLD
-			_arm_q.exclude = [player.get_rid()]
+			_arm_q.exclude = _excl
 		var q := _arm_q
 		q.transform = Transform3D(Basis.IDENTITY, player._arm.global_position)
 		q.motion = player._arm.global_basis.z.normalized() * want
@@ -229,7 +232,7 @@ func _update_arm(delta: float) -> void:
 	var lift := 0.85 * squeeze
 	if lift > 0.02 and space:
 		if _rise_ray == null:
-			_rise_ray = PhysicsRayQueryParameters3D.create(Vector3.ZERO, Vector3.ONE, Layers.WORLD, [player.get_rid()])
+			_rise_ray = PhysicsRayQueryParameters3D.create(Vector3.ZERO, Vector3.ONE, Layers.WORLD, _excl)
 		var from := player._arm.global_position + player._arm.global_basis.z.normalized() * _cam_len
 		_rise_ray.from = from
 		_rise_ray.to = from + Vector3.UP * (lift + 0.35)
@@ -238,6 +241,27 @@ func _update_arm(delta: float) -> void:
 			lift = maxf(0.0, from.distance_to(up_hit.position) - 0.35)
 	_rise = lerpf(_rise, lift, 1.0 - exp(-6.0 * delta))
 	player._cam.position = Vector3(0.0, _rise, _cam_len)
+
+
+## The boom's casts pass through the wanderer and through the great stones near him (Groups.CAMERA_PASS: they dissolve
+## near the lens instead); the list is looked up twice a second and shared by every query of the boom.
+func _pass_tick(delta: float) -> void:
+	_pass_t -= delta
+	if _pass_t > 0.0 and not _excl.is_empty():
+		return
+	_pass_t = 0.5
+	var ex: Array[RID] = [player.get_rid()]
+	for b in player.get_tree().get_nodes_in_group(Groups.CAMERA_PASS):
+		var co := b as CollisionObject3D
+		if co != null and co.global_position.distance_squared_to(player.global_position) < 1600.0:
+			ex.append(co.get_rid())
+	if ex != _excl:
+		_excl = ex
+		for q: Variant in [_arm_q, _thin_q, _thin_ray, _sight_ray, _rise_ray]:
+			if q is PhysicsShapeQueryParameters3D:
+				(q as PhysicsShapeQueryParameters3D).exclude = _excl
+			elif q is PhysicsRayQueryParameters3D:
+				(q as PhysicsRayQueryParameters3D).exclude = _excl
 
 
 ## r35: the boom sits SHOULDER m over the right shoulder, and the spring cast only watches the boom,
@@ -254,8 +278,16 @@ func _shoulder_tick(space: PhysicsDirectSpaceState3D, want: float, delta: float)
 	var dir := player._arm.global_basis.z.normalized()
 	var piv := player._pitch_node.global_transform * Vector3(Player.SHOULDER, player._arm.position.y, player._arm.position.z)
 	if _sight_ray == null:
-		_sight_ray = PhysicsRayQueryParameters3D.create(Vector3.ZERO, Vector3.ONE, Layers.WORLD, [player.get_rid()])
+		_sight_ray = PhysicsRayQueryParameters3D.create(Vector3.ZERO, Vector3.ONE, Layers.WORLD, _excl)
 	var r := _sight_ray
+	# the shoulder itself must stand in open air. With the wanderer pressed to a rock on the boom's side (the Crown's
+	# earthwork after a Rift Step: map audit MA2) the full-shoulder pivot stood inside the rock, the arm's cast started
+	# there and found nothing from inside, and the view sat in the stone. A pivot the head cannot see swings the boom
+	# in behind the wanderer, where the spring cast below handles the rest.
+	r.from = player._pitch_node.global_transform * Vector3(0.0, player._arm.position.y, player._arm.position.z)
+	r.to = piv + (piv - r.from).normalized() * Player.ARM_PROBE
+	if not space.intersect_ray(r).is_empty():
+		_sight_hold = 0.5
 	r.from = piv
 	r.to = piv + dir * want
 	var hit := space.intersect_ray(r)

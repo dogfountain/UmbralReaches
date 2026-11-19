@@ -18,6 +18,7 @@ extends Node3D
 ## (18 Nov, Luke: the arenas 1.6x) 31 -> 49.6 m: the wall, the great stones, the knots, the maze and the briars grow with
 ## it; the inner henge (ThornHenge's hedge at 12.2, its menhirs and altar) stays, so the ring between it and the wall
 ## doubles (maze radii r' = 12.2 + (r - 12.2) * 2.0)
+const _RockKit := preload("res://core/world/realm/rock_kit.gd")
 const FLOOR_R := 49.6
 const ARENA_R := 46.4
 const WALL_R := 48.3
@@ -419,6 +420,11 @@ func _stones() -> void:
 		if mi:
 			mi.name = "RaidStone%d" % i
 			stones.append(mi)
+			# the camera passes through a great stone and the stone dissolves near the lens (map audit MA3: sixteen 2.6 m
+			# stones round the floor crowded the view whenever the fight came near one)
+			mi.material_override = _RockKit.fade_material("mossy" if i % 3 == 0 else "granite")
+			for body in mi.find_children("*", "StaticBody3D", true, false):
+				body.add_to_group(Groups.CAMERA_PASS)
 
 
 func _maze() -> void:

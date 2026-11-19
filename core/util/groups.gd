@@ -17,3 +17,4 @@ const WARD_TARGET := "ward_target"    ## an escort walker / defend ward (WardTar
 const ENEMY_SHOT := "enemy_shot"
 const BRAZIER := "brazier"            ## every Brazier (joins in _ready): Travel saves read lit fires from it
 const NO_LEDGE := "no_ledge"          ## bodies the wanderer never catches a ledge on (trees: player_traversal._try_grab)
+const CAMERA_PASS := "camera_pass"    ## bodies the camera's boom passes through (a great standing stone that dissolves near the lens: RockKit.fade_material)

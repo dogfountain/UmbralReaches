@@ -183,12 +183,20 @@ func _rift_target(dir: Vector3) -> Vector3:
 	q.margin = 0.04
 	var frac: PackedFloat32Array = space.cast_motion(q)
 	var safe: float = frac[0] if frac.size() > 0 else 1.0
-	var dest := from + lift + dir * player.step_range * safe
-	var r := PhysicsRayQueryParameters3D.create(dest + Vector3.UP * 0.4, dest + Vector3.DOWN * 3.0, player.collision_mask, [player.get_rid()])
-	var hit := space.intersect_ray(r)
-	if not hit.is_empty():
-		dest = (hit.position as Vector3) + Vector3.UP * 0.02
-	return dest
+	# the body must have room where it lands: the capsule swept through a crevice's mouth (the Crown's earthwork: map audit
+	# MA2, MA4) and the settle dropped it where the rocks close in, inside them; the depenetration then pushed it down
+	# through the ground and the camera sat in the stone. Back the landing off along the step until the body fits.
+	var d := player.step_range * safe
+	while d > 0.6:
+		var dest := from + lift + dir * d
+		var r := PhysicsRayQueryParameters3D.create(dest + Vector3.UP * 0.4, dest + Vector3.DOWN * 3.0, player.collision_mask, [player.get_rid()])
+		var hit := space.intersect_ray(r)
+		if not hit.is_empty():
+			dest = (hit.position as Vector3) + Vector3.UP * 0.02
+		if player.locomotion._headroom(dest):
+			return dest
+		d -= 0.4
+	return from
 
 
 ## The violet that marks: the same 1.2 m to either side that _mark_path uses.

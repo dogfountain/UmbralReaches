@@ -181,6 +181,36 @@ static func material(style: String) -> Material:
 	return m
 
 
+## The same stone, dissolving near the camera (a fine dither from 3.5 m in, gone at 1.2 m): for the great stones the
+## camera is let through (group CAMERA_PASS on their bodies) so a fight beside one keeps the wanderer and the foe in view
+## instead of a wall of granite (map audit MA3, the henge's 16 stones). Its own shader: the discard would cost every
+## other rock its early depth test.
+static var _fade_shader: Shader
+
+
+static func fade_material(style: String) -> Material:
+	style = _style(style)
+	if _mats.has(style + "|fade"):
+		return _mats[style + "|fade"]
+	if _fade_shader == null:
+		_fade_shader = Shader.new()
+		_fade_shader.code = SHADER.code.replace("void fragment() {", """void fragment() {
+	{
+		float cam_k = smoothstep(1.2, 3.5, length(VERTEX));
+		float ign = fract(52.9829189 * fract(dot(FRAGCOORD.xy, vec2(0.06711056, 0.00583715))));
+		if (ign > cam_k) {
+			discard;
+		}
+	}""")
+	var base := material(style) as ShaderMaterial
+	var m := ShaderMaterial.new()
+	m.shader = _fade_shader
+	for u: Dictionary in RenderingServer.get_shader_parameter_list(SHADER.get_rid()):
+		m.set_shader_parameter(u.name, base.get_shader_parameter(u.name))
+	_mats[style + "|fade"] = m
+	return m
+
+
 ## Convex collision for a RockKit mesh (or any mesh), cached per mesh.
 static func collision_shape(mesh: Mesh) -> Shape3D:
 	if mesh == null:
