@@ -390,13 +390,16 @@ func _spend(s: Skill, spent: int, surged: bool) -> void:
 		if gain != "":
 			word += ("\n" if word != "" else "") + gain
 		if word != "" and player.is_inside_tree():
-			HitText.pop(player.global_position + Vector3.UP * 1.9, word, Color(1.3, 0.7, 2.8), spent >= RESONANCE_BIG)   # from the shoulder: at 2.4 m it rose into the boss bar
+			# beside the wanderer on the screen's left, small and muted: centred at the shoulder it sat big and pink over the
+			# foe for its whole life (combat V1/warden_s41; 19 Nov, the visual pass)
+			var side := Vector3.ZERO
+			var cam := player.get_viewport().get_camera_3d()
+			if cam != null:
+				side = -cam.global_basis.x * 0.9
+			HitText.pop(player.global_position + Vector3.UP * 1.6 + side, word, Color(0.92, 0.66, 1.55), false)
 	if s.id == &"nova":
 		var r: float = float(s.call("radius")) if s.has_method("radius") else SkillNova.RADIUS
 		combat.nova_burst(r, spent, surged)
-
-
-const RESONANCE_BIG := 5
 
 
 static func _num(v: float) -> String:
