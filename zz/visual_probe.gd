@@ -112,6 +112,8 @@ func _run() -> void:
 		await _chapel()
 	if _want("countdoor"):
 		_countdoor()
+	if _want("countvis"):
+		_countvis()
 	if _want("apse"):
 		await _apse()
 	if _want("deadzone"):
@@ -348,6 +350,28 @@ func _probe_body() -> void:
 			var lc := OssFrame.l(c2.global_position)
 			var rr2 := Vector2(lc.x - OssHall.C.x, lc.z - OssHall.C.z)
 			print("VPROBE body apse solid at local %s (r %.2f, %.1f deg) size %s" % [lc.snapped(Vector3.ONE * 0.01), rr2.length(), rad_to_deg(rr2.angle()), (c2.shape as BoxShape3D).size])
+
+
+## What is drawn where the Count door's rays meet the door's south side: every mesh whose box holds the hit point.
+func _countvis() -> void:
+	const OSS := preload("res://world/areas/ossuary/ossuary.gd")
+	var eye := OssFrame.w(Vector3(26.5, OSS.PIT_Y + 1.7, OssHall.DOOR_Z))
+	var meshes := main.find_children("*", "GeometryInstance3D", true, false)
+	for ad in [30, 46, 62]:
+		var a := deg_to_rad(float(ad))
+		var dw := OssFrame.wd(Vector3(cos(a), 0.0, sin(a)))
+		var h := _space().intersect_ray(PhysicsRayQueryParameters3D.create(eye, eye + dw * 40.0, Layers.WORLD, [p.get_rid()]))
+		if h.is_empty():
+			continue
+		var hp: Vector3 = (h.position as Vector3) - dw * 0.05
+		var found := PackedStringArray()
+		for g in meshes:
+			var gi := g as GeometryInstance3D
+			if gi is MeshInstance3D and (gi as MeshInstance3D).mesh != null:
+				var bb := gi.global_transform * (gi as MeshInstance3D).mesh.get_aabb()
+				if bb.grow(0.1).has_point(hp):
+					found.append("%s[%s vis %s layers %d range %.0f mat %s]" % [String(gi.name), String(gi.get_parent().name), gi.is_visible_in_tree(), gi.layers, gi.visibility_range_end, "ovr" if gi.material_override != null else "own"])
+		print("VPROBE countvis %d deg hit %s %s at local %s: drawn there: %s" % [ad, String((h.collider as Node).name), String((h.collider as Node).get_parent().name), OssFrame.l(h.position as Vector3).snapped(Vector3.ONE * 0.1), " | ".join(found)])
 
 
 ## The NE chapel's apse: the body put at rest on a grid of floor points; does it stay on the floor, does test_move see the
