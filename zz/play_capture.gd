@@ -1396,6 +1396,12 @@ func _arena_boss(key: String, seal: String) -> Enemy:
 	return (box[0] as Enemy) if not box.is_empty() else null
 
 
+## Is there a roof over `c` (a buried or vaulted arena)? Then its stills are taken from inside.
+func _roofed(c: Vector3) -> bool:
+	var q := PhysicsRayQueryParameters3D.create(c + Vector3.UP * 2.0, c + Vector3.UP * 45.0, Layers.WORLD)
+	return not get_viewport().get_world_3d().direct_space_state.intersect_ray(q).is_empty()
+
+
 func _arena_stills(kind: String) -> void:
 	_ui_hide()
 	for a in get_tree().get_nodes_in_group(&"boss_arena"):
@@ -1407,7 +1413,11 @@ func _arena_stills(kind: String) -> void:
 		p.process_mode = Node.PROCESS_MODE_DISABLED
 		p.visible = false
 		var k := 0
-		for v: Array in [[Vector3(r * 1.3, r * 0.9, r * 1.3), Vector3(0, 2, 0)], [Vector3(-r * 1.5, 3.0, 0), Vector3(0, 3, 0)]]:
+		var views: Array = [[Vector3(r * 1.3, r * 0.9, r * 1.3), Vector3(0, 2, 0)], [Vector3(-r * 1.5, 3.0, 0), Vector3(0, 3, 0)]]
+		if _roofed(c):
+			# a buried arena (the Bone Abbot's pit hall): from outside the camera saw its shell in the void (TA5, 19 Nov)
+			views = [[Vector3(r * 0.62, r * 0.32, r * 0.62), Vector3(0, 1.5, 0)], [Vector3(-r * 0.8, 2.2, 0), Vector3(0, 2.2, 0)]]
+		for v: Array in views:
 			cam1.global_position = c + (v[0] as Vector3)
 			cam1.look_at(c + (v[1] as Vector3))
 			p.global_position = cam1.global_position - Vector3.UP * 1.5
@@ -1957,7 +1967,8 @@ func _s_places() -> void:
 		var c3 := ar.global_position
 		var r3 := maxf(ar.radius, 14.0)
 		_perf_begin("arena_" + ar.boss_id)
-		await _view_still("arena_%s.png" % ar.boss_id, "boss arena %s from its edge, high" % ar.boss_id, c3 + Vector3(r3 * 1.2, r3 * 0.8, r3 * 1.2), c3 + Vector3(0, 2, 0))
+		var eye := c3 + (Vector3(r3 * 0.62, r3 * 0.32, r3 * 0.62) if _roofed(c3) else Vector3(r3 * 1.2, r3 * 0.8, r3 * 1.2))
+		await _view_still("arena_%s.png" % ar.boss_id, "boss arena %s from its edge, high" % ar.boss_id, eye, c3 + Vector3(0, 2, 0))
 		_perf_end()
 	_unpark()
 
