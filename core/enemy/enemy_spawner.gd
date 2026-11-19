@@ -445,6 +445,8 @@ func seal_guards() -> Array:
 
 
 func _process(delta: float) -> void:
+	if not _refill_q.is_empty():
+		_refill_step()
 	_tick += delta
 	if _tick < 0.5:
 		return
@@ -585,7 +587,7 @@ func refill(min_dist := 22.0) -> int:
 	var player := _player()
 	var n := 0
 	for slot in _slots:
-		if slot.get("sealed_dead", false) or String(slot.get("seal", "")) != "":
+		if slot.get("sealed_dead", false) or String(slot.get("seal", "")) != "" or bool(slot.get("queued", false)):
 			continue
 		if is_instance_valid(slot.pawn) and slot.pawn is Enemy and (slot.pawn as Enemy).is_alive():
 			continue
@@ -593,9 +595,23 @@ func refill(min_dist := 22.0) -> int:
 			continue
 		if LightGrid.is_lit(slot.at):
 			continue
-		_spawn(slot)
+		slot["queued"] = true
+		_refill_q.append(slot)
 		n += 1
 	return n
+
+
+## A rest's refill raises its pawns one a frame (19 Nov, the visual pass: every camp's dead rose in the frame you sat down
+## at a fire, a 13.5 ms frame of scripts; a pawn's build is 1-3 ms warm).
+var _refill_q: Array[Dictionary] = []
+
+
+func _refill_step() -> void:
+	var slot: Dictionary = _refill_q.pop_front()
+	slot["queued"] = false
+	if is_instance_valid(slot.pawn) and slot.pawn is Enemy and (slot.pawn as Enemy).is_alive():
+		return
+	_spawn(slot)
 
 
 ## Encounters' mixed packs: one more roaming pawn at `at` (already on the ground), of `kind`.

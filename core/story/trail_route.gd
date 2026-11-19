@@ -17,18 +17,11 @@ const OFF_COST := 2.5              ## a metre across country counts as this many
 ## Registered lanes that are walked (the others reserve ground: walls, hollow ways' sides).
 const LANES := ["rift_crossing", "rift_crossing_turn", "rift_crossing_top", "henge_way", "tavern_path", "poi_causeway", "poi_cw_", "r37w_bridge", "r37w_weir"]
 
-## The graph with the legs onto and off the ways costed apart (_compute_cost is the engine's hook for it).
-class Ways extends AStar2D:
-	var on_id := -1
-	var off_id := -1
-	var off_cost := 1.0
-
-	func _compute_cost(a: int, b: int) -> float:
-		var d := get_point_position(a).distance_to(get_point_position(b))
-		return d * off_cost if a == on_id or b == off_id else d
-
-
-var _astar := Ways.new()
+## The graph. The legs onto and off the ways cost OFF_COST a metre through the points' weight scales (the engine's own cost,
+## no script hook): the place's point and a twin of each way node near the wanderer weigh OFF_COST, so stepping into them
+## costs the leg's length that many times. (19 Nov, the visual pass: a GDScript `_compute_cost` override was called for
+## every edge the search touched, a 26 ms frame whenever the trail rebuilt: walking off the route, a respawn.)
+var _astar := AStar2D.new()
 var _pos := PackedVector2Array()
 var _extra := -1
 
@@ -113,22 +106,28 @@ func route(from: Vector2, to: Vector2) -> Dictionary:
 	var s := _astar.get_available_point_id()
 	_astar.add_point(s, from)
 	var e := _astar.get_available_point_id()
-	_astar.add_point(e, to)
-	_astar.on_id = s
-	_astar.off_id = e
-	_astar.off_cost = OFF_COST
+	_astar.add_point(e, to, OFF_COST)                  # the leg off the way: its length x OFF_COST
+	var temp: Array[int] = [s, e]
 	var ons := 0
 	var offs := 0
 	for id in _pos.size():
 		if _pos[id].distance_to(from) <= ON_REACH:
-			_astar.connect_points(s, id, false)
+			var o := _astar.get_available_point_id()
+			_astar.add_point(o, _pos[id], OFF_COST)       # the leg on: the wanderer to the node's twin, x OFF_COST
+			_astar.connect_points(s, o, false)
+			_astar.connect_points(o, id, false)          # (the twin stands on the node: no length)
+			temp.append(o)
 			ons += 1
 		if _pos[id].distance_to(to) <= OFF_REACH:
 			_astar.connect_points(id, e, false)
 			offs += 1
-	var ids := _astar.get_id_path(s, e) if ons > 0 and offs > 0 else PackedInt64Array()
-	_astar.remove_point(s)
-	_astar.remove_point(e)
+	var raw := _astar.get_id_path(s, e) if ons > 0 and offs > 0 else PackedInt64Array()
+	for t in temp:
+		_astar.remove_point(t)
+	var ids := PackedInt64Array()
+	for id in raw:
+		if id < _pos.size() or id == s or id == e:
+			ids.append(id)
 	if ids.size() < 3:
 		return {}
 	var pts := PackedVector2Array()
