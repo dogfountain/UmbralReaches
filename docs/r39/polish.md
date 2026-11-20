@@ -6,14 +6,14 @@ Scratch (shots): `/private/tmp/claude-501/-Users-luke-UmbralReaches/10dbc585-c50
 Tick = fixed and committed. Each line: the issue, the fix, the commit.
 
 ## A. The visual pass's leftovers (named in the brief)
-- [~] A1 The Count door's pale void: the pit's black still-water face grew to cover the Realm's whole sheet (`ossuary.gd _pool`); the probe (`map_audit_shots --variants=`, scratch `before/ma2`) says what else draws it. See the log below.
+- [~] A1 The Count door's pale void: two causes closed (not yet seen closed in a shot): the pit's black still-water face grew to cover the Realm's whole sheet (`ossuary.gd _pool`), and `RealmLayout.water_level_at` gave the quarry's lip and cliff foot the fen's -0.9 level (a pale sheet 0.6 m over the threshold's eye, seen under) instead of the pool's. The probe (`map_audit_shots --variants=`) is the check.
 - [x] A2 The summit horizon slab (TA2): it was not the terrain ring. The sky shader's two painted far ranges (`world/sky/sky_vistas.gdshaderinc`) were filled to the bottom of the sky and read as a dark slab with a straight underside from a high view; they now fade into the haze a little below their crests. (A first guess, a back slope and a skirt on the ring, was reverted: `Horizon ring ...` and its `Revert`.)
 - [x] A3 The pit hall's skull walls (flat, bright orange): every skull and bone has its own tone (ivory, tea, grey, soot) from its place (`OssKit.bone_tone`, a per-instance MultiMesh colour), in a range dark enough that the candle light does not clip the wall to one gold.
 - [x] A4 The boxy Sleeper: the exterior and the hand's basin were already the model's; what was left boxy is the heart's furnace (a glowing cube on its corner over four iron sticks): `sleeper_hearths.glb` (Furnace; `tools/blender/polish_hearths.py`), the flame on its chimney.
 - [x] A5 The chasm's stair-stepped walls (the Pilgrims' Threshold): each terrace tier wears a modelled bay (`terrace_bay.glb`, `polish_terrace.py`: coursed facing, pilasters, pointed blind arch, coping, balustrade) over its collision boxes (`rift/threshold.gd _bay_look`).
 - [~] A6 The Lanternwood mushroom house: the giant caps are modelled already (`vista_caps.glb`); what stayed was the lathed toadstool in `mushroom_mesh.gd`, which only the retired glimmer buds and the stair zone's hero mushrooms use. Nothing in the Realm builds it any more.
 - [~] A7 Witch houses: the Hollow's hut is modelled (`vista_southwood.glb`); the cellar below it is a deep hall (the kit's boxes, interior).
-- [~] A8 Salt-sack stairs: the salt works' Block_Stack (stepped salt blocks) is modelled in `r37e_works.glb`; the black piles in the Saltmarket yard are the probe in `before/ma3`.
+- [x] A8 Salt-sack stairs: the works' Block_Stack (five courses of plain boxes stepped back like stairs) is now a modelled stack of cut salt: bevelled loaves, a plank, two sacks and a rope (`salt_stack.glb`, `tools/blender/polish_salt.py`; `east_works_kit.gd many` lays it, the collision table is unchanged).
 - [x] A9 The Spire's plinth box: a column of plain boxes per cell; now dressed blocks (`found_block.glb`, `polish_blocks.py`) in courses over the cells' collision (`realm_pois_east_marches.gd _plinth_blocks`, one MultiMesh).
 - [x] A10 Castellum pyramid: the far hull (`Tower_Far` in `reach_s_castellum.glb`) was a box under a four-sided pyramid; now corner buttresses, a corbelled cornice and the half-fallen hipped roof (`reach_south_castellum.py far()`).
 - [x] A11 Briar wall: `art/models/briar_wall.glb` (`tools/blender/polish_briar.py`: three wall modules and a thorn trunk) laid by `henge_raid.gd` through `MeshStamp` for the outer wall and the maze walls (the CreatureMesh tubes stay as the fallback when the glb is not imported).
@@ -30,6 +30,8 @@ Shots: `scratchpad/polish/before/` (ui/ places/ flow/ ma/ ma2/ ma3/). The flow (
 - B5 The objective line's step marks were the glyphs > and a tick, not painted: painted pips (`objective_line.gd`). [x]
 - B6 Trait texts broke "1 s" and "28 m" across lines (ui `char_wanderer_gear`): non-breaking spaces (`gear_db.gd`). [x]
 - B7 The Chronicle's cost line said "1 countries walked", "1 falls", "1 camps": pluralised (`night_panel.gd`). [x]
+
+- B15 The opening's lens looking straight up saw its constellations as soft smeared squares with colour fringes (the equirect map stretches toward the zenith): the sky fades the map above 53 degrees (`vortex.gdshader`). [x]
 
 ### Tech / QA
 - B8 SCRIPT ERROR `_pick_hover` index 22 on a PackedByteArray (play_capture ui, `world_map.gd:500`): the cluster list can be one repaint behind the marks; guarded. [x]
