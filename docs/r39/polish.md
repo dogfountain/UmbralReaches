@@ -43,6 +43,11 @@ Shots: `scratchpad/polish/before/` (ui/ places/ flow/ ma/ ma2/ ma3/). The flow (
 - B12 The far ranges' dark slab (A2). [x]
 - B13 Bone walls one flat gold (A3). [x]
 
+- B16 Modelled crates, barrels, benches and carts stood pitch black at Saltmarket's doors, lit by a lamp or not (the probe `--near-debug` named the materials: `Dress_crate` on the plain kit wood, texture 0.1 under baked shade 0.55-0.9): the extra variants (`site_props_more.gd`) take the outdoor wood's 2.3 lift, the modelled timber parts 1.6 (`site_props.gd`, outdoors only: the tavern keeps the kit's own). [x]
+- B17 The West kit's iron was a full metal: nothing in the night to reflect, so every modelled hoop, hinge and post drew black: 0.4 metallic (`west_marches_kit.gd`). [x]
+- B18 The ember post by the first fire (the opening shot looks at it) stood a black pillar on black steps: the kit's night-readable iron and masonry (`ember_post.gd`). [x]
+- B19 Fennick's beard read as pale shards in his portrait (CV3): the fringe in the shell's own darker tone, shorter and finer (`villager_rig.gd`). [x]
+
 ### Sound
 - B14 The slide's scrape and the lance's charge started at full level and stopped dead: `Sfx.loop_on` / `loop_off` (a 90-120 ms rise, a 140-200 ms fall). [x]
 
