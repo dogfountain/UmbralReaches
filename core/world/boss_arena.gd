@@ -48,6 +48,7 @@ var _emote_t := 0.0
 var _emote_wait: Array = []             ## [text, colour] held back while the title card is up
 
 var _boss: Enemy
+var _staged: Enemy                    ## the boss built ahead of the pull (_stage_boss), asleep and hidden
 var _active := false
 var _bar_layer: CanvasLayer
 var _bar: BossBar
@@ -142,6 +143,12 @@ func _ready() -> void:
 		call_deferred("_grant", false)
 
 
+func _exit_tree() -> void:
+	if _staged != null and is_instance_valid(_staged):
+		_staged.queue_free()
+	_staged = null
+
+
 func slain() -> bool:
 	return Travel.bosses_slain.has(boss_id)
 
@@ -228,13 +235,85 @@ func _warm_step(i: int) -> void:
 	var t0 := Time.get_ticks_usec()
 	if i < WARM_STAGES:
 		BossKit.warm(self, i, StringName(boss_id))
-	elif boss_script != null:
-		BossKit.warm_rig(get_parent(), boss_script)
+	elif i == WARM_STAGES:
+		_stage_boss()                           # the boss itself, built now and held for the pull
+	else:
+		_stage_draw()                           # its first draw (the pipelines), as a speck in front of the lens
 	var ms := float(Time.get_ticks_usec() - t0) / 1000.0
 	if ms > 4.0:
 		print("BOSSWARM %s step %d %.1f ms" % [boss_id, i, ms])
-	if i < WARM_STAGES:
+	if i < WARM_STAGES + 3:
 		get_tree().create_timer(WARM_GAP, false).timeout.connect(_warm_step.bind(i + 1))
+
+
+## The boss built ahead of the pull (the pull used to be `new` + `add_child` + the rig, 10-17 ms, and 223 ms for the
+## Thornwarden's first). It stands at its spawn, hidden, asleep (process off), out of the enemy group and off every
+## collision layer, so nothing sees or hits it; `_begin` wakes it. The fight starts when it always did.
+func _stage_boss() -> void:
+	if _staged != null or _active or _held or boss_script == null or slain() or not is_inside_tree():
+		return
+	var e := boss_script.new() as Enemy
+	if e == null:
+		return
+	e.process_mode = Node.PROCESS_MODE_DISABLED
+	e.visible = false
+	get_parent().add_child(e)
+	e.global_position = boss_at
+	e.remove_from_group(Groups.ENEMY)
+	e.set_meta(&"staged_layer", e.collision_layer)
+	e.set_meta(&"staged_mask", e.collision_mask)
+	e.collision_layer = 0
+	e.collision_mask = 0
+	_staged = e
+
+
+## The staged boss's first draw: a speck 3 m in front of the camera for a beat (a culled thing compiles nothing), then
+## home again. The health plate is sized in metres by its shader, so it stays hidden for the beat.
+func _stage_draw() -> void:
+	var e := _staged
+	if e == null or not is_instance_valid(e) or _active:
+		return
+	var plate := e.get_node_or_null("HealthBar") as Node3D
+	if plate != null:
+		e.set_meta(&"staged_plate", plate.visible)
+		plate.visible = false
+	var cam := get_viewport().get_camera_3d()
+	e.scale = Vector3.ONE * 0.01
+	e.global_position = (cam.global_position - cam.global_basis.z * 3.0) if cam != null else boss_at + Vector3.UP * 8.0
+	e.visible = true
+	get_tree().create_timer(WARM_GAP, false).timeout.connect(func() -> void:
+		if is_instance_valid(e) and e == _staged:
+			_stage_home(e))
+
+
+## The speck goes back to its spawn, hidden, plate and scale as they were.
+func _stage_home(e: Enemy) -> void:
+	e.visible = false
+	e.scale = Vector3.ONE
+	e.global_position = boss_at
+	e.reset_physics_interpolation()
+	if e.has_meta(&"staged_plate"):
+		var plate := e.get_node_or_null("HealthBar") as Node3D
+		if plate != null:
+			plate.visible = bool(e.get_meta(&"staged_plate"))
+		e.remove_meta(&"staged_plate")
+
+
+## A staged boss wakes: home, the layers and the group it was built with, the process on, visible. Null when there is none.
+func _wake_staged() -> Enemy:
+	var e := _staged
+	_staged = null
+	if e == null or not is_instance_valid(e) or not e.is_inside_tree():
+		return null
+	_stage_home(e)
+	e.process_mode = Node.PROCESS_MODE_INHERIT
+	e.collision_layer = int(e.get_meta(&"staged_layer", Layers.HURTBOX | Layers.PROPS))
+	e.collision_mask = int(e.get_meta(&"staged_mask", Layers.WORLD))
+	e.remove_meta(&"staged_layer")
+	e.remove_meta(&"staged_mask")
+	e.add_to_group(Groups.ENEMY)
+	e.visible = true
+	return e
 
 
 func _named() -> String:
@@ -318,8 +397,12 @@ func _begin() -> void:
 		_resume_fight()
 		return
 	_active = true
-	_boss = boss_script.new() as Enemy
-	get_parent().add_child(_boss)
+	var t0 := Time.get_ticks_usec()
+	var was_staged := _staged != null
+	_boss = _wake_staged()
+	if _boss == null:                           # no one approached (a fast travel into the room): built in the pull's frame
+		_boss = boss_script.new() as Enemy
+		get_parent().add_child(_boss)
 	_boss.global_position = boss_at
 	_boss.set_meta(&"boss_id", boss_id)
 	_boss.set_meta(&"display_name", title)      # r33: Enemy.display_name() for the HUD
@@ -338,6 +421,8 @@ func _begin() -> void:
 	BossFrame.start(self, _boss, frame_look, intro_turn)
 	Sfx.play("res://art/audio/ward_chime.wav", boss_at, 4.0)
 	SpellFx.rift_in(boss_at)
+	var ms := float(Time.get_ticks_usec() - t0) / 1000.0
+	print("BOSSPULL %s %.1f ms (%s)" % [boss_id, ms, "staged" if was_staged else "built in the pull"])
 
 
 func _on_killed(e: Node) -> void:
@@ -378,6 +463,7 @@ func _reset() -> void:
 	_open_gates()
 	if room != null and is_instance_valid(room) and room.has_method("room_reset"):
 		room.call("room_reset")
+	get_tree().create_timer(2.0, false).timeout.connect(_stage_boss)       # the next pull is cheap too
 
 
 # --- r35: a fight is never reset mid-way ---------------------------------------------------------

@@ -459,7 +459,11 @@ func _process(d: float) -> void:
 	if _cal_step():
 		return
 	if phase == "":
-		if blame:
+		print("PSO at start of play: %s" % _pso_totals())
+		if "--bosses" in OS.get_cmdline_user_args():
+			phase = "bosses"
+			_bosses_begin()
+		elif blame:
 			phase = "blame"
 			points = [points[0]]
 			_next_point()
@@ -476,6 +480,8 @@ func _process(d: float) -> void:
 				_blame_step(d)
 		"points":
 			_point_step(d)
+		"bosses":
+			_bosses_step(d)
 		"path":
 			_path_step(d)
 		"attrib":
@@ -500,6 +506,17 @@ var _ev_pso := [0, 0, 0, 0]
 const _PSO := [RenderingServer.RENDERING_INFO_PIPELINE_COMPILATIONS_CANVAS, RenderingServer.RENDERING_INFO_PIPELINE_COMPILATIONS_MESH,
 	RenderingServer.RENDERING_INFO_PIPELINE_COMPILATIONS_SURFACE, RenderingServer.RENDERING_INFO_PIPELINE_COMPILATIONS_DRAW,
 	RenderingServer.RENDERING_INFO_PIPELINE_COMPILATIONS_SPECIALIZATION]
+
+
+## Pipeline compiles so far, by kind (canvas, mesh, surface, draw, specialization) and their sum.
+func _pso_totals() -> String:
+	var parts := PackedStringArray()
+	var sum := 0
+	for k in _PSO.size():
+		var n := int(RenderingServer.get_rendering_info(_PSO[k]))
+		sum += n
+		parts.append(str(n))
+	return "canvas/mesh/surface/draw/spec %s = %d" % ["/".join(parts), sum]
 
 
 func _ev_note(sign: String, n: Node) -> void:
@@ -610,6 +627,9 @@ func _probe_setup() -> void:
 			units.append(c)                     # the parent itself (its own processing) is a unit too
 			for cc in c.get_children():
 				units.append(cc)
+				if (String(c.name) + "/" + String(cc.name)) in split:     # a second level named as "Parent/Child": its children are units too
+					for c3 in cc.get_children():
+						units.append(c3)
 	var script := GDScript.new()
 	script.source_code = _PROBE_SRC
 	script.reload()
@@ -1260,11 +1280,79 @@ func _finish() -> void:
 			over33 += int(r[8])
 		print("PERF summary: lowest fps %.1f (%s), lowest 1%% low %.1f, worst frame %.1f ms, frames >33ms %d, max draws %d, max prims %d, load %d ms" % [
 			worst_fps, at, worst_low, worst_frame, over33, max_draws, max_prims, load_ms])
+	print("PSO at end: %s" % _pso_totals())
 	print("PERF done (nodes %d, static mem %.0f MB, video mem %.0f MB)" % [
 		Performance.get_monitor(Performance.OBJECT_NODE_COUNT),
 		Performance.get_monitor(Performance.MEMORY_STATIC) / 1048576.0,
 		Performance.get_monitor(Performance.RENDER_VIDEO_MEM_USED) / 1048576.0])
 	OS.kill(OS.get_process_id())
+
+
+## --bosses: for each boss arena in turn, the wanderer stands APPROACH_R m past its edge (the warm and staging zone) for
+## 5 s, then is put at its centre (the pull). Prints the worst frame of each window and the frames over 16 ms; the arena
+## itself prints "BOSSPULL" with what its pull cost. The Realm's other life goes on (--hitches names what was built).
+const APPROACH_R := 26.0
+var _bs_arenas: Array = []
+var _bs_i := -1
+var _bs_t := 0.0
+var _bs_stage := 0
+var _bs_worst := 0.0
+var _bs_over := 0
+
+
+func _bosses_begin() -> void:
+	for a: Node in get_tree().get_nodes_in_group(&"boss_arena"):
+		var ar := a as BossArena
+		if ar != null and not ar.slain() and ar.boss_script != null:
+			_bs_arenas.append(ar)
+	print("BOSSES %d arenas" % _bs_arenas.size())
+	_bs_i = -1
+	_bosses_next()
+
+
+func _bosses_next() -> void:
+	_bs_i += 1
+	_bs_stage = 0
+	_bs_t = 0.0
+	_bs_worst = 0.0
+	_bs_over = 0
+	if _bs_i >= _bs_arenas.size():
+		_finish()
+
+
+func _bosses_stand(a: BossArena, off: Vector3) -> void:
+	var at := a.global_position + off
+	var hit := p.get_world_3d().direct_space_state.intersect_ray(PhysicsRayQueryParameters3D.create(at + Vector3.UP * 30.0, at + Vector3.DOWN * 40.0, Layers.WORLD))
+	at.y = (hit.position as Vector3).y + 0.2 if not hit.is_empty() else a.global_position.y + 0.2
+	if p.global_position.distance_to(at) > 0.3:
+		p.global_position = at
+		p.reset_physics_interpolation()
+	p.velocity = Vector3.ZERO
+
+
+func _bosses_step(d: float) -> void:
+	var a := _bs_arenas[_bs_i] as BossArena
+	if not is_instance_valid(a):
+		_bosses_next()
+		return
+	_bs_t += d
+	if _bs_t > 0.6 or _bs_stage == 1:
+		_bs_worst = maxf(_bs_worst, d * 1000.0)
+		if d > 0.016:
+			_bs_over += 1
+	if _bs_stage == 0:
+		_bosses_stand(a, Vector3(a.radius + APPROACH_R, 0.0, 0.0))
+		if _bs_t > 6.0:
+			print("BOSSES %s approach: worst frame %.1f ms, %d frames over 16 ms" % [a.boss_id, _bs_worst, _bs_over])
+			_bs_stage = 1
+			_bs_t = 0.0
+			_bs_worst = 0.0
+			_bs_over = 0
+	else:
+		_bosses_stand(a, Vector3.ZERO)
+		if _bs_t > 4.0:
+			print("BOSSES %s pull: worst frame %.1f ms, %d frames over 16 ms, fight %s" % [a.boss_id, _bs_worst, _bs_over, "begun" if bool(a.get("_active")) else "NOT begun"])
+			_bosses_next()
 
 
 ## --blame: at the first point, for each script in turn measure the frame's process+physics time

@@ -94,6 +94,14 @@ func _process(delta: float) -> void:
 # --- the poll ---------------------------------------------------------------------------------------------------
 
 func _tick() -> void:
+	var _t0 := Time.get_ticks_usec()
+	_tick2()
+	var _ms := float(Time.get_ticks_usec() - _t0) / 1000.0
+	if _ms > 3.0:
+		print("TRAILTICK %.1f ms" % _ms)
+
+
+func _tick2() -> void:
 	_find_track()
 	var p := get_tree().get_first_node_in_group(Groups.PLAYER) as Player
 	if _track == null or p == null:
@@ -117,12 +125,19 @@ func _tick() -> void:
 	if _pending > 0 and _wait > 3.0:
 		_finish_legs(true)                          # the mesh did not answer: the legs go straight
 	if stale and _gap <= 0.0 and _pending == 0:
+		var _b0 := Time.get_ticks_usec()
 		_build(here, foot)
+		print("TRAILTICK build %.1f ms" % (float(Time.get_ticks_usec() - _b0) / 1000.0))
 	if _rp.is_empty():
 		_aim_straight(here, foot)
 		return
+	var _p0 := Time.get_ticks_usec()
 	_progress(here)
+	var _a0 := Time.get_ticks_usec()
 	_aim(here)
+	var _a1 := Time.get_ticks_usec()
+	if _a1 - _p0 > 3000:
+		print("TRAILTICK progress %.1f aim %.1f" % [float(_a0 - _p0) / 1000.0, float(_a1 - _a0) / 1000.0])
 
 
 ## Quiet while anything else has the screen (or the wanderer's mind).
@@ -251,7 +266,9 @@ func _finish_legs(timed_out: bool) -> void:
 	_dirty = false
 	if pts.size() < 2:
 		return
+	var _r0 := Time.get_ticks_usec()
 	_resample(pts)
+	print("TRAILTICK resample %.1f ms (%d pts)" % [float(Time.get_ticks_usec() - _r0) / 1000.0, pts.size()])
 	_idx = -1
 	_gi = -1
 	_off = 0.0

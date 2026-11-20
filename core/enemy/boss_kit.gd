@@ -29,6 +29,7 @@ const BONE := Color(2.2, 1.9, 1.4)
 const HOLY := Color(2.6, 1.5, 0.4)
 
 const Hints := preload("res://ui/hints.gd")
+const ClipRig := preload("res://core/enemy/clip_rig.gd")
 const BOLT_CHIP := 0.7          ## r30: a boss takes this from a plain (non-heavy) Rift Bolt; Lance, Nova, Shatter stay full
 const SIG_NEEDED := 2           ## a phase cannot end before its signature move has been shown this often
 const INTRO := 1.8              ## seconds a boss stands, shelled, after it rises: the title card's grace
@@ -58,8 +59,9 @@ static func warm(host: Node, stage := -1, boss := &"") -> void:
 	if host == null or not host.is_inside_tree():
 		return
 	if stage == 0 and boss != &"":
-		if AUTHORED.has(boss):                  # a Blender-authored boss (ClipRig, the villagers' look): just its glb
+		if AUTHORED.has(boss):                  # a Blender-authored boss (ClipRig, the villagers' look): its glb, instanced on a worker
 			ResourceLoader.load_threaded_request(AUTHORED[boss])
+			ClipRig.instance_ahead(AUTHORED[boss])
 		else:
 			EnemyBody.prefetch(boss)            # the boss's model and textures load on a worker, ready for the rig
 	if stage == 0 or stage < 0:
