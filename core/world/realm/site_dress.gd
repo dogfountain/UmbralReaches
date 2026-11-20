@@ -13,6 +13,8 @@ const Props := preload("res://core/world/realm/site_props.gd")
 const ScalePilot := preload("res://core/world/realm/scale_pilot.gd")
 const Zones := preload("res://core/world/realm/dress_zones.gd")
 const VillageScript := preload("res://core/life/village/village.gd")
+const PlacementCacheRef := preload("res://core/world/realm/placement_cache.gd")
+const FloraRef := preload("res://core/world/realm/realm_flora.gd")
 
 const LANE_MARGIN := 0.9               ## clear of a walk lane's centreline by this plus the prop's radius
 const KEEP_OFF := 1.7                  ## from an interactable, a fire, a lamp, a stall
@@ -54,12 +56,14 @@ static func build(root: Node) -> void:
 	var host := Node3D.new()
 	host.name = "SiteDress"
 	root.add_child(host)
+	# every zone's search (what stands where) is stored (placement_cache.gd) under a key of the lanes and the fires it keeps clear of,
+	# the world and the sites registered so far; a warm boot emits the stored spots
+	var pk := PlacementCacheRef.key("site_dress", [_walk, _avoid, FloraRef.last_fp])
+	var hit: Variant = PlacementCacheRef.load_picks("site_dress", pk)
+	_zones_hit = (hit as Dictionary).zones as Dictionary if hit != null and not PlacementCacheRef.verify else null
+	_zones_solved = {}
 	for sq: Dictionary in Zones.squares():
-		_begin(String(sq.id))
-		if int(sq.get("market", 0)) > 0:
-			_market(sq)
-		_square(sq)
-		_emit(host, String(sq.id), sq.c)
+		_zone(host, String(sq.id), sq.c, _search_square.bind(sq))
 	var fires: Array[Vector2] = Zones.fire_points()
 	for i in fires.size():
 		var inside := false
@@ -68,19 +72,25 @@ static func build(root: Node) -> void:
 				inside = true
 		if inside:
 			continue
-		_begin("fire_%d" % i)
-		_fire_pad(fires[i])
-		_emit(host, "fire_%d" % i, fires[i])
+		_zone(host, "fire_%d" % i, fires[i], _fire_pad.bind(fires[i]))
 	for rd: Dictionary in RealmLayout.RAIDS:
-		_begin("raid_" + String(rd.id))
-		_raid(rd)
-		_emit(host, "raid_" + String(rd.id), rd.c)
+		_zone(host, "raid_" + String(rd.id), rd.c, _raid.bind(rd))
 	var bi := 0
 	for b: Array in Zones.breaches():
-		_begin("breach_%d" % bi)
-		_breach(b[0])
-		_emit(host, "breach_%d" % bi, b[0])
+		_zone(host, "breach_%d" % bi, b[0], _breach.bind(b[0]))
 		bi += 1
+	var picks := {"zones": _zones_solved}
+	if hit == null:
+		PlacementCacheRef.save_picks(pk, picks)
+		PlacementCacheRef.note("site_dress", "miss")
+		if PlacementCacheRef.verify:
+			PlacementCacheRef.compare("site_dress", pk, picks, PlacementCacheRef.load_picks("site_dress", pk))
+	elif PlacementCacheRef.verify:
+		PlacementCacheRef.compare("site_dress", pk, picks, hit)
+	else:
+		PlacementCacheRef.note("site_dress", "hit")
+	_zones_hit = null
+	_zones_solved = {}
 	_settle_life(host)
 	build_ms = Time.get_ticks_msec() - t0
 	var line := ""
@@ -91,6 +101,27 @@ static func build(root: Node) -> void:
 		line += "%s %d  " % [id, n]
 		total += n
 	print("SITE_DRESS %d props in %d ms: %s" % [total, build_ms, line])
+
+
+static var _zones_hit: Variant = null     ## the stored spots by zone id, or null (search)
+static var _zones_solved := {}             ## zone id -> the spots a search found (stored when the build ends)
+
+
+## One zone: its spots from the store or from `search`, then its meshes.
+static func _zone(host: Node3D, id: String, c: Vector2, search: Callable) -> void:
+	_begin(id)
+	if _zones_hit != null and (_zones_hit as Dictionary).has(id):
+		_out = ((_zones_hit as Dictionary)[id] as Dictionary).duplicate(true)
+	else:
+		search.call()
+	_zones_solved[id] = _out.duplicate(true)
+	_emit(host, id, c)
+
+
+static func _search_square(sq: Dictionary) -> void:
+	if int(sq.get("market", 0)) > 0:
+		_market(sq)
+	_square(sq)
 
 
 # --- what must stay clear ------------------------------------------------------------------------
@@ -124,9 +155,11 @@ static func _gather(root: Node) -> void:
 			var lp: Vector3 = (v.lamps[id] as Dictionary).get("pos", Vector3.INF)
 			if lp != Vector3.INF:
 				_avoid.append(Vector2(lp.x, lp.z))
+	# (the villagers are not kept clear of: they walk the lanes and stand at the nav nodes, both already kept clear of, and where one stands
+	# when the dress runs depends on the clock, so a result that read them could never be stored and found again)
 	for g: String in [Groups.INTERACTABLE, Groups.BRAZIER, Groups.LIGHT_SOURCE]:
 		for n in root.get_tree().get_nodes_in_group(g):
-			if n is Node3D:
+			if n is Node3D and not n.is_in_group(&"villager"):
 				var gp := (n as Node3D).global_position
 				_avoid.append(Vector2(gp.x, gp.z))
 	for p: Dictionary in WorldLanes.portals:

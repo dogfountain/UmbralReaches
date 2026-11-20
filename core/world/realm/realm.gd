@@ -15,6 +15,7 @@ extends RefCounted
 const GroundFollow := preload("res://core/world/realm/ground_follow.gd")
 const FadeGuard := preload("res://core/world/fade_guard.gd")
 const PlacementLog := preload("res://core/world/realm/placement_log.gd")
+const PlacementCache := preload("res://core/world/realm/placement_cache.gd")
 
 const MODULES := {
 	"land": "res://core/world/realm/realm_land.gd",
@@ -134,6 +135,7 @@ static func build(root: Node) -> void:
 		return
 	root.set_meta("realm_built", true)
 	PlacementLog.reset()
+	PlacementCache.reset()
 	prof.clear()
 	_step = 0
 	progress = 0.0
@@ -197,6 +199,7 @@ static func build(root: Node) -> void:
 	preload("res://core/world/realm/terrain_tiles.gd").attach(root)   # the terrain drawn and moon-shadowed in culled tiles
 	print("PLACEMENT %d skipped" % PlacementLog.entries.size())
 	root.set_meta("realm_done", true)              # waiters (camps, tests) can key on this
+	print(PlacementCache.summary())
 	print("REALM built in %d ms" % (Time.get_ticks_msec() - t0))
 
 
