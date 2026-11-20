@@ -230,6 +230,8 @@ func can_begin(kind: StringName) -> bool:
 		return false
 	if opening and kind in [&"discovery", &"quest"]:
 		return false                                     # the title card and the opening's words go first
+	if kind == &"lesson" and is_inside_tree() and get_tree().get_first_node_in_group(&"opening_shot") != null:
+		return false                                     # the authored shot is on: no control card over the sky (it queues, and draws after)
 	if in_fight() and not kind in [&"boss_emote", &"lesson", &"narration"]:
 		return false
 	if kind == &"discovery" and in_combat():
