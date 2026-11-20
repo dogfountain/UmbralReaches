@@ -1061,12 +1061,14 @@ def build(DATA, PREVIEW, objs_out):
         y = lm["y"]
         rw = r_in(y)
         ri_ = rw - 0.12 - STAIR_W
-        c = pos(a, (rw + ri_) / 2 + 0.2, y - 0.175)
+        c = pos(a, (rw + ri_) / 2 + 0.2, y)
         tang = Vector((math.cos(a), 0, -math.sin(a)))
         rad = Vector((math.sin(a), 0, math.cos(a)))
         hw = (rw - ri_ + 0.6) / 2
         hl = 1.8
-        p = [c + rad * hw + tang * hl, c + rad * hw - tang * hl, c - rad * hw - tang * hl, c - rad * hw + tang * hl]
+        # the plate follows the flight's slope along the tangent (it was flat at the sill: the treads before it stood 0.3-0.6 under its edge)
+        rise_t = Vector((0, RISE / (DA * ((rw + ri_) / 2 + 0.2)) * hl, 0))
+        p = [c + rad * hw + tang * hl + rise_t, c + rad * hw - tang * hl - rise_t, c - rad * hw - tang * hl - rise_t, c - rad * hw + tang * hl + rise_t]
         # extend through the door to the limb's first walk point
         p0 = limb_col[limbs.index(lm)][0][0]
         try:

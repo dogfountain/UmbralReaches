@@ -12,6 +12,7 @@ var main: Node
 var p: Node3D
 var t0 := 0
 var started := false
+var jump_on := true
 var cmd_dir := ""                   ## --cmd=<dir>: stay up and answer <dir>/cmd.txt with <dir>/cmd.out (then <dir>/cmd.done), until "quit" or 14 min idle
 var lines: PackedStringArray = []
 
@@ -524,6 +525,8 @@ func _cmd(a: PackedStringArray) -> void:
 			for w in main.find_children("*", "", true, false):
 				if w is WardSeal:
 					(w as WardSeal).release()
+		"jump":
+			jump_on = a.size() < 2 or a[1] != "off"
 		"wait":                                    # wait <seconds>: a windowed boot holds the player a while
 			var tw := Time.get_ticks_msec()
 			while Time.get_ticks_msec() - tw < int(_fl(a, 1, 10.0) * 1000.0):
@@ -640,6 +643,7 @@ func _walk(a: PackedStringArray) -> void:
 	pl.reset_physics_interpolation()
 	for i in 20:
 		await get_tree().physics_frame
+	var prev_pos := pl.global_position
 	for li in range(1, pts.size()):
 		var goal := pts[li]
 		var t := 0.0
@@ -656,7 +660,10 @@ func _walk(a: PackedStringArray) -> void:
 				ok = true
 				break
 			pl.debug_drive(Vector3(d.x, 0, d.y).normalized(), true)
-			if t > 2.0 and fmod(t, 1.0) < 0.12:
+			if prev_pos.distance_to(pl.global_position) > 12.0:
+				lines.append("    TELEPORT from (%.1f,%.1f,%.1f) to (%.1f,%.1f,%.1f) at leg %d t %.1f" % [prev_pos.x, prev_pos.y, prev_pos.z, pl.global_position.x, pl.global_position.y, pl.global_position.z, li, t])
+			prev_pos = pl.global_position
+			if jump_on and t > 2.0 and fmod(t, 1.0) < 0.12:
 				Input.action_press("jump")             # a walker stalled at a lip jumps, as a player does
 			else:
 				Input.action_release("jump")
