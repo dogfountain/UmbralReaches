@@ -82,7 +82,9 @@ func _open(space: PhysicsDirectSpaceState3D, q: PhysicsShapeQueryParameters3D, p
 	if span.x == INF or span.y - span.x > 0.7:
 		return false
 	for st: Dictionary in WorldLanes.sites:
-		if WorldLanes.site_hits_rect(st, Rect2(p - Vector2(2.4, 2.4), Vector2(4.8, 4.8)), 0.6):
+		# a yard keeps 6 m off every building's site: a door's approach lies in that strip, and a fence stood 3.4 m out of the tithe
+		# barn's door (zone fit)
+		if WorldLanes.site_hits_rect(st, Rect2(p - Vector2(2.4, 2.4), Vector2(4.8, 4.8)), 3.6):
 			return false
 	q.transform = Transform3D(Basis.IDENTITY, Vector3(p.x, WK.h(p.x, p.y) + 1.5, p.y))
 	return space.intersect_shape(q, 1).is_empty()

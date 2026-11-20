@@ -146,6 +146,7 @@ func _make(root: Node, i: int, c: Vector2, yaw: float) -> bool:
 	d.side = d.fwd.cross(Vector3.UP)
 	var start := c - fwd2 * 24.0
 	d.run = 20.0
+	d.kerb_l = 8.6
 	d.o = Vector3(start.x, WK.h(start.x, start.y), start.y)
 	# (map audit: every 3 m over the whole footprint and 1.6 m more cover: caves 1, 2 and 4 showed their roof slabs and
 	# black walls through the turf of their hillsides)
@@ -172,7 +173,7 @@ func _make(root: Node, i: int, c: Vector2, yaw: float) -> bool:
 	d.k.poi("cave_%d" % i, String(NAMES[i]), String(LINES[i]), WK.region_at(c) if WK.region_at(c) != "" else "road")
 	d.k.host.add_to_group("cave")
 	d.k.host.set_meta("threshold_at", d.o)
-	WorldLanes.register_flight("cave_%d" % i, d.o, Vector3(d.o.x + d.fwd.x * d.run, d.yf, d.o.z + d.fwd.z * d.run), 3.2, true)
+	WorldLanes.register_flight("cave_%d" % i, d.o, Vector3(d.o.x + d.fwd.x * d.run, d.yf, d.o.z + d.fwd.z * d.run), 3.2)
 	WK.reserve("cave_mouth_%d" % i, Vector2(d.o.x, d.o.z), Vector2(8.0, 6.0), yaw, d.o.y - 2.0, d.o.y + 6.0)
 	_boulders(d, i)
 	if not d.k.cached(WK.fp(SELF, [i, d.o, d.yf, d.fwd, WK.tsig(c, 30.0)])):

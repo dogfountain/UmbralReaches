@@ -27,6 +27,7 @@ var ceil_key := "stone_big"
 var light := Color(1.0, 0.66, 0.36)
 var water_y := NAN
 var count := {"rooms": 0}
+var kerb_l := 7.0                       ## lateral distance of the kerb that keeps walkers out of the trench's flank (see kerb())
 
 
 func p(u: float, y: float, v: float) -> Vector3:
@@ -147,6 +148,7 @@ func stair(width := 3.2) -> void:
 	var steps := maxi(8, int(ceilf(rise / 0.4)))
 	k.kit.stairs(wall, top, bot, width, steps, yf - 0.6)
 	forecourt(width)
+	kerb()
 	var n := 10
 	for j in n:
 		var t0 := float(j) / float(n)
@@ -164,6 +166,19 @@ func stair(width := 3.2) -> void:
 			var lp := mid + side * (width * 0.5 - 0.1) + Vector3.UP * (lerpf(top.y, yf, (t0 + t1) * 0.5) + 2.4)
 			k.kit.box("iron", lp, Vector3(0.1, 0.1, 0.1), basis(), false, 0.6)
 			k.lamp(lp, light, 0.8, 6.5)
+
+
+## A low stone kerb along each side of the open trench, beyond the cut's edge: the ground beside a deep stair is lowered in a flank
+## that slopes down to the stair's walls, and a walker who stepped onto it could not climb back out (zone fit: the Witch's Cellar).
+func kerb() -> void:
+	var v := 3.0
+	while v < run - 1.5:
+		var mid := o + fwd * (v + 1.5)
+		for s: float in [-1.0, 1.0]:
+			var c := mid + side * (s * kerb_l)
+			var gy := WK.h(c.x, c.z)
+			k.kit.box(wall, Vector3(c.x, gy + 0.15, c.z), Vector3(0.6, 1.9, 3.1), basis(), true, 0.9)
+		v += 3.0
 
 
 ## The mouth's forecourt (zone fit): a paved apron flush with the stair's top, running out from it, and steps down to the ground where
