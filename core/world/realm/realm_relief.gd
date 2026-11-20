@@ -71,6 +71,9 @@ static func horizon(p: Vector2, out: float) -> float:
 	var rise := smoothstep(6.0, at, out)
 	rise = 1.0 - (1.0 - rise) * (1.0 - rise)
 	var range_h := crest * rise
+	# the back slope: past the ridge the range falls away, so the ring's last edge hides behind its crest and the far
+	# mountains read as a range with a far side, not a slab cut off against the sky (polish, 20 Nov)
+	range_h *= 1.0 - 0.62 * smoothstep(at + 6.0, 92.0, out)
 	# passes where the world runs on out of the map
 	var gap := 0.0
 	for ps: Array in PASSES:

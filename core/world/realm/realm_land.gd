@@ -70,6 +70,7 @@ static var _n_fine: FastNoiseLite
 static var _n_patch: FastNoiseLite
 const Zones := preload("res://core/world/realm/dress_zones.gd")
 const GridMesh := preload("res://core/world/realm/grid_mesh.gd")
+const RingSkirt := preload("res://core/world/realm/ring_skirt.gd")
 static var _n_gully: FastNoiseLite
 static var _n_step: FastNoiseLite
 static var _wear_g := PackedFloat32Array()     ## path wear per grid vertex
@@ -669,9 +670,6 @@ static func _splat(x: float, z: float, h: float, nrm_y: float, ring: bool) -> Ar
 	return [Color(bw[0], bw[1], bw[2], bw[3]), Vector2(bw[4], bw[5]), Vector2(bw[6], wear)]
 
 
-
-
-
 ## The terrain's per-vertex normals and splat, [nrms, cols, uv, uv2] (cached by land_cache.gd: the biome blend is the cost).
 static func _terrain_data() -> Array:
 	var nrms := PackedVector3Array()
@@ -823,6 +821,8 @@ static func _ring_data() -> Array:
 				uv.append(sp[1])
 				uv2.append(sp[2])
 			idx[k] = remap[g]
+		RingSkirt.add(hs, [RNX, RNZ, RX0, RZ0, RSTEP], accept, func(x: float, z: float, h: float) -> Array: return _splat(x, z, h, 0.0, true),
+				verts, nrms, cols, uv, uv2, idx)
 		made.append([key, GridMesh.arrays(verts, nrms, cols, uv, uv2, idx)])
 	return made
 
