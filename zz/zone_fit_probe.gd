@@ -528,6 +528,28 @@ func _cmd(a: PackedStringArray) -> void:
 			var tw := Time.get_ticks_msec()
 			while Time.get_ticks_msec() - tw < int(_fl(a, 1, 10.0) * 1000.0):
 				await get_tree().process_frame
+		"oakscan":                                 # oakscan k0 k1: the nearest floor to each tread's expected height, at any radius
+			var smc := load("res://core/world/realm/realm_pois_south_marches.gd") as GDScript
+			var ok: Dictionary = smc.get("oak")
+			var oxf: Transform3D = ok.xf
+			var ost: Dictionary = (load("res://core/world/realm/south_marches_kit_data.gd") as GDScript).get_script_constant_map()["OAK_STAIR"]
+			for k in range(int(_fl(a, 1)), int(_fl(a, 2)) + 1):
+				var yy := float(ost.y0) + float(ost.rise) * float(k)
+				var aa := float(ost.a0) + (float(ost.a_end) - float(ost.a0)) * float(k) / float(ost.n)
+				var sw := Vector3(1.3 * sin(yy * 0.11 + 0.4) + 0.02 * yy, 0.0, 1.1 * cos(yy * 0.09 + 1.1))
+				var bestd := 9.0
+				var bestp := Vector3.ZERO
+				var rr := 2.0
+				while rr < 7.0:
+					var w := oxf * (Vector3(sin(aa) * rr, yy + 2.0, cos(aa) * rr) + sw)
+					var hit := _space().intersect_ray(PhysicsRayQueryParameters3D.create(w, w + Vector3.DOWN * 4.0, Layers.WORLD | Layers.PROPS))
+					if not hit.is_empty():
+						var dd := absf((hit.position as Vector3).y - (oxf.origin.y + yy))
+						if dd < bestd:
+							bestd = dd
+							bestp = hit.position
+					rr += 0.2
+				lines.append("  tread %d expect y %.2f: nearest floor %.2f off at (%.2f,%.2f,%.2f)" % [k, oxf.origin.y + yy, bestd, bestp.x, bestp.y, bestp.z])
 		"oakstair":                                # oakstair : the Grandmother Oak's inner stair, walked step 10 by step 10 up to the crown
 			await _oakstair(a.size() > 1 and a[1] == "swap")
 		"axis":                                    # axis x0 z0 x1 z1 step yfrom : first solid along a line, with what it is
