@@ -15,6 +15,7 @@ extends RefCounted
 ## Load by path:  const AmbushSites := preload("res://core/life/encounters/ambush_sites.gd")
 
 const SpawnRules := preload("res://core/life/encounters/spawn_rules.gd")
+const PlacementCache := preload("res://core/world/realm/placement_cache.gd")
 const RealmLand := preload("res://core/world/realm/realm_land.gd")
 const Flora := preload("res://core/world/realm/realm_flora.gd")
 const STEP := 4.0
@@ -32,6 +33,31 @@ const LURKERS := ["wretch", "crawler", "leaper", "gaunt", "burrower", "pilgrim",
 ## Where the hollowed rise for a walker going `fwd` (side = fwd turned left): ahead on both verges, then beside.
 const RISE := [Vector2(10.0, 4.5), Vector2(10.0, -5.0), Vector2(2.0, 8.0), Vector2(2.0, -8.0), Vector2(-9.0, 5.0),
 	Vector2(14.0, 7.0), Vector2(14.0, -7.0), Vector2(6.0, 10.0), Vector2(6.0, -10.0)]
+
+
+## `plan`, stored (placement_cache.gd) under a key of everything it reads: the world, the flora it counted trees in, and the rounds kept
+## clear (fires, the villagers' walks). A warm boot reads the sites instead of walking every way.
+static func plan_stored(space: PhysicsDirectSpaceState3D, keep_off: Array[Vector2], ground: Callable, fair: Callable) -> Array[Dictionary]:
+	var t := Time.get_ticks_usec()
+	var k := PlacementCache.key("ambush_sites", [keep_off, Flora.last_fp])
+	var hit: Variant = PlacementCache.load_picks("ambush_sites", k)
+	var out: Array[Dictionary] = []
+	if hit != null and not PlacementCache.verify:
+		out.assign((hit as Dictionary).sites as Array)
+		PlacementCache.note("ambush_sites", "hit")
+		print("AMBUSHES planned: %d sites (stored)" % out.size())
+	else:
+		out = plan(space, keep_off, ground, fair)
+		var picks := {"sites": out.duplicate()}
+		if hit == null:
+			PlacementCache.save_picks(k, picks)
+			PlacementCache.note("ambush_sites", "miss")
+			if PlacementCache.verify:
+				PlacementCache.compare("ambush_sites", k, picks, PlacementCache.load_picks("ambush_sites", k))
+		else:
+			PlacementCache.compare("ambush_sites", k, picks, hit)
+	PlacementCache.lap("ambush_sites", t)
+	return out
 
 
 ## Every planned site: {at (on the way), dir (Vector2), path, why, score, cd}. `keep_off`: fires and the like

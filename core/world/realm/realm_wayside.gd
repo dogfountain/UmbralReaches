@@ -25,6 +25,7 @@ const LK := preload("res://core/world/realm/lore/lore_kit.gd")
 const Tables := preload("res://core/world/realm/flora_tables.gd")
 const Land := preload("res://core/world/realm/realm_land.gd")
 const PlacementLog := preload("res://core/world/realm/placement_log.gd")
+const PlacementCacheRef := preload("res://core/world/realm/placement_cache.gd")
 
 const GAP_WAY := 30.0        ## along a way, the next place worth a look is never further than this
 const GAP_OPEN := 44.0       ## off the ways
@@ -95,23 +96,24 @@ static func plan_now(root: Node, tree_clear: Array) -> void:
 	_n = 0
 	if off():
 		return
-	_space = (root as Node3D).get_world_3d().direct_space_state
-	_rng.seed = 20261124
-	var laps := {}
-	var tl := Time.get_ticks_usec()
-	for pass_name: String in ["interests", "lookouts", "ways", "miles", "open", "dress", "assign"]:
-		match pass_name:
-			"interests":
-				_interests(root)
-				_index_keeps()
-			"lookouts": _lookouts()
-			"ways": _ways()
-			"miles": _miles()
-			"open": _open()
-			"dress": _dress()
-			"assign": _assign()
-		laps[pass_name] = (Time.get_ticks_usec() - tl) / 1000
-		tl = Time.get_ticks_usec()
+	var pk := PlacementCacheRef.key("wayside_plan", _brazier_spots(root))
+	var hit: Variant = PlacementCacheRef.load_picks("wayside_plan", pk)
+	var t_way := Time.get_ticks_usec()
+	if hit != null and not PlacementCacheRef.verify:
+		_adopt(hit as Dictionary)
+		PlacementCacheRef.note("wayside_plan", "hit")
+	else:
+		var skipped_before := PlacementLog.entries.size()
+		_solve(root)
+		var picks := {"plan": plan.duplicate(), "rejects": rejects.duplicate(), "skips": PlacementLog.entries.slice(skipped_before)}
+		if hit == null:
+			PlacementCacheRef.save_picks(pk, picks)
+			PlacementCacheRef.note("wayside_plan", "miss")
+			if PlacementCacheRef.verify:
+				PlacementCacheRef.compare("wayside_plan", pk, picks, PlacementCacheRef.load_picks("wayside_plan", pk))
+		else:
+			PlacementCacheRef.compare("wayside_plan", pk, picks, hit)
+	PlacementCacheRef.lap("wayside plan", t_way)
 	for v: Dictionary in plan:
 		var i := 0
 		for r: Rect2 in v.feet:
@@ -131,8 +133,41 @@ static func plan_now(root: Node, tree_clear: Array) -> void:
 	for v: Dictionary in plan:
 		if String(v.get("name", "")) != "":
 			named += 1
-	print("WAYSIDE rejects %s; ms by pass %s" % [rejects, laps])
+	print("WAYSIDE rejects %s" % [rejects])
 	print("WAYSIDE planned %d places (%d named, %d glades) in %d ms: %s" % [plan.size(), named, glades.size(), Time.get_ticks_msec() - t0, stats])
+
+
+## The search itself: every pass in order (a miss, or the equality test).
+static func _solve(root: Node) -> void:
+	_space = (root as Node3D).get_world_3d().direct_space_state
+	_rng.seed = 20261124
+	for pass_name: String in ["interests", "lookouts", "ways", "miles", "open", "dress", "assign"]:
+		match pass_name:
+			"interests":
+				_interests(root)
+				_index_keeps()
+			"lookouts": _lookouts()
+			"ways": _ways()
+			"miles": _miles()
+			"open": _open()
+			"dress": _dress()
+			"assign": _assign()
+
+
+## A stored plan's picks stand in for the search: the plan, why spots were turned down, the skips the assignment logged.
+static func _adopt(picks: Dictionary) -> void:
+	plan.assign(picks.plan as Array)
+	rejects = (picks.rejects as Dictionary).duplicate()
+	for e: Dictionary in picks.skips as Array:
+		PlacementLog.skip(String(e.system), String(e.id), e.at as Vector3, String(e.why))
+
+
+## Where the braziers stand (the plan keeps off their fires): part of the plan's key.
+static func _brazier_spots(root: Node) -> Array:
+	var out: Array = []
+	for b in root.find_children("*", "Brazier", true, false):
+		out.append((b as Node3D).global_position)
+	return out
 
 
 # --- what is already there -----------------------------------------------------------------------

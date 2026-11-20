@@ -27,6 +27,11 @@ const USER_DIR := "user://realm_cache/"   ## the default; UMBRAL_CACHE_DIR overr
 const MANIFEST := "_salts.bin"
 
 static var _salts := {}
+## Entries owned by no single script (the placement cache: its key hashes a whole folder of them) name a pseudo path and set its
+## salt here: whatever hashes their inputs. salt() answers it first, report() / prune() judge the entries by it.
+static var overrides := {}
+const PLACEMENT_OWNER := "pcache://placements"
+const PLACEMENT_SCRIPT := "res://core/world/realm/placement_cache.gd"
 static var _shapes := {}                ## mesh -> shape (instances sharing a mesh share the hull)
 static var _manifest: Variant = null    ## generator path -> salt, as last seen by a dev run
 static var _primed := {}                ## key -> ArrayMesh loaded or generated ahead of load_mesh (main thread only)
@@ -71,6 +76,8 @@ static func user_dir() -> String:
 
 
 static func salt(script_path: String) -> int:
+	if overrides.has(script_path):
+		return int(overrides[script_path])
 	_lock.lock()
 	if not _salts.has(script_path):
 		var s := 0
@@ -310,6 +317,10 @@ static func report(dir := RES_DIR) -> Dictionary:
 				script = String((d as Dictionary).get("gen_script", ""))
 		if script == "":
 			script = String(salts.get(s, ""))
+		if script == PLACEMENT_OWNER and not cur.has(script):
+			var pc: Variant = load(PLACEMENT_SCRIPT)
+			pc.code_fp()                                # (seeds overrides[PLACEMENT_OWNER] from the sources as they are now)
+			cur[script] = int(overrides.get(script, 0))
 		if script != "" and not cur.has(script):
 			cur[script] = FileAccess.get_file_as_string(script).hash() if FileAccess.file_exists(script) else 0
 		var live := script != "" and int(cur[script]) == s
