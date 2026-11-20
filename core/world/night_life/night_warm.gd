@@ -125,6 +125,7 @@ static func _quad(host: Node3D, out: Array[Node], mat: Material, flat: bool, at:
 	mm.set_instance_transform(0, Transform3D(Basis.IDENTITY.scaled(Vector3(size, size, size)), at))
 	mm.set_instance_color(0, Color(1.0, 1.0, 1.0, 0.5))
 	var mi := MultiMeshInstance3D.new()
+	mi.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF   # never moves (umbral-donts: Static MultiMeshes)
 	mi.multimesh = mm
 	mi.material_override = mat
 	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF

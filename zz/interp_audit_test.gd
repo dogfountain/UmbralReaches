@@ -255,26 +255,42 @@ func _check_phase() -> void:
 			bad += 1
 
 
-## The static MultiMesh builders (flora, props, dressing) put their node off physics interpolation before it enters the tree:
-## an interpolated MultiMesh makes its add wait on the GPU (12-20 ms for the first add of a frame; umbral-donts, Static MultiMeshes).
-const STATIC_MMI := ["core/world/realm/flora_emit.gd", "core/world/mesh_chunks.gd", "core/world/realm/east_works_kit.gd",
-	"core/world/realm/reach_towns.gd", "core/world/realm/realm_pois.gd", "core/world/realm/realm_pois_east_reach.gd",
-	"core/world/realm/rift/crossing.gd", "core/world/realm/rift/features.gd", "core/world/realm/rift_rim.gd",
-	"core/world/realm/site_dress.gd", "core/world/realm/wonders/r39/shorelines.gd", "core/world/realm/wonders/r39/wonder_kit.gd",
-	"core/world/realm/wonders/sky_chain.gd", "core/life/secrets/site_glade.gd", "core/life/wildlife/life_kit.gd",
-	"world/areas/ossuary/oss_deep.gd", "world/areas/ossuary/oss_kit.gd"]
+## Every MultiMeshInstance3D the game makes is off physics interpolation before it enters the tree: the static ones
+## (flora, props, dressing) because an interpolated MultiMesh makes its add wait on the GPU (12-20 ms for the first add of
+## a frame; umbral-donts, Static MultiMeshes), the live pools (moths, mist, glints, the Tether's links, the far cards)
+## because their instances are rewritten from _process every rendered frame, where tick interpolation would only lag
+## them. The whole game's source is read (20 Nov, the fps pass: a list of seventeen files had missed fourteen
+## builders), so a new builder is checked the day it is written.
+const MMI_DIRS := ["res://core", "res://world", "res://ui", "res://autoload"]
+## A builder that writes its instances from _physics_process and wants the engine to interpolate them would be listed
+## here ("path:line"); none does.
+const INTERPOLATED_MMI: Array[String] = []
+
+
+func _gd_files(dir: String, out: PackedStringArray) -> void:
+	var d := DirAccess.open(dir)
+	if d == null:
+		return
+	for f in d.get_files():
+		if f.ends_with(".gd"):
+			out.append(dir.path_join(f))
+	for sub in d.get_directories():
+		_gd_files(dir.path_join(sub), out)
 
 
 func _static_multimeshes() -> void:
+	var files := PackedStringArray()
+	for dir: String in MMI_DIRS:
+		_gd_files(dir, files)
 	var n := 0
-	for path: String in STATIC_MMI:
-		var lines := FileAccess.get_file_as_string("res://" + path).split("\n")
+	for path: String in files:
+		var lines := FileAccess.get_file_as_string(path).split("\n")
 		for i in lines.size():
 			if "MultiMeshInstance3D.new()" in lines[i]:
 				n += 1
 				var near := "\n".join(lines.slice(i, mini(i + 8, lines.size())))
-				if not "PHYSICS_INTERPOLATION_MODE_OFF" in near:
-					_fail("%s:%d: a static MultiMeshInstance3D is added with physics interpolation on" % [path, i + 1])
-	print("static MultiMeshInstance3D builders checked: %d" % n)
-	if n < 20:
-		_fail("only %d static MultiMesh builders found (the list is stale)" % n)
+				if not "PHYSICS_INTERPOLATION_MODE_OFF" in near and not ("%s:%d" % [path.trim_prefix("res://"), i + 1]) in INTERPOLATED_MMI:
+					_fail("%s:%d: a MultiMeshInstance3D is added with physics interpolation on" % [path, i + 1])
+	print("MultiMeshInstance3D builders checked: %d in %d scripts" % [n, files.size()])
+	if n < 30:
+		_fail("only %d MultiMesh builders found (the scan is broken)" % n)
