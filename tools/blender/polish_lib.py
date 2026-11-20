@@ -183,3 +183,28 @@ def finish(P, name, smooth_keys=(), uv_tile=None):
 
 def rnd_for(seed):
     return random.Random(seed)
+
+
+def bblock(P, key, c, size, rnd, yaw=0.0, bevel=0.05, warp=0.012, tone="ashlar", colfn=None, pitch=0.0, roll=0.0):
+    """A dressed block (bevelled arrises, a little jitter), vertex colour from r37_west's macro tone (moss on tops, damp low) or colfn."""
+    bm = P.of(key)
+    lay = bm.verts.layers.float_color.get("vc") or bm.verts.layers.float_color.new("vc")
+    before = set(bm.verts)
+    rot = Matrix.Rotation(yaw, 4, 'Z') @ Matrix.Rotation(pitch, 4, 'X') @ Matrix.Rotation(roll, 4, 'Y')
+    M = Matrix.Translation(Vector(c)) @ rot @ Matrix.Diagonal((size[0], size[1], size[2], 1.0))
+    r = bmesh.ops.create_cube(bm, size=1.0, matrix=M)
+    w = min(bevel, min(size) * 0.3)
+    geom = list({e for v in r["verts"] for e in v.link_edges})
+    if w > 0.004:
+        bmesh.ops.bevel(bm, geom=geom, offset=w, segments=1, affect='EDGES')
+    mine = set(bm.verts) - before
+    if warp:
+        for v in mine:
+            v.co += Vector((rnd.uniform(-1, 1), rnd.uniform(-1, 1), rnd.uniform(-1, 1))) * warp
+    bm.normal_update()
+    for v in mine:
+        if colfn:
+            v[lay] = colfn(v.co)
+        else:
+            t = W.tone_for(tone, v.co, v.normal, False)
+            v[lay] = (t[0], t[1], t[2], 1.0)
