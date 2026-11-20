@@ -4,14 +4,14 @@
 
 Authored in Godot coordinates (origin: the trunk's axis at ground level; the split and the way in face +Z).
   Trunk      the charred shell, outer and inner faces: buttressed and flared at the foot, split from the ground to the
-             broken crown on the +Z side (a door 1.4 m wide at the foot, a hand's width at the top), a ragged burned
+             broken crown on the +Z side (a door 2.2 m clear at the foot: zone fit, it was 1.4, a hand's width at the top), a ragged burned
              rim with two horns left standing
   Roots      six flared roots running out and down into the ground (none across the way in)
   Limbs      five great limbs off the crown, each forked, two broken short, with dead spikes
   MotherFar  the silhouette in about 250 triangles (drawn past 90 m)
   MotherCol  the collision proxy (never drawn): the shell's two faces, the way in left open
 Writes art/models/orchard_mother_tree.glb (textures inside). Numbers the game uses are in the docstring only: the
-hollow's inner radius is 1.15 m at the foot, the door's half angle 0.64 rad.
+hollow's inner radius is 1.15 m at the foot, the door's half angle 1.35 rad.
 """
 import math
 import os
@@ -36,7 +36,7 @@ L.TEX_DIR = os.path.join(L.BLEND_DIR, "textures", "orchard")
 
 NC = 40                                   # columns round the trunk
 YS = [-0.8, -0.35, 0.1, 0.5, 0.95, 1.4, 1.85, 2.3, 2.75, 3.2, 3.65, 4.1, 4.55, 5.0, 5.45, 5.9, 6.35, 6.8, 7.3, 7.8]
-ROOTS = [1.08, 1.95, 2.75, 3.6, 4.4, 5.2]             # azimuths (0 is +Z, the way in)
+ROOTS = [1.6, 2.1, 2.75, 3.6, 4.35, 4.68]             # azimuths (0 is +Z, the way in)
 LIMBS = [(0.95, 1.0), (2.15, 0.55), (3.25, 1.0), (4.35, 1.0), (5.5, 0.62)]   # azimuth, length (1 whole, < 1 broken short)
 
 
@@ -101,9 +101,9 @@ def top(a):
 def half_gap(y):
     """Half the angle of the split at height y."""
     if y < 1.7:
-        return 0.64
+        return 1.35
     if y < 3.2:
-        return lerp(0.64, 0.2, sm(y, 1.7, 3.2))
+        return lerp(1.35, 0.2, sm(y, 1.7, 3.2))
     return lerp(0.2, 0.1, sm(y, 3.2, 6.0))
 
 

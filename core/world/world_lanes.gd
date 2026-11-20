@@ -85,13 +85,15 @@ static func register_zone(n: String, centre: Vector2, r: float, floor_y: float, 
 
 ## A built stair corridor a -> b (floors at their y), `half_w` wide: ground above the flight is
 ## cut away under it; props and grass keep off it.
-static func register_flight(n: String, a: Vector3, b: Vector3, half_w: float) -> void:
+## `hard`: the cut ends at the corridor's edge with no 4 m falloff (a hall's or cave's stair is walled: the falloff dug a crater round
+## its walls that a walker could slide into and not climb out of).
+static func register_flight(n: String, a: Vector3, b: Vector3, half_w: float, hard := false) -> void:
 	for s in sites:
 		if s.name == n:
 			return
 	var lo := Vector2(minf(a.x, b.x), minf(a.z, b.z)) - Vector2(half_w, half_w)
 	var hi := Vector2(maxf(a.x, b.x), maxf(a.z, b.z)) + Vector2(half_w, half_w)
-	sites.append({"name": n, "rect": Rect2(lo, hi - lo), "floor_y": minf(a.y, b.y), "cut_y": minf(a.y, b.y), "seg": [a, b, half_w]})
+	sites.append({"name": n, "rect": Rect2(lo, hi - lo), "floor_y": minf(a.y, b.y), "cut_y": minf(a.y, b.y), "seg": [a, b, half_w], "hard": hard})
 
 
 ## Inside a site's real shape (rect, circle or flight), grown by margin. Returns the floor there

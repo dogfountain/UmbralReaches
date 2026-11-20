@@ -237,7 +237,7 @@ func _henge() -> void:
 
 ## Every Interiors room: rays from its middle at 0.5 m and 1.4 m above its floor, 72 directions; a direction clear at both
 ## heights out past the room's box is a way out (a door). Per opening: the floor just inside, and 1 / 2.5 / 4 m outside.
-func _rooms() -> void:
+func _rooms(doorscan := false) -> void:
 	lines.append("== rooms: every opening (door) of every Interiors room and every walled site; gap = floor outside minus floor inside the sill")
 	var rows: Array = []
 	var ents: Array = []
@@ -304,6 +304,8 @@ func _rooms() -> void:
 				var gg := (f - fin) if not is_nan(f) and not is_nan(fin) else 5.0
 				if absf(gg) > absf(worst):
 					worst = gg
+			if doorscan and float(g.size()) * TAU / 72.0 * ex_d >= 1.0:
+				_door_box(id, ex, d, fy)
 			var blk := _sweep(Vector3(ex.x + d.x * 4.0, fy, ex.z + d.z * 4.0), Vector3(ex.x - d.x * 0.8, fy, ex.z - d.z * 0.8))
 			if blk != "":
 				worst = 9.0
@@ -546,6 +548,8 @@ func _cmd(a: PackedStringArray) -> void:
 			_stairs()
 		"rooms":
 			_rooms()
+		"doorscan":                                # doorscan : a 0.5 m box 1 m to 1.9 m over the floor through every door the ray fans find
+			_rooms(true)
 		"portals":
 			_portals()
 		"thresholds":
@@ -735,3 +739,23 @@ func _clean_ui() -> void:
 		var n := main.get_node_or_null(nm)
 		if n != null:
 			n.queue_free()
+
+
+func _door_box(id: String, ex: Vector3, d: Vector3, fy: float) -> void:
+	var box := BoxShape3D.new()
+	box.size = Vector3(0.5, 0.9, 0.5)
+	var qb := PhysicsShapeQueryParameters3D.new()
+	qb.shape = box
+	qb.collision_mask = Layers.WORLD | Layers.PROPS
+	var seen := {}
+	for i in 16:
+		var q := ex + d * (4.0 - 0.3 * float(i))
+		qb.transform = Transform3D(Basis.IDENTITY, Vector3(q.x, fy + 1.45, q.z))
+		for h in _space().intersect_shape(qb, 6):
+			var cn := h.collider as Node
+			if cn == null or String(cn.name).begins_with("Terrain"):
+				continue
+			var key := str(cn.get_path())
+			if not seen.has(key):
+				seen[key] = true
+				lines.append("DOORPROP %s door (%.1f,%.1f) at %.1f m out: %s" % [id, ex.x, ex.z, 4.0 - 0.3 * float(i), _shape_desc(cn, int(h.shape))])
