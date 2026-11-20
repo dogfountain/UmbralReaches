@@ -8,6 +8,7 @@ extends Control
 ## Added by ui/hud.gd (one line). Reads the tree twice a second, draws every frame; no signals needed.
 ## Hidden while the tree is paused (menus, dialogue) and under the loading screen.
 
+const TickPhase := preload("res://core/util/tick_phase.gd")
 const LANTERN := Color("#FFB347")
 const EMBER := Color("#FF6A2A")
 const INK := Color(0.9, 0.84, 0.7)
@@ -32,6 +33,7 @@ var _dirty := true
 
 
 func _ready() -> void:
+	_scan = TickPhase.first(self, 0.5)
 	name = "Compass"
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	set_anchors_preset(Control.PRESET_CENTER_TOP)
@@ -48,7 +50,7 @@ func _process(delta: float) -> void:
 	_alpha = move_toward(_alpha, 0.0 if hidden else 1.0, delta * 4.0)
 	_scan -= delta
 	if _scan <= 0.0:
-		_scan = 0.5
+		_scan = TickPhase.next(_scan, 0.5)
 		_rescan()
 		_dirty = true
 	# redraw when the picture moves: the heading turned, the eye moved (the distance numbers), the marks

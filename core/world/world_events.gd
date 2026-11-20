@@ -16,6 +16,7 @@ extends Node3D
 ## State: Travel.system_state("world_events") = {won: int, sites: {site: wins}}.
 ## Tests/debug: start_event(site_id), arrive(), win_now(). Load by path (no class_name).
 
+const TickPhase := preload("res://core/util/tick_phase.gd")
 const Tiers := preload("res://core/life/encounters/tiers.gd")
 const Variants := preload("res://core/life/encounters/variants.gd")
 const SpawnRules := preload("res://core/life/encounters/spawn_rules.gd")
@@ -58,6 +59,7 @@ var _held: Array[Array] = []            ## banners waiting for the text director
 
 
 func _ready() -> void:
+	_t = TickPhase.first(self, 0.5)
 	name = "WorldEvents"
 	process_mode = Node.PROCESS_MODE_PAUSABLE
 	_rng.randomize()
@@ -97,7 +99,7 @@ func _process(delta: float) -> void:
 	_t -= delta
 	if _t > 0.0:
 		return
-	_t = 0.5
+	_t = TickPhase.next(_t, 0.5)
 	var p := get_tree().get_first_node_in_group(Groups.PLAYER) as Node3D
 	if p == null:
 		return

@@ -15,6 +15,7 @@ extends Node
 ##                   a uniform array), darkening the stars behind it.
 ## Settings.night_life off puts every term back to the old sky. Load by path.
 
+const TickPhase := preload("res://core/util/tick_phase.gd")
 const Reg := preload("res://core/world/night_life/night_registry.gd")
 const Days := preload("res://core/story/days.gd")
 
@@ -47,6 +48,7 @@ var _surge_t := -1.0                      ## seconds into a surge (-1: none)
 
 
 func _ready() -> void:
+	_tick = TickPhase.first(self, 0.5)
 	_fire.resize(6)
 	if env != null and env.sky != null and env.sky.sky_material is ShaderMaterial:
 		_mat = env.sky.sky_material as ShaderMaterial
@@ -64,7 +66,7 @@ func _process(delta: float) -> void:
 	if _tick > 0.0:
 		_cloud = lerpf(_cloud, _cloud_goal, 1.0 - exp(-0.15 * delta))
 		return
-	_tick = 0.5
+	_tick = TickPhase.next(_tick, 0.5)
 	if not Reg.enabled:
 		_reset()
 		return

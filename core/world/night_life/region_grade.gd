@@ -6,6 +6,7 @@ extends Node
 ## stonier, the ash and the foundry warmer and greyer, the crags colder, the glade a touch more alive. The last tenth of the night warms
 ## the mid tint a little toward the grey before morning. Never brighter: the shadow tint's value is not raised, only its hue.
 ## Cost: three uniform writes a frame while it is easing, none when it has arrived. Settings.night_life off eases back to the base.
+const TickPhase := preload("res://core/util/tick_phase.gd")
 const Reg := preload("res://core/world/night_life/night_registry.gd")
 
 ## biome -> [shadow tint, mid tint, saturation]
@@ -33,6 +34,7 @@ var _ready_ok := false
 
 
 func _ready() -> void:
+	_tick = TickPhase.first(self, 0.5)
 	var rect := get_parent().get_node_or_null("Grade/Rect") as ColorRect
 	if rect != null and rect.material is ShaderMaterial:
 		_mat = rect.material as ShaderMaterial
@@ -56,7 +58,7 @@ func _process(delta: float) -> void:
 		return
 	_tick -= delta
 	if _tick <= 0.0:
-		_tick = 0.5
+		_tick = TickPhase.next(_tick, 0.5)
 		_choose()
 	var k := 1.0 - exp(-0.5 * delta)
 	var ns := _shadow.lerp(_goal_shadow, k)

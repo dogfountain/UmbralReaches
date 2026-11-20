@@ -12,6 +12,7 @@ extends Node3D
 ## the villagers' distance rates and eases between poses (folk_actor.gd), no allocation per frame. Rigs are never built
 ## mid-play after the first seconds. Load by path (no class_name).
 
+const TickPhase := preload("res://core/util/tick_phase.gd")
 const Actor := preload("res://core/life/folk/folk_actor.gd")
 const Roles := preload("res://core/life/folk/folk_roles.gd")
 const Reg := preload("res://core/world/night_life/night_registry.gd")
@@ -42,6 +43,7 @@ static var _net_tex: ImageTexture
 
 
 func _ready() -> void:
+	_tick = TickPhase.first(self, TICK)
 	top_level = true
 	global_transform = Transform3D.IDENTITY
 	_defs = _definitions()
@@ -113,7 +115,7 @@ func _process(delta: float) -> void:
 	_build_step(delta)
 	_tick -= delta
 	if _tick <= 0.0:
-		_tick = TICK
+		_tick = TickPhase.next(_tick, TICK)
 		_refresh()
 	if _alarm_end > 0.0:
 		_alarm_end -= delta

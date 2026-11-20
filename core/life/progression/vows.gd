@@ -8,6 +8,7 @@ extends Node
 ## Effects are signals and a 2 Hz tick that does nothing unless a vow needs it. Other systems ask `Vows.has(id)`.
 ## A child of the story director (class Vows).
 
+const TickPhase := preload("res://core/util/tick_phase.gd")
 const Danger := preload("res://core/life/encounters/danger.gd")
 const Tally := preload("res://core/story/tally.gd")
 const Chronicle := preload("res://core/story/chronicle.gd")
@@ -103,6 +104,7 @@ static func choose(tier: int, id: String) -> void:
 
 
 func _ready() -> void:
+	_poll += TickPhase.first(self, 0.5)
 	name = "Vows"
 	add_to_group(&"vows")
 	Events.enemy_killed.connect(_on_kill)
@@ -185,7 +187,7 @@ func _process(delta: float) -> void:
 	_poll -= delta
 	if _poll > 0.0:
 		return
-	_poll = 0.5
+	_poll = TickPhase.next(_poll, 0.5)
 	var tree := get_tree()
 	var p := tree.get_first_node_in_group(Groups.PLAYER) as Player
 	if p != null and p.gloom > 0.0 and not tree.paused:

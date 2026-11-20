@@ -13,6 +13,7 @@ extends Node3D
 ## The Gloom tide puts the lights and eyes out and stills the howls; a hollowed thing near a pair of eyes or a field
 ## of lights puts those out (checked twice a second, only for what is near the camera).
 
+const TickPhase := preload("res://core/util/tick_phase.gd")
 const LifeKit := preload("res://core/life/wildlife/life_kit.gd")
 const LifePlace := preload("res://core/life/wildlife/life_place.gd")
 const Birds := preload("res://core/life/wildlife/life_birds.gd")
@@ -82,6 +83,7 @@ var _tide := false
 
 
 func setup(dir: Node3D, root: Node, space: PhysicsDirectSpaceState3D, add: Callable) -> void:
+	_t = TickPhase.first(self, 0.5)
 	name = "LifeSigns"
 	var t0 := Time.get_ticks_msec()
 	director = dir
@@ -455,7 +457,7 @@ func _eyes() -> void:
 func _process(dt: float) -> void:
 	_t -= dt
 	if _t <= 0.0:
-		_t = 0.5
+		_t = TickPhase.next(_t, 0.5)
 		_danger()
 	_howl_step(dt)
 

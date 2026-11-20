@@ -9,6 +9,7 @@ extends Node3D
 ## turns and speeds ease with `1 - exp(-k dt)`; nothing runs beyond SLEEP_R metres from the camera. The dogs and the cats
 ## have bodies of their own (wildlife/life_pet_mesh.gd, in the fox's frame so the creature shader's gait is shared): two MultiMeshes.
 
+const TickPhase := preload("res://core/util/tick_phase.gd")
 const Kit := preload("res://core/life/wildlife/life_kit.gd")
 const Group := preload("res://core/life/wildlife/life_group.gd")
 const Reg := preload("res://core/world/night_life/night_registry.gd")
@@ -57,6 +58,7 @@ var _at := PackedInt32Array()              ## cats: which roof
 
 
 func _ready() -> void:
+	_scan = TickPhase.first(self, 0.5)
 	top_level = true
 	global_transform = Transform3D.IDENTITY
 
@@ -79,12 +81,12 @@ func _process(delta: float) -> void:
 		return
 	_scan -= dt
 	if _scan <= 0.0:
-		_scan = 0.5
+		_scan = TickPhase.next(_scan, 0.5)
 		_watch(cam.global_position)
 	_gy_t -= dt
 	var ray := _gy_t <= 0.0
 	if ray:
-		_gy_t = 0.3
+		_gy_t = TickPhase.next(_gy_t, 0.3)
 	for i in _n:
 		_step(i, dt, ray)
 		_draw(i)

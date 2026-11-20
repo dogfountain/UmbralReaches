@@ -31,6 +31,7 @@ extends Control
 ## Typed where the target is always one script; the wanderer, foes and Breath stay dynamic (test stand-ins).
 ## Added by ui/hud.gd. Hidden while paused and under the loading screen.
 
+const TickPhase := preload("res://core/util/tick_phase.gd")
 const Afflict := preload("res://core/skills/afflict.gd")
 const Tiers := preload("res://core/life/encounters/tiers.gd")
 const Danger := preload("res://core/life/encounters/danger.gd")
@@ -123,6 +124,7 @@ var _b_alpha := 0.0
 
 
 func _ready() -> void:
+	_scan = TickPhase.first(self, 0.25)
 	name = "UnitFrames"
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -167,7 +169,7 @@ func _process(delta: float) -> void:
 	_tick_trail(delta)
 	_scan -= delta
 	if _scan <= 0.0:
-		_scan = 0.25
+		_scan = TickPhase.next(_scan, 0.25)
 		_rescan()
 	for b: Dictionary in _buffs:
 		if float(b.get("left", -1.0)) > 0.0:

@@ -10,6 +10,7 @@ extends Node3D
 ##   rares.spawn_rare(id) -> Enemy     tests call it directly
 ##   rares.marker(id) -> Node3D        its map marker
 
+const TickPhase := preload("res://core/util/tick_phase.gd")
 const EliteKit := preload("res://core/life/encounters/elite_kit.gd")
 const Tiers := preload("res://core/life/encounters/tiers.gd")
 const Variants := preload("res://core/life/encounters/variants.gd")
@@ -185,6 +186,7 @@ var _scripts: Dictionary = {}
 
 
 func _ready() -> void:
+	_acc = TickPhase.first(self, TICK)
 	name = "Rares"
 	Events.enemy_killed.connect(_on_killed)
 
@@ -222,7 +224,7 @@ func _process(delta: float) -> void:
 	_acc += delta
 	if _acc < TICK:
 		return
-	_acc = 0.0
+	_acc = TickPhase.carry(_acc, TICK)
 	var p := get_tree().get_first_node_in_group(Groups.PLAYER) as Node3D
 	if p == null:
 		return

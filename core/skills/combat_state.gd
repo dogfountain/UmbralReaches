@@ -51,6 +51,7 @@ extends Node
 ##   bursts double, the next cast-time spell is instant.
 ## - Crits: CRIT_BASE 8 % (+1 % per Resonance stack), x1.6.
 
+const TickPhase := preload("res://core/util/tick_phase.gd")
 const Hints := preload("res://ui/hints.gd")
 const RES_MAX := 5
 const RES_PER := 0.10           ## spender damage per Resonance stack spent
@@ -90,6 +91,7 @@ var _target_t := 0.0
 
 
 func _ready() -> void:
+	_target_t = TickPhase.first(self, 0.5)
 	rng.randomize()
 	var book := get_parent()
 	player = book.get_parent() as Node3D if book else null
@@ -216,7 +218,7 @@ func _physics_process(delta: float) -> void:
 	_surge_icd = maxf(0.0, _surge_icd - delta)
 	_target_t -= delta
 	if _target_t <= 0.0:
-		_target_t = 0.5
+		_target_t = TickPhase.next(_target_t, 0.5)
 		_check_target()
 	if _recs.is_empty():
 		return
