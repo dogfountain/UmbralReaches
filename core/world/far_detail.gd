@@ -63,13 +63,6 @@ static func hull(box: AABB, taper := 0.0, color := Color(0.16, 0.17, 0.2)) -> Ar
 	arrays[Mesh.ARRAY_NORMAL] = nrms
 	arrays[Mesh.ARRAY_COLOR] = cols
 	arrays[Mesh.ARRAY_INDEX] = idx
-	return arrays
-
-
-## The shell's node from its arrays (the main thread).
-static func shell_node(host: Node3D, c: Vector3, arrays: Array, nm: String) -> MeshInstance3D:
-	if arrays.is_empty():
-		return null
 	var m := ArrayMesh.new()
 	m.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
 	m.surface_set_material(0, far_material())
@@ -278,6 +271,13 @@ static func shell_arrays(c: Vector3, half: float, trees: Array, ground: Callable
 	arrays[Mesh.ARRAY_NORMAL] = nrms
 	arrays[Mesh.ARRAY_COLOR] = cols
 	arrays[Mesh.ARRAY_INDEX] = idx
+	return arrays
+
+
+## The shell's node from its arrays (the main thread).
+static func shell_node(host: Node3D, c: Vector3, arrays: Array, nm: String) -> MeshInstance3D:
+	if arrays.is_empty():
+		return null
 	var m := ArrayMesh.new()
 	m.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
 	if _shell_mat == null:
