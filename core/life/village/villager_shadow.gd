@@ -6,7 +6,9 @@ extends RefCounted
 ## copy of one of them (about a third of the triangles, the vertices it uses only, the body's own vertex format and
 ## material, so the shadow pass draws it with the pipelines the body compiled), skinned to the same skeleton and cast by
 ## a ShadowProxy; the body casts nothing. The shadow's outline is the body's at a third of the detail: at night, under
-## a soft moon, the same shape. Cached per look through GenCache.
+## a soft moon, the same shape. The body's deeper LODs come along (the shadow pass picks a LOD by distance as it did
+## for the body: without them a far proxy drew its whole third where the body had drawn a tenth, +30k shadow triangles
+## at the spawn). Cached per look through GenCache.
 ## Load by path (no class_name): const VShadow := preload("res://core/life/village/villager_shadow.gd")
 
 const GenCache := preload("res://core/world/realm/gen_cache.gd")
@@ -61,8 +63,9 @@ static func _mesh(key: String, mesh: ArrayMesh) -> ArrayMesh:
 	return got
 
 
-## One of `mesh`'s LODs (surface 0: the first with at most `share` of its triangles) as a mesh of its own, keeping only
-## the vertices it uses, in the source's vertex format. Null when the mesh has no such LOD.
+## One of `mesh`'s LODs (surface 0: the first with at most `share` of its triangles) as a mesh of its own, with the
+## deeper LODs as its own (at the same edge lengths), keeping only the vertices they use, in the source's vertex format.
+## Null when the mesh has no such LOD.
 static func lod_copy(mesh: ArrayMesh, share: float) -> ArrayMesh:
 	if mesh == null or mesh.get_surface_count() != 1:
 		return null
@@ -73,33 +76,46 @@ static func lod_copy(mesh: ArrayMesh, share: float) -> ArrayMesh:
 		return null
 	var stride := base_data.size() / base_n            # 2 or 4 bytes an index
 	var pick := PackedByteArray()
+	var deeper := {}                                   # edge length -> a deeper LOD's indices (in the source's numbering)
 	for l: Variant in sd.get("lods", []):
 		var data: PackedByteArray = (l as Dictionary).get("index_data", PackedByteArray())
-		if data.size() / stride <= int(float(base_n) * share):
+		if not pick.is_empty():
+			deeper[float((l as Dictionary).get("edge_length", 0.0))] = data
+		elif data.size() / stride <= int(float(base_n) * share):
 			pick = data
-			break
 	if pick.is_empty():
 		return null
-	var n := pick.size() / stride
 	var src := mesh.surface_get_arrays(0)
 	var remap := {}
-	var order := PackedInt32Array()
+	var order: Array[int] = []                         # (an Array: the helper appends to it)
+	var idx := _remapped(pick, stride, remap, order)
+	var lods := {}
+	for e: float in deeper:
+		lods[e] = _remapped(deeper[e], stride, remap, order)
+	var arrays := []
+	arrays.resize(Mesh.ARRAY_MAX)
+	var keep := PackedInt32Array(order)
+	for ch in Mesh.ARRAY_MAX:
+		if ch == Mesh.ARRAY_INDEX or src[ch] == null:
+			continue
+		arrays[ch] = MeshChunks._pick(src[ch], keep, MeshChunks._stride(ch, src))
+	arrays[Mesh.ARRAY_INDEX] = idx
+	var fmt := mesh.surface_get_format(0)
+	var out := ArrayMesh.new()
+	out.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays, [], lods, fmt & (Mesh.ARRAY_FLAG_USE_8_BONE_WEIGHTS | Mesh.ARRAY_FLAG_COMPRESS_ATTRIBUTES))
+	return out
+
+
+## Index bytes (2 or 4 an index) -> indices into the copy's vertices; a vertex not seen yet is appended to `order` (the
+## source's vertex for each of the copy's) and `remap`.
+static func _remapped(data: PackedByteArray, stride: int, remap: Dictionary, order: Array[int]) -> PackedInt32Array:
+	var n := data.size() / stride
 	var idx := PackedInt32Array()
 	idx.resize(n)
 	for i in n:
-		var v := pick.decode_u16(i * 2) if stride == 2 else pick.decode_u32(i * 4)
+		var v := data.decode_u16(i * 2) if stride == 2 else data.decode_u32(i * 4)
 		if not remap.has(v):
 			remap[v] = order.size()
 			order.append(v)
 		idx[i] = int(remap[v])
-	var arrays := []
-	arrays.resize(Mesh.ARRAY_MAX)
-	for ch in Mesh.ARRAY_MAX:
-		if ch == Mesh.ARRAY_INDEX or src[ch] == null:
-			continue
-		arrays[ch] = MeshChunks._pick(src[ch], order, MeshChunks._stride(ch, src))
-	arrays[Mesh.ARRAY_INDEX] = idx
-	var fmt := mesh.surface_get_format(0)
-	var out := ArrayMesh.new()
-	out.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays, [], {}, fmt & (Mesh.ARRAY_FLAG_USE_8_BONE_WEIGHTS | Mesh.ARRAY_FLAG_COMPRESS_ATTRIBUTES))
-	return out
+	return idx
