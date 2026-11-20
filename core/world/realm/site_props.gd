@@ -169,11 +169,11 @@ static var _prop_wood_m: StandardMaterial3D
 
 ## The modelled props' timber (crates, barrels, benches): the kit's prop wood, lifted. Its texture is a night value (a mean of about 0.1)
 ## under baked vertex tone of 0.2 and less, so a modelled crate or barrel stood black even in a lamp's light at Saltmarket's doors (the
-## polish pass, 20 Nov); the procedural props beside them already carry wood()'s 2.3 lift.
+## polish pass, 20 Nov); the procedural props beside them carry wood()'s 2.3 lift (a gentler 1.6 here: the glb crate has the baked shade of a lit crate).
 static func _prop_wood() -> StandardMaterial3D:
 	if _prop_wood_m == null:
 		_prop_wood_m = Kit.prop_mat("timber").duplicate() as StandardMaterial3D
-		_prop_wood_m.albedo_color = Color(2.3, 2.05, 1.8)
+		_prop_wood_m.albedo_color = Color(1.6, 1.45, 1.3)
 	return _prop_wood_m
 
 
