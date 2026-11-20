@@ -1301,6 +1301,7 @@ var _bs_over := 0
 
 
 func _bosses_begin() -> void:
+	BossArena.staging = not ("--no-stage" in OS.get_cmdline_user_args())
 	for a: Node in get_tree().get_nodes_in_group(&"boss_arena"):
 		var ar := a as BossArena
 		if ar != null and not ar.slain() and ar.boss_script != null:

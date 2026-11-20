@@ -97,13 +97,9 @@ static func instance_ahead(path: String) -> void:
 	_ahead_lock.unlock()
 
 
-## The instance made ahead for `path` (waiting for the worker if it is still at it), or null.
+## The instance made ahead for `path`, or null when there is none or the worker is still at it (never waited for: a worker
+## that needs the main thread for a moment would be waited on for ever; the rig then builds its own, as it always did).
 static func _take_ahead(path: String) -> Node3D:
-	_ahead_lock.lock()
-	var id := int(_ahead_task.get(path, -2))
-	_ahead_lock.unlock()
-	if id >= 0:
-		WorkerThreadPool.wait_for_task_completion(id)
 	_ahead_lock.lock()
 	var n := _ahead.get(path) as Node3D
 	_ahead.erase(path)

@@ -27,6 +27,8 @@ var phase_titles: Dictionary = {}
 ## When the wardens' bosses are missing, what each one is called in the "Nothing answers" line.
 const HOLDS := {"thornwarden": "The Ring's heart", "bone_abbot": "The crypt's crown"}
 const LEAVE := 6.0          ## run this far past the edge and the fight is held (r35: it used to reset)
+## false: the boss is built in the pull's frame as it was before (zz/perf_tour.gd --bosses --no-stage measures that)
+static var staging := true
 const WARM_STAGES := 5     ## BossKit.warm slices (the rig follows as the last step)
 const WARM_GAP := 0.25      ## seconds between warm steps
 const GATE_CLEAR := 1.5     ## metres past the gate line before the fight starts and the gate closes
@@ -250,7 +252,7 @@ func _warm_step(i: int) -> void:
 ## Thornwarden's first). It stands at its spawn, hidden, asleep (process off), out of the enemy group and off every
 ## collision layer, so nothing sees or hits it; `_begin` wakes it. The fight starts when it always did.
 func _stage_boss() -> void:
-	if _staged != null or _active or _held or boss_script == null or slain() or not is_inside_tree():
+	if not staging or _staged != null or _active or _held or boss_script == null or slain() or not is_inside_tree():
 		return
 	var e := boss_script.new() as Enemy
 	if e == null:
