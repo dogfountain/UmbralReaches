@@ -55,15 +55,12 @@ static func merge_children(parent: Node3D) -> int:
 static func _eligible(mi: MeshInstance3D) -> bool:
 	if mi == null or mi.mesh == null or mi.get_script() != null or mi.get_child_count() > 0 or not mi.visible:
 		return false
-	if mi.skin != null or mi.mesh.get_surface_count() != 1:
+	if mi.skin != null or mi.mesh.get_surface_count() < 1 or (mi.mesh.get_surface_count() > 1 and not _one_material(mi)):
 		return false
 	if not (mi.mesh is PrimitiveMesh):                # (a box / sphere / cylinder is always triangles; it reports no type)
-		if mi.mesh.surface_get_primitive_type(0) != Mesh.PRIMITIVE_TRIANGLES:
-			return false
-		const OTHER := Mesh.ARRAY_FORMAT_BONES | Mesh.ARRAY_FORMAT_WEIGHTS | Mesh.ARRAY_FORMAT_CUSTOM0 | Mesh.ARRAY_FORMAT_CUSTOM1 \
-			| Mesh.ARRAY_FORMAT_CUSTOM2 | Mesh.ARRAY_FORMAT_CUSTOM3
-		if mi.mesh.surface_get_format(0) & OTHER:
-			return false
+		for si in mi.mesh.get_surface_count():
+			if mi.mesh.surface_get_primitive_type(si) != Mesh.PRIMITIVE_TRIANGLES or mi.mesh.surface_get_format(si) & _OTHER:
+				return false
 	var mat := mat_of(mi)
 	if mat == null or not safe_material(mat):
 		return false
@@ -73,6 +70,94 @@ static func _eligible(mi: MeshInstance3D) -> bool:
 			return false
 	if mi.has_meta(&"fade_end"):
 		return false
+	return true
+
+
+const _OTHER := Mesh.ARRAY_FORMAT_BONES | Mesh.ARRAY_FORMAT_WEIGHTS | Mesh.ARRAY_FORMAT_CUSTOM0 | Mesh.ARRAY_FORMAT_CUSTOM1 \
+	| Mesh.ARRAY_FORMAT_CUSTOM2 | Mesh.ARRAY_FORMAT_CUSTOM3
+
+
+## A mesh of several surfaces, each with a material of its own (a glTF prop: its wood, its iron), none overridden, each
+## safe to merge: merge_world splits it into one mesh a surface (_split_surfaces) so each surface can join the other
+## pieces of its material (fps pass, 20 Nov: 296 such props in the merge roots, ~100 of them in view on the Downs).
+static func _splittable(mi: MeshInstance3D) -> bool:
+	if mi == null or not (mi.mesh is ArrayMesh) or mi.get_script() != null or mi.get_child_count() > 0 or not mi.visible:
+		return false
+	if mi.skin != null or mi.material_override != null or mi.mesh.get_surface_count() < 2 or mi.has_meta(&"fade_end"):
+		return false
+	var am := mi.mesh as ArrayMesh
+	for si in am.get_surface_count():
+		if am.surface_get_primitive_type(si) != Mesh.PRIMITIVE_TRIANGLES or am.surface_get_format(si) & _OTHER:
+			return false
+		var m := _surface_mat(mi, si)
+		if m == null or not safe_material(m):
+			return false
+		if uses_model_normal(m):
+			var sc := mi.global_basis.get_scale()
+			if not (is_equal_approx(sc.x, sc.y) and is_equal_approx(sc.y, sc.z)):
+				return false
+	return true
+
+
+static func _surface_mat(mi: MeshInstance3D, si: int) -> Material:
+	return mi.get_surface_override_material(si) if mi.get_surface_override_material(si) != null else mi.mesh.surface_get_material(si)
+
+
+static var _split_cache := {}           ## "mesh id|surface" -> that surface alone (shared by every copy of the prop)
+
+
+## `mi` as one sibling a surface (same place, ranges, flags, metas and groups), drawing that surface's material as its
+## override; `mi` is freed. The pieces are what merge_world groups by material.
+static func _split_surfaces(mi: MeshInstance3D) -> Array[MeshInstance3D]:
+	var am := mi.mesh as ArrayMesh
+	var par := mi.get_parent()
+	var out: Array[MeshInstance3D] = []
+	for si in am.get_surface_count():
+		var key := "%d|%d" % [am.get_instance_id(), si]
+		var sm: ArrayMesh = _split_cache.get(key)
+		if sm == null:
+			var arrays := am.surface_get_arrays(si)
+			var fmt := am.surface_get_format(si)
+			var keep := (fmt & Mesh.ARRAY_FLAG_COMPRESS_ATTRIBUTES) != 0 and (arrays[Mesh.ARRAY_NORMAL] != null) == (arrays[Mesh.ARRAY_TANGENT] != null)
+			sm = ArrayMesh.new()
+			sm.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays, [], {}, Mesh.ARRAY_FLAG_COMPRESS_ATTRIBUTES if keep else 0)
+			_split_cache[key] = sm
+		var p := MeshInstance3D.new()
+		p.name = "%s_s%d" % [mi.name, si]
+		p.mesh = sm
+		p.material_override = _surface_mat(mi, si)
+		p.transform = mi.transform
+		p.cast_shadow = mi.cast_shadow
+		p.layers = mi.layers
+		p.gi_mode = mi.gi_mode
+		p.lod_bias = mi.lod_bias
+		p.visibility_range_begin = mi.visibility_range_begin
+		p.visibility_range_begin_margin = mi.visibility_range_begin_margin
+		p.visibility_range_end = mi.visibility_range_end
+		p.visibility_range_end_margin = mi.visibility_range_end_margin
+		p.visibility_range_fade_mode = mi.visibility_range_fade_mode
+		p.extra_cull_margin = mi.extra_cull_margin
+		p.ignore_occlusion_culling = mi.ignore_occlusion_culling
+		for m in mi.get_meta_list():
+			p.set_meta(m, mi.get_meta(m))           # (FadeGuard's range_k: its ranges are already the guard's)
+		for g in mi.get_groups():
+			p.add_to_group(g)
+		par.add_child(p)
+		out.append(p)
+	par.remove_child(mi)
+	mi.queue_free()
+	return out
+
+
+## A mesh of several surfaces that all draw with one override material (the summit's painted glTF pieces): each surface was
+## a draw of the same material, so its surfaces join into one (_joined) when they share a vertex format.
+static func _one_material(mi: MeshInstance3D) -> bool:
+	if mi.material_override == null or not (mi.mesh is ArrayMesh):
+		return false
+	var am := mi.mesh as ArrayMesh
+	for si in range(1, am.get_surface_count()):
+		if am.surface_get_format(si) != am.surface_get_format(0):
+			return false
 	return true
 
 
@@ -102,9 +187,37 @@ static var _arr_cache := {}
 static func _arrays(m: Mesh) -> Array:
 	if _arr_cache.has(m):
 		return _arr_cache[m]
-	var a: Array = (m as PrimitiveMesh).get_mesh_arrays() if m is PrimitiveMesh else m.surface_get_arrays(0)
+	var a: Array = (m as PrimitiveMesh).get_mesh_arrays() if m is PrimitiveMesh else (m.surface_get_arrays(0) if m.get_surface_count() == 1 else _joined(m as ArrayMesh))
 	_arr_cache[m] = a
 	return a
+
+
+## A mesh's surfaces as one surface's arrays (one override material draws them all: _one_material).
+static func _joined(m: ArrayMesh) -> Array:
+	var out: Array = m.surface_get_arrays(0).duplicate()
+	if out[Mesh.ARRAY_INDEX] == null:
+		out[Mesh.ARRAY_INDEX] = _seq(0, (out[Mesh.ARRAY_VERTEX] as PackedVector3Array).size())
+	for si in range(1, m.get_surface_count()):
+		var a := m.surface_get_arrays(si)
+		var base := (out[Mesh.ARRAY_VERTEX] as PackedVector3Array).size()
+		for k in [Mesh.ARRAY_VERTEX, Mesh.ARRAY_NORMAL, Mesh.ARRAY_TANGENT, Mesh.ARRAY_COLOR, Mesh.ARRAY_TEX_UV, Mesh.ARRAY_TEX_UV2]:
+			if out[k] != null and a[k] != null:
+				out[k] = out[k] + a[k]
+		var ix: PackedInt32Array = a[Mesh.ARRAY_INDEX] if a[Mesh.ARRAY_INDEX] != null else _seq(0, (a[Mesh.ARRAY_VERTEX] as PackedVector3Array).size())
+		var shifted := PackedInt32Array()
+		shifted.resize(ix.size())
+		for k in ix.size():
+			shifted[k] = ix[k] + base
+		out[Mesh.ARRAY_INDEX] = (out[Mesh.ARRAY_INDEX] as PackedInt32Array) + shifted
+	return out
+
+
+static func _seq(from: int, n: int) -> PackedInt32Array:
+	var out := PackedInt32Array()
+	out.resize(n)
+	for k in n:
+		out[k] = from + k
+	return out
 
 
 ## Does the mesh draw from compressed attributes (a glTF import: 16-bit positions, octahedral normals and tangents)?
@@ -275,7 +388,23 @@ static func _mat_why(m: Material) -> String:
 		return "shader ?"
 	return m.get_class()
 const CELL := 6.0                   ## ranged pieces merge within a cell this size: each still fades within ~4 m of where it did
-const CELL_FAR := 24.0              ## pieces with no range (never fade): only frustum culling coarsens
+const CELL_FAR := 64.0              ## pieces with no range (never fade): only frustum culling coarsens (24 m until the
+                                    ## fps pass: Weirford's, the South Marches' and Hearthward's far pieces stood one a cell)
+## A fading piece's cell grows with its range (fps pass, 20 Nov: at 6 m the whole Realm's candidates made 2956 -> 2617
+## draws): a share of its range end, so its fade starts at most about one fade band (FadeGuard: 0.15 of the range) from
+## where it did, and it still fades. The near half of a stand-in swap and a stand-in keep CELL: their cuts must meet.
+const CELL_K := 0.06
+const CELL_MAX := 16.0
+
+
+static func _cell(mi: MeshInstance3D) -> float:
+	if mi.visibility_range_end <= 0.0 and mi.visibility_range_begin <= 0.0:
+		return CELL_FAR
+	var par := mi.get_parent()
+	if mi.visibility_range_begin > 0.0 or mi.visibility_range_fade_mode == GeometryInstance3D.VISIBILITY_RANGE_FADE_DISABLED \
+			or (par != null and bool(par.get_meta(&"fade_standin", false))):
+		return CELL
+	return clampf(mi.visibility_range_end * CELL_K, CELL, CELL_MAX)
 const MAX_TRIS := 3000              ## a heavier mesh keeps its own draw (and its LODs)
 
 
@@ -306,6 +435,7 @@ static func merge_world(root: Node, roots: Array) -> Vector2i:
 	var tree := root.get_tree()
 	var slice := Time.get_ticks_usec()
 	var cands := {}
+	var multi := {}                                   # candidates of several surfaces: split into one mesh a surface
 	var root_ids := {}
 	for rn: String in roots:
 		var r := root.get_node_or_null(rn)
@@ -314,11 +444,14 @@ static func merge_world(root: Node, roots: Array) -> Vector2i:
 		root_ids[r.get_instance_id()] = true
 		for n in r.find_children("*", "MeshInstance3D", true, false):
 			var mi := n as MeshInstance3D
-			if not _eligible(mi) or mi.get_parent() is not Node3D or not _plain_groups(mi) or mi.get_meta_list().has(&"far_detail"):
+			var split := not _eligible(mi) and _splittable(mi)
+			if not (split or _eligible(mi)) or mi.get_parent() is not Node3D or not _plain_groups(mi) or mi.get_meta_list().has(&"far_detail"):
 				continue
 			if _tris(mi.mesh) > MAX_TRIS or not mi.is_visible_in_tree():
 				continue
 			cands[mi.get_instance_id()] = mi
+			if split:
+				multi[mi.get_instance_id()] = true
 	if "--merge-why" in OS.get_cmdline_user_args():
 		var why := {}
 		for rn: String in roots:
@@ -344,6 +477,17 @@ static func merge_world(root: Node, roots: Array) -> Vector2i:
 	_drop_animated(root, roots, cands, held)
 	if "--merge-why" in OS.get_cmdline_user_args():
 		print("MERGE held by scripts: %d of %d" % [n0 - cands.size(), n0])
+	var n_split := 0
+	for id: int in multi:
+		if not cands.has(id):
+			continue                                  # (held, animated or freed: left whole)
+		var mi := cands[id] as MeshInstance3D
+		cands.erase(id)
+		for piece in _split_surfaces(mi):
+			cands[piece.get_instance_id()] = piece
+		n_split += 1
+	if "--merge-why" in OS.get_cmdline_user_args():
+		print("MERGE split %d props of several surfaces into one mesh a surface" % n_split)
 	var across := not ("--merge-per-parent" in OS.get_cmdline_user_args())   # A/B: the old per-parent grouping
 	var anchors := {}                                 # parent id -> anchor (climbed once per parent)
 	var groups := {}
@@ -357,9 +501,9 @@ static func merge_world(root: Node, roots: Array) -> Vector2i:
 				anchors[pid] = _anchor(par, root_ids, held)
 			anchor = anchors[pid]
 		var gc := mi.global_transform * mi.mesh.get_aabb().get_center()
-		var cs := CELL if (mi.visibility_range_end > 0.0 or mi.visibility_range_begin > 0.0) else CELL_FAR
+		var cs := _cell(mi)
 		var cell := Vector3i(floori(gc.x / cs), floori(gc.y / cs), floori(gc.z / cs))
-		var key := "%d|%s|%s" % [anchor.get_instance_id(), _key(mi), cell]
+		var key := "%d|%s|%s|%.1f" % [anchor.get_instance_id(), _key(mi), cell, cs]
 		if not groups.has(key):
 			groups[key] = [anchor]
 		groups[key].append(mi)
@@ -369,8 +513,8 @@ static func merge_world(root: Node, roots: Array) -> Vector2i:
 		for id: int in cands:
 			var mi := cands[id] as MeshInstance3D
 			var gc := mi.global_transform * mi.mesh.get_aabb().get_center()
-			var cs := CELL if (mi.visibility_range_end > 0.0 or mi.visibility_range_begin > 0.0) else CELL_FAR
-			free_keys["%s|%s" % [_key(mi), Vector3i(floori(gc.x / cs), floori(gc.y / cs), floori(gc.z / cs))]] = true
+			var cs := _cell(mi)
+			free_keys["%s|%s|%.1f" % [_key(mi), Vector3i(floori(gc.x / cs), floori(gc.y / cs), floori(gc.z / cs)), cs]] = true
 		for pid: int in anchors:
 			var a := anchors[pid] as Node3D
 			var why := "merge root" if root_ids.has(a.get_instance_id()) else ("held" if held.has(a.get_instance_id()) else \
@@ -398,7 +542,7 @@ static func merge_world(root: Node, roots: Array) -> Vector2i:
 			after += list.size()
 			continue                                  # (a frame passed: something freed or moved a piece of this group)
 		before += list.size()
-		if list.size() < 2:
+		if list.size() < 2 and (list[0] as MeshInstance3D).mesh.get_surface_count() < 2:
 			after += 1
 			continue
 		var inv := parent.global_transform.affine_inverse()
@@ -444,6 +588,7 @@ static func merge_world(root: Node, roots: Array) -> Vector2i:
 	# whole night (a copy nothing reads again, and meshes held past the renderer at quit); merge_children refills them
 	_arr_cache.clear()
 	_shader_ok.clear()
+	_split_cache.clear()
 	return Vector2i(before, after)
 
 
@@ -493,7 +638,7 @@ static func _why(mi: MeshInstance3D) -> String:
 	if mi.get_script() != null: return "script"
 	if mi.get_child_count() > 0: return "children"
 	if not mi.visible: return "hidden"
-	if mi.mesh.get_surface_count() != 1: return "surfaces"
+	if mi.mesh.get_surface_count() != 1 and not _one_material(mi): return "split" if _splittable(mi) else "surfaces"
 	var mat := mat_of(mi)
 	if mat == null: return "no material"
 	if not safe_material(mat): return "material " + _mat_why(mat)
@@ -515,8 +660,11 @@ static func _tris(m: Mesh) -> int:
 	var am := m as ArrayMesh
 	if am == null:
 		return 0                                  # a primitive (box, sphere): small
-	var n := am.surface_get_array_index_len(0)
-	return (n if n > 0 else am.surface_get_array_len(0)) / 3
+	var t := 0
+	for si in am.get_surface_count():
+		var n := am.surface_get_array_index_len(si)
+		t += (n if n > 0 else am.surface_get_array_len(si)) / 3
+	return t
 
 
 ## Candidates some script holds are not merged: every scripted node's own variables (an Object, or one in
