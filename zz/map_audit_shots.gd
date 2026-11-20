@@ -486,6 +486,20 @@ func _near_debug() -> void:
 			if gi is MultiMeshInstance3D:
 				mdesc += " mm[colors %s count %d]" % [(gi as MultiMeshInstance3D).multimesh.use_colors, (gi as MultiMeshInstance3D).multimesh.instance_count]
 			print("MAPAUDIT near %s %s at %s size %s%s" % [gi.get_class(), main.get_tree().root.get_path_to(gi), bb.get_center(), bb.size, mdesc])
+		elif gi is MultiMeshInstance3D and (gi as MultiMeshInstance3D).multimesh != null and (gi as MultiMeshInstance3D).multimesh.instance_count <= 400:
+			var mmi := gi as MultiMeshInstance3D
+			var best := INF
+			for ii in mmi.multimesh.instance_count:
+				best = minf(best, (mmi.global_transform * mmi.multimesh.get_instance_transform(ii)).origin.distance_to(cp))
+			if best < 12.0:
+				var mo2 := mmi.material_override as StandardMaterial3D
+				var md2 := ""
+				if mo2 != null:
+					md2 = " mat[alb %s vcol %s metal %.2f rough %.2f tex %s emis %s]" % [mo2.albedo_color, mo2.vertex_color_use_as_albedo, mo2.metallic, mo2.roughness, mo2.albedo_texture != null, mo2.emission_enabled]
+				var sm := ""
+				if mmi.multimesh.mesh != null:
+					sm = " surfaces %d aabb %s" % [mmi.multimesh.mesh.get_surface_count(), mmi.multimesh.mesh.get_aabb().size]
+				print("MAPAUDIT nearmm %s nearest %.1f m, %d inst, colors %s layers %d%s%s" % [main.get_tree().root.get_path_to(gi), best, mmi.multimesh.instance_count, mmi.multimesh.use_colors, gi.layers, md2, sm])
 		elif gi is GPUParticles3D or gi is CPUParticles3D or gi is MultiMeshInstance3D:
 			if bb.grow(1.0).has_point(cp):
 				print("MAPAUDIT around %s %s box %s" % [gi.get_class(), main.get_tree().root.get_path_to(gi), bb])
