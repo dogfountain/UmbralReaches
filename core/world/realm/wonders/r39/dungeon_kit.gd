@@ -138,23 +138,7 @@ func water(u0: float, u1: float, v0: float, v1: float, y: float) -> void:
 	k.water_plane(p((u0 + u1) * 0.5, y, (v0 + v1) * 0.5), atan2(fwd.x, fwd.z), Vector2(u1 - u0, v1 - v0), 120.0)
 
 
-## Where the open trench ends and the stair goes under a roof: the first point where the natural ground stands ROOF_DEPTH over the
-## treads. Past it the hill is left whole (the cut there was a crater a walker slid into and could not climb out of).
-const ROOF_DEPTH := 3.4
-
-
-func cut_end() -> Vector3:
-	var b := Vector3(o.x + fwd.x * run, yf, o.z + fwd.z * run)
-	for i in 51:
-		var t := float(i) / 50.0
-		var q := o.lerp(b, t)
-		if WK.h(q.x, q.z) - q.y > ROOF_DEPTH:
-			return q
-	return b
-
-
-## The stair from the surface down to the floor, with walls up each side to the ground; where the hill stands more than ROOF_DEPTH over
-## it the stair is a tunnel: walls to a roof slab under the natural ground.
+## The stair from the surface down to the floor, with walls up each side to the ground.
 func stair(width := 3.2) -> void:
 	var top := o
 	var bot := p(0.0, 0.0, 0.0) - fwd * 0.0
@@ -163,7 +147,7 @@ func stair(width := 3.2) -> void:
 	var steps := maxi(8, int(ceilf(rise / 0.4)))
 	k.kit.stairs(wall, top, bot, width, steps, yf - 0.6)
 	forecourt(width)
-	var n := 30
+	var n := 10
 	for j in n:
 		var t0 := float(j) / float(n)
 		var t1 := float(j + 1) / float(n)
@@ -171,21 +155,13 @@ func stair(width := 3.2) -> void:
 		var v1 := run * t1
 		var mid := o + fwd * ((v0 + v1) * 0.5)
 		var gy := WK.h(mid.x, mid.z)
-		var tread_mid := lerpf(top.y, yf, (t0 + t1) * 0.5)
-		var roofed := gy - tread_mid > ROOF_DEPTH
-		var ytop := (tread_mid + 3.0) if roofed else (maxf(gy, tread_mid) + 0.9)
+		var ytop := maxf(gy, lerpf(top.y, yf, (t0 + t1) * 0.5)) + 0.9
 		var ybot := lerpf(top.y, yf, t1) - 0.8
 		for s: float in [-1.0, 1.0]:
 			var c := mid + side * (s * (width * 0.5 + 0.5))
 			k.kit.box(wall, Vector3(c.x, (ytop + ybot) * 0.5, c.z), Vector3(0.9, ytop - ybot, (v1 - v0) + 0.05), basis(), true, 0.9)
-		if roofed:
-			var f := Vector3(fwd.x * (v1 - v0), lerpf(top.y, yf, t1) - lerpf(top.y, yf, t0), fwd.z * (v1 - v0)).normalized()
-			var u := side.cross(f).normalized()
-			if u.y < 0.0:
-				u = -u
-			k.kit.box(wall, Vector3(mid.x, tread_mid + 3.2, mid.z), Vector3(width + 1.9, 0.4, (v1 - v0) / maxf(absf(f.dot(fwd)), 0.2) + 0.1), Basis(side, u, f), true, 0.9)
-		if j % 9 == 4:
-			var lp := mid + side * (width * 0.5 - 0.1) + Vector3.UP * (tread_mid + 2.4)
+		if j % 3 == 1:
+			var lp := mid + side * (width * 0.5 - 0.1) + Vector3.UP * (lerpf(top.y, yf, (t0 + t1) * 0.5) + 2.4)
 			k.kit.box("iron", lp, Vector3(0.1, 0.1, 0.1), basis(), false, 0.6)
 			k.lamp(lp, light, 0.8, 6.5)
 
