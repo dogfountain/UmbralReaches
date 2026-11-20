@@ -42,7 +42,7 @@ Every `MultiMeshInstance3D` that never moves (flora, dressing, props) gets `phys
 A timer that runs a system every P seconds (`_t -= dt; if _t <= 0.0: _t = P`) starts at `TickPhase.first(self, P)` and
 resets with `_t = TickPhase.next(_t, P)` (`core/util/tick_phase.gd`). Started together and reset with `= P`, two dozen
 half- and quarter-second ticks fired on one frame twice a second: that frame was the 1% low of half the perf tour's views
-(fps pass, 20 Nov: t_reedholm's 1% low 50 -> 95 fps once they were spread).
+(fps pass, 20 Nov: once they were spread the tour's frames over 20 ms mostly went, t_reedholm's p99 12-20 -> 10 ms).
 
 ## What their words actually mean
 
