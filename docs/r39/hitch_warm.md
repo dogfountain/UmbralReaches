@@ -9,10 +9,10 @@ at its warm ring, then the pull; prints the worst frame of each window; the aren
 
 - [x] Baseline tour (`--hitches --probe --loading`), 79 hitch records over 20 ms; the repeating ones named below
 - [x] PE2: named (bisect by muting scripts: `quest_trail.gd`; timed: the stale check's `NavAssist.ready()` walked every nav probe in one call, 17 ms, and again inside `_build`, 8 ms); fix: `NavAssist._all_joined` asks at most 6 probes per physics frame (`core/enemy/nav_assist.gd`). Re-check pending
-- [ ] Boss ahead of the pull: staged boss in `BossArena` (`_stage_boss`, `_stage_draw`, `_wake_staged`): written
-- [ ] Boss pull measured (`--bosses`): under 4 ms
-- [ ] Pipelines: the first views' compiles named, warmed
-- [ ] Final tour: PSO count and hitch list after
+- [x] Boss ahead of the pull: staged boss in `BossArena` (`_stage_boss`, `_stage_draw`, `_wake_staged`)
+- [x] Boss pull measured (`--bosses`): Thornwarden 38.8 -> 1.4 ms, Speaking Crown 11.1 -> 1.7, Anchoress 11.2 -> 0.9 (Bone Abbot and Ascended Warden pulls did not start in the tour: their gates/bells)
+- [~] Pipelines: the boss's first draw is warmed (the staged speck), the rift emitters are built ahead; the general first-view compiles are NOT reduced (see below)
+- [x] Final tour run (with the loading screen): numbers below
 - [ ] Tests: quick tier, the boss / arena / night_life world tests
 
 ## Findings
@@ -45,3 +45,30 @@ throwaway: one build, not two); `_begin()` wakes it (`_wake_staged`) in the pull
 `BossKit.warm` stage 0 also asks a worker to instance the glb (`ClipRig.instance_ahead`), which `ClipRig._build` takes if
 it is ready (never waited for: waiting hung the main thread, found by a 0 % CPU run). `BossArena.staging = false`
 (perf_tour `--bosses --no-stage`) is the old behaviour, for the before numbers.
+
+### NavAssist (the real PE2 cause)
+
+`NAVREADY 17.2 ms joined 5/5`: `NavigationServer3D.map_get_closest_point` walks every polygon of the map, ~3.4 ms a probe;
+the first `ready()` after the mesh merged asked all five in one call. A cap of six did nothing (5 probes); the cap is now
+ONE probe a look (`PROBES_PER_LOOK`), so the check costs 3.4 ms a physics frame for five frames. (Enemies share the call.)
+
+### Boss pull, before and after (`zz/perf_tour.tscn -- --bosses`, windowed 1600 x 1000, `BOSSPULL` lines)
+
+| boss | before (built in the pull) | after (staged) |
+|---|---|---|
+| Thornwarden | 38.8 ms (first 223 ms, un-warmed) | 1.4 ms (the build moved to the approach: 8.4 ms in one frame) |
+| Speaking Crown | 11.1 | 1.7 |
+| Anchoress | 11.2 | 0.9 |
+
+The pull's `Events.boss_engaged` was 19 ms for the Thornwarden (FloraFight's `find_children` over the woods): now collected
+a slice a frame from `Events.boss_warming`. The gate's `rift_in` (7.6 ms first use) is built ahead far below the world.
+Frames over 16 ms that remain around a pull (4-10 a pull): the first one is a first-draw `spec+11` compile of the pull's
+visible parts (boss at full size, bar, rift), then about 6 frames of 15-18 ms while the rise effects overdraw (CPU render
+6-7 ms, the scene is the same size as before the pull: GPU and effects, not a build). Not fixed.
+
+### PSO counts
+
+`PSO at start of play` / `at end` (canvas/mesh/surface/draw/spec): 14/176/534/3/266 = 993 at the start and 1243 at the end
+of the `--bosses` tour before; 992 and 1245 after. Unchanged: this pass did not reduce the engine's specialisation
+compiles (the loading screen's warm tour already covers the materials; the leftover `spec+N` come from first sight of a
+material under a new light/shadow/fog state at a view or a spawn, which needs a per-state warm this pass did not build).
