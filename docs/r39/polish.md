@@ -67,3 +67,18 @@ Before: /private/tmp/claude-501/-Users-luke-UmbralReaches/10dbc585-c502-4f27-b1e
 - B3/B4 HUD strip and pickup feed clear of the dial (after/ui/hud_exploring, shop_buy).
 - Saltmarket crates no longer black (after/places/close_saltmarket.png).
 - Not re-checked in shots: A4 furnace, A9 plinth, A10 castellum, A11 briar (after/ma/southwood, stillwater, arches, henge); parse check 994 scripts 0 bad.
+
+
+## Lead review round (20 Nov): the four shots not inspected, and the "left" list
+
+- C1 Henge briar wall read as a thin flat red strip: the module is now 7 m tall, denser (16 canes of 0.11-0.2 m, 34 tangles, 8 crossing canes), the wall drawn 1.3 x its collision height (7.3 m, taller than the menhirs), a thorn trunk (11.5 m) every third segment (`polish_briar.py`, `henge_raid.gd`). [ ]
+- C2 Sleeper: the furnace's gem and every `__wax` part of the models are now drawn lit (they were candle wax in the tiling set, so the furnace never glowed); seams of ember in the plate (shins, cuisses, hips, arms, gorget) and a 13 m flue with a lit mouth and a flame on its crown stands on the deck over the heart (`wonder_sleeper.py` `embers`, `the_sleeper.gd` `_glow`, flue collision). [ ]
+- C3 Castellum far hull and the chest with the orange box: see the shots (`after2/ma/arches`). [ ]
+- C4 Spire air view blob: see `after2/ma/stillwater`. [ ]
+- C5 Hearthward's fire reads from afar: the landmark beacon's warm point on the Sanctuary (`brazier.gd` `_far_glow`). [ ]
+- C6 Starwater's blue rectangles round the Watchers' plinths: the shore line was 2x as bright and 3x as wide as it should be round a square pier (`lava.gdshader`). [ ]
+- C7 Kit `dark` blocks stood pitch black: 0.26 -> 0.4 albedo (`oss_kit.gd`). [ ]
+- C8 Ground "foil scratches" on dunes: the heath's straw strands go to a softer mip with distance (`realm_ground.gdshader`). [ ]
+- C9 EN6 flagstones: a second, larger, turned course laid half under the first, and a slow stain (`realm_ground.gdshader`). [ ]
+- C10 EN4 the henge floor was a flat dark disc: 78 fallen stones and thrown rocks in three shapes (`henge_raid.gd` `_litter`). [ ]
+- C11 LA6 the window cone's streak: the `shaft` light class's fog energy 1.05 -> 0.55 (`light_policy.gd`). [ ]

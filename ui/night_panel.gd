@@ -138,7 +138,7 @@ func show_summary() -> void:
 	var camps := int(d.get("camps", 0)) - int(mark.get("camps", 0))
 	var level := Danger.player_level()
 	var lv0 := int(mark.get("level", level))
-	_title.text = "NIGHT %d IS OVER" % Days.current()
+	_title.text = "NIGHT %d IS OVER" % maxi(1, Days.current())
 	_line("What the night asked, and what it left.", 17, DIM, true)
 	_line("Put down: %d.   Fallen into the dark: %d.   Countries found: %d.   Parcels carried: %d.   Camps made: %d." % [kills, falls, places, runs, camps], 20)
 	if level > lv0:

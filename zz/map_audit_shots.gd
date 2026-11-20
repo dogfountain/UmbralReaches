@@ -149,6 +149,7 @@ func _run() -> void:
 	lamp.light_energy = 6.0
 	lamp.omni_range = 60.0
 	lamp.omni_attenuation = 0.6
+	lamp.light_volumetric_fog_energy = 0.0         # (the camera lamp lit the fog round the lens into a translucent box beside the nearest prop)
 	lamp.shadow_enabled = false
 	lamp.visible = lit
 	get_tree().root.add_child(lamp)

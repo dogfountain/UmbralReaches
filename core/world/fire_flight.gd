@@ -10,7 +10,7 @@ extends Node3D
 const GROUP := "fire_flight"
 const HorseScript := preload("res://core/world/mount/horse.gd")
 const SPEED := 26.0                     ## metres a second along the ground
-const CLEAR := 20.0                     ## the arc's top clears the land under it by this much
+const CLEAR := 30.0                     ## the arc's top clears the land under it by this much
 const EMBER := Color(3.2, 1.5, 0.5)     ## HDR: blooms under the 1.15 threshold
 
 var player: Player
