@@ -699,7 +699,9 @@ func _oakstair(swap := false) -> void:
 	var door: Vector3 = oak.door
 	args.append("%.2f,%.2f,%.2f" % [door.x + 0.0, door.z - 6.0, _terrain(door.x, door.z - 6.0) + 0.6])
 	args.append("%.2f,%.2f" % [door.x, door.z])
-	for k in range(0, n, 3):
+	var ks: Array = range(0, 12)
+	ks.append_array(range(12, n, 3))
+	for k: int in ks:
 		var yy := y0 + rise * float(k)
 		var a := a0 + (a1 - a0) * float(k) / float(n)
 		var sway := Vector3(1.3 * sin(yy * 0.11 + 0.4) + 0.02 * yy, 0.0, 1.1 * cos(yy * 0.09 + 1.1))
