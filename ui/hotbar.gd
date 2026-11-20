@@ -130,16 +130,21 @@ func _process(delta: float) -> void:
 		if _slot_ci.size() != _vis.size() or _slot_ci.any(func(c: Control) -> bool: return not _vis.has(int(c.get_meta(&"slot")))):
 			_sync_slot_items()
 		queue_redraw()
-	var fading := _t > NAME_FADE - 2.1 and _t < NAME_FADE + 0.1
-	var refresh := _static_idle <= 0.0
-	if refresh:
-		_static_idle = 0.5
+	# a slot is baked again when what it shows changes (the names' fade in steps of 1 %), and as a catch-all every half
+	# second one slot at a time, each on its own frame: all of them together were a burst of bake passes on one frame
+	# twice a second, and the fade baked every slot every frame
+	var refresh_vi := -1
+	if _static_idle <= 0.0 and not _slot_ci.is_empty():
+		_static_idle = 0.5 / float(_slot_ci.size())
+		_refresh_vi = (_refresh_vi + 1) % _slot_ci.size()
+		refresh_vi = _refresh_vi
+	var name_a := snappedf(_name_a(), 0.01)
 	for vi in _slot_ci.size():
 		var c := _slot_ci[vi]
 		var i := int(c.get_meta(&"slot"))
 		c.position = _slot_origin(vi, i) + SLOT_BOX.position
-		var ss := "%s|%s|%s" % [sig, _book.key_label(i), _book.cooldown_left(i) <= 0.0]
-		if fading or refresh or ss != String(c.get_meta(&"sig", "")):
+		var ss := "%s|%s|%s|%s" % [sig, _book.key_label(i), _book.cooldown_left(i) <= 0.0, name_a]
+		if vi == refresh_vi or ss != String(c.get_meta(&"sig", "")):
 			c.set_meta(&"sig", ss)
 			(c as HudBake).rebake()
 	if (String(DB.get_mod("core", "")) != "" or _gem_drawn) and FramePace.due(_gem_at, 1):
@@ -154,7 +159,13 @@ var _live_at := 0                ## msec of the live layer's last redraw
 var _gem_at := 0
 var _idle := 0.0
 var _static_idle := 0.0
+var _refresh_vi := -1            ## the slot the catch-all refresh looked at last
 var _shown_sig := ""
+
+
+## How bright the names under the slots are (bright after a new loadout, settling quieter over two seconds).
+func _name_a() -> float:
+	return lerpf(NAME_REST, 1.0, clampf((NAME_FADE - _t) / 2.0, 0.0, 1.0))
 
 
 ## The bar in two layers. This one is the forged bar itself -- plate, sockets, bevels, rivets, the spell pictures,
@@ -188,7 +199,7 @@ func _draw_slot(ci: CanvasItem, i: int) -> void:
 	if i >= _book.slots.size() or _book.slots[i] == null:
 		return
 	var s := _book.slots[i]
-	var name_a := lerpf(NAME_REST, 1.0, clampf((NAME_FADE - _t) / 2.0, 0.0, 1.0))
+	var name_a := snappedf(_name_a(), 0.01)          # (the step the slot is baked again at)
 	var name_pt := _name_pt()
 	var o := Vector2.ZERO
 	var r := Rect2(o, Vector2(SLOT, SLOT))
