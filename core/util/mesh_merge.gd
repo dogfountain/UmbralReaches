@@ -293,7 +293,13 @@ const MAX_TRIS := 3000              ## a heavier mesh keeps its own draw (and it
 ## Spread over frames (19 Nov): the pass ran in one frame, 850 ms under the loading cover (the bar froze) and a
 ## 120-140 ms frame ~6 s in wherever the night runs without the cover (the harnesses); now it yields whenever a
 ## frame's share (SLICE_US) is spent. Callers await it.
-const SLICE_US := 5000
+const SLICE_US := 2000
+const SLICE_COVER_US := 24000         ## under the loading screen
+
+
+## The slice a frame's work may take: big under the loading screen (its frames are hidden), small in play.
+static func _slice(tree: SceneTree) -> int:
+	return SLICE_COVER_US if tree.get_first_node_in_group(&"loading_screen") != null else SLICE_US
 
 
 static func merge_world(root: Node, roots: Array) -> Vector2i:
@@ -382,7 +388,7 @@ static func merge_world(root: Node, roots: Array) -> Vector2i:
 	var after := 0
 	var climbed := 0
 	for key: String in groups:
-		if Time.get_ticks_usec() - slice > SLICE_US:
+		if Time.get_ticks_usec() - slice > _slice(tree):
 			await tree.process_frame
 			slice = Time.get_ticks_usec()
 		var list: Array = (groups[key] as Array).slice(1)
@@ -521,7 +527,7 @@ static func _drop_held(top: Node, cands: Dictionary, held := {}) -> void:
 	var tree := top.get_tree()
 	var slice := Time.get_ticks_usec()
 	for n in top.find_children("*", "", true, false):
-		if Time.get_ticks_usec() - slice > SLICE_US:
+		if Time.get_ticks_usec() - slice > _slice(tree):
 			await tree.process_frame
 			slice = Time.get_ticks_usec()
 		if not is_instance_valid(n):

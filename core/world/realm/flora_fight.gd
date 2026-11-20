@@ -16,9 +16,11 @@ const SLICE_US := 3000               ## per frame: the change is spread over a f
 var _boss: Node3D = null
 var _far: Array = []                ## [GeometryInstance3D, end as found] the @far trees and cards
 var _shells: Array = []             ## [MeshInstance3D, begin as found]
-var _prep: Array = []               ## the woods' children not yet walked by the collection
-var _collected := false             ## the three lists are whole
 var _mmis: Array = []               ## every Flora_* MultiMesh (collected once with the lists above)
+var _prep: Array = []               ## the woods' children not yet walked by the warm collection
+var _collected := false             ## the lists are whole as of _serial
+var _seen := {}                     ## instance ids collected
+var _serial := 0                    ## the host's flora_serial when the lists were made
 var _job := -1                      ## next item of the change under way (-1: none): _mmis, then _far, then _shells
 var _job_on := false
 var _job_args := Vector2.ONE        ## Emit.detail_args for the change under way
@@ -43,23 +45,27 @@ func _on_engaged(b: Node, _title: String) -> void:
 ## A boss arena is warming (the wanderer is near): the lists the change walks are collected now, a slice a frame, not in
 ## the pull's frame (find_children over the whole woods was 19 ms there).
 func _on_warming(_id: StringName) -> void:
-	if _collected or not _prep.is_empty():
+	var host := get_parent()
+	if host == null or not _prep.is_empty() or (_collected and _serial == int(host.get_meta(&"flora_serial", 0))):
 		return
-	_prep = get_parent().get_children()
+	_serial = int(host.get_meta(&"flora_serial", 0))
+	_prep = host.get_children()
 	set_process(true)
 
 
-func _prep_step(budget_us: int) -> void:
+func _prep_step() -> void:
 	var t0 := Time.get_ticks_usec()
-	while not _prep.is_empty() and Time.get_ticks_usec() - t0 < budget_us:
-		_collect(_prep.pop_back() as Node)
+	while not _prep.is_empty() and Time.get_ticks_usec() - t0 < 1500:
+		var n0 := _prep.pop_back() as Node
+		if is_instance_valid(n0):
+			_collect_in(n0)
 	if _prep.is_empty():
 		_collected = true
 
 
 func _process(_dt: float) -> void:
 	if not _prep.is_empty():
-		_prep_step(1500)
+		_prep_step()
 	if _job >= 0:
 		_job_step()
 	if _boss == null:
@@ -84,9 +90,10 @@ func thin(on: bool) -> void:
 	host.set_meta(&"fight", on)
 	var d := clampi(Settings.detail, 0, 2)
 	host.set_meta(&"detail", d + (10 if on else 0))   # what Emit.apply_detail would note (a settings change re-applies all)
-	if not _collected:                  # not warmed ahead (a fast travel into the arena): the rest now
-		_prep = host.get_children() if _prep.is_empty() and _mmis.is_empty() else _prep
-		_prep_step(1 << 30)
+	if not _collected or not _prep.is_empty() or _serial != int(host.get_meta(&"flora_serial", 0)):
+		_prep.clear()
+		_collect(host)           # not warmed ahead, or the stream has built chunks since (realm_stream.gd): now (only new ones are taken)
+		_collected = true
 	_job_on = on
 	_job_d = d
 	_job_args = Emit.detail_args(d, on)
@@ -130,15 +137,38 @@ static func _applied(g: GeometryInstance3D) -> void:
 		g.set_meta(&"range_k", Vector2(g.visibility_range_begin, g.visibility_range_end))
 
 
-## One child of the woods: it and everything under it.
-func _collect(n0: Node) -> void:
+func _collect(host: Node) -> void:
+	_serial = int(host.get_meta(&"flora_serial", 0))
+	for n in host.find_children("Flora_*", "MultiMeshInstance3D", true, false):
+		if _seen.has(n.get_instance_id()):
+			continue                 # (the stream adds chunks after the first collect: only the new ones are taken)
+		_seen[n.get_instance_id()] = true
+		_mmis.append(n)
+		var f: Array = n.get_meta(&"flora", [])
+		if f.size() > 1 and (f[1] == "fs" or f[1] == "fc") and (n as GeometryInstance3D).visibility_range_end > 0.0:
+			_far.append([n, (n as GeometryInstance3D).visibility_range_end])
+	for n in host.find_children("Canopy_*", "MeshInstance3D", true, false):
+		if _seen.has(n.get_instance_id()):
+			continue
+		_seen[n.get_instance_id()] = true
+		if (n as GeometryInstance3D).visibility_range_begin > 0.0:
+			_shells.append([n, (n as GeometryInstance3D).visibility_range_begin])
+
+
+## One child of the woods, and everything under it (the sliced form of `_collect`).
+func _collect_in(n0: Node) -> void:
 	var all: Array[Node] = n0.find_children("*", "", true, false)
 	all.append(n0)
 	for n in all:
+		if _seen.has(n.get_instance_id()):
+			continue
 		if n is MultiMeshInstance3D and String(n.name).begins_with("Flora_"):
+			_seen[n.get_instance_id()] = true
 			_mmis.append(n)
 			var f: Array = n.get_meta(&"flora", [])
 			if f.size() > 1 and (f[1] == "fs" or f[1] == "fc") and (n as GeometryInstance3D).visibility_range_end > 0.0:
 				_far.append([n, (n as GeometryInstance3D).visibility_range_end])
-		elif n is MeshInstance3D and String(n.name).begins_with("Canopy_") and (n as GeometryInstance3D).visibility_range_begin > 0.0:
-			_shells.append([n, (n as GeometryInstance3D).visibility_range_begin])
+		elif n is MeshInstance3D and String(n.name).begins_with("Canopy_"):
+			_seen[n.get_instance_id()] = true
+			if (n as GeometryInstance3D).visibility_range_begin > 0.0:
+				_shells.append([n, (n as GeometryInstance3D).visibility_range_begin])

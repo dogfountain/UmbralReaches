@@ -142,6 +142,7 @@ static func build(root: Node) -> void:
 	var t0 := Time.get_ticks_msec()
 	root.tree_exiting.connect(DwarfRig.warm_abandon_all, CONNECT_ONE_SHOT)
 	Endgame.at_home = true                  # the land keeps the endgame's chasm at home too while the rift builds there
+	var stream: RealmStream = RealmStream.begin(root, _build_centre(root)) if RealmStream.should_stream(root.get_tree()) else null   # (realm_stream.gd: the node work far from the wanderer waits)
 	await _run("land", root)
 	# the Keg's people are the longest cache misses (a mesh each, 0.6 s of GDScript): they build on
 	# worker threads beside the rift and the wardens (not beside the land, whose own threads they slow)
@@ -201,10 +202,22 @@ static func build(root: Node) -> void:
 	root.set_meta("realm_done", true)              # waiters (camps, tests) can key on this
 	print(PlacementCache.summary())
 	print("REALM built in %d ms" % (Time.get_ticks_msec() - t0))
+	if stream != null:
+		print("STREAM ring built (%d m round %s), %d pieces queued" % [int(RealmStream.RING_R), stream.center, stream.pending()])
+		stream.start_pumping()
 
 
 # (The big glb scenes used to be requested on worker threads here, ahead of the places that load them. A/B on a
 # full build: 37.2-38.4 s with, 37.8-37.9 s without, and every scene left ObjectDB instances (load tokens) leaking at exit.)
+
+
+## Where the wanderer wakes (the player has placed itself already: a save's checkpoint, a new game's start, a
+## Travel arrival). The build ring is round it (realm_stream.gd).
+static func _build_centre(root: Node) -> Vector2:
+	var p := root.get_tree().get_first_node_in_group(Groups.PLAYER) as Node3D
+	if p != null:
+		return Vector2(p.global_position.x, p.global_position.z)
+	return Vector2(RealmLayout.SPAWN.x, RealmLayout.SPAWN.z)
 
 
 static func _run(id: String, root: Node) -> void:

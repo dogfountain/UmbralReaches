@@ -100,12 +100,16 @@ static func clear_flora(_root: Node, discs: Array) -> void:
 
 ## Do the queued clearance in one pass over the flora (secrets.gd calls it once, after every site). The scan of the instance
 ## buffers (millions of floats; pure data) runs on the worker pool, one task a buffer; the nodes are touched here on the main thread.
+## The discs are kept on the flora host too: chunks the stream builds later (realm_stream.gd) are cleared as they are made (flora_emit.gd clear_in_chunk).
 static func flush_flora(root: Node) -> int:
 	var discs := _pending.duplicate()
 	_pending.clear()
 	var host := root.get_node_or_null("RealmFlora")
 	if host == null or discs.is_empty():
 		return 0
+	var kept: Array = host.get_meta(&"clear_discs", [])
+	kept.append_array(discs)
+	host.set_meta(&"clear_discs", kept)
 	var jobs: Array[Dictionary] = []          ## {mm, buf, stride, count, near, hit, n}
 	for ch in host.get_children():
 		var c3 := (ch as Node3D).position if ch is Node3D else Vector3.ZERO

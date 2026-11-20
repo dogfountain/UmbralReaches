@@ -467,6 +467,7 @@ static func post_build(root: Node) -> void:
 	_flora_detail(root)
 	var lp: Array = LightPolicy.realm_pass(root)
 	print("ATMOS realm lights %d: %d given a distance fade, shadows kept %d, off %d" % lp)
+	root.set_meta("post_ready", true)               # the loading screen goes on to its tour; the passes below run beside it
 	var st: Vector4i = await _realm_render_pass(root)
 	if not is_instance_valid(root):
 		return
@@ -487,7 +488,8 @@ const MeshMerge := preload("res://core/util/mesh_merge.gd")
 const MERGE_ROOTS := ["RealmPois", "RealmRift", "RealmLore", "ThornHenge", "SummitAltar", "Area_ossuary", "Secrets",
 	"RealmWayfinding", "SiteDress", "Zone", "Lamps", "Gathering", "Progression", "LavaWorks", "HollowLantern"]
 static var _pass_frames := 0
-const PASS_BUDGET_US := 6000        ## per frame: the pass runs during the first second of play
+const PASS_BUDGET_US := 2000        ## per frame in play
+const PASS_COVER_US := 24000        ## ... under the loading screen (it runs beside the warm-up tour there)
 
 
 ## One pass over what the Realm modules built (they run after Atmosphere.apply, so _cull_geometry
@@ -534,7 +536,7 @@ static func _realm_render_pass(root: Node) -> Vector4i:
 	var slice := Time.get_ticks_usec()
 	_pass_frames = 1
 	for n in root.find_children("*", "GeometryInstance3D", true, false):
-		if Time.get_ticks_usec() - slice > PASS_BUDGET_US:
+		if Time.get_ticks_usec() - slice > (PASS_COVER_US if tree.get_first_node_in_group(&"loading_screen") != null else PASS_BUDGET_US):
 			await tree.process_frame
 			slice = Time.get_ticks_usec()
 			_pass_frames += 1
