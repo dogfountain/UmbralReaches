@@ -95,7 +95,7 @@ static func apply_fade(light: Light3D) -> void:
 			light.distance_fade_begin = 40.0
 			light.distance_fade_shadow = 0.0
 			light.distance_fade_length = 12.0
-			light.light_volumetric_fog_energy = 1.05
+			light.light_volumetric_fog_energy = 0.55      # (polish, LA6: 1.05 drew a window's cone, seen edge-on, as a hard horizontal streak across the Holds' wall)
 		&"hero_fill":
 			light.distance_fade_begin = 32.0
 			light.distance_fade_shadow = 12.0

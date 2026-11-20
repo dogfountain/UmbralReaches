@@ -66,7 +66,7 @@ static func mat(key: String) -> Material:
 		"brick":      _tri(m, "oss_brick", 0.5, Color(0.95, 0.92, 0.9))
 		"ruin":       _tri(m, "oss_ruin", 0.4, Color(1.12, 1.1, 1.07))
 		"floor":      _tri(m, "oss_floor", 0.22, Color(0.9, 0.88, 0.86))
-		"dark":       _tri(m, "rock", 0.5, Color(0.26, 0.24, 0.25))
+		"dark":       _tri(m, "rock", 0.5, Color(0.4, 0.37, 0.38))                 # (polish: 0.26 stood pitch black at night: every kit "dark" block read as a hole)
 		"iron":       _tri(m, "tavern_iron", 0.6, Color(0.5, 0.48, 0.5))
 		"wood":       _tri(m, "tavern_wood", 0.5, Color(0.7, 0.57, 0.46))
 		"slate":      _tri(m, "oss_slate", 0.45, Color(0.9, 0.9, 0.95))
