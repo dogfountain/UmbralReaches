@@ -102,7 +102,7 @@ func _hall(root: Node, spec: Dictionary, c: Vector2, yaw: float) -> bool:
 	d.k.host.add_to_group("deep_hall")
 	d.k.host.set_meta("hall_id", String(spec.id))
 	d.k.host.set_meta("threshold_at", d.o)
-	WorldLanes.register_flight("hall_" + String(spec.id), d.o, Vector3(d.o.x + d.fwd.x * d.run, d.yf, d.o.z + d.fwd.z * d.run), 2.6, true)
+	WorldLanes.register_flight("hall_" + String(spec.id), d.o, d.cut_end(), 2.6, true)
 	WK.reserve("hall_gate_" + String(spec.id), Vector2(d.o.x, d.o.z), Vector2(9.0, 7.0), yaw, d.o.y - 2.0, d.o.y + 8.0)
 	if not d.k.cached(WK.fp(SELF, [String(spec.id), d.o, d.yf, d.fwd, WK.tsig(Vector2(d.o.x, d.o.z) + Vector2(d.fwd.x, d.fwd.z) * 32.0, 40.0)])):
 		d.stair()

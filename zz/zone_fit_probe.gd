@@ -632,6 +632,11 @@ func _walk(a: PackedStringArray) -> void:
 				ok = true
 				break
 			pl.debug_drive(Vector3(d.x, 0, d.y).normalized(), true)
+			if t > 2.0 and fmod(t, 1.0) < 0.12:
+				Input.action_press("jump")             # a walker stalled at a lip jumps, as a player does
+			else:
+				Input.action_release("jump")
+		Input.action_release("jump")
 		lines.append("  leg %d -> (%.1f,%.1f) %s in %.1f s, y %.2f%s" % [li, goal.x, goal.z, "reached" if ok else "STUCK", t, pl.global_position.y, "" if ok else " at (%.2f,%.2f)" % [pl.global_position.x, pl.global_position.z]])
 		if not ok:
 			_blockers(pl)
@@ -704,7 +709,7 @@ func _oakstair(swap := false) -> void:
 	args.append("%.2f,%.2f,%.2f" % [door.x + 0.0, door.z - 6.0, _terrain(door.x, door.z - 6.0) + 0.6])
 	args.append("%.2f,%.2f" % [door.x, door.z])
 	var ks: Array = range(0, 12)
-	ks.append_array(range(12, n, 3))
+	ks.append_array(range(12, n, 2))
 	for k: int in ks:
 		var yy := y0 + rise * float(k)
 		var a := a0 + (a1 - a0) * float(k) / float(n)
