@@ -24,6 +24,7 @@ var _thin_q: PhysicsShapeQueryParameters3D
 var _thin_ray: PhysicsRayQueryParameters3D   ## reused by _thin_occluder (r35: five rays, no allocation each)
 var _sight_ray: PhysicsRayQueryParameters3D
 var _sight_hold := 0.0
+var _shoulder_v := 0.0                  ## the boom's swing across the shoulder (per second): a spring, so it has no first-frame step
 var _rise := 0.0                        ## metres the camera lifts over the hood while a wall presses the arm short
 var _rise_ray: PhysicsRayQueryParameters3D
 var _excl: Array[RID] = []              ## what the boom's casts pass through: the wanderer and the CAMERA_PASS bodies near him
@@ -314,6 +315,14 @@ func _shoulder_tick(space: PhysicsDirectSpaceState3D, want: float, delta: float)
 		_sight_hold = 0.5                        # stays in a beat, so the edge of a stone does not flicker it
 	_sight_hold = maxf(0.0, _sight_hold - delta)
 	var k_want := 0.0 if _sight_hold > 0.0 else smoothstep(Player.SHOULDER_NEAR * 0.5, Player.SHOULDER_NEAR, reach)
-	player._shoulder_k = lerpf(player._shoulder_k, k_want, 1.0 - exp(-(9.0 if k_want < player._shoulder_k else 2.5) * delta))
+	# a critically damped spring, not a first-order lag: the lag begins at its full speed in one frame (the boom's first step was
+	# 13 cm), the spring builds up to it. On horseback the swing in behind the wanderer is slower: a gallop through trees flicked
+	# the boom across the horse.
+	var w := (6.0 if player.riding != null else 12.0) if k_want < player._shoulder_k else 3.5
+	var e := exp(-w * delta)
+	var x := player._shoulder_k - k_want
+	var j := _shoulder_v + w * x
+	_shoulder_v = (_shoulder_v - w * j * delta) * e
+	player._shoulder_k = clampf(k_want + (x + j * delta) * e, 0.0, 1.0)
 	player._arm.position.x = Player.SHOULDER * player._shoulder_k
 	player._cam.h_offset = 0.12 * player._shoulder_k           # the crosshair side follows the boom

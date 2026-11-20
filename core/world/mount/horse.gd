@@ -54,7 +54,18 @@ var _turn_v := 0.0
 var _mount_t := 9.0
 var _mount_from := Vector3.ZERO
 const LEAVE_T := 1.0
-const MOUNT_T := 1.15                ## r36: step up, foot in the stirrup, swing over, settle
+const MOUNT_T := 1.15                ## step up, foot in the stirrup, swing over, settle
+const DISMOUNT_T := 0.8              ## the same climb run backwards: swing the leg over, down the stirrup, a step off to the near side
+const DISMOUNT_WAIT := 1.4           ## s the horse is given to come to a walk before the rider swings off
+const TILT_MAX := 0.32               ## rad: the most the body pitches or rolls to follow the ground
+const TILT_RATE := 7.0               ## /s: the ground's slope is followed by a damped blend, not a snap
+const FALL_DROP := 0.5               ## m: ground this far below the hooves is not followed, the horse falls to it
+var _dis_t := -1.0                   ## seconds into the swing off (< 0: not getting down)
+var _dis_wait := 0.0                 ## > 0: braking to a walk before the swing off
+var _dis_to := Vector3.ZERO          ## where the rider's feet come down (the near side, on the ground)
+var _tilt := Vector2.ZERO            ## the body's pitch (x, + nose up) and roll (y, + right side up) to the ground, this tick
+var _tilt_prev := Vector2.ZERO
+var _yv := 0.0                       ## the body's vertical speed following the ground (m/s)
 ## the saddle's seat top, the stirrup tread and the barrel under the rider are the breed's own metres
 ## (horse_db.gd: seat, stirrup_y, stirrup_x, bw / bc / bl), measured off the built model
 var _space: PhysicsDirectSpaceState3D
@@ -155,6 +166,8 @@ func mount(p: Player) -> void:
 	_call_who = null
 	set_physics_process(false)
 	_mount_t = 0.0
+	_dis_t = -1.0
+	_dis_wait = 0.0
 	_mount_from = p.global_position
 	at_post = false
 	state()["ride"] = breed
@@ -162,13 +175,29 @@ func mount(p: Player) -> void:
 	Sfx.play("res://art/audio/ward_chime.wav", global_position, -14.0, 0.6)
 
 
-func dismount() -> void:
+## Get down. `animated` (the interact key): the horse is let come to a walk, then the climb runs backwards (the leg
+## over, the foot down the stirrup, a step off to the near side). Otherwise at once, beside it (a hollowing, a lift, travel).
+func dismount(animated := false) -> void:
+	if rider == null:
+		return
+	if animated and _mount_t >= MOUNT_T:
+		if _dis_t < 0.0 and _dis_wait <= 0.0:
+			_dis_wait = DISMOUNT_WAIT
+		return
+	_get_off(Vector3.INF)
+
+
+## The rider is down: `to` is where the feet land (INF: a metre to the horse's right, as it always was).
+func _get_off(to: Vector3) -> void:
 	var p := rider as Player
 	rider = null
 	speed = 0.0
 	_gather = 0.0
 	_lean = 0.0
+	_dis_t = -1.0
+	_dis_wait = 0.0
 	var rig := p.get_node_or_null("Visual") if p != null and is_instance_valid(p) else null
+	var yaw0 := _vis_yaw if _vis != null else NAN
 	_release_visual()
 	_rs = Vector3.ZERO
 	_rv = Vector3.ZERO
@@ -177,20 +206,37 @@ func dismount() -> void:
 		rig.set("ride_lean", 0.0)
 	if rig != null and "ride_roll" in rig:
 		rig.set("ride_roll", 0.0)
+	if rig != null and "mount" in rig:
+		rig.set("mount", -1.0)
 	if p != null and is_instance_valid(p):
 		p.riding = null
-		var side := global_basis.x.normalized()
-		var to := global_position + side * 1.1
-		p.teleport(_ground(to) + Vector3.UP * 0.1)
+		if to == Vector3.INF:
+			to = _ground(global_position + global_basis.x.normalized() * 1.1) + Vector3.UP * 0.1
+		p.teleport(to)
+		if rig != null and not is_nan(yaw0):
+			(rig as Node3D).global_rotation.y = yaw0             # facing as it sat: no turn on the ground
 		var left: Dictionary = state().get("left", {}) if state().get("left") is Dictionary else {}
 		left[breed] = [roundi(global_position.x), roundi(global_position.z), snappedf(rotation.y, 0.01)]     # it waits where it was left
 		state()["left"] = left
 
 
+## The brake is on and the horse has slowed: the rider swings off from here.
+func _begin_dismount() -> void:
+	_dis_wait = 0.0
+	_dis_t = 0.0
+	var left := -global_basis.x.normalized()
+	var at := global_position + left * 1.1 * _scale()
+	_dis_to = _ground(at) + Vector3.UP * 0.1
+	_release_visual()                              # the Visual is the Player's again: the tick places the Player along the climb
+	var v := (rider as Player).get_node_or_null("Visual") as Node3D
+	if v != null:
+		v.global_rotation.y = _vis_yaw
+
+
 ## The jump key on horseback (PlayerMount): a gather, then the push-off. Only from the ground, once the
 ## rider is seated, and not in the cooldown; a press a moment early is remembered.
 func try_jump() -> void:
-	if rider == null or _air or _gather > 0.0 or _mount_t < MOUNT_T or _leave_t > 0.0:
+	if rider == null or _air or _gather > 0.0 or _mount_t < MOUNT_T or _leave_t > 0.0 or _dis_t >= 0.0 or _dis_wait > 0.0:
 		return
 	if _jump_cd > 0.0:
 		_jump_buf = JUMP_BUFFER
@@ -242,15 +288,30 @@ func _vertical(dt: float, ground_y: float) -> void:
 		global_position.y = ny
 
 
-## While airborne the body is not lerped to the ground; on it, it follows (14/s) as before.
+## While airborne the body is not lerped to the ground; on it, it follows with a critically damped spring (a kerb or a
+## step is climbed with a velocity that builds, not a jump) and is never far in the ground.
 func _follow_y(ground_y: float, dt: float) -> float:
-	return global_position.y if _air else lerpf(global_position.y, ground_y, 1.0 - exp(-14.0 * dt))
+	if _air:
+		_yv = 0.0
+		return global_position.y
+	var w := 12.0
+	var e := exp(-w * dt)
+	var x := global_position.y - ground_y
+	var j := _yv + w * x
+	var nx := (x + j * dt) * e
+	_yv = (_yv - w * j * dt) * e
+	if nx < -0.15:
+		nx = -0.15
+		_yv = maxf(_yv, 0.0)
+	return ground_y + nx
 
 
 ## Player.riding: move the horse from the rider's wish (world xz) and sprint; seat the rider.
 func drive(p: Player, wish: Vector3, sprint: bool, dt: float) -> void:
 	_space = get_world_3d().direct_space_state
-	if Player.boss_fight_active(get_tree()):
+	if _dis_t >= 0.0 or _dis_wait > 0.0:
+		_leave_t = 0.0
+	elif Player.boss_fight_active(get_tree()):
 		if _leave_t <= 0.0:
 			_leave_t = LEAVE_T
 			_leave_dir = _away_from_ring()
@@ -258,17 +319,21 @@ func drive(p: Player, wish: Vector3, sprint: bool, dt: float) -> void:
 		_leave_t -= dt
 		if _leave_t <= 0.0:
 			_leave_t = 0.0
-			dismount()
-			return
+			dismount(true)
 		wish = _leave_dir                       # a second of walking out, then down at the edge facing the fight
 		sprint = false
 	else:
 		_leave_t = 0.0
 	_phase_prev = _phase
+	_tilt_prev = _tilt
+	if _dis_wait > 0.0:
+		_dis_wait -= dt
+		if speed < 1.2 or _dis_wait <= 0.0:
+			_begin_dismount()
 	var want := 0.0
 	var w := Vector3(wish.x, 0.0, wish.z)
-	if _mount_t < MOUNT_T:
-		w = Vector3.ZERO                       # r36: it stands while the rider climbs on
+	if _mount_t < MOUNT_T or _dis_t >= 0.0 or _dis_wait > 0.0:
+		w = Vector3.ZERO                       # it stands while the rider climbs on or off, and slows for the rider to get down
 	var driven := w.length() > 0.3 and _mv.free_t <= 0.0
 	if _mv.free_t > 0.0:
 		# freeing itself: turn toward the way out (to the side, when it is backing out)
@@ -277,7 +342,10 @@ func drive(p: Player, wish: Vector3, sprint: bool, dt: float) -> void:
 	if w.length() > 0.1:
 		want = float(_d.gallop) if sprint else (float(_d.trot) if w.length() > 0.7 else float(_d.walk))
 		var target_yaw := atan2(-w.x, -w.z)
-		var want_turn := clampf(angle_difference(_yaw, target_yaw) * 4.0, -1.0, 1.0) * float(_d.turn) * (0.6 if speed > 8.0 else 1.0)
+		var turn_by := angle_difference(_yaw, target_yaw)
+		var want_turn := clampf(turn_by * 4.0, -1.0, 1.0) * float(_d.turn) * lerpf(1.0, 0.6, smoothstep(6.0, 10.0, speed))
+		if want > float(_d.trot):
+			want *= lerpf(1.0, 0.6, smoothstep(0.5, 2.4, absf(turn_by)))      # weight: a sharp turn at the gallop gives up pace
 		_turn_v = lerpf(_turn_v, want_turn, 1.0 - exp(-8.0 * dt))       # eases into and out of a turn
 	else:
 		_turn_v = lerpf(_turn_v, 0.0, 1.0 - exp(-8.0 * dt))
@@ -298,6 +366,7 @@ func drive(p: Player, wish: Vector3, sprint: bool, dt: float) -> void:
 	_advance(p, fwd, w, want, driven, dt)
 	# the vertical: the crouch, the climb and fall, the landing on the ground under the hooves
 	_vertical(dt, _ground(global_position).y)
+	_tilt_step(dt)
 	var s_air := clampf(_vy / 7.0, -1.0, 1.0)
 	var lean_want := 0.0
 	if _air:
@@ -319,28 +388,26 @@ func drive(p: Player, wish: Vector3, sprint: bool, dt: float) -> void:
 	# pelvis stands 0.955 above its feet), a hand's width behind the pommel
 	var seat := global_position + Vector3.UP * _seat_lift() + fwd * (0.04 * _scale())
 	var vis := p.get_node_or_null("Visual") as Node3D
-	if _mount_t < MOUNT_T:
-		# r36: getting on, from the near (left) side: a step to the stirrup, the left foot in it and a
-		# spring up, the right leg over the rump, down into the saddle. The rig poses the legs
-		# from `mount` and its offset from the seat (character_rig _ride_legs).
-		_mount_t += dt
-		var m := clampf(_mount_t / MOUNT_T, 0.0, 1.0)
+	var climbing := _mount_t < MOUNT_T or _dis_t >= 0.0
+	if climbing:
+		# getting on, from the near (left) side: a step to the stirrup, the left foot in it and a spring up, the right
+		# leg over the rump, down into the saddle; getting down is the same path run backwards. The rig poses the legs
+		# from `mount` and its offset from the seat (character_rig _ride_legs). One spline through the points, so the
+		# rider does not stop at each of them.
+		var m: float
+		if _dis_t >= 0.0:
+			_dis_t += dt
+			m = clampf(1.0 - _dis_t / DISMOUNT_T, 0.0, 1.0)
+		else:
+			_mount_t += dt
+			m = clampf(_mount_t / MOUNT_T, 0.0, 1.0)
 		var sc := _scale()
 		var left := -global_basis.x.normalized()
 		var side := global_position + left * 0.7 * sc + fwd * 0.03 * sc
 		side.y = global_position.y
 		var stand := global_position + left * float(_d.stirrup_x) + fwd * 0.03 * sc + Vector3.UP * float(_d.stirrup_y)
 		var over := seat + Vector3.UP * 0.16 + left * 0.06 * sc
-		var at: Vector3
-		if m < 0.22:
-			at = _mount_from.lerp(side, smoothstep(0.0, 1.0, m / 0.22))
-		elif m < 0.5:
-			at = side.lerp(stand, smoothstep(0.0, 1.0, (m - 0.22) / 0.28))
-		elif m < 0.84:
-			var e := smoothstep(0.0, 1.0, (m - 0.5) / 0.34)
-			at = stand.lerp(over, e) + Vector3.UP * sin(e * PI) * 0.08
-		else:
-			at = over.lerp(seat, smoothstep(0.0, 1.0, (m - 0.84) / 0.16))
+		var at := _climb_at(lerpf(m, smoothstep(0.0, 1.0, m), 0.7), _mount_from if _dis_t < 0.0 else _dis_to, [side, stand, over, seat])      # eased at both ends only
 		if vis and "mount" in vis:
 			var d := at - seat
 			vis.set("mount", m if m < 1.0 else -1.0)
@@ -348,7 +415,7 @@ func drive(p: Player, wish: Vector3, sprint: bool, dt: float) -> void:
 		seat = at
 	elif vis and "mount" in vis and float(vis.get("mount")) >= 0.0:
 		vis.set("mount", -1.0)
-	if _mount_t >= MOUNT_T and vis != null and _vis == null:
+	if _mount_t >= MOUNT_T and _dis_t < 0.0 and _dis_wait <= 0.0 and vis != null and _vis == null:
 		_claim_visual(vis)
 	p.global_position = seat
 	if vis and "saddle" in vis:
@@ -367,6 +434,51 @@ func drive(p: Player, wish: Vector3, sprint: bool, dt: float) -> void:
 		vis.global_rotation.y = lerp_angle(cur, _yaw, 1.0 - exp(-12.0 * dt))
 		_vis_yaw = vis.global_rotation.y
 	p.velocity = fwd * speed
+	if _dis_t >= DISMOUNT_T:
+		_get_off(_dis_to)
+
+
+## The climb's path through its points (`from`, then the side, the stirrup, over the rump, the seat) at `m` 0..1: a
+## Catmull-Rom spline in time, so it has no stops at the points. Knots at m = 0, .22, .5, .84, 1.
+func _climb_at(m: float, from: Vector3, mid: Array) -> Vector3:
+	var ts := [0.0, 0.22, 0.5, 0.84, 1.0]
+	var pts: Array[Vector3] = [from, mid[0] as Vector3, mid[1] as Vector3, mid[2] as Vector3, mid[3] as Vector3]
+	var i := 3 if m >= 0.84 else (2 if m >= 0.5 else (1 if m >= 0.22 else 0))
+	var a := pts[i]
+	var b := pts[i + 1]
+	var t0: float = ts[i]
+	var dt := float(ts[i + 1]) - t0
+	var pre := pts[i - 1] if i > 0 else a - (b - a)
+	var post := pts[i + 2] if i < 3 else b + (b - a)
+	var tpre := float(ts[i - 1]) - t0 if i > 0 else -dt
+	var tpost := float(ts[i + 2]) - t0 if i < 3 else dt * 2.0
+	return a.cubic_interpolate_in_time(b, pre, post, (m - t0) / dt, dt, tpre, tpost)
+
+
+## The ground's slope under the horse (four short rays across the barrel and along it): the body pitches and rolls to it
+## through a damped blend (drawn interpolated between ticks), as the hooves would find it. A rise too tall to be climbed
+## (a wall, a stair's riser) is no slope.
+func _tilt_step(dt: float) -> void:
+	var want := Vector2.ZERO
+	if not _air:
+		var sc := _scale()
+		var f := -global_basis.z
+		var r := global_basis.x
+		var at := global_position
+		var y0 := _ground(at).y
+		var climb := float(_d.climb)
+		var gf := _slope_rise(at + f * 0.85 * sc, y0, climb)
+		var gh := _slope_rise(at - f * 0.8 * sc, y0, climb)
+		var gr := _slope_rise(at + r * 0.3 * sc, y0, climb)
+		var gl := _slope_rise(at - r * 0.3 * sc, y0, climb)
+		want = Vector2(atan2(gf - gh, 1.65 * sc), atan2(gr - gl, 0.6 * sc))
+		want = want.clamp(Vector2(-TILT_MAX, -TILT_MAX), Vector2(TILT_MAX, TILT_MAX))
+	_tilt = _tilt.lerp(want, 1.0 - exp(-TILT_RATE * dt))
+
+
+func _slope_rise(at: Vector3, y0: float, climb: float) -> float:
+	var d := _ground(at).y - y0
+	return d if absf(d) <= climb else 0.0
 
 
 ## One tick of travel (docs: horse_move.gd). Low things (below `climb`) are stepped onto by the ground ray, or
@@ -419,8 +531,13 @@ func _go(skip: Array[RID], fwd: Vector3, w: Vector3, want: float, sc: float, dt:
 	var next := global_position + dir * speed * dt
 	var g := _ground(next)
 	if g.y - global_position.y > climb:
-		speed = move_toward(speed, 0.0, maxf(speed, 3.0) / 0.2 * dt)       # eased to a stop in ~0.2 s
+		speed = move_toward(speed, 0.0, maxf(speed, 3.0) / 0.4 * dt)       # eased to a stop in ~0.4 s (it was 0.2: a hard knock)
 		return
+	if not _air and global_position.y - g.y > FALL_DROP:
+		_air = true                                  # the ground has gone: it falls to it under gravity (it did not glide down)
+		_vy = 0.0
+		_air_t = 0.0
+		_air_y0 = g.y
 	global_position = Vector3(next.x, _follow_y(g.y, dt), next.z)
 	_phase += TAU * _rig.freq(speed) * dt            # unwrapped: a wrap would swing the legs back a frame
 
@@ -471,7 +588,23 @@ func _exit_tree() -> void:
 
 ## Where the rider's pelvis sits relative to the horse's origin at the rendered moment (m above it).
 func _seat_lift() -> float:
-	return float(_d.seat) - CharacterRig.H_PELVIS + 0.02 - SINK + _rs.x
+	return _seat_base() + _rs.x
+
+
+func _seat_base() -> float:
+	return float(_d.seat) - CharacterRig.H_PELVIS + 0.02 - SINK
+
+
+## What the follow camera aims at while this horse is ridden (the Player's body origin, were the rider bolted to the horse):
+## the interpolated root a seat's height up, without the rider's spring or the gait's bounce, which are not the camera's.
+func camera_anchor() -> Vector3:
+	var xf := get_global_transform_interpolated()
+	return xf.origin + Vector3.UP * _seat_base() + xf.basis * Vector3(0.0, 0.0, -0.04 * _scale())
+
+
+## The rider is seated and not getting down: the camera may follow the horse's own motion.
+func camera_ready() -> bool:
+	return rider != null and _mount_t >= MOUNT_T and _dis_t < 0.0 and _dis_wait <= 0.0
 
 
 ## The rider is not bolted to the saddle: height, pitch and roll chase the horse's through damped springs
@@ -522,16 +655,22 @@ func _place_rider(dt: float, ph: float) -> void:
 		return
 	var xf := _rig.global_transform
 	var yaw := atan2(xf.basis.z.x, xf.basis.z.z)        # Basis(UP, a).z = (sin a, 0, cos a): the negated form was a + PI (the rider faced the tail)
-	var fwd := Vector3(-sin(yaw), 0.0, -cos(yaw))
-	_vis.global_position = xf.origin + Vector3.UP * _seat_lift() + fwd * (0.04 * _scale())
-	_vis_yaw = lerp_angle(_vis_yaw, yaw, 1.0 - exp(-12.0 * dt))
+	_vis.global_position = xf.origin + xf.basis * Vector3(0.0, _seat_lift(), -0.04 * _scale())          # the saddle tilts with the body
+	_vis_yaw = lerp_angle(_vis_yaw, yaw, 1.0 - exp(-40.0 * dt))                                      # locked to the horse's heading
 	_vis.global_rotation.y = _vis_yaw
 
 
 func _process(dt: float) -> void:
 	Paddock.step(self, _wd, dt)
 	if _rig:
-		_rig.global_transform = get_global_transform_interpolated()
+		var tl := _tilt
+		if rider != null:
+			tl = _tilt_prev.lerp(_tilt, Engine.get_physics_interpolation_fraction())
+		else:
+			_tilt = _tilt.lerp(Vector2.ZERO, 1.0 - exp(-3.0 * dt))
+			_tilt_prev = _tilt
+			tl = _tilt
+		_rig.global_transform = get_global_transform_interpolated() * Transform3D(Basis(Vector3.RIGHT, tl.x) * Basis(Vector3.BACK, tl.y), Vector3.ZERO)
 	# a rider that died, was hollowed or was moved off (a respawn, travel) is no longer riding
 	if rider != null and (not is_instance_valid(rider) or rider.get("riding") != self):
 		_release_visual()
@@ -586,6 +725,7 @@ func _write(ph := NAN, dt := 0.0) -> void:
 	_rig.vy = _vy
 	_rig.gather = clampf(_gather / GATHER_T, 0.0, 1.0) if _gather > 0.0 else 0.0
 	_rig.land = _land
+	_rig.turn = _turn_v
 	_rig.pose(ph, speed, _head, dt, _accel)
 
 
