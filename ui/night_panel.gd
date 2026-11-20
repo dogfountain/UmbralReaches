@@ -185,7 +185,14 @@ func show_credits() -> void:
 		_line("Night %d.  %s" % [int((e as Dictionary).get("n", 1)), String((e as Dictionary).get("t", ""))], 19)
 	_line("", 40)
 	_line("WHAT IT COST", 22, GILT, true)
-	_line("%d put down.   %d falls into the dark.   %d camps.   %d countries walked.   %d parcels carried.   %d photographs." % [Tally.total(), int(d.get("falls", 0)), int(d.get("camps", 0)), int(d.get("places", 0)), int(d.get("runs", 0)), int(d.get("photos", 0))], 18, INK, true)
+	var falls := int(d.get("falls", 0))
+	var camps := int(d.get("camps", 0))
+	var lands := int(d.get("places", 0))
+	var runs := int(d.get("runs", 0))
+	var photos := int(d.get("photos", 0))
+	_line("%d put down.   %d %s into the dark.   %d %s.   %d %s walked.   %d %s carried.   %d %s." % [Tally.total(), falls, "fall" if falls == 1 else "falls",
+		camps, "camp" if camps == 1 else "camps", lands, "country" if lands == 1 else "countries", runs, "parcel" if runs == 1 else "parcels",
+		photos, "photograph" if photos == 1 else "photographs"], 18, INK, true)
 	_line("", 30)
 	_line("THE FIRE REMEMBERS", 22, GILT, true)
 	for n in Tally.latest(30):
