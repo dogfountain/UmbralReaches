@@ -553,7 +553,8 @@ func _beard_v(mb: Variant, hair: Color, kind: String) -> void:
 		var root: Vector3 = fc.point(x, y)
 		var nn: Vector3 = fc.normal(x, y)
 		mb.bind(B_JAW if absf(x) < 0.55 else B_HEAD)
-		mb.strand(root + nn * 0.003 * S, Vector3.DOWN + nn * 0.4, _rng.randf_range(0.014, 0.024) * S, 0.0085 * S, col.lightened(_rng.randf_range(-0.08, 0.08)), Vector3.ZERO, 0.2, 2, 3)
+		# (the fringe read as pale shards in the dialogue portrait, Fennick's beard: the visual pass's CV3; now the shell's own tone, darker, shorter and finer)
+		mb.strand(root + nn * 0.003 * S, Vector3.DOWN + nn * 0.4, _rng.randf_range(0.009, 0.015) * S, 0.0055 * S, col.darkened(0.1).lightened(_rng.randf_range(-0.04, 0.04)), Vector3.ZERO, 0.2, 2, 3)
 	if kind != "long":
 		mb.bind(B_HEAD)
 		return
