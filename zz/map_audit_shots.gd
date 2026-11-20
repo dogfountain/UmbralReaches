@@ -479,7 +479,13 @@ func _near_debug() -> void:
 			continue
 		var bb: AABB = gi.global_transform * gi.get_aabb()
 		if bb.size.length() < 3.0 and bb.get_center().distance_to(cp) < 12.0:
-			print("MAPAUDIT near %s %s at %s size %s" % [gi.get_class(), main.get_tree().root.get_path_to(gi), bb.get_center(), bb.size])
+			var mdesc := ""
+			var mo := gi.material_override as StandardMaterial3D
+			if mo != null:
+				mdesc = " mat[alb %s vcol %s metal %.2f rough %.2f tex %s ncol %s emis %s]" % [mo.albedo_color, mo.vertex_color_use_as_albedo, mo.metallic, mo.roughness, mo.albedo_texture != null, mo.normal_enabled, mo.emission_enabled]
+			if gi is MultiMeshInstance3D:
+				mdesc += " mm[colors %s count %d]" % [(gi as MultiMeshInstance3D).multimesh.use_colors, (gi as MultiMeshInstance3D).multimesh.instance_count]
+			print("MAPAUDIT near %s %s at %s size %s%s" % [gi.get_class(), main.get_tree().root.get_path_to(gi), bb.get_center(), bb.size, mdesc])
 		elif gi is GPUParticles3D or gi is CPUParticles3D or gi is MultiMeshInstance3D:
 			if bb.grow(1.0).has_point(cp):
 				print("MAPAUDIT around %s %s box %s" % [gi.get_class(), main.get_tree().root.get_path_to(gi), bb])
@@ -572,6 +578,8 @@ func _shoot_place(s: Dictionary) -> void:
 		if first:
 			await _secs(1.1)
 			first = false
+			if "--near-debug" in OS.get_cmdline_user_args():
+				_near_debug()
 		else:
 			await _secs(0.35)
 		frames.append(await _grab(3))
