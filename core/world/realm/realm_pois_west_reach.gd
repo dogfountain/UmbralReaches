@@ -127,7 +127,7 @@ static func _caps(holder: Node3D, space: PhysicsDirectSpaceState3D) -> void:
 		if RealmLayout.path_dist(q) < 2.0:
 			continue
 		if q.distance_to(CHAIN_STAIR_FOOT) < 6.0:
-			continue                          # the Chain Span's west stair foot (zone fit: a small cap stood across its first step)
+			continue                          # the Chain Span's west stair foot: zone fit, a small cap stood across its first step
 		var y := RealmLayout.ground(space, q.x, q.y) - 0.25
 		var root := Kit37.place(host, CAPS, Transform3D(Basis(Vector3.UP, float(pc[2])), Vector3(q.x, y, q.y)), {"pick": String(pc[1]), "scale": Vector3.ONE * float(pc[3])})
 		if root == null:
