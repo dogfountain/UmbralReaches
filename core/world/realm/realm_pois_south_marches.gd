@@ -68,6 +68,12 @@ static var built: Array[String] = []
 static var breaches := {}               ## side (-1 / +1) -> Array[float] (z of each breach's centre)
 static var gate_z := {}                 ## side -> z
 static var well := {}                   ## the Well's measured numbers (build): rim_y, floor_y, landing, ...
+const OAK_STAIR_GAPS := [
+	[Vector3(2.54, 13.78, 0.94), Vector3(5.11, 14.41, 0.30)],
+	[Vector3(2.00, 21.13, -3.47), Vector3(0.27, 21.76, -3.00)],
+	[Vector3(-2.87, 28.48, -0.39), Vector3(-2.20, 29.11, 1.93)],
+	[Vector3(-2.39, 33.73, -0.71), Vector3(-2.24, 34.15, 0.27)],
+]
 static var oak := {}                    ## the Oak's measured numbers (build): xf, crown, tips
 
 
@@ -673,6 +679,17 @@ static func _oak(host: Node3D, space: PhysicsDirectSpaceState3D) -> void:
 		if sh != null:
 			shapes.append([sh, xf])
 	Kit.body(h, "OakBody", shapes)
+	# the stair's treads missing where the limb doors are cut (the walk found a 0.4-0.6 m riser at each): a collision ramp over each gap,
+	# [tread below, tread above] in the oak's frame, 1.9 m wide
+	var fix := OssKit.new()
+	fix.keep_lanes = false
+	for g: Array in OAK_STAIR_GAPS:
+		var ga: Vector3 = xf * (g[0] as Vector3)
+		var gb: Vector3 = xf * (g[1] as Vector3)
+		var gd := gb - ga
+		var gbs := Basis.looking_at(gd.normalized(), Vector3.UP)
+		fix.collider((ga + gb) * 0.5 - gbs.y * 0.1, Vector3(1.9, 0.2, gd.length() + 0.3), gbs)
+	fix.commit(h, "OakStairFix")
 	var limbs: Array = Data.OAK_LIMBS
 	var tips: Array[Vector3] = []
 	for lm: Dictionary in limbs:
