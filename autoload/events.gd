@@ -18,6 +18,8 @@ signal skill_failed(id: StringName, reason: String)      ## F8 sampler result, p
 signal seal_progress(id: String, cleared: int, total: int)
 signal seal_broken(id: String)
 signal boss_engaged(boss: Node, title: String)
+## A boss arena's warm-up began (the wanderer is near): systems with work for the pull do it ahead (flora_fight's lists).
+signal boss_warming(boss_id: StringName)
 signal boss_slain(id: String)
 signal item_gained(id: String, amount: int, total: int)
 signal gloom_tide(active: bool)                         ## encounters: the Gloom tide rises (true) / breaks or recedes (false)

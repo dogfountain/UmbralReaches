@@ -1291,7 +1291,7 @@ func _finish() -> void:
 ## --bosses: for each boss arena in turn, the wanderer stands APPROACH_R m past its edge (the warm and staging zone) for
 ## 5 s, then is put at its centre (the pull). Prints the worst frame of each window and the frames over 16 ms; the arena
 ## itself prints "BOSSPULL" with what its pull cost. The Realm's other life goes on (--hitches names what was built).
-const APPROACH_R := 26.0
+const APPROACH_R := 16.0
 var _bs_arenas: Array = []
 var _bs_i := -1
 var _bs_t := 0.0

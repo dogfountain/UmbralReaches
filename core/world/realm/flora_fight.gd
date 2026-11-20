@@ -16,6 +16,8 @@ const SLICE_US := 3000               ## per frame: the change is spread over a f
 var _boss: Node3D = null
 var _far: Array = []                ## [GeometryInstance3D, end as found] the @far trees and cards
 var _shells: Array = []             ## [MeshInstance3D, begin as found]
+var _prep: Array = []               ## the woods' children not yet walked by the collection
+var _collected := false             ## the three lists are whole
 var _mmis: Array = []               ## every Flora_* MultiMesh (collected once with the lists above)
 var _job := -1                      ## next item of the change under way (-1: none): _mmis, then _far, then _shells
 var _job_on := false
@@ -26,6 +28,7 @@ var _job_d := 2
 func _ready() -> void:
 	name = "FloraFight"
 	Events.boss_engaged.connect(_on_engaged)
+	Events.boss_warming.connect(_on_warming)
 	Events.boss_slain.connect(func(_id: String) -> void: thin(false))
 	Events.respawned.connect(func(_at: Vector3) -> void: thin(false))
 	set_process(false)
@@ -37,11 +40,30 @@ func _on_engaged(b: Node, _title: String) -> void:
 		thin(true)
 
 
+## A boss arena is warming (the wanderer is near): the lists the change walks are collected now, a slice a frame, not in
+## the pull's frame (find_children over the whole woods was 19 ms there).
+func _on_warming(_id: StringName) -> void:
+	if _collected or not _prep.is_empty():
+		return
+	_prep = get_parent().get_children()
+	set_process(true)
+
+
+func _prep_step(budget_us: int) -> void:
+	var t0 := Time.get_ticks_usec()
+	while not _prep.is_empty() and Time.get_ticks_usec() - t0 < budget_us:
+		_collect(_prep.pop_back() as Node)
+	if _prep.is_empty():
+		_collected = true
+
+
 func _process(_dt: float) -> void:
+	if not _prep.is_empty():
+		_prep_step(1500)
 	if _job >= 0:
 		_job_step()
 	if _boss == null:
-		if _job < 0:
+		if _job < 0 and _prep.is_empty():
 			set_process(false)
 		return
 	var p := get_tree().get_first_node_in_group(Groups.PLAYER) as Node3D
@@ -62,14 +84,14 @@ func thin(on: bool) -> void:
 	host.set_meta(&"fight", on)
 	var d := clampi(Settings.detail, 0, 2)
 	host.set_meta(&"detail", d + (10 if on else 0))   # what Emit.apply_detail would note (a settings change re-applies all)
-	if _mmis.is_empty() and _far.is_empty() and _shells.is_empty():
-		_collect(host)
+	if not _collected:                  # not warmed ahead (a fast travel into the arena): the rest now
+		_prep = host.get_children() if _prep.is_empty() and _mmis.is_empty() else _prep
+		_prep_step(1 << 30)
 	_job_on = on
 	_job_d = d
 	_job_args = Emit.detail_args(d, on)
 	_job = 0
-	set_process(true)
-	_job_step()                          # the first slice now
+	set_process(true)                    # the first slice is the next frame's, not the pull's
 
 
 func _job_step() -> void:
@@ -108,12 +130,15 @@ static func _applied(g: GeometryInstance3D) -> void:
 		g.set_meta(&"range_k", Vector2(g.visibility_range_begin, g.visibility_range_end))
 
 
-func _collect(host: Node) -> void:
-	for n in host.find_children("Flora_*", "MultiMeshInstance3D", true, false):
-		_mmis.append(n)
-		var f: Array = n.get_meta(&"flora", [])
-		if f.size() > 1 and (f[1] == "fs" or f[1] == "fc") and (n as GeometryInstance3D).visibility_range_end > 0.0:
-			_far.append([n, (n as GeometryInstance3D).visibility_range_end])
-	for n in host.find_children("Canopy_*", "MeshInstance3D", true, false):
-		if (n as GeometryInstance3D).visibility_range_begin > 0.0:
+## One child of the woods: it and everything under it.
+func _collect(n0: Node) -> void:
+	var all: Array[Node] = n0.find_children("*", "", true, false)
+	all.append(n0)
+	for n in all:
+		if n is MultiMeshInstance3D and String(n.name).begins_with("Flora_"):
+			_mmis.append(n)
+			var f: Array = n.get_meta(&"flora", [])
+			if f.size() > 1 and (f[1] == "fs" or f[1] == "fc") and (n as GeometryInstance3D).visibility_range_end > 0.0:
+				_far.append([n, (n as GeometryInstance3D).visibility_range_end])
+		elif n is MeshInstance3D and String(n.name).begins_with("Canopy_") and (n as GeometryInstance3D).visibility_range_begin > 0.0:
 			_shells.append([n, (n as GeometryInstance3D).visibility_range_begin])

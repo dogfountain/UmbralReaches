@@ -204,6 +204,7 @@ func _physics_process(_d: float) -> void:
 		var themes := get_tree().get_first_node_in_group(&"boss_themes") as BossThemes
 		if themes != null:
 			themes.prepare(boss_id)             # the theme's stems read or rendered on a thread, not at the pull
+		Events.boss_warming.emit(StringName(boss_id))
 		_warm_step(0)
 	# a held fight takes up again anywhere on its floor (the Crown's pull is at the skull, but the fight is the whole yard:
 	# a wanderer back in the yard and not at the skull found him frozen and blow-proof, his cast bar stuck)
