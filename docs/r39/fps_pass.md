@@ -13,7 +13,7 @@ at the end.
 
 - [x] baseline: two plain tours (points), one `--stress=2` tour, the fixed path, `--blame` at t_reedholm and r_spawn_west,
       `--hitches=14 --probe` at the worst views, `--census` at seven views (`<S>/base/`)
-- [ ] every fix built (list below), committed one by one
+- [x] every fix built (list below), committed one by one
 - [ ] after: the same runs (`<S>/measure_after.sh`), plus `--attrib` at t_reedholm and r_spawn_west
 - [ ] tests: `tools/run_tests.sh --quick`, then interp_audit, the village / life / encounter tests and the perf-related ones
 
@@ -60,18 +60,45 @@ brief's own run had it at 85.9), so only differences well past ~5 % are read as 
 
 ## Fixes (each: what, why, commit)
 
-- [ ] F1 harness: the path's spindle and summit legs in the Endgame frame; `--probe-ms`, `--seconds`, `--census-split`,
-      canvas draws in every PERF line and the HUD's parts in the census; PerfWatch's census only with `--fps-log`
-- [ ] F2 the physics-interpolation audit finished: the fourteen MultiMeshInstance3D builders it missed are off
-      interpolation (nine were on), and `interp_audit_test` reads every script in the game instead of a list
-- [ ] F3 villagers past 150 m (nothing of them drawn) step every sixteenth frame and are not posed
-- [ ] F4 the Living Night's folk step every fourth frame past 55 m (as the villagers do)
-- [ ] F5 the half-second ticks spread over the frames (each timer keeps its own phase)
-- [ ] F6 encounters: at most one elite or guardian built per tick (two or three in one tick were the 10-27 ms frames)
-- [ ] F7 wildlife: a camera jump switches its groups on a few a scan (each first show walks the group for its fade)
-- [ ] F8 the HUD's canvas draws
-- [ ] F9 3D draws at the worst views (RealmPois, lamps, lore)
+- [x] F1 harness (c17e59f2): the path's spindle and summit legs in the Endgame frame; `--probe-ms`, `--seconds`,
+      `--census-split`, canvas draws in every PERF line and the HUD's parts in the census; PerfWatch's own census only
+      with `--fps-log` (as its comment said)
+- [x] F2 the physics-interpolation audit finished (6b910e18): the fourteen MultiMeshInstance3D builders the test did
+      not list; nine were still interpolated (pond rings, marsh lights, eyes, glow buds, oak hollow caps, both warm-up
+      draws, the rain glints, the far cards), the Tether's line was eight lines too far down for the check. The test
+      now reads every script under core, world, ui and autoload (34 builders), so a new one is checked when written
+- [x] F3 villagers past 150 m (nothing of them is drawn: mesh ~103 m, lamp glow ~138 m with FadeGuard's x1.5 and band)
+      step every sixteenth frame and are not posed (e56742ad). Inside 150 m nothing changes
+- [x] F4 the Living Night's folk step every fourth frame past 55 m with the time saved up, as the villagers already did
+      (e56742ad); inside 55 m nothing changes
+- [x] F5 the periodic ticks spread over the frames (24597055, ffa10cd4, 85b78397): `core/util/tick_phase.gd` gives
+      each timer its own first phase and keeps it (`next` adds the period instead of setting it, so two timers never
+      drift into one frame). Twenty-five systems: pets, Kindling, compass, XP bar, vows, quest markers, objective line,
+      discovery, region grade, sky life, wanderer life, combat state, scape music, interior beds, world events,
+      unkindled glows, rares, life signs, the wildlife's enemy scan, the quest track, the unit frames, the folk stage,
+      the encounters' 4 Hz step, the wayfarers' clocks, the living windows, the minimap, the 35 braziers' naps and the
+      36 ember posts' re-seats. Kindling finds the fires in the brazier group, not among every interactable
+- [x] F6 encounters (e2df9a2e): one guardian or elite built per 4 Hz tick (after a teleport, a respawn or the Ember
+      Road two or three were built in one frame), a guardian's escort one every third frame instead of every frame
+- [x] F7 wildlife (e2df9a2e): at most four groups shown for the first time per scan (each first show walks the group's
+      meshes for its fade; a camera jump did every group in reach at once)
+- [x] F8 PerfWatch (b2bb4697): the spike log no longer scans the ~50k-node tree three times inside the frame it logs
+      (it did every 60 s); the counts are taken at the end of the build
+- [x] F9 fixture pool (ffa10cd4): the free dark lights are skipped, a light is moved only when its row moved
 
 ## Not done, and why
 
-(filled in as the pass goes)
+- **The HUD's 430-456 canvas draws.** Every custom-drawn arc, circle, polyline and polygon (the minimap's bezel is ~20
+  on its own: nine arcs, eight studs, the north disc; the hotbar's slots and drawn icons; the unit frames) is a draw call
+  of its own in Godot's canvas renderer; text and rects batch. Cutting them means redrawing the HUD's art another way
+  (pre-rendered textures, meshes), which changes its look; not done blind. Measured now in every PERF line
+  (`canvas draws`), and the census names the HUD's parts.
+- **3D draw merging** (RealmPois 300-440 draws, RealmLore 60-220, the summit's 120 moss rocks drawn from anywhere):
+  MeshMerge already joins the static meshes it may; the ranged pieces merge in 6 m cells (so each still fades where
+  it did) and the heavy ones keep their LODs. Larger cells by range, or merging multi-surface meshes that draw with one
+  override material, are the next step, but need `--census-split` and `--merge-why` runs to choose (Luke: no runs
+  while building).
+- **Shadow casters and draw ranges on clutter**: the spawn's 421 shadow draws were the one outlier, but its census was
+  spoiled (PerfWatch's own census ran in the middle of it, F1), so no caster was cut on a guess.
+- **GPU features**: the baseline `--attrib` was stopped with the other runs; it runs in the after set and its costs are
+  reported, not acted on.
