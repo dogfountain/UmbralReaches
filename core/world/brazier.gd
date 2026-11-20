@@ -29,6 +29,7 @@ const MAP_LIT := Color(1.0, 0.62, 0.3)
 const MAP_COLD := Color(0.5, 0.48, 0.52)
 ## Emissive caps: lit coals peak at 1.6 (were 4.0), so they stay gold-orange under AgX, not a white blob
 const StaffSfx := preload("res://core/vfx/staff_sfx.gd")
+const Wayfinding := preload("res://core/world/realm/realm_wayfinding.gd")
 const COAL_GLOW := 0.85
 
 
@@ -51,6 +52,8 @@ func _ready() -> void:
 		post.set("brazier", self)
 		add_child(post)
 	_t = randf() * 10.0
+	if String(name) == "Sanctuary":
+		_far_glow.call_deferred()
 	# Each shadowed point light re-renders scene geometry into both faces of a dual-paraboloid map.
 	# Past ~22 m the shadow is not readable anyway, so drop it there and keep the light itself.
 	_light.set_meta("light_class", "beacon")
@@ -68,6 +71,12 @@ func _ready() -> void:
 	add_child(_crackle)
 	if lit:
 		_crackle.play()
+
+
+## Hearthward's fire is the Realm's home: it reads from afar as a warm point (the landmark beacon's glow), like every landmark's.
+func _far_glow() -> void:
+	if is_inside_tree():
+		Wayfinding.beacon(self, global_position + Vector3.UP * 1.4, "", Color(1.0, 0.66, 0.34), 0.0, 1.5, 4.0, true, 0.0)
 
 
 func can_interact() -> bool:
