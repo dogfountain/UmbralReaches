@@ -138,7 +138,7 @@ static func _salt_stack(parent: Node3D, t: Transform3D, view_end: float) -> bool
 		for n: Node in inst.find_children("*", "MeshInstance3D", true, false):
 			var mi := n as MeshInstance3D
 			var set_name := String(mi.name).get_slice("__", 1).get_slice(".", 0)
-			var mat: Material = OssKit.mat("chalk") if set_name == "chalk" else (OssKit.mat("wood") if set_name == "timber" else null)
+			var mat: Material = OssKit.mat("chalk") if set_name == "chalk" else (SiteProps.wood() if set_name == "timber" else null)
 			if set_name == "cloth":
 				mat = SiteProps.cloth()
 			if mi.mesh != null and mat != null:
