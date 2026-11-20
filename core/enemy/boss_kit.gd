@@ -95,6 +95,7 @@ static func warm(host: Node, stage := -1, boss := &"") -> void:
 	Vfx.burst(at, BONE, {"count": 4, "life": 0.3, "speed": Vector2(0.1, 0.2), "size": 0.01, "gravity": -6.0, "ring": 0.02})
 	Vfx.burst(at, Color(0.08, 0.06, 0.06, 0.8), {"count": 4, "life": 0.3, "speed": Vector2(0.1, 0.2), "size": 0.01, "gravity": 0.6, "radius": 0.02, "additive": false, "turbulence": true})
 	Vfx.light(at, Color(0.1, 0.1, 0.1), 0.01, 1.0, 0.1, 0)
+	SpellFx.rift_in(at + Vector3.DOWN * 600.0)  # the gate's and the boss's rising: its emitters built now, far below the world (the first one was 7.6 ms in the pull)
 
 
 ## Build a throwaway copy of the boss as a speck in front of the camera so its rig, meshes and

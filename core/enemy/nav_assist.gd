@@ -20,6 +20,7 @@ static var region_id := 0                ## one of the night's regions (0: no me
 ## small Reach tiles join long before the big middle ones, and a map missing a tile answers from the nearest
 ## one it has: a chaser by Hearthward was sent 200 m west, to the West Reach's edge.
 static var probes := PackedVector3Array()
+const PROBES_PER_LOOK := 1               ## closest-point asks a look may make: each walks every polygon of the map (3.4 ms; five at once were the trail's 17 ms tick)
 static var _joined := 0                  ## probes answered so far, in order
 static var _looked := -1                 ## the physics frame of the last look that failed (one a frame, however many ask)
 static var _synced := false
@@ -75,7 +76,12 @@ static func _all_joined() -> bool:
 	var f := Engine.get_physics_frames()
 	if f == _looked or probes.is_empty() or NavigationServer3D.map_get_iteration_id(map) == 0:
 		return false
+	var asked := 0
 	while _joined < probes.size():
+		if asked >= PROBES_PER_LOOK:
+			_looked = f                        # the rest on the next physics frame
+			return false
+		asked += 1
 		var pr := probes[_joined]
 		if NavigationServer3D.map_get_closest_point(map, pr).distance_to(pr) >= 1.0:
 			_looked = f
