@@ -112,17 +112,23 @@ static func site_floor(s: Dictionary, p: Vector2, margin := 0.0) -> float:
 	return float(s.floor_y) if (s.rect as Rect2).grow(margin).has_point(p) else NAN
 
 
-## Past a flight's end (before its foot or beyond its head): the stamp's round cap round each end. TerrainStamp cuts the cap flush with
-## the floor, not 0.35 under it like the flight itself, so the ground meeting a stair's top or foot is level with it.
-static func past_end(s: Dictionary, p: Vector2) -> bool:
+## Past a flight's end (before its foot or beyond its head): the stamp's round cap round each end. The cap at a flight's LOW end is
+## not cut at all (a hall's or cave's stair bottoms out 10 m under the hill: cutting its cap dug an open pit down onto the first
+## room, and the ground before a stair's foot is the road's); the cap at its HIGH end is cut flush with the floor, not 0.35 under it.
+## Returns -1 for no cut past this end, 0 inside the flight (the usual cut), 1 for the flush cut at the high end.
+static func end_cap(s: Dictionary, p: Vector2) -> int:
 	if not s.has("seg"):
-		return false
+		return 0
 	var a: Vector3 = s.seg[0]
 	var b: Vector3 = s.seg[1]
 	var a2 := Vector2(a.x, a.z)
 	var ab := Vector2(b.x, b.z) - a2
 	var t := (p - a2).dot(ab) / maxf(ab.length_squared(), 0.0001)
-	return t < 0.0 or t > 1.0
+	if t >= 0.0 and t <= 1.0:
+		return 0
+	var here_y := a.y if t < 0.0 else b.y
+	var other_y := b.y if t < 0.0 else a.y
+	return -1 if here_y < other_y - 0.05 else 1
 
 
 static func register_lane(n: String, pts: Array, half_w: float) -> void:

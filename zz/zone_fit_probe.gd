@@ -498,7 +498,7 @@ func _cmd(a: PackedStringArray) -> void:
 				var hit := _space().intersect_ray(PhysicsRayQueryParameters3D.create(Vector3(q.x, yfr, q.y), Vector3(q.x, -40, q.y), Layers.WORLD | Layers.PROPS))
 				var nm := _nm(hit)
 				lines.append("  %+5.1f (%.1f,%.1f): solid %.2f terrain %.2f  %s" % [float(i) * st, q.x, q.y, (hit.position as Vector3).y if not hit.is_empty() else NAN, _terrain(q.x, q.y), nm.get_slice("/", nm.get_slice_count("/") - 2) + "/" + nm.get_slice("/", nm.get_slice_count("/") - 1)])
-		"shot":                                    # shot name px py pz tx ty tz [fov]
+		"shot", "shotg":                           # shot name px py pz tx ty tz [fov]; shotg: py and ty are heights above the terrain there
 			await _shot(a)
 		"stairs":
 			_stairs()
@@ -617,8 +617,13 @@ func _shot(a: PackedStringArray) -> void:
 	cam.fov = _fl(a, 8, 75.0)
 	cam.near = 0.08
 	cam.far = 900.0
-	cam.global_position = Vector3(_fl(a, 2), _fl(a, 3), _fl(a, 4))
-	cam.look_at(Vector3(_fl(a, 5), _fl(a, 6), _fl(a, 7)))
+	var cy := _fl(a, 3)
+	var ty := _fl(a, 6)
+	if a[0] == "shotg":
+		cy += _terrain(_fl(a, 2), _fl(a, 4))
+		ty += _terrain(_fl(a, 5), _fl(a, 7))
+	cam.global_position = Vector3(_fl(a, 2), cy, _fl(a, 4))
+	cam.look_at(Vector3(_fl(a, 5), ty, _fl(a, 7)))
 	cam.current = true
 	for i in 12:
 		await get_tree().process_frame

@@ -155,6 +155,15 @@ func _make(root: Node, i: int, c: Vector2, yaw: float) -> bool:
 			var q := d.o + d.fwd * (d.run + float(vi)) + d.side * float(ui)
 			gmin = minf(gmin, WK.h(q.x, q.z))
 	d.yf = gmin - 9.0
+	# a stair no steeper than ~31 degrees: cave 3's mouth stands 28 m over its floor and 20 m of run made a 54 degree wall nobody can walk down
+	if (d.o.y - d.yf) / 0.6 > d.run:
+		d.run = ceilf((d.o.y - d.yf) / 0.6)
+		gmin = d.o.y
+		for ui in range(-12, 13, 3):
+			for vi in range(-2, 40, 3):
+				var q2 := d.o + d.fwd * (d.run + float(vi)) + d.side * float(ui)
+				gmin = minf(gmin, WK.h(q2.x, q2.z))
+		d.yf = gmin - 9.0
 	d.wall = "cave"
 	d.trim = "cave"
 	d.ceil_key = "cave"
