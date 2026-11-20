@@ -226,6 +226,7 @@ static func group(kind: String, count: int, mat_kind := "") -> MultiMeshInstance
 	mm.mesh = mesh(kind)
 	mm.instance_count = count
 	var mmi := MultiMeshInstance3D.new()
+	mmi.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF   # static: interpolating a MultiMesh makes its add wait on the GPU (zz/stream_probe.gd)
 	mmi.name = kind.capitalize().replace(" ", "")
 	mmi.multimesh = mm
 	mmi.set_meta(&"live_pool", true)             # (WorldLanes.cull_scatter leaves a runtime pool alone: its creatures move)

@@ -846,6 +846,7 @@ func _commit_props() -> int:
 			for i in xfs.size():
 				mm.set_instance_transform(i, xfs[i] as Transform3D)
 			var mmi := MultiMeshInstance3D.new()
+			mmi.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF   # static: interpolating a MultiMesh makes its add wait on the GPU (zz/stream_probe.gd)
 			mmi.name = "Prop_" + file
 			mmi.multimesh = mm
 			if pd.mat != null:

@@ -178,6 +178,7 @@ func _run() -> void:
 	_record_phase("haul")
 	await get_tree().create_timer(0.9).timeout
 	_check_phase()
+	_static_multimeshes()
 	print("interp_audit_test: ", "FAIL %d" % bad if bad > 0 else "PASS")
 	get_tree().quit(1 if bad > 0 else 0)
 
@@ -252,3 +253,28 @@ func _check_phase() -> void:
 		print("  %-20s median %.2f m/s, %d dup, %d outlier of %d, worst miss %.3f m  %s" % [s.name, med, dups, outliers, speeds.size(), lag, "ok" if ok else "FAIL"])
 		if not ok:
 			bad += 1
+
+
+## The static MultiMesh builders (flora, props, dressing) put their node off physics interpolation before it enters the tree:
+## an interpolated MultiMesh makes its add wait on the GPU (12-20 ms for the first add of a frame; umbral-donts, Static MultiMeshes).
+const STATIC_MMI := ["core/world/realm/flora_emit.gd", "core/world/mesh_chunks.gd", "core/world/realm/east_works_kit.gd",
+	"core/world/realm/reach_towns.gd", "core/world/realm/realm_pois.gd", "core/world/realm/realm_pois_east_reach.gd",
+	"core/world/realm/rift/crossing.gd", "core/world/realm/rift/features.gd", "core/world/realm/rift_rim.gd",
+	"core/world/realm/site_dress.gd", "core/world/realm/wonders/r39/shorelines.gd", "core/world/realm/wonders/r39/wonder_kit.gd",
+	"core/world/realm/wonders/sky_chain.gd", "core/life/secrets/site_glade.gd", "core/life/wildlife/life_kit.gd",
+	"world/areas/ossuary/oss_deep.gd", "world/areas/ossuary/oss_kit.gd"]
+
+
+func _static_multimeshes() -> void:
+	var n := 0
+	for path: String in STATIC_MMI:
+		var lines := FileAccess.get_file_as_string("res://" + path).split("\n")
+		for i in lines.size():
+			if "MultiMeshInstance3D.new()" in lines[i]:
+				n += 1
+				var near := "\n".join(lines.slice(i, mini(i + 4, lines.size())))
+				if not "PHYSICS_INTERPOLATION_MODE_OFF" in near:
+					_fail("%s:%d: a static MultiMeshInstance3D is added with physics interpolation on" % [path, i + 1])
+	print("static MultiMeshInstance3D builders checked: %d" % n)
+	if n < 20:
+		_fail("only %d static MultiMesh builders found (the list is stale)" % n)

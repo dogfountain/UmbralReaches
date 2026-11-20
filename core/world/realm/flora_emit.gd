@@ -66,6 +66,7 @@ static func _chunk(host: Node3D, chunks: Dictionary, key: Vector3i, csize: float
 	if ch == null:
 		ch = Node3D.new()
 		ch.name = "%s_%d_%d" % ["Trees" if key.z == 1 else "Chunk", key.x, key.y]
+		ch.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF     # (static: see _batch)
 		host.add_child(ch)
 		var cx := (key.x + 0.5) * csize
 		var cz := (key.y + 0.5) * csize
@@ -259,6 +260,10 @@ static func _batch(ch: Node3D, buf: PackedFloat32Array, n: int, nm: String, mesh
 		mm.set_meta("cpu_buffer", buf)      # (the stones in the turf are not cleared by the editors)
 	var mmi := MultiMeshInstance3D.new()
 	mmi.name = nm
+	# Static: nothing here ever moves. A MultiMesh entering the tree with the project's physics interpolation on makes the
+	# renderer set up interpolation for its buffer and wait on the GPU for it (12-20 ms for the first add of a frame, ~0.2 ms
+	# for the rest, against 6-35 us with it off; umbral-donts, Static MultiMeshes).
+	mmi.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF
 	mmi.multimesh = mm
 	mmi.set_meta("site_owned", true)        # placed clear of sites already: cull_scatter skips it
 	var sp: String = info[0]

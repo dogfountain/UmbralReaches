@@ -626,6 +626,7 @@ static func _emit(host: Node3D, id: String, c: Vector2) -> void:
 				mm.set_instance_transform(k, Transform3D(xf.basis, xf.origin - zone.position))
 				mm.set_instance_color(k, list[idx[k]][1])
 			var mmi := MultiMeshInstance3D.new()
+			mmi.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF   # static: interpolating a MultiMesh makes its add wait on the GPU (zz/stream_probe.gd)
 			mmi.name = "Dress_" + kind
 			mmi.multimesh = mm
 			if g.mat:

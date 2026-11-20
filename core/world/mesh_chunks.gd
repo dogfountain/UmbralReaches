@@ -241,6 +241,7 @@ static func split_multimesh(mmi: MultiMeshInstance3D, cell := CELL, cell_y := 0.
 		cm.buffer = out
 		cm.set_meta("cpu_buffer", out)
 		var c := MultiMeshInstance3D.new()
+		c.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF   # static: interpolating a MultiMesh makes its add wait on the GPU (zz/stream_probe.gd)
 		c.name = "%s_cell_%d_%d_%d" % [mmi.name, key.x, key.y, key.z]
 		c.multimesh = cm
 		c.material_override = mmi.material_override

@@ -460,6 +460,7 @@ static func _plants(host: Node3D, items: Dictionary, vis := 46.0) -> void:
 				mm.set_instance_transform(i, xfs[i])
 				mm.set_instance_color(i, Color(1, 1, 1, 1))
 			var mmi := MultiMeshInstance3D.new()
+			mmi.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF   # static: interpolating a MultiMesh makes its add wait on the GPU (zz/stream_probe.gd)
 			mmi.name = "Overgrowth_" + id
 			mmi.multimesh = mm
 			mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF

@@ -374,6 +374,7 @@ static func _cairn_field(holder: Node3D, space: PhysicsDirectSpaceState3D) -> in
 			var xf: Transform3D = list[i]
 			mm.set_instance_transform(i, Transform3D(xf.basis, xf.origin - c))
 		var mmi := MultiMeshInstance3D.new()
+		mmi.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF   # static: interpolating a MultiMesh makes its add wait on the GPU (zz/stream_probe.gd)
 		mmi.multimesh = mm
 		mmi.name = "Cairns_%d_%d_%d" % [key.x, key.y, key.z]
 		mmi.set_meta(&"chunked", true)

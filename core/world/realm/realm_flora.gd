@@ -134,6 +134,7 @@ static func build(root: Node) -> void:
 	var t4 := Time.get_ticks_msec()
 	var host := Node3D.new()
 	host.name = "RealmFlora"
+	host.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF       # static: no interpolation (flora_emit.gd _batch)
 	root.add_child(host)
 	host.add_child((load("res://core/world/realm/flora_fight.gd") as GDScript).new())
 	var stats := Emit.emit(host, _final_items, _final_stones, _canopy, Callable(ground_y), Callable(_prop_mesh))

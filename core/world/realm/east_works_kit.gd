@@ -100,6 +100,7 @@ static func multi(host: Node3D, node_name: String, path: String, nm: String, xfs
 	for i in xfs.size():
 		mm.set_instance_transform(i, xfs[i])
 	var mmi := MultiMeshInstance3D.new()
+	mmi.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF   # static: interpolating a MultiMesh makes its add wait on the GPU (zz/stream_probe.gd)
 	mmi.name = node_name
 	mmi.multimesh = mm
 	mmi.visibility_range_end = view_end

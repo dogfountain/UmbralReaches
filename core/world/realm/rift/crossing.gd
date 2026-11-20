@@ -758,6 +758,7 @@ func _commit_columns(host: Node3D) -> void:
 	for i in columns.size():
 		mm.set_instance_transform(i, columns[i])
 	var mmi := MultiMeshInstance3D.new()
+	mmi.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF   # static: interpolating a MultiMesh makes its add wait on the GPU (zz/stream_probe.gd)
 	mmi.name = "Columns"
 	mmi.multimesh = mm
 	mmi.material_override = OssKit.mat(HUB)

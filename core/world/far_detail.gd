@@ -63,6 +63,13 @@ static func hull(box: AABB, taper := 0.0, color := Color(0.16, 0.17, 0.2)) -> Ar
 	arrays[Mesh.ARRAY_NORMAL] = nrms
 	arrays[Mesh.ARRAY_COLOR] = cols
 	arrays[Mesh.ARRAY_INDEX] = idx
+	return arrays
+
+
+## The shell's node from its arrays (the main thread).
+static func shell_node(host: Node3D, c: Vector3, arrays: Array, nm: String) -> MeshInstance3D:
+	if arrays.is_empty():
+		return null
 	var m := ArrayMesh.new()
 	m.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
 	m.surface_set_material(0, far_material())
@@ -157,6 +164,11 @@ static func generic_range(gi: GeometryInstance3D, extent: float) -> bool:
 ## the cell count. Dark, matte, a little moon on the crown tops and a shaded foot: the fog gives it depth.
 ## Drawn from CANOPY_BEGIN to the horizon, fading in as the individual trees fade out.
 static func canopy_shell(host: Node3D, c: Vector3, half: float, trees: Array, ground: Callable, nm: String) -> MeshInstance3D:
+	return shell_node(host, c, shell_arrays(c, half, trees, ground), nm)
+
+
+## The shell's mesh arrays (pure arithmetic: any thread; `shells` makes them all at once on the worker pool), or [] with no crown.
+static func shell_arrays(c: Vector3, half: float, trees: Array, ground: Callable) -> Array:
 	var n := int(ceil(half * 2.0 / SHELL_CELL)) + 1
 	var verts := PackedVector3Array()
 	var cols := PackedColorArray()
@@ -234,7 +246,7 @@ static func canopy_shell(host: Node3D, c: Vector3, half: float, trees: Array, gr
 					spire[k] = sp
 					any = true
 	if not any:
-		return null
+		return []
 	for j in n:
 		for i in n:
 			var k := j * n + i
@@ -328,14 +340,25 @@ static func note_crowns(canopy: Dictionary, key: Vector3i, list: Array, h: float
 		(canopy[key] as Array).append([xf.origin, h * sc, maxf(spread * sc * (0.55 if conifer else 0.85), 1.0), conifer])
 
 
-## A canopy shell for every collected chunk (key x, z in chunk units); returns how many were made.
+## A canopy shell for every collected chunk (key x, z in chunk units); returns how many were made. The shells' arrays are
+## made all at once on the worker pool (pure arithmetic over the crowns); the nodes are added here, in the canopy's order.
 static func shells(host: Node3D, canopy: Dictionary, chunk: float, ground: Callable) -> int:
-	var made := 0
-	for key: Vector3i in canopy:
+	var keys := canopy.keys()
+	var out: Array = []
+	out.resize(keys.size())
+	var one := func(i: int) -> void:
+		var key: Vector3i = keys[i]
 		var cx := (key.x + 0.5) * chunk
 		var cz := (key.y + 0.5) * chunk
-		var gy: float = ground.call(cx, cz)
-		if canopy_shell(host, Vector3(cx, gy, cz), chunk * 0.5 + 2.0, canopy[key], ground, "Canopy_%d_%d" % [key.x, key.y]) != null:
+		out[i] = shell_arrays(Vector3(cx, ground.call(cx, cz), cz), chunk * 0.5 + 2.0, canopy[key], ground)
+	var task := WorkerThreadPool.add_group_task(one, keys.size(), -1, true, "canopy shells")
+	WorkerThreadPool.wait_for_group_task_completion(task)
+	var made := 0
+	for i in keys.size():
+		var key: Vector3i = keys[i]
+		var cx := (key.x + 0.5) * chunk
+		var cz := (key.y + 0.5) * chunk
+		if shell_node(host, Vector3(cx, ground.call(cx, cz), cz), out[i], "Canopy_%d_%d" % [key.x, key.y]) != null:
 			made += 1
 	return made
 

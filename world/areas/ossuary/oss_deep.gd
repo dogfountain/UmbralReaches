@@ -735,6 +735,7 @@ func _bridge() -> void:
 	mm.mesh = whole
 	mm.instance_count = n
 	var mmi := MultiMeshInstance3D.new()
+	mmi.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF   # static: interpolating a MultiMesh makes its add wait on the GPU (zz/stream_probe.gd)
 	mmi.name = "Plates"
 	mmi.multimesh = mm
 	mmi.material_override = bm
@@ -805,6 +806,7 @@ func _dials() -> void:
 		for j in 5:
 			mm.set_instance_transform(j, Transform3D(Basis.IDENTITY, Vector3(face + 0.03, CELL_Y + 0.95, sz - 0.3 + 0.15 * float(j))))
 		var mmi := MultiMeshInstance3D.new()
+		mmi.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF   # static: interpolating a MultiMesh makes its add wait on the GPU (zz/stream_probe.gd)
 		mmi.multimesh = mm
 		mmi.material_override = stud_mat
 		mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF

@@ -254,6 +254,7 @@ static func _commit_rocks(host: Node3D, rocks: Dictionary) -> void:
 		for k in xfs.size():
 			mm.set_instance_transform(k, xfs[k])
 		var mmi := MultiMeshInstance3D.new()
+		mmi.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF   # static: interpolating a MultiMesh makes its add wait on the GPU (zz/stream_probe.gd)
 		mmi.name = "ScorchRocks%d" % i
 		mmi.multimesh = mm
 		mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
@@ -330,6 +331,7 @@ static func _logs(host: Node3D, space: PhysicsDirectSpaceState3D, rng: RandomNum
 			mm.set_instance_transform(k, xfs[k])
 			mm.set_instance_color(k, CHAR * rng.randf_range(0.85, 1.1))
 		var mmi := MultiMeshInstance3D.new()
+		mmi.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF   # static: interpolating a MultiMesh makes its add wait on the GPU (zz/stream_probe.gd)
 		mmi.name = "CharredLogs_" + id
 		mmi.multimesh = mm
 		mmi.visibility_range_end = 110.0

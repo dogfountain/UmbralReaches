@@ -806,6 +806,7 @@ static func multimesh(mesh: Mesh, xforms: Array, mat_override: Material, shadows
 	for i in xforms.size():
 		mm.set_instance_transform(i, xforms[i])
 	var mmi := MultiMeshInstance3D.new()
+	mmi.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF   # static: interpolating a MultiMesh makes its add wait on the GPU (zz/stream_probe.gd)
 	mmi.multimesh = mm
 	mmi.material_override = mat_override
 	mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON if shadows else GeometryInstance3D.SHADOW_CASTING_SETTING_OFF

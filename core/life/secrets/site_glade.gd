@@ -144,6 +144,7 @@ static func build(root: Node, host: Node3D) -> void:
 		mm.set_instance_transform(j, Transform3D(Basis.IDENTITY, Vector3(cos(ra) * rr, sin(ra * 3.0) * 0.6 + float(j % 2) * 0.5, sin(ra) * rr)))
 		mm.set_instance_color(j, Color(1, 1, 1, 0.7 + 0.3 * float(j % 2)))
 	var mmi := MultiMeshInstance3D.new()
+	mmi.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF   # static: interpolating a MultiMesh makes its add wait on the GPU (zz/stream_probe.gd)
 	mmi.multimesh = mm
 	mmi.material_override = Kit.shader_mat("mote")
 	mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
