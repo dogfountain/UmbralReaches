@@ -2,13 +2,13 @@ extends Node3D
 ## Motion strips of a real Horse under a real Player, in a lit studio: a mount, a walk, a trot, a gallop (and its mane), a hop over
 ## a low stone at a trot and a gallop leap, a halt, and the dismount. Each moment is a row of consecutive frames taken in real time.
 ##   godot --path . res://zz/horse_seq.tscn -- [--tag=x] [--breed=palfrey] [--cam=side|q34|front]
-## -> shots/horse_seq_<tag>_<cam>.png ; prints "HSEQ done". Never writes the save.
+## -> shots/horse_seq_<tag>_<cam>.png  (cam: side, q34, front, back, follow = the player's own camera) ; prints "HSEQ done". Never writes the save.
 
 const HorseScript := preload("res://core/world/mount/horse.gd")
 const WORLD := 1
 ## [name, start s, frames, every n rendered frames]
 const ROWS := [["mount", 0.0, 10, 7], ["walk", 3.1, 10, 6], ["trot", 6.2, 10, 3], ["gallop", 10.5, 10, 3], ["hop_trot", 14.15, 10, 3],
-	["leap_gallop", 17.6, 10, 4], ["halt", 21.8, 10, 5], ["dismount", 24.8, 8, 6]]
+	["leap_gallop", 17.6, 10, 4], ["halt", 21.8, 10, 5], ["dismount", 24.05, 8, 6]]
 var p: Player
 var horse: Node3D
 var cam: Camera3D
@@ -79,7 +79,9 @@ func _ready() -> void:
 	cam = Camera3D.new()
 	cam.fov = 38.0
 	add_child(cam)
-	cam.current = true
+	cam.current = view != "follow"                 # --cam=follow: the player's own follow camera (the real camera script)
+	if view == "follow":
+		(p.get_node("CameraRig/Pitch/SpringArm/Camera") as Camera3D).current = true
 
 
 func _box(pos: Vector3, size: Vector3, mat: Material) -> void:
@@ -179,7 +181,7 @@ func _physics_process(delta: float) -> void:
 		print("HSEQ air=%s t=%.2f z=%.2f y=%.2f speed=%.1f" % [air, t, horse.global_position.z, horse.global_position.y, float(horse.get("speed"))])
 	if t > 24.0 and not dismounted:
 		dismounted = true
-		horse.dismount()
+		horse.dismount(true)
 	if t > 30.0:
 		_finish()
 
@@ -189,6 +191,9 @@ func _process(_d: float) -> void:
 		return
 	var at := horse.global_position + Vector3.UP * 1.1
 	var dir := Vector3(1, 0, 0)
+	if view == "follow":
+		_shoot()
+		return
 	var dist := 6.2
 	match view:
 		"q34":
@@ -200,6 +205,10 @@ func _process(_d: float) -> void:
 			dir = Vector3(0, 0, 1)
 	cam.global_position = at + dir * dist + Vector3.UP * 0.7
 	cam.look_at(at)
+	_shoot()
+
+
+func _shoot() -> void:
 	if row_i >= ROWS.size():
 		return
 	var b: Array = ROWS[row_i]
