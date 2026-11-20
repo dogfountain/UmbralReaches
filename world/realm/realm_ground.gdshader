@@ -190,14 +190,32 @@ void fragment() {
 					}
 				}
 			} else if (!far_on) {
-				a = texture(alb, vec3(uv, float(i)));
-				n = texture(nrm, vec3(uv, float(i)));
+				if (i == 1) {
+					// the heath's straw strands read as scratched foil on a dune past a few metres (polish, 20 Nov): their
+					// contrast goes into a softer mip with distance, a stand of grass not a hatching
+					float hl = smoothstep(4.0, 16.0, cdist) * 2.6;
+					a = textureLod(alb, vec3(uv, float(i)), hl);
+					n = textureLod(nrm, vec3(uv, float(i)), hl + 0.6);
+				} else if (i == 6) {
+					// the flagstones were one cartoon grid at 2 m with drawn cracks (EN6, the Ossuary's landing): a second, larger,
+					// turned course laid half under the first breaks the grid, and a slow stain varies each paved stretch
+					vec2 uv2 = rot(uv, 0.62) * 0.58 + vec2(3.1, 1.7);
+					a = mix(texture(alb, vec3(uv, float(i))), texture(alb, vec3(uv2, float(i))), 0.38);
+					n = mix(texture(nrm, vec3(uv, float(i))), texture(nrm, vec3(uv2, float(i))), 0.38);
+					a.rgb *= mix(0.72, 1.18, vnoise(p * 0.55 + vec2(7.0)));
+				} else {
+					a = texture(alb, vec3(uv, float(i)));
+					n = texture(nrm, vec3(uv, float(i)));
+				}
 			} else {
 				vec2 fuv = vec2(0.62 * uv.x - 0.78 * uv.y, 0.78 * uv.x + 0.62 * uv.y) * far_scale;
 				a = texture(alb, vec3(fuv, float(i)));
 				n = NRM_MEAN[i];
+				if (i == 1) {
+					a = textureLod(alb, vec3(fuv, float(i)), 1.6);
+				}
 				if (near_on) {
-					a = mix(texture(alb, vec3(uv, float(i))), a, fk);
+					a = mix(i == 1 ? textureLod(alb, vec3(uv, float(i)), 2.6) : texture(alb, vec3(uv, float(i))), a, fk);
 					n = mix(texture(nrm, vec3(uv, float(i))), n, fk);
 				}
 			}
