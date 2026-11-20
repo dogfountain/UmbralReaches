@@ -765,7 +765,38 @@ func _shoot_interior(s: Dictionary) -> void:
 			await _secs(0.3)
 			frames.append(await _grab(3))
 			labels.append("HIGH, BEHIND")
+			await _variants(s, eye3, fl3, base)
 	_save_sheet(s, frames, labels, info)
+
+
+## --variants=A,B,C (the "oss" spots): the AHEAD view again with the nodes named A hidden (then B, then C: each alone), saved beside
+## the sheet's frames as <stem>_v_<name>.jpg. For "what draws that pale sheet": hide the suspect and look again (polish, 20 Nov).
+func _variants(s: Dictionary, eye: Vector3, floor_y: float, base: float) -> void:
+	var names: PackedStringArray = []
+	for a in OS.get_cmdline_user_args():
+		if a.begins_with("--variants="):
+			names = a.trim_prefix("--variants=").split(",", false)
+	if names.is_empty() or headless:
+		return
+	var dir := out_root.path_join(section).path_join("full")
+	DirAccess.make_dir_recursive_absolute(dir)
+	for nm: String in names:
+		var hidden: Array[Node3D] = []
+		for n in main.find_children(nm, "Node3D", true, false):
+			var n3 := n as Node3D
+			if n3.visible:
+				n3.visible = false
+				hidden.append(n3)
+		_park(eye, eye + _dir(base) + Vector3(0, -0.12, 0), floor_y)
+		await _secs(0.4)
+		var img: Image = await _grab(3)
+		if img != null:
+			img.convert(Image.FORMAT_RGB8)
+			img.save_jpg(dir.path_join("%s_v_%s.jpg" % [String(s.name), nm]), 0.88)
+		print("MAPAUDIT variant %s hid %d nodes" % [nm, hidden.size()])
+		for n3: Node3D in hidden:
+			if is_instance_valid(n3):
+				n3.visible = true
 
 
 # ------------------------------------------------------------------------------------------------------
