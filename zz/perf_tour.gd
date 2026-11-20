@@ -463,6 +463,10 @@ func _process(d: float) -> void:
 	_probe_report()
 	if t < (0.0 if "--early" in OS.get_cmdline_user_args() else 6.0):   # streaming, lava, first shader compiles
 		return
+	# and the post-build pass (the static merge: the loading screen waits for it, so a player never plays during it; it
+	# ran into the first views once it took longer than the settle)
+	if not main.has_meta("post_done") and not "--early" in OS.get_cmdline_user_args() and t < 40.0:
+		return
 	_mute_scripts()
 	_quiet_enemies()
 	if _cal_step():
