@@ -70,4 +70,4 @@ read-back) did not change it. One add per frame still gave 69 slow frames; the b
 - [x] render pass and merge beside the tour
 - [x] streaming measured in play and under the cover; default off
 - [x] merged lane A (kit.gd conflict resolved: lane A's threaded scan + discs kept)
-- [ ] tests (quick + stream, flora_r34, secrets, life)
+- [x] tests: quick tier 27/27 (after the lint fix), stream, flora_r34, secrets, secret_expansion, life, living_realm, night_life, realm_lore all PASS
