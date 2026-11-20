@@ -19,6 +19,11 @@ extends Node3D
 ## it; the inner henge (ThornHenge's hedge at 12.2, its menhirs and altar) stays, so the ring between it and the wall
 ## doubles (maze radii r' = 12.2 + (r - 12.2) * 2.0)
 const _RockKit := preload("res://core/world/realm/rock_kit.gd")
+const _Kit := preload("res://core/world/realm/south_marches_kit.gd")
+const _Stamp := preload("res://core/util/mesh_stamp.gd")
+const BRIAR := "res://art/models/briar_wall.glb"        ## the modelled thicket (tools/blender/polish_briar.py): BriarA/B/C 3.3 m modules, BriarTrunk
+const BRIAR_LEN := 3.3
+const BRIAR_H := 5.2
 const FLOOR_R := 49.6
 const ARENA_R := 46.4
 const WALL_R := 48.3
@@ -363,8 +368,23 @@ func _outer_wall() -> void:
 	_door_frame()
 
 
+## The modelled thicket laid along `length` metres from `xf` (x along the wall): whole modules, scaled to fit, each flipped or
+## turned a little so no two read alike. `parts` collects [Mesh, Transform3D] for MeshStamp.merge.
+func _briar_run(parts: Array, rng: RandomNumberGenerator, xf: Transform3D, length: float, h: float) -> void:
+	var n := maxi(1, roundi(length / BRIAR_LEN))
+	var sx := length / (float(n) * BRIAR_LEN)
+	for k in n:
+		var m := _Kit.mesh(BRIAR, "Briar" + "ABC"[rng.randi() % 3])
+		var flip := PI if rng.randf() < 0.5 else 0.0
+		var x := (float(k) + 0.5) * length / float(n) - length * 0.5
+		var local := Transform3D(Basis(Vector3.UP, flip + rng.randf_range(-0.08, 0.08)).scaled(Vector3(sx, h / BRIAR_H * rng.randf_range(0.95, 1.08), 1.0)), Vector3(x, 0.0, rng.randf_range(-0.25, 0.25)))
+		parts.append([m, xf * local])
+
+
 func _wall_mesh(rng: RandomNumberGenerator, segs: int) -> ArrayMesh:
 	var cm := CreatureMesh.new(3402)
+	var modelled := _Kit.mesh(BRIAR, "BriarA") != null
+	var parts: Array = []
 	for i in segs:
 		var a0 := gate_a + TAU * (float(i) + 0.5) / float(segs)
 		if absf(wrapf(a0 - gate_a, -PI, PI)) < MOUTH:
@@ -372,8 +392,14 @@ func _wall_mesh(rng: RandomNumberGenerator, segs: int) -> ArrayMesh:
 		var p := Vector3(C.x + cos(a0) * WALL_R, C.y, C.z + sin(a0) * WALL_R)
 		var bas := Basis(Vector3.UP, -a0 + PI * 0.5)
 		var seg_len := TAU * WALL_R / float(segs) + 0.12
-		_brambles(cm, rng, Transform3D(bas, p), seg_len, WALL_H * 0.92, 1.3)
-		if i % 6 == 3:
+		if modelled:
+			_briar_run(parts, rng, Transform3D(bas, p), seg_len, WALL_H)
+		else:
+			_brambles(cm, rng, Transform3D(bas, p), seg_len, WALL_H * 0.92, 1.3)
+		if modelled and i % 6 == 3:
+			var tm := _Kit.mesh(BRIAR, "BriarTrunk")
+			parts.append([tm, Transform3D(Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3.ONE * rng.randf_range(0.9, 1.15)), p + Vector3(0.0, 0.0, 0.0))])
+		elif not modelled and i % 6 == 3:
 			# a thorn trunk: an old briar grown thick as a tree, the wall's silhouette
 			var pts := PackedVector3Array()
 			var rad := PackedFloat32Array()
@@ -388,6 +414,8 @@ func _wall_mesh(rng: RandomNumberGenerator, segs: int) -> ArrayMesh:
 				var base := pts[int(t * 7.0)]
 				var out := Vector3(cos(float(k) * 2.4), 0.5, sin(float(k) * 2.4)).normalized()
 				cm.claw(base, out, 1.2, 0.08, Vector3(0, 0.3, 0), Color(0.18, 0.1, 0.07))
+	if modelled:
+		return OssKit.with_lods(_Stamp.merge(parts))
 	return OssKit.with_lods(cm.commit())
 
 
@@ -444,9 +472,13 @@ func _maze() -> void:
 		w.global_transform = Transform3D(bas, mid)
 		var idx := walls.size()
 		w.setup(p0, p1, _cached("maze%d" % idx, func() -> ArrayMesh:
-			var cm := CreatureMesh.new(3441 + idx)
 			var r2 := RandomNumberGenerator.new()
 			r2.seed = 3440 + idx
+			if _Kit.mesh(BRIAR, "BriarA") != null:
+				var mparts: Array = []
+				_briar_run(mparts, r2, Transform3D.IDENTITY, length + 0.4, 4.4)
+				return _Stamp.merge(mparts)
+			var cm := CreatureMesh.new(3441 + idx)
 			_brambles(cm, r2, Transform3D.IDENTITY, length + 0.4, 4.4, 1.2)
 			return cm.commit()), mat)
 		walls.append(w)
