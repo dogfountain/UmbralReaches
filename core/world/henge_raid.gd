@@ -23,7 +23,7 @@ const _Kit := preload("res://core/world/realm/south_marches_kit.gd")
 const _Stamp := preload("res://core/util/mesh_stamp.gd")
 const BRIAR := "res://art/models/briar_wall.glb"        ## the modelled thicket (tools/blender/polish_briar.py): BriarA/B/C 3.3 m modules, BriarTrunk
 const BRIAR_LEN := 3.3
-const BRIAR_H := 5.2
+const BRIAR_H := 7.0
 const FLOOR_R := 49.6
 const ARENA_R := 46.4
 const WALL_R := 48.3
@@ -288,6 +288,7 @@ func _build() -> void:
 	var t0 := Time.get_ticks_msec()
 	_outer_wall()
 	_stones()
+	_litter()
 	_maze()
 	_bowls_and_lights()
 	_briar_band_build()
@@ -310,8 +311,8 @@ func _bramble_mat() -> StandardMaterial3D:
 	bm.vertex_color_use_as_albedo = true
 	bm.roughness = 0.95
 	bm.emission_enabled = true
-	bm.emission = Color(0.4, 0.06, 0.03)
-	bm.emission_energy_multiplier = 0.15
+	bm.emission = Color(0.4, 0.1, 0.05)
+	bm.emission_energy_multiplier = 0.05            # (polish: 0.15 washed the wall's dark canes to a flat pink)
 	return bm
 
 
@@ -393,10 +394,10 @@ func _wall_mesh(rng: RandomNumberGenerator, segs: int) -> ArrayMesh:
 		var bas := Basis(Vector3.UP, -a0 + PI * 0.5)
 		var seg_len := TAU * WALL_R / float(segs) + 0.12
 		if modelled:
-			_briar_run(parts, rng, Transform3D(bas, p), seg_len, WALL_H)
+			_briar_run(parts, rng, Transform3D(bas, p), seg_len, WALL_H * 1.3)
 		else:
 			_brambles(cm, rng, Transform3D(bas, p), seg_len, WALL_H * 0.92, 1.3)
-		if modelled and i % 6 == 3:
+		if modelled and i % 3 == 1:
 			var tm := _Kit.mesh(BRIAR, "BriarTrunk")
 			parts.append([tm, Transform3D(Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3.ONE * rng.randf_range(0.9, 1.15)), p + Vector3(0.0, 0.0, 0.0))])
 		elif not modelled and i % 6 == 3:
@@ -453,6 +454,40 @@ func _stones() -> void:
 			mi.material_override = _RockKit.fade_material("mossy" if i % 3 == 0 else "granite")
 			for body in mi.find_children("*", "StaticBody3D", true, false):
 				body.add_to_group(Groups.CAMERA_PASS)
+
+
+## Fallen stone and thrown rock lying about the floor (EN4, the henge's floor was one flat dark disc): small boulders in three
+## shapes, no collision, in two MultiMeshes by size, seated on the floor.
+func _litter() -> void:
+	var rk := load("res://core/world/realm/rock_kit.gd")
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 3470
+	var mat: Material = rk.material("granite")
+	var mats := [mat, rk.material("mossy")]
+	for v in 3:
+		var mm := MultiMesh.new()
+		mm.transform_format = MultiMesh.TRANSFORM_3D
+		var xfs: Array[Transform3D] = []
+		for q in 26:
+			var deg := rng.randf() * 360.0
+			var r := rng.randf_range(7.0, WALL_R - 4.0)
+			if absf(wrapf(deg_to_rad(deg), -PI, PI)) < MOUTH * 1.6 and r > WALL_R - 16.0:
+				continue
+			var p := at_polar(deg, r)
+			var sc := rng.randf_range(0.35, 1.1) * (1.6 if q % 9 == 0 else 1.0)
+			var b := Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3(sc * rng.randf_range(0.8, 1.4), sc * rng.randf_range(0.5, 0.9), sc))
+			xfs.append(Transform3D(b, p + Vector3.DOWN * 0.12 * sc))
+		mm.mesh = rk.boulder(3471 + v, Vector3(1.0, 0.7, 0.9), "mossy" if v == 2 else "granite")
+		mm.instance_count = xfs.size()
+		for i in xfs.size():
+			mm.set_instance_transform(i, xfs[i])
+		var mi := MultiMeshInstance3D.new()
+		mi.name = "RaidLitter%d" % v
+		mi.multimesh = mm
+		mi.material_override = mats[1] if v == 2 else mats[0]
+		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		mi.visibility_range_end = 120.0
+		add_child(mi)
 
 
 func _maze() -> void:

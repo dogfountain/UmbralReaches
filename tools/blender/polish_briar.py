@@ -16,8 +16,8 @@ from polish_lib import *     # noqa: F401,F403
 from mathutils import Vector
 
 LEN = 3.3
-HEIGHT = 5.2
-DEPTH = 0.8
+HEIGHT = 7.0
+DEPTH = 1.1
 
 BARK = [(0.15, 0.085, 0.06, 1), (0.11, 0.065, 0.05, 1), (0.19, 0.1, 0.07, 1), (0.09, 0.07, 0.06, 1)]
 BARK_RED = (0.26, 0.09, 0.06, 1)
@@ -91,15 +91,15 @@ def leaves(P, rnd, c, n=4):
 def module(seed, trunk=False):
     rnd = rnd_for(seed)
     P = CP()
-    nc = 12
+    nc = 16
     for i in range(nc):
         x = -LEN * 0.5 + LEN * (i + rnd.uniform(0.1, 0.9)) / nc
         y = rnd.uniform(-DEPTH * 0.5, DEPTH * 0.5)
         tall = HEIGHT * rnd.uniform(0.8, 1.22)
         lean = (rnd.uniform(-0.3, 0.3), rnd.uniform(-0.35, 0.35))
-        cane(P, rnd, x, y, tall, lean, rnd.uniform(0.07, 0.13), sides=4, wob=0.55, arch=rnd.uniform(0.3, 0.9), thorn_every=0.5)
+        cane(P, rnd, x, y, tall, lean, rnd.uniform(0.11, 0.2), sides=5, wob=0.6, arch=rnd.uniform(0.3, 0.9), thorn_every=0.5)
     # the crossing canes: long ones that lace the wall along its length (two planes)
-    for i in range(4):
+    for i in range(8):
         x = -LEN * 0.5 + rnd.uniform(0, LEN * 0.3)
         y = (-0.3 if i % 2 else 0.3) + rnd.uniform(-0.1, 0.1)
         z0 = rnd.uniform(0.5, HEIGHT * 0.7)
@@ -117,7 +117,7 @@ def module(seed, trunk=False):
             out = Vector((rnd.uniform(-0.4, 0.4), math.cos(ang), math.sin(ang)))
             thorn(P, "bramble", pts[q], out, rnd.uniform(0.16, 0.26), 0.022, THORN, THORN_TIP)
     # the body of the thicket: loops and snarls of thin cane laid through the depth, so the wall closes the sight
-    for i in range(22):
+    for i in range(34):
         cx = rnd.uniform(-LEN * 0.5, LEN * 0.5)
         cy = rnd.uniform(-0.35, 0.35)
         cz = rnd.uniform(0.5, HEIGHT * 0.85)
@@ -143,12 +143,12 @@ def module(seed, trunk=False):
     for i in range(4):
         leaves(P, rnd, (rnd.uniform(-LEN * 0.5, LEN * 0.5), rnd.uniform(-0.4, 0.4), rnd.uniform(0.5, HEIGHT * 0.9)), 3)
     if trunk:
-        tall = 8.4
+        tall = 11.5
         pts, rad = [], []
         for q in range(10):
             t = q / 9.0
             pts.append(Vector((math.sin(t * 4.0) * 0.55, math.cos(t * 3.0) * 0.45, -0.3 + t * tall)))
-            rad.append(max(0.42 * (1 - t) ** 0.8, 0.05))
+            rad.append(max(0.6 * (1 - t) ** 0.8, 0.06))
         tube(P, "bramble", pts, rad, sides=7, col=(0.1, 0.06, 0.05, 1), col_tip=(0.2, 0.1, 0.07, 1))
         for k in range(12):
             t = 0.1 + 0.8 * k / 12.0
