@@ -31,7 +31,7 @@ var _post_done := false
 
 var _fps_log := "--fps-log" in OS.get_cmdline_user_args()
 var _no_particles_t := 20.0 if "--no-particles" in OS.get_cmdline_user_args() else -1.0   ## A/B (measurement only)
-var _census_t := 25.0 if "--census" in OS.get_cmdline_user_args() else -1.0
+var _census_t := 25.0 if "--census" in OS.get_cmdline_user_args() and _fps_log else -1.0   ## (with --fps-log: perf_tour's own --census must not be disturbed)
 var _pcensus_t := 30.0 if "--pcensus" in OS.get_cmdline_user_args() else -1.0
 
 

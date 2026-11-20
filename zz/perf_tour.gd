@@ -9,7 +9,7 @@ extends Node
 ##           per leg and in total: fps, 1% low, p99, worst frame, stddev, frames over 20/33 ms.
 ## Options:
 ##   --points-only / --path-only     one phase
-##   --only=a,b                      only these points
+##   --only=a,b                      only these points; --seconds=N: stand N s at each (default 4)
 ##   --preset=0|1|2                  quality preset (default 1 Balanced); --fov=90 (default 90, Luke's)
 ##   --attrib[=point]                at the point (default the worst two), switch each render feature off
 ##                                   and on in paired windows and print what it costs (Metal reports no
@@ -22,6 +22,7 @@ extends Node
 ##                                   display and the GPU clocks down: frame time then says little)
 ##   --shader=res://a.gdshader=/abs/b.gdshader   run with b's code in a (memory only, for A/B)
 ##   --census                        per view, what each top-level node / flora species adds (exact counts)
+##                                   --census-split=A,B: these top-level nodes counted child by child
 ##   --pan=40                        points (and attrib) swing the view +-10 deg at up to 40 deg/s, like a
 ##                                   player looking about: motion blur and streaming work as in play
 ##   --luke                          Luke's pacing and window: vsync on, 144 fps cap, 1920x1080
@@ -34,6 +35,7 @@ extends Node
 ##   --probe[-split=A,B]             (with --hitches) a frame whose scripts run over 8 ms names the subtrees that took
 ##                                   the time: every processing node's priority is renumbered by subtree (order kept
 ##                                   exactly: old priority first, then tree order) and a stamp runs between subtrees
+##                                   --probe-ms=N: name the subtrees of every frame whose scripts run over N ms (default 8)
 ##   --loading                       run the real loading screen (build + shader warm-up) first
 ##   --early                         start measuring the moment the Realm is built (no 6 s settle):
 ##                                   shows what a player meets right after the load
@@ -41,6 +43,7 @@ extends Node
 ## per frame (stamped first/last in line), "render-cpu" = the renderer's CPU side, "rest(gpu)" =
 ## frame - scripts - render-cpu: on Metal (no GPU timings) that is the GPU wait plus engine overhead.
 const SECONDS := 4.0
+var _stand := SECONDS                 ## --seconds=N: stand this long at each view (a native profiler's sample)
 const SETTLE := 1.2
 var points := []
 ## Realm views (y = NAN: stand on the ground there). The first eight are the r19 set (compare runs).
@@ -187,6 +190,8 @@ func _ready() -> void:
 			fov = float(a.trim_prefix("--fov="))
 		elif a.begins_with("--stress="):
 			stress = float(a.trim_prefix("--stress="))
+		elif a.begins_with("--seconds="):
+			_stand = float(a.trim_prefix("--seconds="))
 		elif a.begins_with("--pan="):
 			pan = float(a.trim_prefix("--pan="))
 		elif a.begins_with("--hitches"):
@@ -374,17 +379,20 @@ func _cal_step() -> bool:
 	return false
 
 
+## (20 Nov, the fps pass: these legs were still in the rift's old home frame after it moved to Endgame.O, so the run
+## stood at the spindle pressing on a wall for 35 legs of 14 s each: eight minutes of the path's frames)
 func _spindle_route() -> void:
 	var spin := Vector2(-8.3, -50.0)
 	for k in range(1, 25):
 		var th := -TAU * float(k) / 24.0
 		var q := spin + Vector2(cos(th), sin(th)) * 6.5
-		route.append([Vector3(q.x, 0, q.y), "spindle"])
-	route.append_array([[Vector3(-1.8, 0, -56), "flights"], [Vector3(-1.8, 0, -61.5), "flights"],
-		[Vector3(0, 0, -66.5), "ward landing"], [Vector3(0, 0, -71.4), "summit stairs"],
-		[Vector3(0, 0, -77.5), "summit stairs"], [Vector3(-2.8, 0, -79.5), "summit"], [Vector3(-3.6, 0, -83.5), "summit"],
-		[Vector3(-2.6, 0, -87.0), "summit"], [Vector3(0, 0, -89.0), "summit"], [Vector3(0, 0, -92.0), "dais"],
-		[Vector3(0, 0, -103.9), "dais"]])
+		route.append([Vector3(q.x, 0, q.y) + Endgame.O, "spindle"])
+	for e: Array in [[Vector3(-1.8, 0, -56), "flights"], [Vector3(-1.8, 0, -61.5), "flights"],
+			[Vector3(0, 0, -66.5), "ward landing"], [Vector3(0, 0, -71.4), "summit stairs"],
+			[Vector3(0, 0, -77.5), "summit stairs"], [Vector3(-2.8, 0, -79.5), "summit"], [Vector3(-3.6, 0, -83.5), "summit"],
+			[Vector3(-2.6, 0, -87.0), "summit"], [Vector3(0, 0, -89.0), "summit"], [Vector3(0, 0, -92.0), "dais"],
+			[Vector3(0, 0, -103.9), "dais"]]:
+		route.append([(e[0] as Vector3) + Endgame.O, e[1]])
 
 
 func _process(d: float) -> void:
@@ -600,6 +608,7 @@ var _probe_units: Array[String] = []
 var _probe_t := PackedInt64Array()           ## idle pass: stamp time by unit
 var _probe_tp_last := PackedInt64Array()     ## physics pass: each unit's stamp in the last tick
 var _probe_left := 120                       ## reports at most this many frames
+var _probe_us := 8000                        ## a frame whose scripts run over this is reported (--probe-ms=N)
 
 const _PROBE_SRC := """extends Node
 var tour: Node
@@ -618,6 +627,9 @@ func _probe_setup() -> void:
 	var units: Array[Node] = []
 	var split: PackedStringArray = []                 # --probe-split=A,B: these subtrees by child, however small
 	for a in OS.get_cmdline_user_args():
+		if a.begins_with("--probe-ms="):              # a lower bar names the units of the smaller bursts (2 Hz ticks)
+			_probe_us = int(float(a.trim_prefix("--probe-ms=")) * 1000.0)
+			_probe_left = 600
 		if a.begins_with("--probe-split="):
 			split = a.trim_prefix("--probe-split=").split(",")
 	for c in main.get_children():
@@ -678,7 +690,7 @@ func _probe_report() -> void:
 	if not _probe_on:
 		_probe_setup()
 		return
-	if _proc_us > 8000 and _probe_left > 0:
+	if _proc_us > _probe_us and _probe_left > 0:
 		_probe_left -= 1
 		var gaps: Array = []
 		if _probe_t[0] > 0 and _proc_begin > 0:
@@ -717,7 +729,7 @@ func _point_step(d: float) -> void:
 			_proc_us / 1000.0, _prev_proc_us / 1000.0, RenderingServer.viewport_get_measured_render_time_cpu(vp_rid) + RenderingServer.get_frame_setup_time_cpu(),
 			Performance.get_monitor(Performance.TIME_PHYSICS_PROCESS) * 1000.0])
 	_prev_proc_us = _proc_us
-	if float(acc.time) >= SECONDS:
+	if float(acc.time) >= _stand:
 		var r := _report("PERF %-14s" % points[i][0])
 		summary.append([points[i][0]] + r)
 		if census:
@@ -783,6 +795,7 @@ func _sample(d: float) -> void:
 	acc.objs = int(acc.get("objs", 0)) + int(Performance.get_monitor(Performance.RENDER_TOTAL_OBJECTS_IN_FRAME))
 	acc.sh_draws = int(acc.get("sh_draws", 0)) + RenderingServer.viewport_get_render_info(vp_rid, RenderingServer.VIEWPORT_RENDER_INFO_TYPE_SHADOW, RenderingServer.VIEWPORT_RENDER_INFO_DRAW_CALLS_IN_FRAME)
 	acc.sh_prims = int(acc.get("sh_prims", 0)) + RenderingServer.viewport_get_render_info(vp_rid, RenderingServer.VIEWPORT_RENDER_INFO_TYPE_SHADOW, RenderingServer.VIEWPORT_RENDER_INFO_PRIMITIVES_IN_FRAME)
+	acc.cv_draws = int(acc.get("cv_draws", 0)) + RenderingServer.viewport_get_render_info(vp_rid, RenderingServer.VIEWPORT_RENDER_INFO_TYPE_CANVAS, RenderingServer.VIEWPORT_RENDER_INFO_DRAW_CALLS_IN_FRAME)
 	acc.proc = float(acc.get("proc", 0.0)) + float(_proc_us) / 1e6
 	acc.phys = float(acc.get("phys", 0.0)) + Performance.get_monitor(Performance.TIME_PHYSICS_PROCESS)
 	if _blur == null:
@@ -832,10 +845,11 @@ func _report(label: String) -> Array:
 	var proc := float(acc.proc) / n * 1000.0
 	var phys := float(acc.phys) / n * 1000.0
 	var cpu := float(acc.cpu) / n
-	print("%s fps %6.1f  1%%low %6.1f  p99 %5.1f  worst %5.1f ms  sd %4.2f  >33ms %d  | scripts %5.2f physics(max/s) %5.2f render-cpu %5.2f rest(gpu) %5.2f ms | draws %4d (max %4d, shadow %d) objs %5d prims %7d (max %7d, shadow %d) | blur %d%%" % [
+	print("%s fps %6.1f  1%%low %6.1f  p99 %5.1f  worst %5.1f ms  sd %4.2f  >33ms %d  | scripts %5.2f physics(max/s) %5.2f render-cpu %5.2f rest(gpu) %5.2f ms | draws %4d (max %4d, shadow %d) objs %5d prims %7d (max %7d, shadow %d) | blur %d%% | canvas draws %d" % [
 		label, st[0], st[1], st[2], st[3], st[4], st[6], proc, phys, cpu, maxf(0.0, frame_ms - proc - cpu),
 		int(float(acc.draws) / n), int(acc.max_draws), int(float(acc.get("sh_draws", 0)) / n), int(float(acc.objs) / n),
-		int(float(acc.prims) / n), int(acc.max_prims), int(float(acc.get("sh_prims", 0)) / n), roundi(100.0 * float(acc.get("blur", 0)) / n)])
+		int(float(acc.prims) / n), int(acc.max_prims), int(float(acc.get("sh_prims", 0)) / n), roundi(100.0 * float(acc.get("blur", 0)) / n),
+		int(float(acc.get("cv_draws", 0)) / n)])
 	return [st[0], st[1], st[3], int(float(acc.draws) / n), int(float(acc.prims) / n), int(acc.max_draws), int(acc.max_prims), st[6]]
 
 
@@ -1175,6 +1189,19 @@ var c_k := 0
 var c_wait := 0
 var c_base := Vector4i.ZERO
 var c_rows: Array = []
+var c_base_cv := 0                   # canvas draws in the census's base frame
+
+
+func _canvas_draws() -> int:
+	return RenderingServer.viewport_get_render_info(vp_rid, RenderingServer.VIEWPORT_RENDER_INFO_TYPE_CANVAS, RenderingServer.VIEWPORT_RENDER_INFO_DRAW_CALLS_IN_FRAME)
+
+
+## A census group's nodes shown or hidden (3D nodes, and the HUD's canvas items).
+static func _c_show(n: Node, on: bool) -> void:
+	if n is Node3D:
+		(n as Node3D).visible = on
+	elif n is CanvasItem:
+		(n as CanvasItem).visible = on
 
 
 func _counts() -> Vector4i:
@@ -1186,15 +1213,39 @@ func _counts() -> Vector4i:
 		RenderingServer.viewport_get_render_info(vp_rid, sh, RenderingServer.VIEWPORT_RENDER_INFO_PRIMITIVES_IN_FRAME))
 
 
+## A canvas layer's parts as census groups: plain containers (no script, with children) are opened, anything else is a row.
+func _c_ui(n: Node, label: String) -> void:
+	for cc in n.get_children():
+		if not (cc is CanvasItem) or not (cc as CanvasItem).visible:
+			continue
+		var nm := label + "/" + String(cc.name)
+		if cc.get_script() == null and cc.get_child_count() > 0:
+			_c_ui(cc, nm)
+		else:
+			c_groups.append([nm, [cc]])
+
+
 func _census_begin() -> void:
 	c_groups.clear()
 	var flora := main.get_node_or_null("RealmFlora")
+	var split: PackedStringArray = []                 # --census-split=A,B: these top-level nodes by child
+	for a in OS.get_cmdline_user_args():
+		if a.begins_with("--census-split="):
+			split = a.trim_prefix("--census-split=").split(",")
 	for c in main.get_children():
 		if c is Node3D and (c as Node3D).visible and c != flora and not c is Player:
-			c_groups.append([String(c.name), [c]])
+			if String(c.name) in split:
+				for cc in c.get_children():
+					if cc is Node3D and (cc as Node3D).visible:
+						c_groups.append([String(c.name) + "/" + String(cc.name), [cc]])
+			else:
+				c_groups.append([String(c.name), [c]])
 	var player := main.get_node_or_null("Player")
 	if player:
 		c_groups.append(["Player", [player]])
+	for cl in main.find_children("*", "CanvasLayer", true, false):          # the HUD's canvas items, by part
+		if (cl as CanvasLayer).visible:
+			_c_ui(cl, "ui " + String(cl.name))
 	if flora:
 		var by := {}
 		for mmi in flora.find_children("Flora_*", "MultiMeshInstance3D", true, false):
@@ -1219,20 +1270,21 @@ func _census_step() -> void:
 		return
 	if c_k == -1:
 		c_base = _counts()
+		c_base_cv = _canvas_draws()
 	else:
 		var now := _counts()
 		var dlt := c_base - now
-		c_rows.append([c_groups[c_k][0], dlt])
+		c_rows.append([c_groups[c_k][0], dlt, c_base_cv - _canvas_draws()])
 		for n in c_groups[c_k][1]:
-			(n as Node3D).visible = true
+			_c_show(n, true)
 	c_k += 1
 	if c_k >= c_groups.size():
 		c_rows.sort_custom(func(a: Array, b: Array) -> bool: return (a[1] as Vector4i).y + (a[1] as Vector4i).w > (b[1] as Vector4i).y + (b[1] as Vector4i).w)
-		print("CENSUS %s total draws %d prims %d (shadow draws %d prims %d)" % [points[i][0], c_base.x, c_base.y, c_base.z, c_base.w])
+		print("CENSUS %s total draws %d prims %d (shadow draws %d prims %d) canvas draws %d" % [points[i][0], c_base.x, c_base.y, c_base.z, c_base.w, c_base_cv])
 		for r: Array in c_rows:
 			var v: Vector4i = r[1]
-			if v.x != 0 or v.y != 0 or v.z != 0 or v.w != 0:
-				print("CENSUS   %-30s draws %4d prims %8d | shadow draws %4d prims %8d" % [r[0], v.x, v.y, v.z, v.w])
+			if v.x != 0 or v.y != 0 or v.z != 0 or v.w != 0 or int(r[2]) != 0:
+				print("CENSUS   %-30s draws %4d prims %8d | shadow draws %4d prims %8d | canvas %4d" % [r[0], v.x, v.y, v.z, v.w, int(r[2])])
 		var cam := get_viewport().get_camera_3d()
 		var rows: Array = []
 		for l in main.find_children("*", "Light3D", true, false):
@@ -1256,7 +1308,7 @@ func _census_step() -> void:
 		_next_point()
 		return
 	for n in c_groups[c_k][1]:
-		(n as Node3D).visible = false
+		_c_show(n, false)
 	c_wait = 4
 
 
