@@ -552,6 +552,8 @@ func _cmd(a: PackedStringArray) -> void:
 				lines.append("  tread %d expect y %.2f: nearest floor %.2f off at (%.2f,%.2f,%.2f)" % [k, oxf.origin.y + yy, bestd, bestp.x, bestp.y, bestp.z])
 		"oakstair":                                # oakstair : the Grandmother Oak's inner stair, walked step 10 by step 10 up to the crown
 			await _oakstair(a.size() > 1 and a[1] == "swap")
+		"oakdown":                                 # the same stair walked from its top to the door
+			await _oakstair(false, true)
 		"axis":                                    # axis x0 z0 x1 z1 step yfrom : first solid along a line, with what it is
 			var a0 := Vector2(_fl(a, 1), _fl(a, 2))
 			var a1 := Vector2(_fl(a, 3), _fl(a, 4))
@@ -712,7 +714,7 @@ func _shot(a: PackedStringArray) -> void:
 
 ## The oak's stair: local position (sin a r, y, cos a r) about the trunk's sway; the radius is found by rays (the tread nearest the
 ## expected height), then the real Player climbs from the door, every tenth tread.
-func _oakstair(swap := false) -> void:
+func _oakstair(swap := false, down := false) -> void:
 	var sm := load("res://core/world/realm/realm_pois_south_marches.gd") as GDScript
 	var oak: Dictionary = sm.get("oak")
 	if oak.is_empty():
@@ -753,6 +755,14 @@ func _oakstair(swap := false) -> void:
 			lines.append("  tread %d (a %.2f y %.2f): no floor found at any radius" % [k, a, xf.origin.y + yy])
 			continue
 		args.append("%.2f,%.2f,%.2f" % [best.x, best.z, best.y])
+	if down:
+		var tread_pts := args.slice(3)                 # past "walk" and the two door points
+		tread_pts.reverse()
+		var top := tread_pts[0].split(",")
+		args = PackedStringArray(["walk", "%s,%s,%.2f" % [top[0], top[1], float(top[2]) + 0.5]])
+		args.append_array(tread_pts.slice(1))
+		args.append("%.2f,%.2f" % [door.x, door.z])
+		args.append("%.2f,%.2f" % [door.x, door.z - 6.0])
 	lines.append("oakstair: %d waypoints" % (args.size() - 1))
 	await _walk(args)
 
