@@ -18,9 +18,8 @@ var _far: Array = []                ## [GeometryInstance3D, end as found] the @f
 var _shells: Array = []             ## [MeshInstance3D, begin as found]
 var _mmis: Array = []               ## every Flora_* MultiMesh (collected once with the lists above)
 var _prep: Array = []               ## the woods' children not yet walked by the warm collection
-var _collected := false             ## the lists are whole as of _serial
+var _collected := false             ## the lists are whole
 var _seen := {}                     ## instance ids collected
-var _serial := 0                    ## the host's flora_serial when the lists were made
 var _job := -1                      ## next item of the change under way (-1: none): _mmis, then _far, then _shells
 var _job_on := false
 var _job_args := Vector2.ONE        ## Emit.detail_args for the change under way
@@ -46,9 +45,8 @@ func _on_engaged(b: Node, _title: String) -> void:
 ## the pull's frame (find_children over the whole woods was 19 ms there).
 func _on_warming(_id: StringName) -> void:
 	var host := get_parent()
-	if host == null or not _prep.is_empty() or (_collected and _serial == int(host.get_meta(&"flora_serial", 0))):
+	if host == null or not _prep.is_empty() or _collected:
 		return
-	_serial = int(host.get_meta(&"flora_serial", 0))
 	_prep = host.get_children()
 	set_process(true)
 
@@ -90,9 +88,9 @@ func thin(on: bool) -> void:
 	host.set_meta(&"fight", on)
 	var d := clampi(Settings.detail, 0, 2)
 	host.set_meta(&"detail", d + (10 if on else 0))   # what Emit.apply_detail would note (a settings change re-applies all)
-	if not _collected or not _prep.is_empty() or _serial != int(host.get_meta(&"flora_serial", 0)):
+	if not _collected or not _prep.is_empty():
 		_prep.clear()
-		_collect(host)           # not warmed ahead, or the stream has built chunks since (realm_stream.gd): now (only new ones are taken)
+		_collect(host)           # not warmed ahead: now
 		_collected = true
 	_job_on = on
 	_job_d = d
@@ -138,10 +136,9 @@ static func _applied(g: GeometryInstance3D) -> void:
 
 
 func _collect(host: Node) -> void:
-	_serial = int(host.get_meta(&"flora_serial", 0))
 	for n in host.find_children("Flora_*", "MultiMeshInstance3D", true, false):
 		if _seen.has(n.get_instance_id()):
-			continue                 # (the stream adds chunks after the first collect: only the new ones are taken)
+			continue
 		_seen[n.get_instance_id()] = true
 		_mmis.append(n)
 		var f: Array = n.get_meta(&"flora", [])

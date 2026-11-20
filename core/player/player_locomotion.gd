@@ -363,9 +363,6 @@ func _on_teleported() -> void:
 ## Teleport helper: same as setting global_position, plus no interpolation streak.
 
 func teleport(pos: Vector3, keep_velocity := false) -> void:
-	var rs := RealmStream.of(player.get_parent())
-	if rs != null and rs.pending() > 0:
-		rs.ensure(Vector2(pos.x, pos.z))        # a far jump lands on built ground (the rest of its ring, if the stream had not yet)
 	player.global_position = pos
 	if not keep_velocity:
 		player.velocity = Vector3.ZERO

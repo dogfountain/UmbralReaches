@@ -302,9 +302,6 @@ func hollow() -> void:
 	Travel.save_soon()
 	_shade_warned = false
 	Events.hollowed.emit()
-	var rs := RealmStream.of(player.get_parent())
-	if rs != null:
-		rs.focus(Vector2(player.checkpoint.x, player.checkpoint.z), 1.2)     # the fire's ring is built during the fade out
 	await player.get_tree().create_timer(0.9).timeout
 	if not player.is_inside_tree():
 		return

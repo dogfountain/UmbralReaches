@@ -248,8 +248,7 @@ func _process(delta: float) -> void:
 				_paces.remove_at(0)
 			var pace := _median(_paces)
 			var lw := get_tree().get_first_node_in_group(&"lava_works") as LavaWorks
-			# (the stream's queue is drained under the cover: pieces added in play cost 2-9 ms each, see realm_stream.gd)
-			var busy := (lw != null and lw.mapping > 0) or (not (zone.has_meta("post_done") and (zone.has_meta("realm_streamed") or RealmStream.of(zone) == null or "--stream-play" in OS.get_cmdline_user_args())) and _phase_t < 25.0)
+			var busy := (lw != null and lw.mapping > 0) or (not zone.has_meta("post_done") and _phase_t < 25.0)
 			_steady = _steady + 1 if not busy and _paces.size() >= 10 and delta < maxf(pace * 1.35, 0.012) and delta < 0.05 else 0
 			if _steady >= 20 or _phase_t > 12.0:
 				_next("fade")
@@ -313,9 +312,6 @@ func _start_tour() -> void:
 func _place() -> void:
 	var v: Array = VIEWS[_view]
 	var at: Vector3 = v[0]
-	var rs := RealmStream.of(zone)
-	if rs != null:
-		rs.ensure(Vector2(at.x, at.z), 70.0)            # what the camera shows is built (the stream has not got there yet)
 	if is_nan(at.y):
 		at.y = _ground(at) + 1.8
 	_cam.global_position = at

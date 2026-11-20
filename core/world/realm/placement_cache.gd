@@ -101,10 +101,6 @@ static func key(pass_name: String, extra: Variant = null) -> String:
 	for a: String in OS.get_cmdline_user_args():
 		if a.begins_with("--no-") and a != "--no-title":
 			flags.append(a)
-	# a streamed night builds the flora's colliders after these passes ran (the camps and the site dress ray against them):
-	# its picks are another world's, never a build-all night's
-	if RealmStream.wanted():
-		flags.append("--stream")
 	var ctx := HashingContext.new()
 	ctx.start(HashingContext.HASH_SHA256)
 	ctx.update(var_to_bytes([pass_name, flags, code_fp(), _world(), extra]))

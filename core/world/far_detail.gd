@@ -332,17 +332,12 @@ static func note_crowns(canopy: Dictionary, key: Vector3i, list: Array, h: float
 static func shells(host: Node3D, canopy: Dictionary, chunk: float, ground: Callable) -> int:
 	var made := 0
 	for key: Vector3i in canopy:
-		if shells_one(host, canopy, chunk, ground, key) != null:
+		var cx := (key.x + 0.5) * chunk
+		var cz := (key.y + 0.5) * chunk
+		var gy: float = ground.call(cx, cz)
+		if canopy_shell(host, Vector3(cx, gy, cz), chunk * 0.5 + 2.0, canopy[key], ground, "Canopy_%d_%d" % [key.x, key.y]) != null:
 			made += 1
 	return made
-
-
-## One chunk's canopy shell (the stream builds them a few at a time, nearest first: realm_stream.gd).
-static func shells_one(host: Node3D, canopy: Dictionary, chunk: float, ground: Callable, key: Vector3i) -> MeshInstance3D:
-	var cx := (key.x + 0.5) * chunk
-	var cz := (key.y + 0.5) * chunk
-	var gy: float = ground.call(cx, cz)
-	return canopy_shell(host, Vector3(cx, gy, cz), chunk * 0.5 + 2.0, canopy[key], ground, "Canopy_%d_%d" % [key.x, key.y])
 
 
 ## Release the shared materials (RealmFlora / Realm.release_caches: no engine resource outlives the tree).
