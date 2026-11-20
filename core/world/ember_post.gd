@@ -12,7 +12,9 @@ const OFFSET := Vector3(-2.3, 0.0, 0.4)  ## brazier-local: to its side, off the 
 ## villagers' walking nodes on all four sides (village_cast.gd brazier_w/e/n/s, 2.3 m out): the post at
 ## OFFSET stood on brazier_w and cut the green_w edge (zz/village_test). Its post goes to the north-west
 ## diagonal, 2.4 m clear of the respawn spot and every walking node and edge.
-const SEAT_OFFSETS := {"Sanctuary": Vector3(-2.3, 0.0, 2.6)}
+## The glade's fire stands beside west_way at the Thorn Henge stair's foot: its post at OFFSET stood on the road into the stair
+## (zone fit), so it goes to the fire's other side.
+const SEAT_OFFSETS := {"Sanctuary": Vector3(-2.3, 0.0, 2.6), "Shrine": Vector3(2.3, 0.0, -0.4)}
 
 const Kit37 := preload("res://core/world/realm/west_marches_kit.gd")
 static var _kit_cache := {}
