@@ -60,3 +60,18 @@ A 0.4 m box swept along every built flight's centreline: no lamp or post stands 
 - The Oak's inner stair above its first treads (not walked).
 - ClimbStair 1's foot (-0.83, a 48 degree hillside) and the Salt Ship's inner deck stair foot (-1.04, inside the ship).
 - Capsule sweeps through doors read tread edges as walls: the `ROOM ... BLOCKED` lines of the probe are leads, not findings.
+
+## Third round (lead review)
+
+- Mother Tree: rebuilt in Blender (`tools/blender/orchard_mother_tree.py`, split half-angle 0.64 -> 1.35 rad at the foot, roots moved off the way in): 2.2 m clear
+  at the inner wall; the code filter was removed, the collision (`MotherCol`) comes from the same mesh. Walks: 4 bearings to the opening, lines x -85.4 .. -82.4
+  all reach the chest (3 m wide). Shots `mother_door`, `mother_in`, `mother_side`.
+- ClimbStair 1: a level pad under the foot (`climb_stair_foot_1`); the walk from the slope below climbs foot to head (y 3.58 -> 10.70). Shots `c1`, `c1b`.
+- Hall and cave stair cuts are hard-edged (no 4 m falloff). The halls' crater round the walls is much smaller, but a pit flank of about 2 m remains beside the
+  deepest part of the Witch's Cellar stair (a walker that steps off the slope there stands at y -2). A roofed tunnel was tried and backed out (the terrain's
+  grid ramp crosses the tunnel).
+- Doorway scan (`doorscan`, box 0.5 x 0.9 m through every door the ray fans find): the hits are building bodies, plus one yard scene (a fence) 3.4 m out of
+  Fallowmere's tithe barn door (-176.1, 276.8); not moved (settlement_yards.gd places yards on open ground without knowing doors).
+- Grandmother Oak stair: treads missing at the limb doors (65-68, 100-103, 135-138, 160-162, a 0.4-0.6 m riser each, found by `oakscan`); collision ramps added
+  (`OAK_STAIR_GAPS`). The real Player climbs from the floor (a lip at the first tread needs a jump) to y 29.5 (tread 65) and stops at the first gap; the whole
+  170-tread ascent is NOT verified.
