@@ -13,8 +13,12 @@ at the end.
 
 - [x] baseline: two plain tours (points), one `--stress=2` tour, the fixed path, `--blame` at t_reedholm and r_spawn_west,
       `--hitches=14 --probe` at the worst views, `--census` at seven views (`<S>/base/`)
-- [x] every fix built (list below), committed one by one
-- [ ] after: the same runs (`<S>/measure_after.sh`), plus `--attrib` at t_reedholm and r_spawn_west
+- [x] batch one built (F1-F9), committed one by one; an intermediate after set (`<S>/after1/`) showed the 1% lows' spikes
+      gone at most views and the HUD's 450 canvas draws untouched
+- [x] batch two (lead, 20 Nov): the HUD baked (F10), the static merge widened (F11), the summit's rocks joined (F12),
+      people's shadows from a lower LOD (F13); short diagnostic runs chose them (`<S>/diag/`: a clean `--census-split`,
+      `--merge-why`, `--why-under`, `--casters`, HUD shots)
+- [ ] after: the same runs once (`<S>/measure_after.sh`), plus `--attrib` at r_spawn_west and r_orchard_save and the HUD shot
 - [ ] tests: `tools/run_tests.sh --quick`, then interp_audit, the village / life / encounter tests and the perf-related ones
 
 ## Baseline (Balanced, fov 90, 1600x1000, vsync off; mean of two plain runs; GPU column = fps at 2x2 the pixels)
@@ -86,19 +90,44 @@ brief's own run had it at 85.9), so only differences well past ~5 % are read as 
       (it did every 60 s); the counts are taken at the end of the build
 - [x] F9 fixture pool (ffa10cd4): the free dark lights are skipped, a light is moved only when its row moved
 
+### Batch two
+
+- [x] F10 the HUD's still art baked (8c70626e, 6eb0037d): `ui/hud_bake.gd` draws an owner's art once into a transparent
+      SubViewport at the screen's own pixel scale and sub-pixel grid (fonts at the screen's oversampling), and shows it as
+      one texture, texel for pixel, with premultiplied alpha; it bakes again only when the owner's signature changes or
+      the window resizes. Baked: the hotbar's plate and each slot's picture, the wanderer's unit-frame layers (plate and
+      portrait, bars, auras, IN COMBAT), the minimap's bezel, place plate and range tab, the compass strip. The clean
+      census had the HUD at 442 canvas draws (hotbar 190, unit frames 111, minimap 89, compass 24); a check run had
+      ~290 fewer draws a frame. Shots at r_spawn_west before/after at full size (`<S>/hud/`): the static parts match
+      within 1-2 levels (8-bit rounding); the first try drew thin lines on another sub-pixel grid (fixed)
+- [x] F11 the static merge widened (d108357f, 6eb0037d): props of several surfaces (261 in the merge roots, each surface
+      its own material) are split into one mesh a surface and merged by material; never-fading pieces merge in 64 m
+      cells (24); a fading piece's cell is a tenth of its range (6-16 m; it still fades within about one fade band of where
+      it did; the near half of a stand-in swap keeps 6 m); a mesh of several surfaces under one override material joins
+      its surfaces; a split keeps the vertex format (a new one compiles its pipelines at first sight, P7). Sparse meshes and
+      never-fading MultiMesh scatters are chunked in larger cells (`MeshChunks`: the way lanterns were a chunk per lantern,
+      137 meshes; the rift's scorch 116 MultiMeshes). Realm-wide the merge makes 3690 candidates into 3186 draws (the same
+      set was ~3700); the post-build pass takes ~0.8 s longer, under the loading cover
+- [x] F12 the summit's moss rocks (6eb0037d): ~50 rocks of 8-10k triangles were a draw call each wherever the summit is in
+      sight (27-39 from the east Marches and Lastlight's road); joined by material and cut into LOD'd cells (cached) in
+      their own compressed vertex format: 4 draws
+- [x] F13 people's shadows (55266e16): `--casters` named the heaviest shadow casters: villagers, folk and travellers at
+      15-24k triangles each (twenty within the moon's reach at Hearthward, sixteen at Reedholm), small clutter almost
+      nothing (< 0.6 m: 19 casters, 2k triangles at the spawn). Each person now casts from a ShadowProxy built from one of
+      the body's own LODs (`core/life/village/villager_shadow.gd`, ~40 % of the triangles, the body's vertex format and
+      material, cached): 4.5-5.5k triangles, as the wanderer's 4.2k proxy; the casters near the spawn 557k -> 265k
+- [x] harness: the tour waits for the post-build pass (the loading screen does), `--casters`, `--why-under`, the census
+      skips freed nodes (fc3dd2dd, e80b7181)
+
 ## Not done, and why
 
-- **The HUD's 430-456 canvas draws.** Every custom-drawn arc, circle, polyline and polygon (the minimap's bezel is ~20
-  on its own: nine arcs, eight studs, the north disc; the hotbar's slots and drawn icons; the unit frames) is a draw call
-  of its own in Godot's canvas renderer; text and rects batch. Cutting them means redrawing the HUD's art another way
-  (pre-rendered textures, meshes), which changes its look; not done blind. Measured now in every PERF line
-  (`canvas draws`), and the census names the HUD's parts.
-- **3D draw merging** (RealmPois 300-440 draws, RealmLore 60-220, the summit's 120 moss rocks drawn from anywhere):
-  MeshMerge already joins the static meshes it may; the ranged pieces merge in 6 m cells (so each still fades where
-  it did) and the heavy ones keep their LODs. Larger cells by range, or merging multi-surface meshes that draw with one
-  override material, are the next step, but need `--census-split` and `--merge-why` runs to choose (Luke: no runs
-  while building).
-- **Shadow casters and draw ranges on clutter**: the spawn's 421 shadow draws were the one outlier, but its census was
-  spoiled (PerfWatch's own census ran in the middle of it, F1), so no caster was cut on a guess.
-- **GPU features**: the baseline `--attrib` was stopped with the other runs; it runs in the after set and its costs are
-  reported, not acted on.
+- **The rest of the HUD**: the minimap's marks (~70 draws: they turn with the camera), the compass's marks, the waypoint,
+  the boss and target frames (in fights only) still draw directly.
+- **Merging past anchors**: the merge stops at nodes a script holds, nodes with metas or groups, and the merge roots
+  (`--merge-why`: 262 held, 166 stand-in parents, 88 grouped...); opening those is per-system work.
+- **The fire shadow** (the nearest fire's two shadow hemispheres: 128 draws, 186k triangles at the spawn) stays as it is:
+  it is the dancers' shadows round Hearthward's fire. People cast it from their proxies now.
+- **GPU features**: see the attribution in the after set.
+- **The settle frames**: right after the load (under the cover in play) Progression (62 ms), Encounters (26 ms) and
+  Wildlife (21 ms at ~2 s) still have one heavy frame each; the probe names the subtree, not the line, and they are hidden
+  by the loading screen in play. F6/F7 bound the camera-jump builds.
