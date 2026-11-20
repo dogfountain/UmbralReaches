@@ -337,6 +337,49 @@ def head(P, rnd):
         tube_path(P, "hewn", pts, [1.6, 1.35, 1.0, 0.6, 0.18], n=9)
 
 
+# ------------------------------------------------------------------------------------------------- the ember seams and the flue
+def embers(P, rnd):
+    """(the polish pass, 20 Nov: from the road the colossus read as grey slabs and a brick box) Seams of ember laid in the plate:
+    bands of lit lames (the `wax` set, drawn as the Sleeper's own embers in the game) round the shins, the cuisses and the arms, the
+    gorget, and a great flue stacked on the deck over the heart so its chimney burns above the body: a silhouette and a light
+    that read from the road."""
+    for s in (-1.0, 1.0):
+        x0, x1 = min(s * 1.4, s * 9.2), max(s * 1.4, s * 9.2)
+        for z in (-33.4, -31.0, -25.6, -23.4):
+            band_z(P, "wax", x0 + 0.05, x1 - 0.05, z, 4.6, w=0.3, out=0.26, rh=2.8)
+        for z in (-19.4, -16.8, -14.2, -11.6):
+            band_z(P, "wax", x0 - 0.45, x1 + 0.45, z, 7.4, w=0.3, out=0.18, rh=3.0)
+    for z in (-8.6, -0.7):
+        band_z(P, "wax", -10.55, 10.55, z, 8.0, w=0.3, out=0.2, rh=3.0)
+    for z in (3.0, 9.5, 16.0):
+        band_z(P, "wax", -17.05, -10.95, z, 7.0, w=0.3, out=0.22, rh=3.0)
+    for x in (27.0, 31.0):
+        band_x(P, "wax", 18.5, 26.0, x, 9.0, w=0.3, out=0.12, rh=1.4)
+    for z in (29.9, 33.9):
+        band_z(P, "wax", -5.1, 5.1, z, 11.0, w=0.3, out=0.2, rh=2.8)
+    # the flue: a stack of dressed courses on the deck's solid slabs (x 3 .. 7, z 12 .. 15 in the game's frame), tapering from
+    # 3.4 to 2.3 m over 13 m, with a corbelled collar, a lit band and a flared crown
+    cx, cz = 5.0, 13.5
+    y0, courses, ch = 11.0, 12, 1.1
+    for i in range(courses):
+        t = i / (courses - 1)
+        w = 3.4 - 1.1 * t
+        L.dbox(P, "ashlar", tuple(G(cx, y0 + ch * (i + 0.5), cz)), (w, w, ch - 0.04), bevel=0.08, warp=0.03)
+    ytop = y0 + ch * courses
+    yy = ytop
+    for (w, h) in ((2.9, 0.4), (3.3, 0.4), (3.7, 0.5)):
+        L.dbox(P, "ashlar", tuple(G(cx, yy + h * 0.5, cz)), (w, w, h), bevel=0.05)
+        yy += h
+    for yb in (y0 + 3.2, y0 + 7.4):
+        wb = 3.4 - 1.1 * (yb - y0) / (courses * ch) + 0.5
+        box(P, "iron", G(cx, yb, cz), (wb, wb, 0.35))
+    # the lit mouth: a band of ember under the crown on all four faces and a glowing slot down each
+    wm = 2.3 + 0.55
+    for sx, sz in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+        box(P, "wax", G(cx + sx * (wm * 0.5), ytop - 0.55, cz + sz * (wm * 0.5)), (0.12 if sx else 1.5, 1.5 if sx else 0.12, 0.9))
+        box(P, "wax", G(cx + sx * (wm * 0.5 + 0.02), ytop - 3.2, cz + sz * (wm * 0.5 + 0.02)), (0.1 if sx else 0.5, 0.5 if sx else 0.1, 3.4))
+
+
 def asset():
     reset()
     P = Parts()
@@ -346,6 +389,7 @@ def asset():
     torso(P, rnd)
     arms(P, rnd)
     head(P, rnd)
+    embers(P, rnd)
     objs = finish(P, "Sleeper", smooth_keys=("hewn",)) + L.mason_end("SleeperMasonry")
     print("SLEEPER %d tris" % sum(tris(o) for o in objs))
     export(objs, os.path.join(MODELS, "wonder_sleeper.glb"), "sleeper")

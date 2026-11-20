@@ -87,7 +87,7 @@ func _run(root: Node) -> void:
 		_arms()
 		_head()
 		_dress()
-	k.model("wonder_sleeper.glb", Transform3D(rot, Vector3(o.x, y0, o.y)))
+	_glow(k.model("wonder_sleeper.glb", Transform3D(rot, Vector3(o.x, y0, o.y))))
 	_furnace(_p(3.5, 1.8, 17.0))                                         # (outside the cached part: the models are placed on every build)
 	var n: int = k.commit()
 	var hp: Array[Vector3] = [_p(-9.0, 0.0, 0.0), _p(9.0, 10.0, 0.0), _p(-9.0, 10.0, 26.0), _p(9.0, 0.0, 26.0)]
@@ -153,7 +153,9 @@ func _torso() -> void:
 				continue
 			_slab("stone_big", hx - 2.0, hx + 2.0, hz, hz + 3.0, 10.0, 11.0, 0.9 + 0.1 * float((ci + cj) % 2))
 	_slab("stone_big", 9.0, 11.0, 12.0, 26.0, 10.0, 11.0, 0.96)
+	_slab("stone_big", 3.3, 6.7, 11.8, 15.2, 11.0, 24.2, 0.9)          # the flue (the model's look): a solid stack on the deck
 	k.kit.visual = true
+	k.fire(_p(5.0, 24.7, 13.5), 2.0, 2.6)                              # the flue's crown burns: a chimney's flame above the body, seen from the road
 	# ribs under the roof, and a cross-beam with the hung lamps
 	for zi in 4:
 		var bz := 4.0 + 6.0 * float(zi)
@@ -202,10 +204,30 @@ func _furnace(at: Vector3) -> void:
 	var root := k.model("sleeper_hearths.glb", Transform3D(Basis(Vector3.UP, yaw + PI), at))
 	if root == null:
 		return
+	_glow(root)
 	for n in root.find_children("*", "MeshInstance3D", true, false):
 		if not String(n.name).begins_with("Furnace") and not String(n.name).contains("-colonly"):
 			n.get_parent().remove_child(n)
 			n.free()
+
+
+## The models' `wax` parts are the Sleeper's embers (the seams in its plate, the flue's lit mouth, the furnace's gem): drawn lit, in
+## the fire's own colour, not as candle wax (the set's tiling material).
+static var _ember_mat: StandardMaterial3D
+
+func _glow(root: Node3D) -> void:
+	if root == null:
+		return
+	if _ember_mat == null:
+		_ember_mat = StandardMaterial3D.new()
+		_ember_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		_ember_mat.albedo_color = Color(0.95, 0.42, 0.15)
+		_ember_mat.disable_fog = false
+	for n in root.find_children("*", "MeshInstance3D", true, false):
+		var mi := n as MeshInstance3D
+		if String(mi.name).contains("__wax"):
+			mi.material_override = _ember_mat
+			mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 
 
 # --- the arms -------------------------------------------------------------------------------------------
