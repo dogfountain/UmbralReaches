@@ -35,7 +35,7 @@ Saved preset is Cinematic; `dof_enabled` stays false. Stair: four lanterns only.
 
 ## Static MultiMeshes
 
-Every `MultiMeshInstance3D` that never moves (flora, dressing, props) gets `physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF` before it enters the tree. The project runs physics interpolation, and an interpolated MultiMesh waits on the GPU when it is added: 12-20 ms for the first add of a frame, 2.4 ms on average in play, 10x the whole flora build. Off, an add is 6-37 us (`zz/stream_probe.gd`, `docs/r39/region_stream.md`).
+Every `MultiMeshInstance3D` that never moves (flora, dressing, props) gets `physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF` before it enters the tree, and so does a live pool rewritten from `_process` (moths, mist, glints, the Tether's links). `zz/interp_audit_test` reads every script under core, world, ui and autoload: the OFF line must sit within eight lines of the `MultiMeshInstance3D.new()`. The project runs physics interpolation, and an interpolated MultiMesh waits on the GPU when it is added: 12-20 ms for the first add of a frame, 2.4 ms on average in play, 10x the whole flora build. Off, an add is 6-37 us (`zz/stream_probe.gd`, `docs/r39/region_stream.md`).
 
 ## What their words actually mean
 
