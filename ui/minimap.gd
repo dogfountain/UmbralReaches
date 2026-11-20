@@ -21,6 +21,7 @@ extends Control
 ## moon on the rim where it hangs, and a clock under the dial if the night ever keeps one.
 ## Added by ui/hud.gd (one line). Hidden while paused, under the loading screen, and off the Realm.
 
+const TickPhase := preload("res://core/util/tick_phase.gd")
 const LANTERN := Color("#FFB347")
 const EMBER := Color("#FF6A2A")
 const INK := Color(0.93, 0.88, 0.8)
@@ -96,6 +97,7 @@ var _seeded := false                     ## the first scan's markers were alread
 
 
 func _ready() -> void:
+	_scan = TickPhase.first(self, 0.5)
 	name = "Minimap"
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
@@ -165,7 +167,7 @@ func _process(delta: float) -> void:
 	# half second while something moving is marked (foes), and only as a slow backstop otherwise
 	_scan -= delta
 	if _scan <= 0.0:
-		_scan = 0.5 if _moving_marks else 4.0
+		_scan = TickPhase.next(_scan, 0.5) if _moving_marks else 4.0
 		_rescan()
 		_dirty = true
 	var young := false
