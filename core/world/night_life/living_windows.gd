@@ -8,6 +8,7 @@ extends Node
 ## four times a second over the houses (about forty).
 
 const Reg := preload("res://core/world/night_life/night_registry.gd")
+const TickPhase := preload("res://core/util/tick_phase.gd")
 
 const TICK := 0.25
 const STIR_RANGE := 9.0
@@ -49,7 +50,7 @@ func _process(delta: float) -> void:
 	if _tick > 0.0:
 		return
 	var dt := TICK - _tick
-	_tick = TICK
+	_tick = TickPhase.next(_tick, TICK)
 	_step(dt)
 
 
@@ -105,6 +106,7 @@ func _build() -> void:
 		var gy := hs.centre.y - 1.4
 		Reg.put(hs.key, hs.centre, Reg.Kind.WINDOW, minf(0.45 + 0.12 * float(hs.lights.size()), 0.95), gy, false, hs.lit)
 	_built = true
+	_tick = TickPhase.first(self, TICK)          # its pass on frames of its own (tick_phase.gd)
 
 
 func _waited_out() -> bool:
