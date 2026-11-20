@@ -30,6 +30,7 @@ static func release() -> void:
 	_cloth = null
 	_wood_m = null
 	_water_m = null
+	_prop_wood_m = null
 
 
 ## Plain vertex-coloured cloth / straw / leaf material (two-sided: cards).
@@ -149,12 +150,23 @@ static func _glb_parts(file: String) -> Array:
 		if parts.size() < 2:
 			continue
 		var set_name := parts[parts.size() - 1].get_slice(".", 0).get_slice("_", 0)
-		out.append({"mesh": mi.mesh, "mat": _water() if set_name == "water" else Kit.prop_mat(set_name)})
+		out.append({"mesh": mi.mesh, "mat": _water() if set_name == "water" else (_prop_wood() if set_name == "timber" else Kit.prop_mat(set_name))})
 	root.free()
 	return out
 
 
 static var _water_m: StandardMaterial3D
+static var _prop_wood_m: StandardMaterial3D
+
+
+## The modelled props' timber (crates, barrels, benches): the kit's prop wood, lifted. Its texture is a night value (a mean of about 0.1)
+## under baked vertex tone of 0.2 and less, so a modelled crate or barrel stood black even in a lamp's light at Saltmarket's doors (the
+## polish pass, 20 Nov); the procedural props beside them already carry wood()'s 2.3 lift.
+static func _prop_wood() -> StandardMaterial3D:
+	if _prop_wood_m == null:
+		_prop_wood_m = Kit.prop_mat("timber").duplicate() as StandardMaterial3D
+		_prop_wood_m.albedo_color = Color(2.3, 2.05, 1.8)
+	return _prop_wood_m
 
 
 ## The trough's water: dark and glossy (the game has no still-water material that fits a trough-sized pool).
