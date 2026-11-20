@@ -17,6 +17,8 @@ var _boss: Node3D = null
 var _far: Array = []                ## [GeometryInstance3D, end as found] the @far trees and cards
 var _shells: Array = []             ## [MeshInstance3D, begin as found]
 var _mmis: Array = []               ## every Flora_* MultiMesh (collected once with the lists above)
+var _seen := {}                     ## instance ids collected
+var _serial := 0                    ## the host's flora_serial when the lists were made
 var _job := -1                      ## next item of the change under way (-1: none): _mmis, then _far, then _shells
 var _job_on := false
 var _job_args := Vector2.ONE        ## Emit.detail_args for the change under way
@@ -62,8 +64,8 @@ func thin(on: bool) -> void:
 	host.set_meta(&"fight", on)
 	var d := clampi(Settings.detail, 0, 2)
 	host.set_meta(&"detail", d + (10 if on else 0))   # what Emit.apply_detail would note (a settings change re-applies all)
-	if _mmis.is_empty() and _far.is_empty() and _shells.is_empty():
-		_collect(host)
+	if (_mmis.is_empty() and _far.is_empty() and _shells.is_empty()) or _serial != int(host.get_meta(&"flora_serial", 0)):
+		_collect(host)           # (again when the stream has built chunks since: realm_stream.gd)
 	_job_on = on
 	_job_d = d
 	_job_args = Emit.detail_args(d, on)
@@ -109,11 +111,18 @@ static func _applied(g: GeometryInstance3D) -> void:
 
 
 func _collect(host: Node) -> void:
+	_serial = int(host.get_meta(&"flora_serial", 0))
 	for n in host.find_children("Flora_*", "MultiMeshInstance3D", true, false):
+		if _seen.has(n.get_instance_id()):
+			continue                 # (the stream adds chunks after the first collect: only the new ones are taken)
+		_seen[n.get_instance_id()] = true
 		_mmis.append(n)
 		var f: Array = n.get_meta(&"flora", [])
 		if f.size() > 1 and (f[1] == "fs" or f[1] == "fc") and (n as GeometryInstance3D).visibility_range_end > 0.0:
 			_far.append([n, (n as GeometryInstance3D).visibility_range_end])
 	for n in host.find_children("Canopy_*", "MeshInstance3D", true, false):
+		if _seen.has(n.get_instance_id()):
+			continue
+		_seen[n.get_instance_id()] = true
 		if (n as GeometryInstance3D).visibility_range_begin > 0.0:
 			_shells.append([n, (n as GeometryInstance3D).visibility_range_begin])

@@ -320,31 +320,27 @@ static func _mean(ps: Array) -> Vector3:
 	return s / float(maxi(ps.size(), 1))
 
 
-## Big trunks (flora collision cylinders) in a biome list: owl trees. Each {base: Vector3, r: float}.
+## Big trunks (flora collision cylinders, read from the flora's placement: the emit lists them as meta `trunks` before
+## any node is built) in a biome list: owl trees. Each {base: Vector3, r: float}.
 static func trunks(root: Node, biomes: Array, min_r: float, new_ground := false) -> Array[Dictionary]:
 	var out: Array[Dictionary] = []
 	var flora := root.get_node_or_null("RealmFlora")
 	if flora == null:
 		return out
-	for b in flora.find_children("FloraBody", "StaticBody3D", true, false):
-		for c in b.get_children():
-			var cs := c as CollisionShape3D
-			if cs == null or not (cs.shape is CylinderShape3D):
-				continue
-			var cy := cs.shape as CylinderShape3D
-			if cy.radius < min_r or cy.height < 3.0:
-				continue
-			var p := cs.global_position - Vector3(0, cy.height * 0.5, 0)
-			if not RealmLayout.BOUNDS.grow(-4.0).has_point(Vector2(p.x, p.z)):
-				continue
-			if RealmLayout.OLD_BOUNDS.grow(-4.0).has_point(Vector2(p.x, p.z)) == new_ground:
-				continue                                     # the old Realm's trees, or (new_ground) the Marches' and the downs'
-			if not (RealmLayout.biome_at(p.x, p.z) in biomes):
-				continue
-			# trees on a site were culled from the flora MultiMesh but keep their collider: skip them
-			if not WorldLanes.site_at(Vector2(p.x, p.z), 3.0).is_empty():
-				continue
-			out.append({"base": p, "r": cy.radius})
+	for rec: Array in flora.get_meta(&"trunks", []):
+		var p: Vector3 = rec[0]
+		if float(rec[1]) < min_r or float(rec[2]) < 3.0:
+			continue
+		if not RealmLayout.BOUNDS.grow(-4.0).has_point(Vector2(p.x, p.z)):
+			continue
+		if RealmLayout.OLD_BOUNDS.grow(-4.0).has_point(Vector2(p.x, p.z)) == new_ground:
+			continue                                     # the old Realm's trees, or (new_ground) the Marches' and the downs'
+		if not (RealmLayout.biome_at(p.x, p.z) in biomes):
+			continue
+		# trees on a site were culled from the flora MultiMesh but keep their collider: skip them
+		if not WorldLanes.site_at(Vector2(p.x, p.z), 3.0).is_empty():
+			continue
+		out.append({"base": p, "r": float(rec[1])})
 	return out
 
 

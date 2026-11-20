@@ -223,7 +223,8 @@ func _process(delta: float) -> void:
 			_target = BUILD_SHARE + 0.04
 			if not _foley_done:
 				_foley_done = Foley.prewarm(FOLEY_PER_FRAME)       # spread over frames: the screen keeps animating
-			if (zone.has_meta("post_done") and _foley_done) or _phase_t > 8.0:
+			# (the render pass and the merge go on beside the tour: "post_done" is waited for in "steady")
+			if (zone.has_meta("post_ready") and _foley_done) or _phase_t > 8.0:
 				_next("warm")
 		"warm":
 			_stage.text = "Warming the world"
@@ -247,7 +248,7 @@ func _process(delta: float) -> void:
 				_paces.remove_at(0)
 			var pace := _median(_paces)
 			var lw := get_tree().get_first_node_in_group(&"lava_works") as LavaWorks
-			var busy := lw != null and lw.mapping > 0
+			var busy := (lw != null and lw.mapping > 0) or (not zone.has_meta("post_done") and _phase_t < 10.0)
 			_steady = _steady + 1 if not busy and _paces.size() >= 10 and delta < maxf(pace * 1.35, 0.012) and delta < 0.05 else 0
 			if _steady >= 20 or _phase_t > 12.0:
 				_next("fade")
@@ -263,7 +264,7 @@ func _process(delta: float) -> void:
 
 
 func _next(p: String) -> void:
-	print("LOADING %s -> %s at %.2f s" % [_phase, p, _t])
+	print("LOADING %s -> %s at %.2f s (wall %.2f s)" % [_phase, p, _t, Time.get_ticks_msec() * 0.001])
 	_phase = p
 	_phase_t = 0.0
 	if p == "warm":
@@ -311,6 +312,9 @@ func _start_tour() -> void:
 func _place() -> void:
 	var v: Array = VIEWS[_view]
 	var at: Vector3 = v[0]
+	var rs := RealmStream.of(zone)
+	if rs != null:
+		rs.ensure(Vector2(at.x, at.z), 70.0)            # what the camera shows is built (the stream has not got there yet)
 	if is_nan(at.y):
 		at.y = _ground(at) + 1.8
 	_cam.global_position = at
@@ -641,6 +645,6 @@ func _finish() -> void:
 		_player.process_mode = Node.PROCESS_MODE_INHERIT
 		if _player.has_method("reset_physics_interpolation"):
 			_player.reset_physics_interpolation()
-	print("LOADING done at %.2f s" % _t)
+	print("LOADING done at %.2f s (wall %.2f s: control)" % [_t, Time.get_ticks_msec() * 0.001])
 	queue_free()
 
