@@ -435,7 +435,7 @@ func _plan_ambushes() -> void:
 		for q: Variant in ((vnav as Object).get("nodes") as Dictionary).values():
 			if q is Vector3 and SpawnRules.safe_at(Vector2((q as Vector3).x, (q as Vector3).z)) == "":
 				keep_off.append(Vector2((q as Vector3).x, (q as Vector3).z))
-	ambushes = AmbushSites.plan(_space, keep_off, _ground_at, spot_ok)
+	ambushes = AmbushSites.plan_stored(_space, keep_off, _ground_at, spot_ok)
 	for f: Dictionary in FIXED_AMBUSHES:
 		var c: Vector2 = f.at
 		var g := _ground_at(Vector3(c.x, 0, c.y), 90.0)

@@ -98,8 +98,9 @@ static func clear_flora(_root: Node, discs: Array) -> void:
 		_pending.append(Vector3(d.x + shift.x, d.y + shift.y, d.z))
 
 
-## Do the queued clearance in one pass over the flora (secrets.gd calls it once, after every site). The discs are kept
-## on the flora host too: chunks the stream builds later (realm_stream.gd) are cleared as they are made (clear_in_chunk).
+## Do the queued clearance in one pass over the flora (secrets.gd calls it once, after every site). The scan of the instance
+## buffers (millions of floats; pure data) runs on the worker pool, one task a buffer; the nodes are touched here on the main thread.
+## The discs are kept on the flora host too: chunks the stream builds later (realm_stream.gd) are cleared as they are made (clear_in_chunk).
 static func flush_flora(root: Node) -> int:
 	var discs := _pending.duplicate()
 	_pending.clear()
@@ -109,10 +110,40 @@ static func flush_flora(root: Node) -> int:
 	var kept: Array = host.get_meta(&"clear_discs", [])
 	kept.append_array(discs)
 	host.set_meta(&"clear_discs", kept)
-	var n := 0
+	var jobs: Array[Dictionary] = []          ## {mm, buf, stride, count, near, hit, n}
 	for ch in host.get_children():
-		if ch is Node3D:
-			n += clear_in_chunk(ch as Node3D, discs, [])
+		var c3 := (ch as Node3D).position if ch is Node3D else Vector3.ZERO
+		var near: Array = []
+		for d: Vector3 in discs:
+			if Vector2(c3.x, c3.z).distance_to(Vector2(d.x, d.y)) < d.z + 34.0:
+				near.append(Vector3(d.x - c3.x, d.y - c3.z, d.z * d.z))     # chunk-local, radius squared
+		if near.is_empty():
+			continue
+		for mmi_n in ch.get_children():
+			if mmi_n is MultiMeshInstance3D:
+				var mm := (mmi_n as MultiMeshInstance3D).multimesh
+				if mm == null or not mm.has_meta("cpu_buffer"):
+					continue
+				jobs.append({"mm": mm, "buf": (mm.get_meta("cpu_buffer") as PackedFloat32Array).duplicate(), "stride": 16 if mm.use_colors else 12, "count": mm.instance_count,
+					"near": near, "hit": false, "n": 0})
+			elif mmi_n is StaticBody3D:
+				for cs in (mmi_n as Node).get_children():
+					if cs is CollisionShape3D:
+						var p := (cs as CollisionShape3D).position
+						for d: Vector3 in near:
+							var r := sqrt(d.z) + 0.4
+							if Vector2(p.x - d.x, p.z - d.y).length_squared() < r * r:
+								(cs as CollisionShape3D).disabled = true
+	if not jobs.is_empty():
+		var gid := WorkerThreadPool.add_group_task(func(i: int) -> void: _clear_buffer(jobs[i]), jobs.size(), -1, true, "secrets flora clearance")
+		WorkerThreadPool.wait_for_group_task_completion(gid)
+	var n := 0
+	for j: Dictionary in jobs:
+		if bool(j.hit):
+			var mm: MultiMesh = j.mm
+			mm.buffer = j.buf
+			mm.set_meta("cpu_buffer", j.buf)
+			n += int(j.n)
 	return n
 
 
@@ -162,6 +193,33 @@ static func clear_in_chunk(ch: Node3D, discs: Array, only: Array) -> int:
 						if Vector2(p.x - d.x, p.z - d.y).length_squared() < r * r:
 							(cs as CollisionShape3D).disabled = true
 	return n
+
+
+## One flora buffer: every instance inside a cleared disc is collapsed to nothing and sunk (the work of a worker: it reads and writes
+## its own job's buffer only).
+static func _clear_buffer(j: Dictionary) -> void:
+	var buf: PackedFloat32Array = j.buf
+	var stride: int = j.stride
+	var near: Array = j.near
+	var hit := false
+	var n := 0
+	for i: int in int(j.count):
+		var o := i * stride
+		var lx := buf[o + 3]
+		var lz := buf[o + 11]
+		for d: Vector3 in near:
+			var dx := lx - d.x
+			var dz := lz - d.y
+			if dx * dx + dz * dz < d.z:
+				for k: int in [0, 1, 2, 4, 5, 6, 8, 9, 10]:
+					buf[o + k] = 0.0
+				buf[o + 7] -= 50.0
+				hit = true
+				n += 1
+				break
+	j.buf = buf
+	j.hit = hit
+	j.n = n
 
 
 ## Ground clear of sites, paths, water and steep slope near `want` (spiral search).

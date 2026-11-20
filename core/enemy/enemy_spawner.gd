@@ -200,6 +200,8 @@ const KIN := {
 	# r34
 	"pilgrim": "res://core/enemy/pilgrim.gd", "cinder": "res://core/enemy/cinder_caster.gd",
 }
+const PlacementCacheRef := preload("res://core/world/realm/placement_cache.gd")
+const FloraRef := preload("res://core/world/realm/realm_flora.gd")
 const Tiers := preload("res://core/life/encounters/tiers.gd")
 const Variants := preload("res://core/life/encounters/variants.gd")
 const SpawnRules := preload("res://core/life/encounters/spawn_rules.gd")
@@ -241,22 +243,13 @@ func _plant() -> void:
 	if not is_inside_tree():
 		return
 	var space: PhysicsDirectSpaceState3D = get_world_3d().direct_space_state
-	for camp in _camps:
-		var center := _ground(space, camp.at, float(camp.get("probe", 24.0)), bool(camp.get("strict", false)))
-		var why := ""
-		if Vector2(center.x - HAVEN.x, center.z - HAVEN.z).length() < HAVEN_R or Vector2(center.x - Endgame.O.x, center.z + 10.0).length() < 12.0:
-			why = "haven"
-		elif _realm and is_nan(_last_hit_y):
-			why = "no ground"                       # e.g. the Crossing's head is not built
-		elif _realm and not camp.get("strict", false) and not _camp_ground_ok(space, center, String(camp.get("seal", ""))):
-			# a place built over it since it was set down (a site), or ground the spawn rules refuse (water, a lip, a
-			# rock): the nearest fair ground within CAMP_MOVE keeps the camp where it was meant to be
-			var moved := _camp_move(space, center, String(camp.get("seal", "")))
-			if moved == Vector3.INF:
-				var st := WorldLanes.site_at(Vector2(center.x, center.z), 1.0)
-				why = ("inside site " + String(st.name)) if not st.is_empty() else "no fair ground: " + String(SpawnRules.assess(space, center).why)
-			else:
-				center = moved
+	var t_plant := Time.get_ticks_usec()
+	var sols := _camp_picks(space)
+	for ci in _camps.size():
+		var camp: Dictionary = _camps[ci]
+		var sol: Dictionary = sols[ci]
+		var center: Vector3 = sol.center
+		var why := String(sol.why)
 		if why != "":
 			var skip := String(camp.get("seal", ""))
 			if skip != "" and _seal_camps.has(skip):
@@ -269,32 +262,12 @@ func _plant() -> void:
 		var sid := String(camp.get("seal", ""))
 		if sid != "" and Travel.seals_broken.has(sid):
 			continue                                  # a broken seal's guardians stay dead
-		var route: Array[Vector3] = []
-		for c2: Vector2 in camp.get("patrol", []):
-			var g2 := _ground(space, Vector3(c2.x, float(camp.at.y), c2.y), float(camp.get("probe", 24.0)))
-			if is_nan(_last_hit_y):
-				continue
-			if _realm and not SpawnRules.ok(space, g2):
-				g2 = SpawnRules.find(space, Vector2(c2.x, c2.y), 6.0, g2.y + 8.0)   # a stop on a way, in a pool, on a lip: beside it
-			if g2 != Vector3.INF:
-				route.append(g2)
-		var opts := {"ways": sid == ""}
+		var route: Array = sol.route
 		for i in n:
 			var a := TAU * float(i) / float(maxi(n, 1)) + 0.15
 			var ring: float = float(camp.get("r", 2.5)) if n > 1 else float(camp.get("r", 0.0))
 			var off := Vector3(cos(a) * ring, 0.0, sin(a) * ring)
-			var probe := center + off
-			if _realm and not camp.get("strict", false):
-				probe.y = float(camp.at.y)               # realm ground camps probe from high above
-			var at := _ground(space, probe, float(camp.get("probe", 24.0)), bool(camp.get("strict", false)))
-			if _realm and is_nan(_last_hit_y):
-				at = center                               # no floor there (a cliff edge): stand at the camp
-			elif _realm and not camp.get("strict", false) and not SpawnRules.ok(space, at, opts):
-				# its place in the ring is water, a lip, a rock or the way: the nearest fair floor beside it, else the camp's
-				var near := SpawnRules.find(space, Vector2(at.x, at.z), 3.0, center.y + 8.0, opts, center.y, 2.5)
-				if near == Vector3.INF:
-					near = SpawnRules.find(space, Vector2(center.x, center.z), ring + 2.5, center.y + 8.0, opts, center.y, 2.5)
-				at = near if near != Vector3.INF else center
+			var at: Vector3 = (sol.ats as Array)[i]
 			var key := String(kinds[i])
 			var look := ""
 			if key.contains("@"):
@@ -309,17 +282,24 @@ func _plant() -> void:
 				"strict": bool(camp.get("strict", false)), "center": center}
 			if route.size() > 1:
 				var pts: Array[Vector3] = []
-				for g3 in route:
+				for g3: Vector3 in route:
 					pts.append(g3 + off)
 				slot["patrol"] = pts
 			_slots.append(slot)
+	PlacementCacheRef.lap("camps plant", t_plant)
+	var t_spawn := Time.get_ticks_usec()
 	for slot in _slots:
 		_spawn(slot)
+	PlacementCacheRef.lap("camps spawn", t_spawn)
 	if _realm:
 		_settle.call_deferred()            # the rares and a second look at every slot once the Realm's ground is final
 		if Slice.full():                    # the Kindled Watch is outside the 30-minute slice (docs/DECISIONS.md)
+			var t_wp := Time.get_ticks_usec()
 			(load("res://core/world/watch/watch_posts.gd") as GDScript).call("build", get_parent() as Node3D)
+			PlacementCacheRef.lap("watch posts", t_wp)
+		var t_st := Time.get_ticks_usec()
 		(load("res://core/world/mount/stables.gd") as GDScript).call("build", get_parent() as Node3D)   # r36 horses
+		PlacementCacheRef.lap("stables", t_st)
 		if get_parent().get_node_or_null("ReachState") == null:            # r36 the night progresses
 			var rs: Node = ReachState.new()
 			rs.name = "ReachState"
@@ -349,28 +329,23 @@ func _settle() -> void:
 		return
 	await get_tree().physics_frame
 	var space := get_world_3d().direct_space_state
+	var t_settle := Time.get_ticks_usec()
 	var player := _player()
 	var moved := 0
-	for slot in _slots:
+	var fixes := _settle_picks(space)
+	for si in _slots.size():
+		var slot: Dictionary = _slots[si]
 		if bool(slot.get("strict", false)):
 			continue
 		var at: Vector3 = slot.at
-		var opts := {"ways": String(slot.get("seal", "")) == ""}
-		var g := SpawnRules.floor_at(space, Vector2(at.x, at.z), at.y + 3.0, 7.0)
-		if g == Vector3.INF or not SpawnRules.ok(space, g, opts) or not WorldLanes.site_at(Vector2(g.x, g.z), 0.4).is_empty():
-			var near := SpawnRules.find(space, Vector2(at.x, at.z), 4.0, at.y + 4.0, opts, at.y, 3.0)
-			g = near if near != Vector3.INF else g
+		var fix: Dictionary = fixes[si]
+		var g: Vector3 = fix.g
 		var pawn: Variant = slot.pawn
 		if slot.has("patrol"):
 			# each pawn walks its own line of the round (the camp's stops plus its place in the ring): every stop
 			# on the ground as settled and on fair floor, else beside it
 			var pts: Array[Vector3] = []
-			for q: Vector3 in slot.patrol:
-				var h := SpawnRules.floor_at(space, Vector2(q.x, q.z), q.y + 3.0, 7.0)
-				if h == Vector3.INF or not SpawnRules.ok(space, h, opts):
-					var near := SpawnRules.find(space, Vector2(q.x, q.z), 3.5, q.y + 4.0, opts, q.y, 3.0)
-					h = near if near != Vector3.INF else h
-				pts.append(h if h != Vector3.INF else q)
+			pts.assign(fix.pts as Array)
 			slot.patrol = pts
 			if is_instance_valid(pawn) and pawn is Enemy:
 				(pawn as Enemy).patrol.assign(pts)
@@ -380,10 +355,143 @@ func _settle() -> void:
 		moved += 1
 		if is_instance_valid(pawn) and pawn is Enemy and (pawn as Enemy).is_alive() and (player == null or player.global_position.distance_to(g) > 40.0):
 			(pawn as Enemy).station(g)
+	PlacementCacheRef.lap("camps settle", t_settle)
 	print("ENEMYSPAWNER settled: %d of %d slots set on the final ground" % [moved, _slots.size()])
 	_make_rares()
 	settled = true
 	settled_done.emit()
+
+
+## Each slot's final footing once the Realm's ground is final: [{g: where it stands (INF: nowhere better), pts: its patrol's stops}] by
+## slot (strict slots are left as they are). The same search as the planting's, on the finished ground: stored and read back the same way.
+func _settle_picks(space: PhysicsDirectSpaceState3D) -> Array:
+	var seed_view: Array = []
+	for slot: Dictionary in _slots:
+		seed_view.append([slot.at, slot.get("strict", false), slot.seal, slot.get("patrol", [])])
+	var k := PlacementCacheRef.key("camps_settle", [seed_view, FloraRef.last_fp])
+	var hit: Variant = PlacementCacheRef.load_picks("camps_settle", k)
+	if hit != null and not PlacementCacheRef.verify and ((hit as Dictionary).fixes as Array).size() == _slots.size():
+		PlacementCacheRef.note("camps_settle", "hit")
+		return (hit as Dictionary).fixes as Array
+	var fixes := _solve_settle(space)
+	var picks := {"fixes": fixes}
+	if hit == null:
+		PlacementCacheRef.save_picks(k, picks)
+		PlacementCacheRef.note("camps_settle", "miss")
+		if PlacementCacheRef.verify:
+			PlacementCacheRef.compare("camps_settle", k, picks, PlacementCacheRef.load_picks("camps_settle", k))
+	else:
+		PlacementCacheRef.compare("camps_settle", k, picks, hit)
+	return fixes
+
+
+func _solve_settle(space: PhysicsDirectSpaceState3D) -> Array:
+	var out: Array = []
+	for slot: Dictionary in _slots:
+		var fix := {"g": Vector3.INF, "pts": []}
+		out.append(fix)
+		if bool(slot.get("strict", false)):
+			continue
+		var at: Vector3 = slot.at
+		var opts := {"ways": String(slot.get("seal", "")) == ""}
+		var g := SpawnRules.floor_at(space, Vector2(at.x, at.z), at.y + 3.0, 7.0)
+		if g == Vector3.INF or not SpawnRules.ok(space, g, opts) or not WorldLanes.site_at(Vector2(g.x, g.z), 0.4).is_empty():
+			var near := SpawnRules.find(space, Vector2(at.x, at.z), 4.0, at.y + 4.0, opts, at.y, 3.0)
+			g = near if near != Vector3.INF else g
+		fix.g = g
+		if slot.has("patrol"):
+			var pts: Array = []
+			for q: Vector3 in slot.patrol:
+				var h := SpawnRules.floor_at(space, Vector2(q.x, q.z), q.y + 3.0, 7.0)
+				if h == Vector3.INF or not SpawnRules.ok(space, h, opts):
+					var near := SpawnRules.find(space, Vector2(q.x, q.z), 3.5, q.y + 4.0, opts, q.y, 3.0)
+					h = near if near != Vector3.INF else h
+				pts.append(h if h != Vector3.INF else q)
+			fix.pts = pts
+	return out
+
+
+## Where every camp stands and each of its members: [{why, center, route, ats}] by camp. A search over the ground (rays, the spawn rules, the
+## nearest fair floor), so a Realm build stores it (placement_cache.gd) under a key of the camps, the world and the sites registered so far
+## (the ground a place was built over is a site) and reads it back after; a rebuild in the same night (tests, the Deeper Night) solves again.
+func _camp_picks(space: PhysicsDirectSpaceState3D) -> Array:
+	if not _realm:
+		return _solve_camps(space)
+	var k := PlacementCacheRef.key("camps_plant", [_camps, FloraRef.last_fp])
+	var hit: Variant = PlacementCacheRef.load_picks("camps_plant", k)
+	if hit != null and not PlacementCacheRef.verify and ((hit as Dictionary).sols as Array).size() == _camps.size():
+		PlacementCacheRef.note("camps_plant", "hit")
+		return (hit as Dictionary).sols as Array
+	var sols := _solve_camps(space)
+	var picks := {"sols": sols}
+	if hit == null:
+		PlacementCacheRef.save_picks(k, picks)
+		PlacementCacheRef.note("camps_plant", "miss")
+		if PlacementCacheRef.verify:
+			PlacementCacheRef.compare("camps_plant", k, picks, PlacementCacheRef.load_picks("camps_plant", k))
+	else:
+		PlacementCacheRef.compare("camps_plant", k, picks, hit)
+	return sols
+
+
+func _solve_camps(space: PhysicsDirectSpaceState3D) -> Array:
+	var out: Array = []
+	for camp: Dictionary in _camps:
+		var sol := {"why": "", "center": Vector3.ZERO, "route": [], "ats": []}
+		var center := _ground(space, camp.at, float(camp.get("probe", 24.0)), bool(camp.get("strict", false)))
+		var why := ""
+		if Vector2(center.x - HAVEN.x, center.z - HAVEN.z).length() < HAVEN_R or Vector2(center.x - Endgame.O.x, center.z + 10.0).length() < 12.0:
+			why = "haven"
+		elif _realm and is_nan(_last_hit_y):
+			why = "no ground"                       # e.g. the Crossing's head is not built
+		elif _realm and not camp.get("strict", false) and not _camp_ground_ok(space, center, String(camp.get("seal", ""))):
+			# a place built over it since it was set down (a site), or ground the spawn rules refuse (water, a lip, a
+			# rock): the nearest fair ground within CAMP_MOVE keeps the camp where it was meant to be
+			var moved := _camp_move(space, center, String(camp.get("seal", "")))
+			if moved == Vector3.INF:
+				var st := WorldLanes.site_at(Vector2(center.x, center.z), 1.0)
+				why = ("inside site " + String(st.name)) if not st.is_empty() else "no fair ground: " + String(SpawnRules.assess(space, center).why)
+			else:
+				center = moved
+		sol.why = why
+		sol.center = center
+		out.append(sol)
+		if why != "":
+			continue
+		var kinds: Array = camp.kinds
+		var n := kinds.size()
+		var sid := String(camp.get("seal", ""))
+		var route: Array = []
+		for c2: Vector2 in camp.get("patrol", []):
+			var g2 := _ground(space, Vector3(c2.x, float(camp.at.y), c2.y), float(camp.get("probe", 24.0)))
+			if is_nan(_last_hit_y):
+				continue
+			if _realm and not SpawnRules.ok(space, g2):
+				g2 = SpawnRules.find(space, Vector2(c2.x, c2.y), 6.0, g2.y + 8.0)   # a stop on a way, in a pool, on a lip: beside it
+			if g2 != Vector3.INF:
+				route.append(g2)
+		sol.route = route
+		var opts := {"ways": sid == ""}
+		var ats: Array = []
+		for i in n:
+			var a := TAU * float(i) / float(maxi(n, 1)) + 0.15
+			var ring: float = float(camp.get("r", 2.5)) if n > 1 else float(camp.get("r", 0.0))
+			var off := Vector3(cos(a) * ring, 0.0, sin(a) * ring)
+			var probe := center + off
+			if _realm and not camp.get("strict", false):
+				probe.y = float(camp.at.y)               # realm ground camps probe from high above
+			var at := _ground(space, probe, float(camp.get("probe", 24.0)), bool(camp.get("strict", false)))
+			if _realm and is_nan(_last_hit_y):
+				at = center                               # no floor there (a cliff edge): stand at the camp
+			elif _realm and not camp.get("strict", false) and not SpawnRules.ok(space, at, opts):
+				# its place in the ring is water, a lip, a rock or the way: the nearest fair floor beside it, else the camp's
+				var near := SpawnRules.find(space, Vector2(at.x, at.z), 3.0, center.y + 8.0, opts, center.y, 2.5)
+				if near == Vector3.INF:
+					near = SpawnRules.find(space, Vector2(center.x, center.z), ring + 2.5, center.y + 8.0, opts, center.y, 2.5)
+				at = near if near != Vector3.INF else center
+			ats.append(at)
+		sol.ats = ats
+	return out
 
 
 ## A camp's centre: off sites, off the ways (CAMP_BERTH; a seal guard's way is its post) and on ground the spawn

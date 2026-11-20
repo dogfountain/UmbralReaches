@@ -14,6 +14,8 @@ extends RefCounted
 ## release() ends that at the end of the build.
 
 const CONTACT := Metrics.CONTACT
+const PlacementCacheRef := preload("res://core/world/realm/placement_cache.gd")
+const FloraRef := preload("res://core/world/realm/realm_flora.gd")
 const FALLOFF := 4.0         ## metres over which a stamp blends back into the original ground
 const NUDGE := Vector2(0.0037, 0.0029)   ## off the grid lines: a ray on a triangle edge can slip through
 
@@ -121,6 +123,7 @@ static func apply(root: Node) -> void:
 	if WorldLanes.sites.is_empty():
 		return
 	await root.get_tree().physics_frame
+	var t_a := Time.get_ticks_usec()
 	var delta := {}          # grid index -> dy
 	var hard := {}           # grid indices whose cut ends at a wall: no falloff from them
 	# registered building sites: cut the ground down to the site's cut height inside the footprint
@@ -149,7 +152,10 @@ static func apply(root: Node) -> void:
 	if delta.is_empty() and heaped.is_empty():
 		print("TERRAIN_STAMP nothing to fix")
 		return
+	Realm.prof_add("stamp: deltas", t_a)
+	t_a = Time.get_ticks_usec()
 	var out := _spread(delta, hard, grid)
+	Realm.prof_add("stamp: spread", t_a)
 	for idx: int in heaped:
 		if not out.has(idx) or float(out[idx]) < float(heaped[idx]):
 			out[idx] = heaped[idx]
@@ -160,9 +166,11 @@ static func apply(root: Node) -> void:
 			lo = minf(lo, v)
 			hi = maxf(hi, v)
 		print("TERRAIN_MOUND %d vertices heaped under roots and the like (%.2f .. %.2f)" % [heaped.size(), lo, hi])
+	t_a = Time.get_ticks_usec()
 	_write(terrain, body, grid, arrays, verts, out)
 	grid.shift(out)
 	WorldLanes.clear_cache()
+	Realm.prof_add("stamp: write", t_a)
 	print("TERRAIN_STAMP %d vertices stamped, %d blended" % [delta.size(), out.size() - delta.size()])
 
 
@@ -279,7 +287,10 @@ static func settle(root: Node) -> void:
 		return
 	_own(body, grid)
 	var space := (root as Node3D).get_world_3d().direct_space_state
-	var sm := _floor_samples(space, body.get_rid(), grid)
+	var t_s := Time.get_ticks_usec()
+	var sm := _floor_picks(space, body.get_rid(), grid)
+	Realm.prof_add("settle: floor samples", t_s)
+	t_s = Time.get_ticks_usec()
 	var pending := {}
 	for pass_n in 3:           # each sees what the one before's blending brought up to a floor
 		if not grid.exact and not pending.is_empty():
@@ -294,9 +305,35 @@ static func settle(root: Node) -> void:
 		for idx: int in out:
 			_settled[idx] = float(_settled.get(idx, 0.0)) + float(out[idx])
 			pending[idx] = float(pending.get(idx, 0.0)) + float(out[idx])
+	Realm.prof_add("settle: passes", t_s)
+	t_s = Time.get_ticks_usec()
 	if not pending.is_empty():
 		_write(terrain, body, grid, arrays, arrays[Mesh.ARRAY_VERTEX], pending)
 	WorldLanes.clear_cache()
+	Realm.prof_add("settle: write", t_s)
+
+
+## `_floor_samples`, stored (placement_cache.gd): a ray per sample against every floor built, deterministic for the code, the ground as
+## stamped (the grid's heights) and the sites registered, and the 0.4 s of a warm boot that reads them back instead.
+static func _floor_picks(space: PhysicsDirectSpaceState3D, terrain: RID, grid: _Grid) -> Dictionary:
+	var ctx := HashingContext.new()
+	ctx.start(HashingContext.HASH_SHA256)
+	ctx.update(grid.ys.to_byte_array())
+	var k := PlacementCacheRef.key("terrain_settle", [ctx.finish().hex_encode(), FloraRef.last_fp])
+	var hit: Variant = PlacementCacheRef.load_picks("terrain_settle", k)
+	if hit != null and not PlacementCacheRef.verify:
+		PlacementCacheRef.note("terrain_settle", "hit")
+		return (hit as Dictionary).sm as Dictionary
+	var sm := _floor_samples(space, terrain, grid)
+	var picks := {"sm": sm}
+	if hit == null:
+		PlacementCacheRef.save_picks(k, picks)
+		PlacementCacheRef.note("terrain_settle", "miss")
+		if PlacementCacheRef.verify:
+			PlacementCacheRef.compare("terrain_settle", k, picks, PlacementCacheRef.load_picks("terrain_settle", k))
+	else:
+		PlacementCacheRef.compare("terrain_settle", k, picks, hit)
+	return sm
 
 
 ## Every floor sample (SETTLE_STEP apart inside each floor site) with a walk surface near its site's floor height:
