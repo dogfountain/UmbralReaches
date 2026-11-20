@@ -137,7 +137,7 @@ static func split(mi: MeshInstance3D, lods := true) -> int:
 			for k in tri.size():
 				new_idx[k] = remap[tri[k]]
 			arrays[Mesh.ARRAY_INDEX] = new_idx
-			im.add_surface(Mesh.PRIMITIVE_TRIANGLES, arrays, [], {}, mi.mesh.surface_get_material(s))
+			im.add_surface(Mesh.PRIMITIVE_TRIANGLES, arrays, [], {}, mi.mesh.surface_get_material(s), "", _flags(mi, arrays))
 		if lods:
 			im.generate_lods(25.0, 60.0, [])
 		var cm: ArrayMesh = im.get_mesh()
@@ -165,6 +165,15 @@ static func _cell_for(centres: Array[PackedVector2Array], ntri: int) -> float:
 	return cell
 
 
+## Meta keep_format (a vertex format): the chunks are made in that format's attribute compression, so they draw with the
+## pipelines its pieces compiled (the summit's joined moss rocks: SurfaceTool's own output is uncompressed).
+static func _flags(mi: MeshInstance3D, arrays: Array) -> int:
+	if not mi.has_meta(&"keep_format"):
+		return 0
+	var comp := (int(mi.get_meta(&"keep_format")) & Mesh.ARRAY_FLAG_COMPRESS_ATTRIBUTES) != 0
+	return Mesh.ARRAY_FLAG_COMPRESS_ATTRIBUTES if comp and (arrays[Mesh.ARRAY_NORMAL] != null) == (arrays[Mesh.ARRAY_TANGENT] != null) else 0
+
+
 static func _add_chunk(mi: MeshInstance3D, xf: Transform3D, key: Vector2i, mesh: Mesh) -> void:
 	var chunk := MeshInstance3D.new()
 	chunk.name = "%s_chunk_%d_%d" % [mi.name, key.x, key.y]
@@ -172,6 +181,7 @@ static func _add_chunk(mi: MeshInstance3D, xf: Transform3D, key: Vector2i, mesh:
 	chunk.material_override = mi.material_override
 	chunk.cast_shadow = mi.cast_shadow
 	chunk.gi_mode = mi.gi_mode
+	chunk.lod_bias = mi.lod_bias
 	chunk.layers = mi.layers
 	chunk.visibility_range_end = mi.visibility_range_end
 	chunk.visibility_range_end_margin = mi.visibility_range_end_margin
@@ -188,7 +198,7 @@ static func _content_key(mi: MeshInstance3D, lods: bool) -> String:
 	for sidx in mi.mesh.get_surface_count():
 		var a := mi.mesh.surface_get_arrays(sidx)
 		h = hash([h, hash(a[Mesh.ARRAY_VERTEX]), hash(a[Mesh.ARRAY_INDEX]) if a[Mesh.ARRAY_INDEX] != null else 0])
-	return "chunks|%s|%d|%s" % [mi.name, h, lods]
+	return "chunks|%s|%d|%s|%d" % [mi.name, h, lods, int(mi.get_meta(&"keep_format", 0))]
 
 
 static func _stride(ch: int, src: Array) -> int:

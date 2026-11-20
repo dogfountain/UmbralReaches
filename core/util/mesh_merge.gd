@@ -87,7 +87,12 @@ static func _splittable(mi: MeshInstance3D) -> bool:
 		return false
 	var am := mi.mesh as ArrayMesh
 	for si in am.get_surface_count():
-		if am.surface_get_primitive_type(si) != Mesh.PRIMITIVE_TRIANGLES or am.surface_get_format(si) & _OTHER:
+		var fmt := am.surface_get_format(si)
+		if am.surface_get_primitive_type(si) != Mesh.PRIMITIVE_TRIANGLES or fmt & _OTHER:
+			return false
+		# a compressed surface the split could not compress again the same way (normals without tangents) would draw in a
+		# new vertex format: its pipelines compiled again at first sight (P7, 19 Nov)
+		if (fmt & Mesh.ARRAY_FLAG_COMPRESS_ATTRIBUTES) and bool(fmt & Mesh.ARRAY_FORMAT_NORMAL) != bool(fmt & Mesh.ARRAY_FORMAT_TANGENT):
 			return false
 		var m := _surface_mat(mi, si)
 		if m == null or not safe_material(m):
@@ -391,9 +396,9 @@ const CELL := 6.0                   ## ranged pieces merge within a cell this si
 const CELL_FAR := 64.0              ## pieces with no range (never fade): only frustum culling coarsens (24 m until the
                                     ## fps pass: Weirford's, the South Marches' and Hearthward's far pieces stood one a cell)
 ## A fading piece's cell grows with its range (fps pass, 20 Nov: at 6 m the whole Realm's candidates made 2956 -> 2617
-## draws): a share of its range end, so its fade starts at most about one fade band (FadeGuard: 0.15 of the range) from
+## draws): a tenth of its range end, so its fade starts at most about one fade band (FadeGuard: 0.15 of the range) from
 ## where it did, and it still fades. The near half of a stand-in swap and a stand-in keep CELL: their cuts must meet.
-const CELL_K := 0.06
+const CELL_K := 0.1
 const CELL_MAX := 16.0
 
 
