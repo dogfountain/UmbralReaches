@@ -29,6 +29,14 @@ static func attach(skel: Skeleton3D, body: MeshInstance3D, key: String, mesh: Ar
 	sp.skin = body.skin
 	sp.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_SHADOWS_ONLY
 	sp.extra_cull_margin = body.extra_cull_margin
+	# the body's range (FadeGuard pushes both out alike): past it the person is not drawn, so neither is their shadow (an
+	# unranged proxy cast the shadows of people nobody sees, frozen past 150 m where they are not posed)
+	sp.visibility_range_begin = body.visibility_range_begin
+	sp.visibility_range_begin_margin = body.visibility_range_begin_margin
+	sp.visibility_range_end = body.visibility_range_end
+	sp.visibility_range_end_margin = body.visibility_range_end_margin
+	sp.visibility_range_fade_mode = body.visibility_range_fade_mode
+	sp.lod_bias = body.lod_bias
 	skel.add_child(sp)
 	sp.skeleton = NodePath("..")
 	body.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
