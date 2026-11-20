@@ -518,6 +518,10 @@ func _cmd(a: PackedStringArray) -> void:
 				pts.append("%.2f,%.2f,%.2f" % [w.x, w.z, w.y + (0.6 if first else 0.0)])
 				first = false
 			await _walk(pts)
+		"unseal":                                  # every ward seal released, as the bake's walks do
+			for w in main.find_children("*", "", true, false):
+				if w is WardSeal:
+					(w as WardSeal).release()
 		"wait":                                    # wait <seconds>: a windowed boot holds the player a while
 			var tw := Time.get_ticks_msec()
 			while Time.get_ticks_msec() - tw < int(_fl(a, 1, 10.0) * 1000.0):
