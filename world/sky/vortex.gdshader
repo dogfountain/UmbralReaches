@@ -158,7 +158,7 @@ void sky() {
         col += vec3(0.42, 0.52, 0.92) * ghosts * 0.05 * bright * moon_glow;
         // the constellations: baked once into an equirect texture (a texture fetch per sky pixel, nothing computed)
         vec2 cuv = vec2(atan(EYEDIR.x, -EYEDIR.z) / TAU + 0.5, acos(clamp(EYEDIR.y, -1.0, 1.0)) / PI);
-        col += texture(constellations, cuv).rgb * const_vis * HALF_RES_COLOR.a * smoothstep(0.03, 0.2, EYEDIR.y);
+        col += texture(constellations, cuv).rgb * const_vis * HALF_RES_COLOR.a * smoothstep(0.03, 0.2, EYEDIR.y) * (1.0 - smoothstep(0.8, 0.97, EYEDIR.y));   // (the equirect map stretches toward the zenith: the opening's lens looking straight up saw its stars as soft smeared squares)
         col = mix(col_deep * 0.5, col, smoothstep(-0.05, 0.12, EYEDIR.y)); // horizon falloff
         // moon-silvered haze low on the sky: ridges and towers separate from it
         col += vec3(0.11, 0.17, 0.29) * exp(-abs(EYEDIR.y) * 9.0);
