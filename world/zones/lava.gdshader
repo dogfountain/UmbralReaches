@@ -202,9 +202,9 @@ void fragment() {
 		float ph = fract(TIME * 0.13 + hash(rc + 7.1));
 		float rr = length(world_pos.xz - rp) - ph * 7.0;
 		float ring = (1.0 - smoothstep(0.0, 0.18 + fwidth(rr), abs(rr))) * (1.0 - ph) * (1.0 - ph);
-		float shore = smoothstep(0.0, 0.03, bank) * (1.0 - smoothstep(0.05, 0.2, bank));
+		float shore = smoothstep(0.0, 0.03, bank) * (1.0 - smoothstep(0.03, 0.1, bank));   // (polish: a narrower, dimmer line: round a plinth's square foot it drew a flat blue rectangle)
 		vec3 glow = mix(star_violet, star_teal, smoothstep(0.55, 0.95, c2));
-		vec3 sem = glow * (0.05 + veil * 0.85 + ring * 0.45) + vec3(0.82, 0.86, 1.0) * star * 1.6 + mix(star_violet, star_teal, 0.5) * shore * 0.55;
+		vec3 sem = glow * (0.05 + veil * 0.85 + ring * 0.45) + vec3(0.82, 0.86, 1.0) * star * 1.6 + mix(star_violet, star_teal, 0.5) * shore * 0.28;
 		// where the two waters meet the lava's last heat goes out in a dull ember band
 		float meet = sw * (1.0 - sw) * 4.0;
 		ALBEDO = mix(ALBEDO, star_deep, sw);

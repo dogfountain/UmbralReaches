@@ -568,11 +568,11 @@ static func _rune_mat() -> StandardMaterial3D:
 ## water, with LavaWorks' Glow0 between them, and one higher in front of the chapel that lights the west terraces' faces and the
 ## chapel's facade. Unshadowed, budgeted like the Realm's own lights.
 func _pool_lights(host: Node3D) -> void:
-	for spec: Array in [[Vector3(0.0, LAVA + 1.6, -18.5), 4.0, 24.0], [Vector3(4.0, LAVA + 1.6, -38.0), 4.0, 24.0], [Vector3(-11.0, LAVA + 6.5, -37.0), 3.2, 13.0]]:
+	for spec: Array in [[Vector3(0.0, LAVA + 1.6, -18.5), 2.8, 24.0], [Vector3(4.0, LAVA + 1.6, -38.0), 3.6, 24.0], [Vector3(-11.0, LAVA + 6.5, -37.0), 3.2, 13.0]]:
 		var at: Vector3 = spec[0]
 		var l := OmniLight3D.new()
 		l.name = "PoolLight"
-		l.light_color = Color(0.5, 0.38, 1.0)
+		l.light_color = Color(0.6, 0.5, 1.0)          # (polish: a paler violet and less of it at the plinths: their lower treads drew as flat neon-blue slabs)
 		l.light_energy = float(spec[1])
 		l.omni_range = float(spec[2])
 		l.omni_attenuation = 0.8
