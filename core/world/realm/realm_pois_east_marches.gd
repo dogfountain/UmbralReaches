@@ -430,9 +430,12 @@ static func _plinth(host: Node3D, space: PhysicsDirectSpaceState3D, xf: Transfor
 	var n := roundi(half * 2.0 / PLINTH_CELL)
 	for ix in n:
 		for iz in n:
-			cells.append([-half + (float(ix) + 0.5) * PLINTH_CELL, -half + (float(iz) + 0.5) * PLINTH_CELL, PLINTH_CELL, PLINTH_CELL])
+			cells.append([-half + (float(ix) + 0.5) * PLINTH_CELL, -half + (float(iz) + 0.5) * PLINTH_CELL, PLINTH_CELL, PLINTH_CELL,
+				ix == 0 or iz == 0 or ix == n - 1 or iz == n - 1])
 	for sx: float in [-1.2, 0.0, 1.2]:          # the steps in front of the door
-		cells.append([sx, half + 1.0, 1.2, 2.0])
+		cells.append([sx, half + 1.0, 1.2, 2.0, true])
+	var stack: Array = []                       # the footing's look: [cell centre (world), bottom y, top y, on the rim] (stacked blocks below)
+	k.visual = false                            # the cells' boxes are the colliders only (polish, 20 Nov): the look is found_block.glb
 	for c: Array in cells:
 		var lo := INF
 		var cx: float = c[0]
@@ -450,6 +453,8 @@ static func _plinth(host: Node3D, space: PhysicsDirectSpaceState3D, xf: Transfor
 		var mid := xf * Vector3(cx, 0.0, cz)
 		mid.y = (top + bottom) * 0.5
 		k.box("stone", mid, Vector3(float(c[2]) + 0.02, top - bottom, float(c[3]) + 0.02), xf.basis, true, 1.0)
+		stack.append([mid, bottom, top, bool(c[4]), Vector2(float(c[2]), float(c[3]))])
+	k.visual = true
 	# where the footing stands tall over the falling ground: a string course under the slab's edge and stepped buttresses
 	# every third cell, so the base reads as built up to the tower and not as a bare block
 	var top_y := xf.origin.y + 0.06
@@ -493,12 +498,58 @@ static func _plinth(host: Node3D, space: PhysicsDirectSpaceState3D, xf: Transfor
 	host.add_child(holder)
 	holder.global_transform = Transform3D.IDENTITY
 	k.commit(holder, "Body")
+	_plinth_blocks(holder, xf, stack)
 	# the same stone as the tower above it, a shade paler: it stands in the tower's shadow
 	var lit := (OssKit.mat("stone") as StandardMaterial3D).duplicate() as StandardMaterial3D
 	lit.albedo_color = lit.albedo_color * 1.8
 	for c in holder.get_children():
 		if c is MeshInstance3D:
 			(c as MeshInstance3D).material_override = lit
+
+
+const FOUND := M + "found_block.glb"
+const FOUND_N := 1.04                    ## the block's size (tools/blender/polish_blocks.py)
+
+
+## The footing's look: each rim cell's column laid in courses of dressed blocks from its foot to the slab (a MultiMesh, one draw), the
+## cells inside only the top course (the apron the tower stands on). Replaces the column of one plain box per cell.
+static func _plinth_blocks(holder: Node3D, xf: Transform3D, stack: Array) -> void:
+	var ms: Array[Mesh] = []
+	for nm: String in ["Block0", "Block1", "Block2"]:
+		var m := mesh(FOUND, nm)
+		if m != null:
+			ms.append(m)
+	if ms.is_empty():
+		return                                # not imported: no look (the colliders stand)
+	var per: Array = []
+	for _i in ms.size():
+		per.append([])
+	for e: Array in stack:
+		var mid: Vector3 = e[0]
+		var bottom: float = e[1]
+		var top: float = e[2]
+		var rim: bool = e[3]
+		var sz: Vector2 = e[4]
+		var lo := bottom if rim else maxf(bottom, top - FOUND_N)
+		var count := maxi(1, ceili((top - lo) / FOUND_N - 0.05))
+		var sy := (top - lo) / (float(count) * FOUND_N)
+		var hsh := absi(hash(Vector3i((mid * 7.0).round())))
+		for j in count:
+			var pick := (hsh + j * 5 + j / 3) % ms.size()
+			var yaw := float(((hsh >> 3) + j * 3) % 4) * PI * 0.5 + float((hsh + j) % 7 - 3) * 0.006
+			var b := xf.basis * Basis(Vector3.UP, yaw) * Basis.from_scale(Vector3(sz.x / FOUND_N + 0.01, sy, sz.y / FOUND_N + 0.01))
+			var at := Vector3(mid.x, lo + (float(j) + 0.5) * sy * FOUND_N, mid.z) + xf.basis * Vector3(float((hsh + j * 11) % 5 - 2) * 0.004, 0.0, float((hsh * 3 + j) % 5 - 2) * 0.004)
+			(per[pick] as Array).append(Transform3D(b, at))
+	var mat := (OssKit.mat("stone") as StandardMaterial3D).duplicate() as StandardMaterial3D
+	mat.vertex_color_use_as_albedo = true
+	mat.albedo_color = mat.albedo_color * 1.7              # lifted like the tower above it: it stands in its shadow
+	for i in ms.size():
+		var xs: Array = per[i]
+		if xs.is_empty():
+			continue
+		var mmi := OssKit.multimesh(ms[i], xs, mat, true)
+		mmi.name = "Footing%d" % i
+		holder.add_child(mmi)
 
 
 # --- The hamlet ---------------------------------------------------------------------------------------
