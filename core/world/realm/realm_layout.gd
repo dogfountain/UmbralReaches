@@ -784,7 +784,10 @@ static func water_level_at(x: float, z: float) -> float:
 		if Vector2(x, z).distance_to(WELL_C) < WELL_R + 5.0:
 			return WELL_POOL_Y
 	if x > -70.0 and x < 52.0 and z > 136.0 and z < 196.0:
-		if OssFrame.pit_d(Vector2(x, z)) < 4.0:
+		# the quarry's whole neighbourhood is on the pool's level, not only 4 m round the pit (polish, 20 Nov): ground in the cliff's foot and the
+		# lip's hollows lies under the fen's -0.9, so the Realm's water sheet floated there as a pale plane at the eyes of the Counting Door's
+		# threshold (the map audit's F27); at the pool's level only the pit's own floor is under water
+		if OssFrame.pit_d(Vector2(x, z)) < 40.0:
 			return OssFrame.ORIGIN.y + OssFrame.POOL_Y
 	return NAN
 
