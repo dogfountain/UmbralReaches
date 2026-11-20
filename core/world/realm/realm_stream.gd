@@ -53,7 +53,7 @@ static func wanted() -> bool:
 	return false
 
 
-## The night streams only when asked (`--stream`, a test): measured (docs/r39/load_stream.md), a flora MultiMeshInstance3D
+## The night streams only when asked (`--stream`, a test): measured (the lane's notes, docs/load_stream), a flora MultiMeshInstance3D
 ## added while frames are drawn costs 0.33 ms under the loading screen and 2-9 ms while the wanderer plays (the add waits on
 ## the GPU in flight), against 0.11 ms in the build's own run of adds with no frame between: streaming the flora into play
 ## put 69-107 frames over 16 ms in 75 s, and draining it under the cover cost 3.5 s more than building it in one go. So the

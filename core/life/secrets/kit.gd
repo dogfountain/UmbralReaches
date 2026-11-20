@@ -100,7 +100,7 @@ static func clear_flora(_root: Node, discs: Array) -> void:
 
 ## Do the queued clearance in one pass over the flora (secrets.gd calls it once, after every site). The scan of the instance
 ## buffers (millions of floats; pure data) runs on the worker pool, one task a buffer; the nodes are touched here on the main thread.
-## The discs are kept on the flora host too: chunks the stream builds later (realm_stream.gd) are cleared as they are made (clear_in_chunk).
+## The discs are kept on the flora host too: chunks the stream builds later (realm_stream.gd) are cleared as they are made (flora_emit.gd clear_in_chunk).
 static func flush_flora(root: Node) -> int:
 	var discs := _pending.duplicate()
 	_pending.clear()
@@ -144,54 +144,6 @@ static func flush_flora(root: Node) -> int:
 			mm.buffer = j.buf
 			mm.set_meta("cpu_buffer", j.buf)
 			n += int(j.n)
-	return n
-
-
-## The plants and colliders of one flora chunk node inside the discs (x, z, radius; world) cleared: `only` (empty = every
-## child) names the children to look at.
-static func clear_in_chunk(ch: Node3D, discs: Array, only: Array) -> int:
-	var n := 0
-	var c3 := ch.position
-	var near: Array = []
-	for d: Vector3 in discs:
-		if Vector2(c3.x, c3.z).distance_to(Vector2(d.x, d.y)) < d.z + 34.0:
-			near.append(Vector3(d.x - c3.x, d.y - c3.z, d.z * d.z))     # chunk-local, radius squared
-	if near.is_empty():
-		return 0
-	for mmi_n in (ch.get_children() if only.is_empty() else only):
-		if mmi_n is MultiMeshInstance3D:
-			var mmi := mmi_n as MultiMeshInstance3D
-			var mm := mmi.multimesh
-			if mm == null or not mm.has_meta("cpu_buffer"):
-				continue
-			var buf: PackedFloat32Array = mm.get_meta("cpu_buffer")
-			var hit := false
-			var stride := 16 if mm.use_colors else 12
-			for i in mm.instance_count:
-				var o := i * stride
-				var lx := buf[o + 3]
-				var lz := buf[o + 11]
-				for d: Vector3 in near:
-					var dx := lx - d.x
-					var dz := lz - d.y
-					if dx * dx + dz * dz < d.z:
-						for k: int in [0, 1, 2, 4, 5, 6, 8, 9, 10]:
-							buf[o + k] = 0.0
-						buf[o + 7] -= 50.0
-						hit = true
-						n += 1
-						break
-			if hit:
-				mm.buffer = buf
-				mm.set_meta("cpu_buffer", buf)
-		elif mmi_n is StaticBody3D:
-			for cs in (mmi_n as Node).get_children():
-				if cs is CollisionShape3D:
-					var p := (cs as CollisionShape3D).position
-					for d: Vector3 in near:
-						var r := sqrt(d.z) + 0.4
-						if Vector2(p.x - d.x, p.z - d.y).length_squared() < r * r:
-							(cs as CollisionShape3D).disabled = true
 	return n
 
 
