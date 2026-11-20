@@ -184,7 +184,7 @@ static func reserve(root: Node, skip: PackedStringArray) -> void:
 		spots[id] = {"at": Vector3(q.x, base, q.y), "yaw": yaw, "rect": rect, "lo": lo, "hi": hi}
 		if id == "orchard_heart":
 			# the Mother Tree's way in: kept clear of scatter, 16 m of it (zone fit: deadfall lay across the approach of the giant trees)
-			var mo := Basis(Vector3.UP, yaw) * Vector3(0.9, 0.0, 1.0)
+			var mo := Basis(Vector3.UP, yaw) * Vector3(0.2, 0.0, 1.0).normalized()
 			WorldLanes.register_lane("mother_way", [q + Vector2(mo.x, mo.z) * 16.0, q + Vector2(mo.x, mo.z) * 1.5], 2.2)
 		if bool(d.get("nocut", false)):
 			WorldLanes.register_site("poi_" + id, rect, cy, hi + 1.0)      # the tor keeps its rocks: no cut
