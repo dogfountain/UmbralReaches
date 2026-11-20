@@ -50,13 +50,6 @@ var model_yaw := 0.0
 ## UV2.x = material layer; a surface named "glow" is lit), so it wears their look, not an atlas.
 var villager_look := false
 
-## Models instanced AHEAD on a worker (a boss's approach: BossKit.warm stage 0): glb path -> the instance, not in the tree,
-## and the worker's task id while it is being made. `_build` takes the instance instead of making one on the main thread
-## (a modelled boss is a skeleton, several skinned meshes and its clips: the largest part of a boss's build).
-static var _ahead: Dictionary = {}
-static var _ahead_task: Dictionary = {}
-static var _ahead_lock := Mutex.new()
-
 var _model: Node3D
 var _skeleton: Skeleton3D
 var _anim: AnimationPlayer
@@ -72,39 +65,6 @@ var _size := 1.0
 var _sock_bone: PackedInt32Array = PackedInt32Array()
 var _sock_node: Array[Node3D] = []
 var _sock_rest: Array[Basis] = []
-
-
-## Instance the glb on a worker thread, to be taken by the next rig built on it.
-static func instance_ahead(path: String) -> void:
-	_ahead_lock.lock()
-	var busy := _ahead.has(path) or _ahead_task.has(path)
-	if not busy:
-		_ahead_task[path] = -1
-	_ahead_lock.unlock()
-	if busy:
-		return
-	var id := WorkerThreadPool.add_task(func() -> void:
-		var ps := load(path) as PackedScene
-		var n: Node = ps.instantiate() if ps != null else null
-		_ahead_lock.lock()
-		if n != null:
-			_ahead[path] = n
-		_ahead_task.erase(path)
-		_ahead_lock.unlock(), false, "clip_rig ahead")
-	_ahead_lock.lock()
-	if _ahead_task.has(path):
-		_ahead_task[path] = id
-	_ahead_lock.unlock()
-
-
-## The instance made ahead for `path`, or null when there is none or the worker is still at it (never waited for: a worker
-## that needs the main thread for a moment would be waited on for ever; the rig then builds its own, as it always did).
-static func _take_ahead(path: String) -> Node3D:
-	_ahead_lock.lock()
-	var n := _ahead.get(path) as Node3D
-	_ahead.erase(path)
-	_ahead_lock.unlock()
-	return n
 
 
 ## Put an enemy on a clip rig: what its _build did with attach_rig() and EnemyBody.dress(), for a modelled skeleton.
@@ -134,9 +94,8 @@ static func fit(e: Node, scene: String, kind: StringName, bones: Dictionary, opt
 func _build() -> void:
 	_sockets.clear()
 	_equipped.clear()
-	var made: Node3D = _take_ahead(scene_path) if scene_path != "" else null
-	var ps := load(scene_path) as PackedScene if scene_path != "" and made == null else null
-	if ps == null and made == null:
+	var ps := load(scene_path) as PackedScene if scene_path != "" else null
+	if ps == null:
 		push_error("ClipRig: no model at '%s'" % scene_path)
 		_pelvis = ProcMesh.node(self, "Pelvis", Vector3(0, 0.9, 0))
 		_chest = _pelvis
@@ -144,7 +103,7 @@ func _build() -> void:
 		for n: String in ["pelvis", "chest", "head", "body", "front"]:
 			_sockets[n] = _pelvis
 		return
-	_model = made if made != null else ps.instantiate() as Node3D
+	_model = ps.instantiate() as Node3D
 	_model.name = "Model"
 	_model.rotation.y = model_yaw
 	add_child(_model)

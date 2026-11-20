@@ -42,8 +42,7 @@ first time the mesh had merged. The previous pass's A* change was a wrong guess.
 `BossArena._warm_step` stages 0-4 as before; step 5 `_stage_boss()` builds the real boss (hidden, process off, out of the
 enemy group, collision 0); step 6 `_stage_draw()` shows it as a speck for its first draw (replaces `BossKit.warm_rig`'s
 throwaway: one build, not two); `_begin()` wakes it (`_wake_staged`) in the pull. The fight starts exactly where it did.
-`BossKit.warm` stage 0 also asks a worker to instance the glb (`ClipRig.instance_ahead`), which `ClipRig._build` takes if
-it is ready (never waited for: waiting hung the main thread, found by a 0 % CPU run). `BossArena.staging = false`
+(A worker that instanced the glb ahead was tried and dropped: waiting for it hung the main thread, and a worker still running at quit crashed the headless boss tests at exit.) `BossArena.staging = false`
 (perf_tour `--bosses --no-stage`) is the old behaviour, for the before numbers.
 
 ### NavAssist (the real PE2 cause)
