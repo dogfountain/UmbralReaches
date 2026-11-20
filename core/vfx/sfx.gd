@@ -98,6 +98,35 @@ static func _limit_key(s: AudioStream) -> Variant:
 	return base.substr(0, i) if i > 0 and base.substr(i + 1).is_valid_int() else base
 
 
+## A looping voice (the slide's scrape, the lance's charge) in without a click and out without a cut (polish, 20 Nov: both began at full
+## level and stopped dead). `loop_on` rises over `rise` s to `db`; `loop_off` falls over `fall` s and then stops; a `loop_on` during a
+## fall takes the same voice back up (no restart, so the loop never stutters).
+static func loop_on(p: AudioStreamPlayer3D, db: float, rise := 0.09) -> void:
+	if p == null:
+		return
+	var old: Variant = p.get_meta(&"loop_tw") if p.has_meta(&"loop_tw") else null
+	if old is Tween and (old as Tween).is_valid():
+		(old as Tween).kill()
+	if not p.playing:
+		p.volume_db = -42.0
+		p.play()
+	var tw := p.create_tween()
+	tw.tween_property(p, "volume_db", db, rise).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	p.set_meta(&"loop_tw", tw)
+
+
+static func loop_off(p: AudioStreamPlayer3D, fall := 0.2) -> void:
+	if p == null or not p.playing:
+		return
+	var old: Variant = p.get_meta(&"loop_tw") if p.has_meta(&"loop_tw") else null
+	if old is Tween and (old as Tween).is_valid():
+		(old as Tween).kill()
+	var tw := p.create_tween()
+	tw.tween_property(p, "volume_db", -42.0, fall).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
+	tw.tween_callback(p.stop)
+	p.set_meta(&"loop_tw", tw)
+
+
 ## A few milliseconds of rise, so a stolen voice and a hard attack do not click.
 static func _rise(p: AudioStreamPlayer3D, db: float) -> void:
 	var old: Variant = p.get_meta(&"rise") if p.has_meta(&"rise") else null

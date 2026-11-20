@@ -471,7 +471,7 @@ func _tick_steep(delta: float, wish: Vector3, cur: Vector3) -> Vector3:
 	player._slide_fx.global_position = player.global_position + Vector3.UP * 0.05
 	if not player._slide_fx.emitting:
 		player._slide_fx.emitting = true
-		player._slide_sfx.play()
+		Sfx.loop_on(player._slide_sfx, -8.0)
 	player._slide_sfx.pitch_scale = 0.6 + 0.05 * h.length()
 	return h
 

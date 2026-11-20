@@ -624,7 +624,7 @@ func _physics_process(delta: float) -> void:
 	_steep_k = move_toward(_steep_k, 1.0 if steep_on else 0.0, delta * (6.0 if steep_on else 4.0))
 	if not steep_on and _steep_k <= 0.0 and not _sliding and _slide_fx.emitting:
 		_slide_fx.emitting = false
-		_slide_sfx.stop()
+		Sfx.loop_off(_slide_sfx)
 	_visual.steep = _steep_k
 	_visual.beam = _beam_k
 	camera_ctl._cam_feel_tick(delta)

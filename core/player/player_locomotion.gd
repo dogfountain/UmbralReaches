@@ -170,7 +170,7 @@ func _try_slide(horiz: Vector3, wish: Vector3, min_speed: float, bonus: float) -
 	_set_capsule(1.0)
 	player._slide_fx.emitting = true
 	(player._slide_fx.get_node("Sparks") as GPUParticles3D).emitting = true
-	player._slide_sfx.play()
+	Sfx.loop_on(player._slide_sfx, -8.0)
 	player._fov_burst_want = maxf(player._fov_burst_want, 8.0)
 	player.camera_ctl.kick(0.3 + minf(bonus * 0.05, 0.3))
 	return true
@@ -224,7 +224,7 @@ func _end_slide() -> void:
 	_set_capsule(player._col_h)
 	player._slide_fx.emitting = false
 	(player._slide_fx.get_node("Sparks") as GPUParticles3D).emitting = false
-	player._slide_sfx.stop()
+	Sfx.loop_off(player._slide_sfx)
 
 
 func _set_capsule(h: float) -> void:
