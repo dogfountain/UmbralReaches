@@ -36,8 +36,21 @@ static func _parts(k: OssKit) -> Array:
 	for key: String in k._st:
 		var am := ArrayMesh.new()
 		(k._st[key] as SurfaceTool).commit(am)
-		out.append({"mesh": am, "mat": OssKit.mat(key)})
+		out.append({"mesh": am, "mat": _wood_lifted() if key == "wood" else OssKit.mat(key)})
 	return out
+
+
+static var _wood_up: StandardMaterial3D
+
+
+## The kit's wood at SiteProps.wood()'s outdoor lift (2.3): the extra variants drew the plain material, whose texture is a night value
+## (about 0.1) under baked shade of 0.55-0.9, so every extra crate, barrel, bench and cart stood black, lamp or no lamp (Saltmarket's doors,
+## the polish pass, 20 Nov).
+static func _wood_lifted() -> StandardMaterial3D:
+	if _wood_up == null:
+		_wood_up = (OssKit.mat("wood") as StandardMaterial3D).duplicate() as StandardMaterial3D
+		_wood_up.albedo_color = Color(2.3, 2.0, 1.7)
+	return _wood_up
 
 
 static func _crate(k: OssKit, c: Vector3, s: float, yaw: float, tint := 0.85) -> void:
