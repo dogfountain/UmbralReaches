@@ -107,6 +107,7 @@ const _STATIC_CACHES := {
 	"res://core/world/realm/south_marches_kit.gd": ["_cache"],
 	"res://core/world/realm/site_props.gd": ["_meshes", "_cloth"],
 	"res://core/world/realm/lamps/lamp.gd": ["_meshes", "_mats"],
+	"res://core/life/village/villager_shadow.gd": ["_mem"],
 	# --- the vistas ---
 	"res://core/world/realm/vistas/vista_places.gd": ["_mats"],
 	"res://core/world/realm/realm_pois_east_reach.gd": ["_mats"],
