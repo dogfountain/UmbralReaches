@@ -748,7 +748,7 @@ func _pool() -> void:
 	var face := MeshInstance3D.new()
 	face.name = "PoolFace"
 	var pm := PlaneMesh.new()
-	pm.size = Vector2(OssFrame.PIT_X1_HALL - OssFrame.PIT_X0 + 6.0, OssFrame.PIT_Z1 - OssFrame.PIT_Z0 + 6.0)
+	pm.size = Vector2(OssFrame.PIT_X1_HALL - OssFrame.PIT_X0 + 14.0, OssFrame.PIT_Z1 - OssFrame.PIT_Z0 + 14.0)       # the Realm's sheet reaches 4 m past the pit's rim and a cell more: the face covers all of it (polish, 20 Nov: the pale strip beside the Count door)
 	face.mesh = pm
 	var wm := StandardMaterial3D.new()
 	wm.albedo_color = Color(0.012, 0.016, 0.02)

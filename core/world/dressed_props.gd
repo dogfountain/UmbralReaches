@@ -20,7 +20,9 @@ static func dress_brazier(node: Node3D) -> void:
 	if model == null:
 		return
 	node.set_meta("dressed", true)
-	_paint(model, "Plinth", _stone(base.material_override) if base != null else null)
+	# the plinth in the kit's masonry, not the zone's stone (normal scale 2.35, metallic, rim: lit by the fire it broke up into black
+	# glitter with green sparks at the first fire the wanderer meets; polish, 20 Nov)
+	_paint(model, "Plinth", OssKit.mat("stone") if base != null else null)
 	# the bowl in the kit's wrought iron, not a flat near-black (it read as a glossy black dish; map audit, 18 Nov)
 	_paint(model, "Bowl", OssKit.mat("iron") if bowl != null else null)
 	if base != null:
@@ -118,15 +120,6 @@ static func _moss(model: Node3D, height: float) -> void:
 	var h := clampf(height * 0.12, 0.18, 0.42)
 	ProcMesh.mesh(model, "MossSkirt", ProcMesh.cyl(0.42, 0.58, h, 12, 1), moss, Vector3(0.0, h * 0.35, 0.0), Vector3.ZERO, false)
 	ProcMesh.mesh(model, "Lichen", ProcMesh.sphere(0.16, 0.08, 8, 4), moss, Vector3(0.18, height * 0.35, 0.12), Vector3.ZERO, false)
-
-
-## The zone's plinth stone with its blue cast taken out (0.48, 0.56, 0.82 under the moon read as a cyan pedestal).
-static func _stone(m: Material) -> Material:
-	if not (m is StandardMaterial3D):
-		return m
-	var sm := (m as StandardMaterial3D).duplicate() as StandardMaterial3D
-	sm.albedo_color = Color(0.74, 0.72, 0.7)
-	return sm
 
 
 static func _paint(model: Node, prefix: String, mat: Material) -> void:
