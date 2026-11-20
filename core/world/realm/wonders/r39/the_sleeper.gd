@@ -88,6 +88,7 @@ func _run(root: Node) -> void:
 		_head()
 		_dress()
 	k.model("wonder_sleeper.glb", Transform3D(rot, Vector3(o.x, y0, o.y)))
+	_furnace(_p(3.5, 1.8, 17.0))                                         # (outside the cached part: the models are placed on every build)
 	var n: int = k.commit()
 	var hp: Array[Vector3] = [_p(-9.0, 0.0, 0.0), _p(9.0, 10.0, 0.0), _p(-9.0, 10.0, 26.0), _p(9.0, 0.0, 26.0)]
 	WK.acoustic(hp, "hall", "heart-hall")
@@ -169,12 +170,8 @@ func _torso() -> void:
 	_seg("ruin_big", 0.0, 7.0, 13.0, 21.0, 1.3, 0.9, 0.0)
 	_seg("stone_big", 0.6, 6.4, 13.6, 20.4, 1.8, 1.0, 0.0)
 	var hc := _p(3.5, 3.4, 17.0)
-	k.kit.box("glow", hc, Vector3(1.8, 1.8, 1.8), Basis(Vector3.UP, yaw + PI * 0.25) * Basis(Vector3.RIGHT, PI * 0.25), false)
-	k.kit.box("iron", hc + Vector3.DOWN * 1.5, Vector3(0.5, 1.4, 0.5), Basis(Vector3.UP, yaw), false)
-	for i in 4:
-		var a := TAU * float(i) / 4.0 + yaw
-		k.kit.box("iron", hc + Vector3(cos(a) * 1.4, -0.3, sin(a) * 1.4), Vector3(0.14, 2.6, 0.14), Basis(Vector3.UP, a), false)
-	k.fire(_p(3.5, 1.9, 17.0), 1.5, 2.6)
+	# the heart's furnace is a modelled drum (_furnace, polish_hearths.py; it was a glowing cube on its corner over four iron sticks): the flame stands on its chimney
+	k.fire(_p(3.5, 4.7, 17.0), 1.0, 1.7)
 	k.lamp(hc + Vector3.UP * 0.8, Color(1.0, 0.5, 0.24), 2.4, 15.0)
 	var cp := _p(5.9, 1.8, 14.2)
 	k.chest("sleeper_heart", "reliquary", cp, yaw + PI, {"grave_ash": 22, "grave_iron": 3, "relic_fragment": 2})
@@ -198,6 +195,17 @@ func _torso() -> void:
 	k.kit.stairs("stone_big", Vector3(lo_s.x, g1 - 0.2, lo_s.z), _p(11.0, fl, 8.5), 3.2, steps, g1 - 1.5)
 	k.fire(_p(12.0, fl + 1.0, 5.2), 0.8, 1.5)
 	k.fire(_p(12.0, fl + 1.0, 11.8), 0.8, 1.5)
+
+
+## The furnace model at the dais top `at`, its mouth turned to the hall's west stair (the way in).
+func _furnace(at: Vector3) -> void:
+	var root := k.model("sleeper_hearths.glb", Transform3D(Basis(Vector3.UP, yaw + PI), at))
+	if root == null:
+		return
+	for n in root.find_children("*", "MeshInstance3D", true, false):
+		if not String(n.name).begins_with("Furnace") and not String(n.name).contains("-colonly"):
+			n.get_parent().remove_child(n)
+			n.free()
 
 
 # --- the arms -------------------------------------------------------------------------------------------

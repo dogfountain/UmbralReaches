@@ -208,3 +208,37 @@ def bblock(P, key, c, size, rnd, yaw=0.0, bevel=0.05, warp=0.012, tone="ashlar",
         else:
             t = W.tone_for(tone, v.co, v.normal, False)
             v[lay] = (t[0], t[1], t[2], 1.0)
+
+
+def lathe(P, key, profile, seg=24, col=(0.4, 0.4, 0.4, 1.0), colfn=None, center=(0, 0, 0), rough=0.0, rnd=None, close_top=False, close_bottom=False):
+    """A surface of revolution about z through `center`: profile = [(radius, z), ...] bottom to top; vertex colour col or colfn(r, z, ang)."""
+    bm = P.of(key)
+    lay = bm.verts.layers.float_color.get("vc") or bm.verts.layers.float_color.new("vc")
+    rings = []
+    cx, cy, cz = center
+    for (r, z) in profile:
+        ring = []
+        for s in range(seg):
+            a = math.tau * s / seg
+            rr = r * (1.0 + (rnd.uniform(-rough, rough) if (rough and rnd) else 0.0))
+            v = bm.verts.new((cx + math.cos(a) * rr, cy + math.sin(a) * rr, cz + z))
+            v[lay] = colfn(r, z, a) if colfn else col
+            ring.append(v)
+        rings.append(ring)
+    for i in range(len(rings) - 1):
+        for s in range(seg):
+            try:
+                bm.faces.new((rings[i][s], rings[i][(s + 1) % seg], rings[i + 1][(s + 1) % seg], rings[i + 1][s]))
+            except ValueError:
+                pass
+    if close_top:
+        try:
+            bm.faces.new(rings[-1][::-1])
+        except ValueError:
+            pass
+    if close_bottom:
+        try:
+            bm.faces.new(rings[0])
+        except ValueError:
+            pass
+    return rings
