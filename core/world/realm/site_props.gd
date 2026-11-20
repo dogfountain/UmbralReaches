@@ -133,12 +133,20 @@ static func _goods() -> ArrayMesh:
 static func parts(file: String) -> Array:
 	var key := "glb:" + file
 	if not _meshes.has(key):
-		_meshes[key] = {"parts": _glb_parts(file)}
+		_meshes[key] = {"parts": _glb_parts(file, true)}
+	return _meshes[key].parts
+
+
+## The same parts with the kit's own timber (no outdoor lift): for a room that candles light (the tavern's furniture).
+static func parts_indoor(file: String) -> Array:
+	var key := "glb_in:" + file
+	if not _meshes.has(key):
+		_meshes[key] = {"parts": _glb_parts(file, false)}
 	return _meshes[key].parts
 
 
 ## [{mesh, mat}] of a glb under art/models/props/: one per `<part>__<set>` mesh (the -colonly node is no mesh).
-static func _glb_parts(file: String) -> Array:
+static func _glb_parts(file: String, lift := true) -> Array:
 	var out: Array = []
 	var ps := Kit.scene("props/%s.glb" % file)
 	if ps == null:
@@ -150,7 +158,7 @@ static func _glb_parts(file: String) -> Array:
 		if parts.size() < 2:
 			continue
 		var set_name := parts[parts.size() - 1].get_slice(".", 0).get_slice("_", 0)
-		out.append({"mesh": mi.mesh, "mat": _water() if set_name == "water" else (_prop_wood() if set_name == "timber" else Kit.prop_mat(set_name))})
+		out.append({"mesh": mi.mesh, "mat": _water() if set_name == "water" else (_prop_wood() if lift and set_name == "timber" else Kit.prop_mat(set_name))})
 	root.free()
 	return out
 
