@@ -18,8 +18,9 @@ at the end.
 - [x] batch two (lead, 20 Nov): the HUD baked (F10), the static merge widened (F11), the summit's rocks joined (F12),
       people's shadows from a lower LOD (F13); short diagnostic runs chose them (`<S>/diag/`: a clean `--census-split`,
       `--merge-why`, `--why-under`, `--casters`, HUD shots)
-- [ ] after: the same runs once (`<S>/measure_after.sh`), plus `--attrib` at r_spawn_west and r_orchard_save and the HUD shot
-- [ ] tests: `tools/run_tests.sh --quick`, then interp_audit, the village / life / encounter tests and the perf-related ones
+- [x] after, once (Luke: plain tour, `--stress=2`, the path, `--attrib` at the two worst, the HUD shot; `<S>/after/`), and a
+      headless load of the night (`--boot-only`)
+- [ ] tests: not run here (Luke: the lead runs the one suite after merging)
 
 ## Baseline (Balanced, fov 90, 1600x1000, vsync off; mean of two plain runs; GPU column = fps at 2x2 the pixels)
 
@@ -61,6 +62,61 @@ brief's own run had it at 85.9), so only differences well past ~5 % are read as 
 - **Harness**: the tour's path was broken: the spindle and summit legs were still in the rift's old home frame after it
   moved to `Endgame.O`, so the run stood at the spindle against a wall for 35 legs of 14 s (eight minutes of the path's
   frames). PerfWatch also ran its own `--census` (hiding the zone's parts) in the middle of the tour's.
+
+## After (one plain run against the mean of the baseline's two; `--stress=2` one run each)
+
+| view | fps | 1% low | scripts ms | render-cpu ms | rest(gpu) ms | fps --stress=2 (gpu ms) | draws |
+|---|---|---|---|---|---|---|---|
+| t_reedholm | 112.8 -> 126.4 | 48.6 -> 58.4 | 1.98 -> 1.80 | 2.48 -> 2.38 | 4.41 -> 3.73 | 77.3 -> 74.8 (8.26 -> 8.81) | 2362 -> 1962 |
+| t_ll_road | 127.2 -> 125.5 | 78.5 -> 92.0 | 1.92 -> 1.81 | 2.02 -> 1.89 | 3.93 -> 4.27 | 65.5 -> 65.9 (10.78 -> 10.66) | 1619 -> 1207 |
+| r_spawn_west | 89.8 -> 100.7 | 57.8 -> 68.3 | 2.79 -> 2.60 | 2.70 -> 2.58 | 5.66 -> 4.75 | 76.5 -> 76.1 (7.21 -> 7.67) | 2555 -> 2197 |
+| t_fallowmere | 131.0 -> 126.0 | 70.0 -> 74.6 | 1.83 -> 1.98 | 2.17 -> 2.29 | 3.65 -> 3.67 | 78.2 -> 78.2 (8.54 -> 8.63) | 1890 -> 1525 |
+| r37_far_east | 123.8 -> 139.6 | 56.0 -> 70.1 | 1.83 -> 1.60 | 2.31 -> 2.18 | 3.94 -> 3.37 | 80.8 -> 80.6 (8.02 -> 8.21) | 2044 -> 1620 |
+| r_orchard_save | 105.8 -> 114.7 | 56.0 -> 56.7 | 2.29 -> 2.13 | 2.50 -> 2.32 | 4.66 -> 4.27 | 68.7 -> 65.2 (9.35 -> 10.37) | 2263 -> 1886 |
+| fr_kings_barrows | 136.0 -> 120.3 | 95.3 -> 79.4 | 1.62 -> 1.71 | 1.65 -> 1.71 | 4.08 -> 4.89 | 59.0 -> 59.0 (12.74 -> 12.77) | 1150 -> 842 |
+| r_downs_w_n | 111.5 -> 122.9 | 62.5 -> 48.3 | 2.12 -> 1.89 | 2.43 -> 2.16 | 4.41 -> 4.08 | 78.2 -> 74.4 (7.87 -> 8.85) | 2258 -> 1856 |
+| t_lastlight | 148.7 -> 148.7 | 86.8 -> 78.4 | 1.83 -> 1.90 | 1.83 -> 1.89 | 3.08 -> 2.94 | 82.7 -> 82.5 (8.06 -> 8.17) | 1312 -> 921 |
+| r37_marches | 126.0 -> 137.9 | 72.9 -> 98.0 | 1.88 -> 1.70 | 2.31 -> 2.24 | 3.75 -> 3.31 | 73.1 -> 73.1 (9.24 -> 9.28) | 1926 -> 1570 |
+| r_barrows | 111.0 -> 124.1 | 53.7 -> 86.1 | 1.94 -> 1.74 | 2.44 -> 2.32 | 4.64 -> 4.00 | 65.5 -> 65.7 (10.53 -> 10.65) | 2333 -> 1949 |
+| r_downs_w_s | 143.7 -> 156.9 | 56.9 -> 102.6 | 1.79 -> 1.49 | 1.75 -> 1.47 | 3.42 -> 3.42 | 73.4 -> 73.8 (9.63 -> 9.95) | 1542 -> 1194 |
+| r37_river | 118.9 -> 127.4 | 70.2 -> 96.3 | 2.17 -> 2.15 | 2.13 -> 2.02 | 4.11 -> 3.69 | 55.7 -> 56.4 (12.91 -> 12.70) | 1783 -> 1430 |
+
+All 47 views: mean fps 135.5 -> 143.4, mean 1% low 78.5 -> 88.7, views under a 1% low of 85: 30 -> 17, mean scripts
+1.85 -> 1.71 ms, render-cpu 2.06 -> 1.95 ms, draws 1682 -> 1313 (the HUD's canvas draws 430-456 -> 84-111). The path:
+140.4 -> 141.1 fps, 1% low 66.8 -> 77.2. `--stress=2`: mean 73.3 -> 73.2 fps (the GPU's cost unchanged overall).
+
+Read with care:
+- **The Far Reaches** (fr_*) read 8-13 % slower in the plain run, but GPU-bound (`--stress=2`) they are unchanged
+  (kings_barrows 59.0 -> 59.0, lanternwood 66.2 -> 66.2, cairns 60.7 -> 61.0): not a GPU cost; the last views of a
+  single after run, against two baseline runs.
+- **The Downs, the orchard and Reedholm cost more GPU at 4x pixels** (downs_w_n 78.2 -> 74.4, orchard 68.7 -> 65.2,
+  reedholm 77.3 -> 74.8): batch one left them as they were (`<S>/after1/`), so it is batch two; at 1x they are faster.
+  The suspects are the wider merge cells and the split props (coarser occlusion and frustum culling, sorting), to be
+  settled with an A/B of `CELL_FAR` / `CELL_K` / the split before merging; not tested here.
+- **1% lows** still under 85 at 17 views (downs_w_n 48, meadow 52, orchard 57, reedholm 58, spawn 68 ...): 2-6 frames of
+  20-25 ms in a 4 s window; the half-second bursts are gone (batch one), what remains was not named by the probe.
+
+### GPU attribution after (`--attrib`, 2x2 pixels: frame ~13 ms at r_spawn_west, ~15 ms at r_orchard_save)
+
+| feature | r_spawn_west | r_orchard_save |
+|---|---|---|
+| flora leaf cards | +1.8 ms | +3.6 ms |
+| flora undergrowth (range x0.65 / density 60 % would save) | +1.0 (0.4 / 0.35) | +1.8 (0.35 / 0.6) |
+| point/spot lights (585-590 governed) | +0.9-1.3 | +1.9 |
+| moon shadow (of it the soft angular blocker search) | +1.3 (0.6) | +1.6 (0.8) |
+| glow | +0.65 | +0.8 |
+| sky background | +0.56 | +0.46 |
+| the wanderer | +0.43 | +0.74 |
+| grade | +0.41 | +0.40 |
+| volumetric fog | +0.35 | +0.23 |
+| village / wildlife / particles | +0.22 / +0.05 / +0.11 | +0.37 / +0.22 / +0.14 |
+| shadows of flora cards / solids / the other casters | +0.14 / +0.06 / +0.07 | +0.01 / +0.06 / +0.01 |
+| mesh LOD threshold x2 | +0.22 | +0.16 |
+
+The leaf cards (alpha-tested: the Apple GPU's hidden-surface removal cannot drop their hidden fragments) are the largest
+GPU cost at both, then the lights and the moon's shadow; none was cut here (the look: dark night, the Enshrouded grade).
+The shadow casters' own share is small now (people cast from proxies). The headless load (`--boot-only`) builds the night
+with no script error (playable at 15.3 s).
 
 ## Fixes (each: what, why, commit)
 
