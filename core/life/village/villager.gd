@@ -438,6 +438,11 @@ func release() -> void:
 # --- per frame ----------------------------------------------------------------------------------
 
 var _far_acc := 0.0                ## frame time saved up while stepping every fourth frame (far from the camera)
+var _unseen := false               ## past UNSEEN_R: nothing of him is drawn
+
+
+## Past this nothing of a villager is drawn (his mesh ends ~100 m out, his lamp's glow ~138 m: their ranges x1.5 by FadeGuard).
+const UNSEEN_R := 150.0
 
 
 func _process(delta: float) -> void:
@@ -446,11 +451,16 @@ func _process(delta: float) -> void:
 	# past 55 m a villager is a few pixels: his routine steps every fourth frame with the time saved up (30 a second
 	# at 120 fps; a walker moves 4 cm a step). 32 of them were 0.2 ms of every frame of a fight two fields away.
 	# A follower too (the roads' travellers walk after their leader): an escort keeps by the wanderer, inside 55 m.
+	# Past UNSEEN_R he is not drawn at all: every sixteenth frame, and not posed (20 Nov, the fps pass: the Realm's
+	# 85 villagers were 0.45 ms of every frame in Reedholm, most of them in Hearthward 330 m away).
+	_unseen = false
 	if attend == null:
 		var cam := get_viewport().get_camera_3d()
-		if cam != null and cam.global_position.distance_squared_to(global_position) > 3025.0:
+		var d2 := cam.global_position.distance_squared_to(global_position) if cam != null else 0.0
+		if d2 > 3025.0:
+			_unseen = d2 > UNSEEN_R * UNSEEN_R
 			_far_acc += delta
-			if (Engine.get_process_frames() + get_instance_id()) % 4 != 0:
+			if (Engine.get_process_frames() + get_instance_id()) % (16 if _unseen else 4) != 0:
 				return
 			delta = _far_acc
 		_far_acc = 0.0
@@ -494,7 +504,7 @@ func _after_step(dt: float) -> void:
 	if lamp_light and rig.glow != null:
 		lamp_light.global_position = (rig.glow as Node3D).global_position + Vector3.UP * 0.05
 		lamp_light.light_energy = 0.8 + 0.08 * sin(_t * 9.0) + 0.05 * sin(_t * 23.0)
-	if hidden:
+	if hidden or _unseen:
 		return
 	# pose at a rate for the distance (npc_life.gd): every frame close by, 30/20/12 Hz further, 2 Hz off screen, frozen far off
 	var cam := get_viewport().get_camera_3d()

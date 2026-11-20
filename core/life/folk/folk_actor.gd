@@ -106,8 +106,21 @@ func hold(on: bool) -> void:
 	set_awake(awake)
 
 
+var _far_acc := 0.0                ## frame time saved up while stepping every fourth frame (past 55 m)
+
+
 func _process(dt: float) -> void:
-	dt = minf(dt, 0.1)
+	# past 55 m a person is a few pixels: the routine steps every fourth frame with the time saved up, as a villager's
+	# does (30 a second at 120 fps; a walker moves 4 cm a step)
+	var cam := get_viewport().get_camera_3d()
+	var far := cam != null and cam.global_position.distance_squared_to(global_position) > 3025.0
+	if far:
+		_far_acc += dt
+		if (Engine.get_process_frames() + get_instance_id()) % 4 != 0:
+			return
+		dt = _far_acc
+	_far_acc = 0.0
+	dt = minf(dt, 0.15 if far else 0.1)
 	_t += dt
 	act_t += dt
 	Roles.tick(self, dt)
@@ -117,7 +130,6 @@ func _process(dt: float) -> void:
 	_move(dt)
 	_ground(dt)
 	_overlays(dt)
-	var cam := get_viewport().get_camera_3d()
 	var iv := Life.interval(cam, global_position, spd > 0.15)
 	if iv < 0.0:
 		return
