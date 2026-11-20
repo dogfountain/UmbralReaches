@@ -288,7 +288,7 @@ func _watchers(host: Node3D) -> void:
 		ol.name = "OrbLight"
 		ol.position = oc
 		ol.light_color = Color(0.6, 0.45, 1.0)
-		ol.light_energy = 3.0
+		ol.light_energy = 2.2
 		ol.omni_range = 26.0
 		ol.shadow_enabled = false
 		ol.distance_fade_enabled = true
@@ -319,7 +319,7 @@ func _dress_watcher(m: Node3D) -> void:
 		var W := "res://art/models/wonders/"
 		var fig := StandardMaterial3D.new()
 		fig.albedo_texture = load(W + "watchers_pillar_albedo.png")
-		fig.albedo_color = Color(0.92, 0.92, 0.94)
+		fig.albedo_color = Color(0.6, 0.58, 0.64)         # (polish: five violet lights on a pale horizontal tread drew a flat saturated slab)
 		fig.normal_enabled = true
 		fig.normal_texture = load(W + "watchers_pillar_normal.png")
 		var orm: Texture2D = load(W + "watchers_pillar_orm.png")

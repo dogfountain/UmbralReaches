@@ -361,25 +361,84 @@ func _outer_wall() -> void:
 		cs.shape = bs
 		cs.transform = Transform3D(bas, p + Vector3.UP * WALL_H * 0.5)
 		body.add_child(cs)
-	var mi := MeshInstance3D.new()
-	mi.name = "RaidWall"
-	mi.mesh = _cached("wall", _wall_mesh.bind(rng, segs))
-	mi.material_override = _bramble_mat()
-	add_child(mi)
+	if _Kit.mesh(BRIAR, "BriarA") != null and _Kit.mesh(BRIAR, "BriarLoA") != null:
+		_wall_chunks(segs)
+	else:
+		var mi := MeshInstance3D.new()
+		mi.name = "RaidWall"
+		mi.mesh = _cached("wall", _wall_mesh.bind(rng, segs))
+		mi.material_override = _bramble_mat()
+		add_child(mi)
 	_door_frame()
 
 
 ## The modelled thicket laid along `length` metres from `xf` (x along the wall): whole modules, scaled to fit, each flipped or
 ## turned a little so no two read alike. `parts` collects [Mesh, Transform3D] for MeshStamp.merge.
-func _briar_run(parts: Array, rng: RandomNumberGenerator, xf: Transform3D, length: float, h: float) -> void:
+func _briar_run(parts: Array, rng: RandomNumberGenerator, xf: Transform3D, length: float, h: float, lo := false) -> void:
 	var n := maxi(1, roundi(length / BRIAR_LEN))
 	var sx := length / (float(n) * BRIAR_LEN)
 	for k in n:
-		var m := _Kit.mesh(BRIAR, "Briar" + "ABC"[rng.randi() % 3])
+		var m := _Kit.mesh(BRIAR, ("BriarLo" if lo else "Briar") + "ABC"[rng.randi() % 3])
 		var flip := PI if rng.randf() < 0.5 else 0.0
 		var x := (float(k) + 0.5) * length / float(n) - length * 0.5
 		var local := Transform3D(Basis(Vector3.UP, flip + rng.randf_range(-0.08, 0.08)).scaled(Vector3(sx, h / BRIAR_H * rng.randf_range(0.95, 1.08), 1.0)), Vector3(x, 0.0, rng.randf_range(-0.25, 0.25)))
 		parts.append([m, xf * local])
+
+
+const WALL_CHUNKS := 8
+const WALL_NEAR_END := 78.0             ## the full thicket (5.5k tris a module) is drawn within this; beyond it the far modules (550 tris)
+
+
+## The wall as WALL_CHUNKS arcs, each in a near mesh (the full modules) and a far mesh (the 550-tri modules), each its own
+## instance with a visibility range and its own bounds, so an arc out of view or out of range costs nothing.
+func _wall_chunks(segs: int) -> void:
+	var memo := {false: [], true: []}
+	var mat := _bramble_mat()
+	for lo in [false, true]:
+		for c in WALL_CHUNKS:
+			var key := "wall%s%d" % ["f" if lo else "n", c]
+			var m := _cached(key, func() -> ArrayMesh:
+				if (memo[lo] as Array).is_empty():
+					memo[lo] = _wall_parts(lo, segs)
+				return _Stamp.merge((memo[lo] as Array)[c]))
+			if m == null:
+				continue
+			var mi := MeshInstance3D.new()
+			mi.name = "RaidWall%s%d" % ["Far" if lo else "Near", c]
+			mi.mesh = m
+			mi.material_override = mat
+			mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF if lo else GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+			mi.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
+			if lo:
+				mi.visibility_range_begin = WALL_NEAR_END - 12.0
+				mi.visibility_range_begin_margin = 12.0
+			else:
+				mi.visibility_range_end = WALL_NEAR_END
+				mi.visibility_range_end_margin = 12.0
+			mi.add_to_group(Groups.CULL_SKIP)
+			add_child(mi)
+
+
+## [Mesh, Transform3D] parts of the wall, one list per chunk, the same placements for the near and the far modules.
+func _wall_parts(lo: bool, segs: int) -> Array:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 3401
+	var out: Array = []
+	for c in WALL_CHUNKS:
+		out.append([])
+	for i in segs:
+		var a0 := gate_a + TAU * (float(i) + 0.5) / float(segs)
+		if absf(wrapf(a0 - gate_a, -PI, PI)) < MOUTH:
+			continue
+		var parts: Array = out[mini(WALL_CHUNKS - 1, i * WALL_CHUNKS / segs)]
+		var p := Vector3(C.x + cos(a0) * WALL_R, C.y, C.z + sin(a0) * WALL_R)
+		var bas := Basis(Vector3.UP, -a0 + PI * 0.5)
+		var seg_len := TAU * WALL_R / float(segs) + 0.12
+		_briar_run(parts, rng, Transform3D(bas, p), seg_len, WALL_H * 1.3, lo)
+		if i % 3 == 1:
+			var tm := _Kit.mesh(BRIAR, "BriarLoTrunk" if lo else "BriarTrunk")
+			parts.append([tm, Transform3D(Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3.ONE * rng.randf_range(0.9, 1.15)), p)])
+	return out
 
 
 func _wall_mesh(rng: RandomNumberGenerator, segs: int) -> ArrayMesh:

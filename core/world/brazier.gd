@@ -77,6 +77,13 @@ func _ready() -> void:
 func _far_glow() -> void:
 	if is_inside_tree():
 		Wayfinding.beacon(self, global_position + Vector3.UP * 1.4, "", Color(1.0, 0.66, 0.34), 0.0, 1.5, 4.0, true, 0.0)
+		var plume := MeshInstance3D.new()
+		plume.set_script(load("res://core/world/fire_plume.gd"))
+		plume.set("brazier", self)
+		plume.name = "FarPlume"
+		plume.add_to_group(Groups.CULL_SKIP)          # before it enters the tree: the Realm's size ranges would end a thin card at ~130 m
+		add_child(plume)
+		plume.global_position = global_position + Vector3.UP * 2.2
 
 
 func can_interact() -> bool:

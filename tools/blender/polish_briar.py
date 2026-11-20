@@ -18,6 +18,7 @@ from mathutils import Vector
 LEN = 3.3
 HEIGHT = 7.0
 DEPTH = 1.1
+LO = False                    # the far version of each module (under ~1k tris): fewer canes, 3 sides, no thorns, no leaves
 
 BARK = [(0.15, 0.085, 0.06, 1), (0.11, 0.065, 0.05, 1), (0.19, 0.1, 0.07, 1), (0.09, 0.07, 0.06, 1)]
 BARK_RED = (0.26, 0.09, 0.06, 1)
@@ -28,7 +29,7 @@ LEAF = [(0.16, 0.12, 0.05, 1), (0.22, 0.13, 0.05, 1), (0.12, 0.1, 0.06, 1)]
 
 def cane(P, rnd, x, y, tall, lean, r0, sides=5, wob=0.35, arch=0.0, thorn_every=0.34):
     """One cane: from the ground at (x, y), climbing `tall`, leaning along (lean) and wobbling; the tip arches over."""
-    n = 11
+    n = 7 if LO else 11
     pts, rad = [], []
     ph = rnd.uniform(0, 6.28)
     ph2 = rnd.uniform(0, 6.28)
@@ -42,7 +43,9 @@ def cane(P, rnd, x, y, tall, lean, r0, sides=5, wob=0.35, arch=0.0, thorn_every=
         rad.append(max(r0 * (1.0 - t * 0.82), 0.014))
     c0 = BARK[rnd.randrange(len(BARK))]
     cols = BARK_RED if rnd.random() < 0.18 else c0
-    tube(P, "bramble", pts, rad, sides=sides, col=c0, col_tip=cols)
+    tube(P, "bramble", pts, rad, sides=3 if LO else sides, col=c0, col_tip=cols)
+    if LO:
+        return pts
     # thorns: pairs along the cane, angled outward and back toward the root
     d = 0.0
     for q in range(n - 1):
@@ -91,7 +94,7 @@ def leaves(P, rnd, c, n=4):
 def module(seed, trunk=False):
     rnd = rnd_for(seed)
     P = CP()
-    nc = 16
+    nc = 9 if LO else 16
     for i in range(nc):
         x = -LEN * 0.5 + LEN * (i + rnd.uniform(0.1, 0.9)) / nc
         y = rnd.uniform(-DEPTH * 0.5, DEPTH * 0.5)
@@ -99,7 +102,7 @@ def module(seed, trunk=False):
         lean = (rnd.uniform(-0.3, 0.3), rnd.uniform(-0.35, 0.35))
         cane(P, rnd, x, y, tall, lean, rnd.uniform(0.11, 0.2), sides=5, wob=0.6, arch=rnd.uniform(0.3, 0.9), thorn_every=0.5)
     # the crossing canes: long ones that lace the wall along its length (two planes)
-    for i in range(8):
+    for i in range(0 if LO else 8):
         x = -LEN * 0.5 + rnd.uniform(0, LEN * 0.3)
         y = (-0.3 if i % 2 else 0.3) + rnd.uniform(-0.1, 0.1)
         z0 = rnd.uniform(0.5, HEIGHT * 0.7)
@@ -117,7 +120,7 @@ def module(seed, trunk=False):
             out = Vector((rnd.uniform(-0.4, 0.4), math.cos(ang), math.sin(ang)))
             thorn(P, "bramble", pts[q], out, rnd.uniform(0.16, 0.26), 0.022, THORN, THORN_TIP)
     # the body of the thicket: loops and snarls of thin cane laid through the depth, so the wall closes the sight
-    for i in range(34):
+    for i in range(7 if LO else 34):
         cx = rnd.uniform(-LEN * 0.5, LEN * 0.5)
         cy = rnd.uniform(-0.35, 0.35)
         cz = rnd.uniform(0.5, HEIGHT * 0.85)
@@ -131,16 +134,16 @@ def module(seed, trunk=False):
             ang = a0 + t * rnd.uniform(3.0, 4.6)
             pp.append(Vector((cx + math.cos(ang) * rr, cy + math.sin(ang) * rr * 0.55 + tilt * t * 0.2, cz + math.sin(ang * 0.8 + a0) * rr * 0.7 + t * 0.25)))
         c0 = BARK[rnd.randrange(len(BARK))]
-        tube(P, "bramble", pp, [0.03 - 0.012 * (q / (n - 1)) for q in range(n)], sides=3, col=c0, col_tip=BARK_RED)
-        if i % 3 == 0:
+        tube(P, "bramble", pp, [(0.05 if LO else 0.03) - 0.012 * (q / (n - 1)) for q in range(n)], sides=3, col=c0, col_tip=BARK_RED)
+        if i % 3 == 0 and not LO:
             for q in (1, 3):
                 out = Vector((rnd.uniform(-1, 1), rnd.uniform(-1, 1), rnd.uniform(-0.3, 0.6)))
                 thorn(P, "bramble", pp[q], out, rnd.uniform(0.12, 0.2), 0.016, THORN, THORN_TIP)
     # a low mat at the foot and leaf clusters
-    for i in range(4):
+    for i in range(0 if LO else 4):
         x = -LEN * 0.5 + LEN * (i + 0.5) / 4
         cane(P, rnd, x, rnd.uniform(-0.5, 0.5), rnd.uniform(1.4, 2.3), (rnd.uniform(-0.5, 0.5), rnd.uniform(-0.6, 0.6)), 0.08, sides=4, wob=0.5, arch=0.9, thorn_every=0.55)
-    for i in range(4):
+    for i in range(0 if LO else 4):
         leaves(P, rnd, (rnd.uniform(-LEN * 0.5, LEN * 0.5), rnd.uniform(-0.4, 0.4), rnd.uniform(0.5, HEIGHT * 0.9)), 3)
     if trunk:
         tall = 11.5
@@ -150,14 +153,14 @@ def module(seed, trunk=False):
             pts.append(Vector((math.sin(t * 4.0) * 0.55, math.cos(t * 3.0) * 0.45, -0.3 + t * tall)))
             rad.append(max(0.6 * (1 - t) ** 0.8, 0.06))
         tube(P, "bramble", pts, rad, sides=7, col=(0.1, 0.06, 0.05, 1), col_tip=(0.2, 0.1, 0.07, 1))
-        for k in range(12):
+        for k in range(0 if LO else 12):
             t = 0.1 + 0.8 * k / 12.0
             q = int(t * 9)
             base = pts[q].lerp(pts[min(q + 1, 9)], t * 9 - q)
             ang = k * 2.4
             out = Vector((math.cos(ang), math.sin(ang), 0.45)).normalized()
             thorn(P, "bramble", base + out * 0.3, out, rnd.uniform(0.3, 0.55), 0.06, THORN, THORN_TIP)
-        for k in range(5):
+        for k in range(0 if LO else 5):
             t = 0.2 + 0.12 * k
             q = int(t * 9)
             base = pts[q]
@@ -169,9 +172,12 @@ def module(seed, trunk=False):
 
 
 def build():
+    global LO
     reset()
     objs = []
-    for nm, seed, tr in (("BriarA", 3301, False), ("BriarB", 3302, False), ("BriarC", 3303, False), ("BriarTrunk", 3304, True)):
+    for nm, seed, tr, lo in (("BriarA", 3301, False, False), ("BriarB", 3302, False, False), ("BriarC", 3303, False, False), ("BriarTrunk", 3304, True, False),
+                             ("BriarLoA", 3301, False, True), ("BriarLoB", 3302, False, True), ("BriarLoC", 3303, False, True), ("BriarLoTrunk", 3304, True, True)):
+        LO = lo
         P = module(seed, tr)
         o = finish(P, nm)
         for ob in o:
