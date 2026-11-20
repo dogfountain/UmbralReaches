@@ -44,7 +44,7 @@ static func mat(set_name: String) -> StandardMaterial3D:
 	if set_name == "iron":
 		m.metallic_texture = orm
 		m.metallic_texture_channel = BaseMaterial3D.TEXTURE_CHANNEL_BLUE
-		m.metallic = 1.0
+		m.metallic = 0.4          # (1.0: a metal has nothing to reflect in the night, so every modelled hoop, hinge and post drew black: the polish pass, 20 Nov)
 	m.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
 	_mats[set_name] = m
 	return m
