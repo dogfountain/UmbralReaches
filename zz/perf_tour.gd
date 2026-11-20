@@ -23,6 +23,7 @@ extends Node
 ##   --shader=res://a.gdshader=/abs/b.gdshader   run with b's code in a (memory only, for A/B)
 ##   --census                        per view, what each top-level node / flora species adds (exact counts)
 ##                                   --census-split=A,B: these top-level nodes counted child by child
+##   --casters                       per view, the shadow casters within 40 m by size, and the heaviest
 ##   --pan=40                        points (and attrib) swing the view +-10 deg at up to 40 deg/s, like a
 ##                                   player looking about: motion blur and streaming work as in play
 ##   --luke                          Luke's pacing and window: vsync on, 144 fps cap, 1920x1080
@@ -732,6 +733,11 @@ func _point_step(d: float) -> void:
 	if float(acc.time) >= _stand:
 		var r := _report("PERF %-14s" % points[i][0])
 		summary.append([points[i][0]] + r)
+		if "--casters" in OS.get_cmdline_user_args():
+			_casters_report()
+		for a in OS.get_cmdline_user_args():
+			if a.begins_with("--why-under="):
+				_why_under(a.trim_prefix("--why-under=").split(","))
 		if census:
 			phase = "census"
 			_census_begin()
@@ -1182,6 +1188,111 @@ func _attrib_step(d: float) -> void:
 		_attrib_next_point()
 
 
+# --- casters (--casters): the shadow casters near the view by size, and the heaviest ones ---------
+
+const _MeshMerge := preload("res://core/util/mesh_merge.gd")
+
+
+## --why-under=A/B,C: under each of these nodes (paths from Main), what draws in view and why each plain mesh is not
+## merged (MeshMerge._why): MultiMeshes, ranged / unranged meshes, and the reasons, counted.
+func _why_under(paths: PackedStringArray) -> void:
+	var cam := get_viewport().get_camera_3d()
+	for path in paths:
+		var root := main.get_node_or_null(NodePath(path))
+		if root == null:
+			continue
+		var why := {}
+		var n_mm := 0
+		var n_mi := 0
+		var near := 0
+		for g in root.find_children("*", "GeometryInstance3D", true, false):
+			var gi := g as GeometryInstance3D
+			if not gi.is_visible_in_tree():
+				continue
+			if gi is MultiMeshInstance3D:
+				n_mm += 1
+				continue
+			if not (gi is MeshInstance3D):
+				continue
+			var mi := gi as MeshInstance3D
+			if mi.mesh == null:
+				continue
+			var ab: AABB = mi.global_transform * mi.mesh.get_aabb()
+			var d := ab.get_center().distance_to(cam.global_position)
+			var shown := mi.visibility_range_end <= 0.0 or d < mi.visibility_range_end + mi.visibility_range_end_margin
+			if not shown or d < mi.visibility_range_begin:
+				continue
+			n_mi += 1
+			near += 1 if d < 60.0 else 0
+			var w := _MeshMerge._why(mi)
+			if w == "ok":
+				w = "ok (merged? %s, range %.0f, parent %s)" % [mi.has_meta(&"merged"), mi.visibility_range_end, mi.get_parent().get_class() if mi.get_parent().get_script() == null else String((mi.get_parent().get_script() as Script).resource_path).get_file()]
+			why[w] = int(why.get(w, 0)) + 1
+		var keys := why.keys()
+		keys.sort_custom(func(x: Variant, y: Variant) -> bool: return int(why[x]) > int(why[y]))
+		var parts := PackedStringArray()
+		for k: Variant in keys.slice(0, 10):
+			parts.append("%s x%d" % [k, why[k]])
+		print("WHY %s %s: %d meshes in range (%d within 60 m), %d multimeshes | %s" % [points[i][0], path, n_mi, near, n_mm, "; ".join(parts)])
+
+
+static func _mesh_tris(m: Mesh) -> int:
+	var am := m as ArrayMesh
+	if am == null:
+		return 12                                    # a primitive box or sphere: a handful
+	var t := 0
+	for si in am.get_surface_count():
+		var n := am.surface_get_array_index_len(si)
+		t += (n if n > 0 else am.surface_get_array_len(si)) / 3
+	return t
+
+
+## Every mesh within 40 m of the camera (the moon's shadow reach; the fire's is less) that casts, by the size of its
+## world box: count and triangles a class, and the twenty heaviest with their paths (a MultiMesh counts its instances).
+func _casters_report() -> void:
+	var cam := get_viewport().get_camera_3d()
+	var bounds := [0.3, 0.6, 1.2, 2.5, 1e9]
+	var cls: Array = []
+	for b in bounds:
+		cls.append([0, 0])
+	var heavy: Array = []
+	for g in main.find_children("*", "GeometryInstance3D", true, false):
+		var gi := g as GeometryInstance3D
+		if gi.cast_shadow == GeometryInstance3D.SHADOW_CASTING_SETTING_OFF or not gi.is_visible_in_tree():
+			continue
+		var tris := 0
+		var big := 0.0
+		var at := gi.global_position
+		if gi is MeshInstance3D and (gi as MeshInstance3D).mesh != null:
+			var m := (gi as MeshInstance3D).mesh
+			var ab: AABB = gi.global_transform * m.get_aabb()
+			at = ab.get_center()
+			big = maxf(ab.size.x, maxf(ab.size.y, ab.size.z))
+			tris = _mesh_tris(m)
+		elif gi is MultiMeshInstance3D and (gi as MultiMeshInstance3D).multimesh != null and (gi as MultiMeshInstance3D).multimesh.mesh != null:
+			var mm := (gi as MultiMeshInstance3D).multimesh
+			var ab2 := mm.mesh.get_aabb()
+			big = maxf(ab2.size.x, maxf(ab2.size.y, ab2.size.z))
+			var per := _mesh_tris(mm.mesh)
+			var cnt := mm.visible_instance_count if mm.visible_instance_count >= 0 else mm.instance_count
+			tris = per * cnt
+			at = (gi.global_transform * gi.get_aabb()).get_center()
+		else:
+			continue
+		if at.distance_to(cam.global_position) > 40.0:
+			continue
+		for k in bounds.size():
+			if big < bounds[k]:
+				cls[k][0] += 1
+				cls[k][1] += tris
+				break
+		heavy.append([tris, big, str(main.get_path_to(gi)).substr(0, 70)])
+	heavy.sort_custom(func(a: Array, b: Array) -> bool: return int(a[0]) > int(b[0]))
+	print("CASTERS %s by size (count, tris): <0.3 m %s, <0.6 m %s, <1.2 m %s, <2.5 m %s, larger %s" % [points[i][0], cls[0], cls[1], cls[2], cls[3], cls[4]])
+	for h: Array in heavy.slice(0, 20):
+		print("CASTERS   %7d tris  %5.2f m  %s" % [h[0], h[1], h[2]])
+
+
 # --- census: what each part of the world adds to this view (draws and primitives are exact) ------
 
 var c_groups: Array = []             # [label, Array of nodes]
@@ -1197,7 +1308,9 @@ func _canvas_draws() -> int:
 
 
 ## A census group's nodes shown or hidden (3D nodes, and the HUD's canvas items).
-static func _c_show(n: Node, on: bool) -> void:
+static func _c_show(n: Variant, on: bool) -> void:
+	if not is_instance_valid(n):
+		return                                       # (freed since the census listed it: a HUD row rebuilt, a merged mesh)
 	if n is Node3D:
 		(n as Node3D).visible = on
 	elif n is CanvasItem:
