@@ -55,3 +55,15 @@ Shots: `scratchpad/polish/before/` (ui/ places/ flow/ ma/ ma2/ ma3/). The flow (
 - The Realm ground's scratched "foil" detail on dunes (Southwood, `sleeper_2`): the ground shader is the fps pass's.
 - The starwater's flat blue rectangles round the Watchers' plinths (`rift_thr`): the pool's own look; changing it is lava-shader work.
 - The loading screen itself cannot be captured by `polish_flow` (the build holds the main thread; frames come black until the cover lifts).
+
+## Final re-shoot (once, after all fixes)
+
+Before: /private/tmp/claude-501/-Users-luke-UmbralReaches/10dbc585-c502-4f27-b1e3-a047668e1104/scratchpad/polish/before/{ui,places,flow,ma2,ma3}. After: /private/tmp/claude-501/-Users-luke-UmbralReaches/10dbc585-c502-4f27-b1e3-a047668e1104/scratchpad/polish/after/{ui,places,flow,ma}.
+- A1 Count door: pale sheet gone, dark backing now reads as rock (after/ma/interiors/oss_count_door.jpg).
+- A3 skull walls: aged per-instance bone tones (after/ma/interiors/oss_hall_floor.jpg).
+- A5 chasm walls: terrace bays in rift stone (after/ma/rift/rift_thr.jpg).
+- A8 salt stack: modelled stack (after/ma/saltmarket/salt_stack.jpg).
+- B1/B2 opening and first fight: no WASD card over the shot, one-line lesson (after/flow/open_03.png, fight_walk_0.png).
+- B3/B4 HUD strip and pickup feed clear of the dial (after/ui/hud_exploring, shop_buy).
+- Saltmarket crates no longer black (after/places/close_saltmarket.png).
+- Not re-checked in shots: A4 furnace, A9 plinth, A10 castellum, A11 briar (after/ma/southwood, stillwater, arches, henge); parse check 994 scripts 0 bad.
