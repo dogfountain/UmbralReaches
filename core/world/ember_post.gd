@@ -14,7 +14,7 @@ const OFFSET := Vector3(-2.3, 0.0, 0.4)  ## brazier-local: to its side, off the 
 ## diagonal, 2.4 m clear of the respawn spot and every walking node and edge.
 ## The glade's fire stands beside west_way at the Thorn Henge stair's foot: its post at OFFSET stood on the road into the stair
 ## (zone fit), so it goes to the fire's other side.
-const SEAT_OFFSETS := {"Sanctuary": Vector3(-2.3, 0.0, 2.6), "Shrine": Vector3(2.3, 0.0, -0.4)}
+const SEAT_OFFSETS := {"Sanctuary": Vector3(-2.3, 0.0, 2.6), "Shrine": Vector3(2.3, 0.0, -0.4), "HengeFire": Vector3(-0.9, 0.0, -0.9)}   # the henge stair's rest: its post on the platform's corner, off the stair
 
 const Kit37 := preload("res://core/world/realm/west_marches_kit.gd")
 static var _kit_cache := {}
