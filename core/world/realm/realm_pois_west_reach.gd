@@ -27,7 +27,7 @@ static func _off() -> bool:
 	return "--no-west-reach" in OS.get_cmdline_user_args()
 
 
-const CHAIN_STAIR_FOOT := Vector2(-342.4, -12.0)         ## wonders/r39/chain_span.gd's west approach stair, where it meets the ground
+const CHAIN_STAIR_FOOT := Vector2(-342.4, -12.0)         ## the chain span wonder's west approach stair, where it meets the ground
 
 static func reserve(root: Node) -> void:
 	if _off():
