@@ -518,6 +518,10 @@ func _cmd(a: PackedStringArray) -> void:
 				pts.append("%.2f,%.2f,%.2f" % [w.x, w.z, w.y + (0.6 if first else 0.0)])
 				first = false
 			await _walk(pts)
+		"wait":                                    # wait <seconds>: a windowed boot holds the player a while
+			var tw := Time.get_ticks_msec()
+			while Time.get_ticks_msec() - tw < int(_fl(a, 1, 10.0) * 1000.0):
+				await get_tree().process_frame
 		"oakstair":                                # oakstair : the Grandmother Oak's inner stair, walked step 10 by step 10 up to the crown
 			await _oakstair(a.size() > 1 and a[1] == "swap")
 		"axis":                                    # axis x0 z0 x1 z1 step yfrom : first solid along a line, with what it is
@@ -616,7 +620,7 @@ func _walk(a: PackedStringArray) -> void:
 			for n in get_tree().get_nodes_in_group(Groups.ENEMY):
 				(n as Node).queue_free()
 			var d := Vector2(goal.x - pl.global_position.x, goal.z - pl.global_position.z)
-			if d.length() < 0.7:
+			if d.length() < 0.7 and (is_nan(goal.y) or absf(pl.global_position.y - goal.y) < 1.1):
 				ok = true
 				break
 			pl.debug_drive(Vector3(d.x, 0, d.y).normalized(), true)
