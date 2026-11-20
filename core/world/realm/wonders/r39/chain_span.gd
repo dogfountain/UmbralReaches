@@ -97,9 +97,10 @@ func _pylon(at: Vector3, west: bool) -> void:
 	var steps := maxi(3, int(ceilf(rise / 0.34)))
 	var run := float(steps) * 0.95
 	var lo := Vector3(at.x + out.x * (2.5 + run), 0.0, at.z + out.z * (2.5 + run))
-	var gl := WK.h(lo.x, lo.z)
+	var gl := minf(WK.h(lo.x, lo.z), WK.h(lo.x + out.x * 1.5, lo.z + out.z * 1.5))      # the foot is set into the lower of the ground at it and 1.5 m out (a first riser 0.7 m up stood at one end)
 	var steps2 := maxi(3, int(ceilf((yd - gl) / 0.34)))
-	k.kit.stairs("stone_big", Vector3(lo.x, gl - 0.1, lo.z), Vector3(at.x + out.x * 1.2, yd, at.z + out.z * 1.2), 4.0, steps2, gl - 1.6)
+	# the head reaches the deck's first beam (it stopped 1.2 m short of it, a gap of nothing between the top step and the planks)
+	k.kit.stairs("stone_big", Vector3(lo.x, gl - 0.1, lo.z), Vector3(at.x - out.x * 0.1, yd, at.z - out.z * 0.1), 4.0, steps2, gl - 1.6)
 
 
 func _deck() -> void:

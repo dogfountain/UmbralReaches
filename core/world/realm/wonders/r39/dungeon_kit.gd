@@ -146,6 +146,7 @@ func stair(width := 3.2) -> void:
 	var rise := top.y - yf
 	var steps := maxi(8, int(ceilf(rise / 0.4)))
 	k.kit.stairs(wall, top, bot, width, steps, yf - 0.6)
+	forecourt(width)
 	var n := 10
 	for j in n:
 		var t0 := float(j) / float(n)
@@ -163,6 +164,32 @@ func stair(width := 3.2) -> void:
 			var lp := mid + side * (width * 0.5 - 0.1) + Vector3.UP * (lerpf(top.y, yf, (t0 + t1) * 0.5) + 2.4)
 			k.kit.box("iron", lp, Vector3(0.1, 0.1, 0.1), basis(), false, 0.6)
 			k.lamp(lp, light, 0.8, 6.5)
+
+
+## The mouth's forecourt (zone fit): a paved apron flush with the stair's top, running out from it, and steps down to the ground where
+## the hillside falls away in front of the door (the door sat 0.3-1.8 m over the ground 1.2 m before it: a lip nobody could step onto).
+func forecourt(width := 3.2) -> void:
+	var out := -fwd
+	var court := 3.2
+	var w := width + 1.4
+	k.kit.box(wall, o + out * (court * 0.5) + Vector3.DOWN * 0.8, Vector3(w, 1.6, court), basis(), true, 0.92)
+	var tp := o + out * court
+	var t := court
+	while t < court + 14.0:
+		var q := o + out * t
+		if WK.h(q.x, q.z) >= o.y - (t - court) * 0.55 - 0.15:
+			break
+		t += 1.0
+	var fq := o + out * t
+	var gy := WK.h(fq.x, fq.z)
+	if o.y - WK.h(tp.x, tp.z) < 0.3 and o.y - gy < 0.3:
+		return
+	t = maxf(t, court + 1.5)
+	fq = o + out * t
+	gy = WK.h(fq.x, fq.z)
+	var foot := Vector3(fq.x, minf(gy, o.y - (t - court) * 0.55) - 0.1, fq.z)
+	var steps := maxi(2, int(ceilf((o.y - foot.y) / 0.3)))
+	k.kit.stairs(wall, foot, Vector3(tp.x, o.y, tp.z), w, steps, foot.y - 1.2)
 
 
 ## The gate on the surface: two pylons and a lintel across the stair's head, a fire on each, a banner.

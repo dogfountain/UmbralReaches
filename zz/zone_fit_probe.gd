@@ -367,8 +367,16 @@ func _sweep(a: Vector3, b: Vector3) -> String:
 func _serve() -> void:
 	var idle := Time.get_ticks_msec()
 	print("ZONEFIT serving ", cmd_dir)
+	_clean_ui()
+	var fr := 0
 	while Time.get_ticks_msec() - idle < 14 * 60 * 1000:
 		await get_tree().process_frame
+		fr += 1
+		if fr % 10 == 0:
+			_clean_ui()
+		if fr % 20 == 0:
+			for en in get_tree().get_nodes_in_group(Groups.ENEMY):
+				(en as Node).queue_free()          # nothing may hollow the walker between commands
 		var path := cmd_dir.path_join("cmd.txt")
 		if not FileAccess.file_exists(path):
 			continue
@@ -463,6 +471,21 @@ func _cmd(a: PackedStringArray) -> void:
 			var dd := Vector3(_fl(a, 4), _fl(a, 5), _fl(a, 6)).normalized()
 			var hit := _space().intersect_ray(PhysicsRayQueryParameters3D.create(o, o + dd * _fl(a, 7, 10.0), Layers.WORLD | Layers.PROPS))
 			lines.append("ray hit %s at %s" % [_nm(hit), hit.get("position", "none")])
+		"walkstair":                               # walkstair <substring of the holder's path> : every flight there, foot-3.5 m -> head+2.5 m
+			for sr: Dictionary in OssKit.stair_registry:
+				var par := sr.parent as Node3D
+				if par == null or not is_instance_valid(par) or not par.is_inside_tree() or not str(par.get_path()).contains(a[1]):
+					continue
+				var xf := par.global_transform
+				var lo: Vector3 = xf * (sr.lo as Vector3)
+				var hi: Vector3 = xf * (sr.hi as Vector3)
+				var dir := Vector3(hi.x - lo.x, 0, hi.z - lo.z).normalized()
+				var st0 := lo - dir * 3.5
+				var en := hi + dir * 2.5
+				lines.append(" flight %s foot (%.1f,%.2f,%.1f) head (%.1f,%.2f,%.1f)" % [sr.key, lo.x, lo.y, lo.z, hi.x, hi.y, hi.z])
+				await _walk(PackedStringArray(["walk", "%.2f,%.2f,%.2f" % [st0.x, st0.z, maxf(lo.y, _terrain(st0.x, st0.z)) + 1.2], "%.2f,%.2f,%.2f" % [lo.x, lo.z, lo.y + 0.2], "%.2f,%.2f,%.2f" % [hi.x, hi.z, hi.y + 0.2], "%.2f,%.2f,%.2f" % [en.x, en.z, hi.y + 0.2]]))
+		"oakstair":                                # oakstair : the Grandmother Oak's inner stair, walked step 10 by step 10 up to the crown
+			await _oakstair()
 		"axis":                                    # axis x0 z0 x1 z1 step yfrom : first solid along a line, with what it is
 			var a0 := Vector2(_fl(a, 1), _fl(a, 2))
 			var a1 := Vector2(_fl(a, 3), _fl(a, 4))
@@ -587,6 +610,7 @@ func _shot(a: PackedStringArray) -> void:
 	if DisplayServer.get_name() == "headless" or a.size() < 8:
 		lines.append("shot: needs a window and 7 numbers")
 		return
+	_clean_ui()
 	var prev := get_viewport().get_camera_3d()
 	var cam := Camera3D.new()
 	main.add_child(cam)
@@ -606,3 +630,59 @@ func _shot(a: PackedStringArray) -> void:
 	cam.queue_free()
 	if prev != null and is_instance_valid(prev):
 		prev.current = true
+
+
+## The oak's stair: local position (sin a r, y, cos a r) about the trunk's sway; the radius is found by rays (the tread nearest the
+## expected height), then the real Player climbs from the door, every tenth tread.
+func _oakstair() -> void:
+	var sm := load("res://core/world/realm/realm_pois_south_marches.gd") as GDScript
+	var oak: Dictionary = sm.get("oak")
+	if oak.is_empty():
+		lines.append("oakstair: no oak")
+		return
+	var xf: Transform3D = oak.xf
+	var data := load("res://core/world/realm/south_marches_kit_data.gd") as GDScript
+	var st: Dictionary = data.get_script_constant_map()["OAK_STAIR"]
+	var a0: float = st.a0
+	var a1: float = st.a_end
+	var n: int = st.n
+	var rise: float = st.rise
+	var y0: float = st.y0
+	var args := PackedStringArray(["walk"])
+	var door: Vector3 = oak.door
+	args.append("%.2f,%.2f,%.2f" % [door.x + 0.0, door.z - 6.0, _terrain(door.x, door.z - 6.0) + 0.6])
+	args.append("%.2f,%.2f" % [door.x, door.z])
+	for k in range(0, n, 8):
+		var yy := y0 + rise * float(k)
+		var a := a0 + (a1 - a0) * float(k) / float(n)
+		var sway := Vector3(1.3 * sin(yy * 0.11 + 0.4) + 0.02 * yy, 0.0, 1.1 * cos(yy * 0.09 + 1.1))
+		var best := Vector3.ZERO
+		var best_d := 0.3
+		var r := 2.5
+		while r < 6.6:
+			var lp := Vector3(sin(a) * r, 0.0, cos(a) * r) + sway
+			var w := xf * Vector3(lp.x, yy + 1.2, lp.z)
+			var hit := _space().intersect_ray(PhysicsRayQueryParameters3D.create(w, w + Vector3.DOWN * 2.2, Layers.WORLD | Layers.PROPS))
+			if not hit.is_empty():
+				var dy := absf((hit.position as Vector3).y - (xf.origin.y + yy))
+				if dy < best_d:
+					best_d = dy
+					best = hit.position
+			r += 0.25
+		if best == Vector3.ZERO:
+			lines.append("  tread %d (a %.2f y %.2f): no floor found at any radius" % [k, a, xf.origin.y + yy])
+			continue
+		args.append("%.2f,%.2f,%.2f" % [best.x, best.z, best.y])
+	lines.append("oakstair: %d waypoints" % (args.size() - 1))
+	await _walk(args)
+
+
+## A windowed boot opens the opening shot and (at level 5) the vow menu, which pause the tree and cover every frame: out of the way.
+func _clean_ui() -> void:
+	get_tree().paused = false
+	for cl in get_tree().root.find_children("*", "CanvasLayer", true, false):
+		(cl as CanvasLayer).visible = false
+	for nm: String in ["OpeningCam", "LoadingScreen", "CampCam"]:
+		var n := main.get_node_or_null(nm)
+		if n != null:
+			n.queue_free()
