@@ -142,7 +142,7 @@ static func build(root: Node) -> void:
 	var t0 := Time.get_ticks_msec()
 	root.tree_exiting.connect(DwarfRig.warm_abandon_all, CONNECT_ONE_SHOT)
 	Endgame.at_home = true                  # the land keeps the endgame's chasm at home too while the rift builds there
-	var stream: RealmStream = RealmStream.begin(root, _build_centre(root)) if RealmStream.wanted() else null   # (realm_stream.gd: the node work far from the wanderer waits)
+	var stream: RealmStream = RealmStream.begin(root, _build_centre(root)) if RealmStream.should_stream(root.get_tree()) else null   # (realm_stream.gd: the node work far from the wanderer waits)
 	await _run("land", root)
 	# the Keg's people are the longest cache misses (a mesh each, 0.6 s of GDScript): they build on
 	# worker threads beside the rift and the wardens (not beside the land, whose own threads they slow)

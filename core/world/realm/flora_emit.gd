@@ -79,8 +79,6 @@ static func _basis_at(buf: PackedFloat32Array, o: int) -> Basis:
 	return Basis(Vector3(buf[o], buf[o + 4], buf[o + 8]), Vector3(buf[o + 1], buf[o + 5], buf[o + 9]), Vector3(buf[o + 2], buf[o + 6], buf[o + 10]))
 
 
-static var _probe := "--stream-probe" in OS.get_cmdline_user_args()
-static var _pt := {}                   ## (profile) microseconds by step of _batch
 static var _lod_ready := {}            ## kind key -> mesh with LODs made for this emit
 
 
@@ -156,11 +154,19 @@ static func emit(host: Node3D, items: Dictionary, stones: Dictionary, canopy: Di
 	_lod_ready.clear()                              # (the plans hold the meshes now)
 	host.set_meta(&"trunks", _trunk_records(items, em.kinds, ground))
 	# the pieces, in the order the build always made them
-	var jobs: Array = []                            # [pos, kind of piece, a, b]
+	var streamed := RealmStream.of(em.root) != null
+	var jobs: Array = []                            # [pos, kind of piece, a, b, part]
 	for id: String in items:
 		var csize := TREE_CHUNK if bool((em.kinds[id] as Dictionary).tall) else CHUNK
 		for key: Vector3i in items[id]:
-			jobs.append([Vector2((key.x + 0.5) * csize, (key.y + 0.5) * csize), 0, id, key])
+			# one piece a mesh (the first also makes the colliders): an add to the scene costs ~2.4 ms while the GPU is
+			# busy, and a frame should take one
+			var at := Vector2((key.x + 0.5) * csize, (key.y + 0.5) * csize)
+			if streamed:
+				for part in maxi(1, ((em.kinds[id] as Dictionary).meshes as Array).size()):
+					jobs.append([at, 0, id, key, part])
+			else:
+				jobs.append([at, 0, id, key, -1])          # all of the kind's meshes at once, as the build always made it
 	for key: String in stones:
 		for ck: Vector3i in stones[key]:
 			jobs.append([Vector2((ck.x + 0.5) * CHUNK, (ck.y + 0.5) * CHUNK), 1, key, ck])
@@ -169,7 +175,7 @@ static func emit(host: Node3D, items: Dictionary, stones: Dictionary, canopy: Di
 	em.left = jobs.size()
 	var stream := RealmStream.of(em.root)
 	for j: Array in jobs:
-		var piece := _piece.bind(em, int(j[1]), j[2], j[3])
+		var piece := _piece.bind(em, int(j[1]), j[2], j[3], int(j[4]) if j.size() > 4 else 0)
 		if stream == null:
 			piece.call()
 		else:
@@ -254,12 +260,13 @@ class Emitter:
 
 
 ## Build one piece: 0 a kind's plants in a chunk (a = id, b = key), 1 a stone batch in a chunk, 2 a canopy shell.
-static func _piece(em: Emitter, what: int, a: Variant, b: Vector3i) -> void:
+static func _piece(em: Emitter, what: int, a: Variant, b: Vector3i, part: int) -> void:
 	var t0 := Time.get_ticks_usec()
+
 	var made: Array = []
 	match what:
 		0:
-			made = flora_piece(em, String(a), b)
+			made = flora_piece(em, String(a), b, part)
 		1:
 			made = stone_piece(em, String(a), b)
 		2:
@@ -280,7 +287,7 @@ static func _piece(em: Emitter, what: int, a: Variant, b: Vector3i) -> void:
 
 
 ## A kind's plants in one chunk: the batches of its meshes and, for tall trunks, logs and stumps, the colliders.
-static func flora_piece(em: Emitter, id: String, key: Vector3i) -> Array:
+static func flora_piece(em: Emitter, id: String, key: Vector3i, part: int) -> Array:
 	var made: Array = []
 	var k: Dictionary = em.kinds[id]
 	var d: Dictionary = k.d
@@ -294,12 +301,15 @@ static func flora_piece(em: Emitter, id: String, key: Vector3i) -> Array:
 	var buf: PackedFloat32Array = ((em.items[id] as Dictionary)[key] as PackedFloat32Array).duplicate()
 	var ch := _chunk(em.host, em.chunks, key, csize, em.ground)
 	var n := buf.size() / 16
-	for m: Array in k.meshes:
+	for mi in (k.meshes as Array).size():
+		if part >= 0 and mi != part:
+			continue
+		var m: Array = (k.meshes as Array)[mi]
 		em.counts.x += 1
 		made.append(_batch(ch, buf, n, "Flora_%s_%s" % [id, m[1]], m[0], m[1], m[2], m[3], [sp, m[1], tall, m[3], n], st, swap, em.hide_args))
 	# collision: tall trunks, logs, stumps
 	var solid_r: float = d.r
-	if solid_r > 0.0 and ((tall and float(d.h) > 4.0) or sp == "log" or sp == "stump"):
+	if part <= 0 and solid_r > 0.0 and ((tall and float(d.h) > 4.0) or sp == "log" or sp == "stump"):
 		var body := _body(ch, em.bodies, key)
 		made.append(body)
 		for i in n:
@@ -390,7 +400,6 @@ static func finished(em: Emitter) -> void:
 	for k: String in em.us:
 		line += "%s %d x %.1f ms (worst %.1f ms %s)  " % [k, em.n[k], float(em.us[k]) / 1000.0, float(em.mx[k]) / 1000.0, em.mx_at[k]]
 	print("FLORA pieces: ", line)
-	print("FLORA batch steps (usec): ", _pt)
 
 
 static func _body(ch: Node3D, bodies: Dictionary, key: Vector3i) -> StaticBody3D:
@@ -409,16 +418,12 @@ static func _body(ch: Node3D, bodies: Dictionary, key: Vector3i) -> StaticBody3D
 ## One MultiMeshInstance3D for a kind's part in a chunk: `buf` is written whole (Metal reads
 ## incremental writes back stale), kept as meta cpu_buffer for the editors (clearings, withering).
 static func _batch(ch: Node3D, buf: PackedFloat32Array, n: int, nm: String, mesh: Mesh, tag: String, rb: float, re: float, info: Array, st: Array, swap: bool, hide_args: Array) -> MultiMeshInstance3D:
-	var tp0 := Time.get_ticks_usec()
 	var mm := MultiMesh.new()
 	mm.transform_format = MultiMesh.TRANSFORM_3D
 	mm.use_colors = true
 	mm.mesh = mesh
 	mm.instance_count = n
-	var tp1 := Time.get_ticks_usec()
 	mm.buffer = buf
-	_pt["alloc"] = int(_pt.get("alloc", 0)) + tp1 - tp0
-	_pt["buffer"] = int(_pt.get("buffer", 0)) + Time.get_ticks_usec() - tp1
 	if tag != "stone":
 		mm.set_meta("cpu_buffer", buf)      # (the stones in the turf are not cleared by the editors)
 	var mmi := MultiMeshInstance3D.new()
@@ -475,23 +480,7 @@ static func _batch(ch: Node3D, buf: PackedFloat32Array, n: int, nm: String, mesh
 		mmi.layers = LightPolicy.NO_FIRE_LAYER     # undergrowth: seen and lit as before, left out of the fire shadow
 	mmi.add_to_group(Groups.CULL_SKIP)
 	mmi.set_meta(&"flora", info + [int(mmi.cast_shadow)])
-	var tp2 := Time.get_ticks_usec()
 	ch.add_child(mmi)
-	_pt["add"] = int(_pt.get("add", 0)) + Time.get_ticks_usec() - tp2
-	_pt["n"] = int(_pt.get("n", 0)) + 1
-	if _probe and not ch.get_tree().get_first_node_in_group(&"loading_screen"):
-		var q := Node3D.new()
-		var tq := Time.get_ticks_usec()
-		ch.add_child(q)
-		_pt["p_n3d"] = int(_pt.get("p_n3d", 0)) + Time.get_ticks_usec() - tq
-		q.free()
-		var q2 := MultiMeshInstance3D.new()
-		q2.multimesh = mm
-		var tq2 := Time.get_ticks_usec()
-		ch.add_child(q2)
-		_pt["p_mmi_same_mm"] = int(_pt.get("p_mmi_same_mm", 0)) + Time.get_ticks_usec() - tq2
-		q2.free()
-		_pt["p_n"] = int(_pt.get("p_n", 0)) + 1
 	return mmi
 
 

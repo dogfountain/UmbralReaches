@@ -50,7 +50,20 @@ static func wanted() -> bool:
 	var args := OS.get_cmdline_user_args()
 	if force_on or "--stream" in args:
 		return true
-	return DisplayServer.get_name() != "headless" and not ("--build-all" in args)
+	return false
+
+
+## The night streams only when asked (`--stream`, a test): measured (docs/r39/load_stream.md), a flora MultiMeshInstance3D
+## added while frames are drawn costs 0.33 ms under the loading screen and 2-9 ms while the wanderer plays (the add waits on
+## the GPU in flight), against 0.11 ms in the build's own run of adds with no frame between: streaming the flora into play
+## put 69-107 frames over 16 ms in 75 s, and draining it under the cover cost 3.5 s more than building it in one go. So the
+## default builds all at once; the stream stays for what must be built on demand (ensure, focus: a jump's ring) and for
+## `--stream-play` (measurement).
+static func should_stream(_tree: SceneTree) -> bool:
+	if not wanted():
+		return false
+	var args := OS.get_cmdline_user_args()
+	return force_on or "--stream" in args
 
 
 ## The stream of the night under `root`, or null when none was set up.
@@ -88,6 +101,11 @@ static func submit(root: Node, pos: Vector2, job: Callable, tier := 1) -> bool:
 ## True while jobs may still be queued (the build is over and the queue is not).
 func streaming() -> bool:
 	return wanted()
+
+
+## True once the build is over and the wanderer plays: a piece built now meets a busy GPU (see flora_emit.gd _batch).
+func live() -> bool:
+	return _started
 
 
 func pending() -> int:
@@ -171,68 +189,13 @@ func _sort() -> void:
 		_jobs[i] = (keyed[i] as Array)[1]
 
 
-var _probed := false
-
-
-## (measurement only: --stream-probe) what an add_child costs in play, by kind of node.
-func _probe() -> void:
-	_probed = true
-	var host := Node3D.new()
-	host.name = "ProbeHost"
-	add_child(host)
-	var box := BoxMesh.new()
-	var rows := []
-	for kind in ["node3d", "mmi_plain", "mmi_range", "mmi_range_fade", "mmi_big", "mesh_inst"]:
-		var tot := 0
-		var worst := 0
-		for k in 12:
-			var n: Node
-			match kind:
-				"node3d":
-					n = Node3D.new()
-				"mesh_inst":
-					var mi := MeshInstance3D.new()
-					mi.mesh = box
-					n = mi
-				_:
-					var mm := MultiMesh.new()
-					mm.transform_format = MultiMesh.TRANSFORM_3D
-					mm.use_colors = true
-					mm.mesh = box
-					var cnt := 600 if kind == "mmi_big" else 4
-					mm.instance_count = cnt
-					var buf := PackedFloat32Array()
-					buf.resize(cnt * 16)
-					mm.buffer = buf
-					var mmi := MultiMeshInstance3D.new()
-					mmi.multimesh = mm
-					if kind == "mmi_range" or kind == "mmi_range_fade":
-						mmi.visibility_range_end = 90.0
-					if kind == "mmi_range_fade":
-						mmi.visibility_range_end_margin = 6.0
-						mmi.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
-					n = mmi
-			var t0 := Time.get_ticks_usec()
-			host.add_child(n)
-			var took := Time.get_ticks_usec() - t0
-			tot += took
-			worst = maxi(worst, took)
-		rows.append("%s avg %.2f worst %.2f ms" % [kind, tot / 12000.0, worst / 1000.0])
-	print("STREAM probe add_child: ", "; ".join(rows))
-	host.queue_free()
-
-
 func _process(delta: float) -> void:
-	if not _probed and "--stream-probe" in OS.get_cmdline_user_args() and not _loading():
-		_probe()
 	if _jobs.is_empty():
 		_after()
 		return
 	var focused := Time.get_ticks_msec() < _focus_until
 	var cover := _loading()
-	if cover:
-		return                                    # the loading screen's own frames are for its tour; the stream works once the wanderer plays
-	var slice := BOOT_BUDGET_US if focused else BUDGET_US     # (a focus is under a fade: black)
+	var slice := BOOT_BUDGET_US if (cover or focused) else BUDGET_US     # (a focus is under a fade: black)
 	if not cover:
 		_play_frames += 1                         # the frames the wanderer plays while the stream works
 		if delta > 0.016:
