@@ -216,16 +216,36 @@ def foot_course(P, r, coll):
 
 
 def far(P):
+    """The far hull (Tower_Far, seen from 190 m out): the shaft with its four corner buttresses, the corbelled cornice, and the
+    hipped roof half fallen (three slopes whole, the fourth a lower strip with its rafters bare), a finial. (It was a box and a
+    four-sided pyramid: the polish pass, 20 Nov.)"""
     stone(P, "stone", (0, 0, -5.0), (2 * HW, 2 * HW, 20.4), j=0.0)
-    L.W.cyl(P, "stone", (0, 0, 5.2), (0, 0, 5.2), 0.1, seg=4)
-    # the roof: a four-sided pyramid
-    zb = Z_WALL + 1.6
-    h = HW + 1.0
-    bm = P.of("slate")
-    v = [bm.verts.new(p) for p in ((-h, -h, zb), (h, -h, zb), (h, h, zb), (-h, h, zb), (0, 0, zb + 4.6))]
+    for sx in (-1, 1):
+        for sy in (-1, 1):
+            stone(P, "ashlar", (sx * (HW + 0.18), sy * (HW + 0.18), -4.0), (1.1, 1.1, 18.4), j=0.0)
+            stone(P, "ashlar", (sx * (HW + 0.3), sy * (HW + 0.3), 5.0), (0.8, 0.8, 0.5), j=0.0)
+    # the corbelled cornice: a course under, a deeper course over
+    stone(P, "stone", (0, 0, Z_WALL - 0.6), (2 * HW + 1.0, 2 * HW + 1.0, 0.9), j=0.0)
+    stone(P, "stone", (0, 0, Z_WALL + 0.35), (2 * HW + 1.8, 2 * HW + 1.8, 0.7), j=0.0)
+    zb = Z_WALL + 0.7
+    h = HW + 1.2
+    apex = Vector((0.0, 0.0, zb + 5.2))
+    corners = [Vector((-h, -h, zb)), Vector((h, -h, zb)), Vector((h, h, zb)), Vector((-h, h, zb))]
     for i in range(4):
-        bm.faces.new((v[i], v[(i + 1) % 4], v[4]))
-    stone(P, "stone", (0, 0, Z_WALL + 0.8), (2 * HW + 1.8, 2 * HW + 1.8, 1.6), j=0.0)
+        a, b = corners[i], corners[(i + 1) % 4]
+        if i == 1:
+            # the east slope is the fallen one: only its lower third stands; the rafters stand bare above it
+            a2 = a.lerp(apex, 0.34)
+            b2 = b.lerp(apex, 0.34)
+            L.sloped_roof_plane(P, "slate", a, b, b2, a2, 0.22)
+            for k in range(6):
+                f = (k + 0.5) / 6.0
+                base = a2.lerp(b2, f)
+                top = a.lerp(b, f).lerp(apex, 0.8 - 0.1 * (k % 3))
+                L.W.beam(P, "timber", base, top, 0.22, 0.3)
+            continue
+        L.sloped_roof_plane(P, "slate", a, b, apex + Vector((0.0, 0.0, 0.0)), apex + Vector((0.0, 0.0, 0.0)), 0.22)
+    L.W.cyl(P, "iron", (0, 0, apex.z), (0, 0, apex.z + 1.8), 0.1, 0.04, seg=6)
 
 
 def build_all():
