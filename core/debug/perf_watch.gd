@@ -530,7 +530,6 @@ func _process(delta: float) -> void:
 		elif zone.has_meta("realm_done"):
 			_post_done = true
 			Atmosphere.post_build(zone)
-			_counts_t = -100.0
 			for type: String in ["GPUParticles3D", "OmniLight3D", "SpotLight3D"]:
 				_count(zone, type)                   # warm now (still loading), not in a spike
 	_cool = maxf(0.0, _cool - delta)
@@ -576,17 +575,14 @@ func _log(dt: float, median: float) -> void:
 	print("PERF_SPIKE ", line)
 
 
-## Node counts for the log, refreshed at most every 60 s (warmed when the Realm is done): a full-tree
-## scan is ~8k nodes, several ms, and logging a spike must not make the next one.
+## Node counts for the log, taken once when the Realm is done (still under the loading cover) and kept for the night:
+## a full-tree scan is ~50k nodes now, three of them were a 30-60 ms frame, and logging a spike must not make the next
+## one (it re-scanned every 60 s, inside the frame that logged; 20 Nov, the fps pass). The world's lights and emitters
+## are built with it, so the counts hardly change; the enemies' and shades' counts in the line are live.
 var _counts := {}
-var _counts_t := -100.0
 
 
 func _count(root: Node, type: String) -> int:
-	var now := Time.get_ticks_msec() / 1000.0
-	if now - _counts_t > 60.0:
-		_counts_t = now
-		_counts.clear()
 	if not _counts.has(type):
 		_counts[type] = root.find_children("*", type, true, false).size()
 	return _counts[type]
