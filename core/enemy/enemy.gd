@@ -1437,7 +1437,7 @@ func _set_state(next: int) -> void:
 		elif was == IDLE and (next == CHASE or next == CALL):
 			_pull_pack()                        # r33: a pull is the whole camp
 	if (next == WINDUP or next == LEAP_PREP) and _dist < 6.0 and _p != null and not Hints.seen(&"break_windup"):
-		Hints.once(&"break_windup", "A blow of 2 or more breaks a red tell at once: the Lash, the Lance, the staff's last swing. A lighter blow breaks it only when the foe's poise fills. On a great one the Lash is chipped under that line; the Lance and the last swing still clear it.")
+		Hints.once(&"break_windup", "A heavy blow (the Lash, the Lance, the staff's last swing) breaks a red tell at once. A lighter one breaks it only when the foe's poise fills.")
 	if next != CHASE:
 		_waiting = false
 	if not (next == WINDUP or next == STRIKE or next == LEAP_PREP or next == AIRBORNE or next == FEINT or next == SPECIAL):
