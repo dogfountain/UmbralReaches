@@ -36,6 +36,11 @@ var chunk := CHUNK
 ## solids but draw nothing: a structure whose look is a modelled glb (Blender, Luke's asset bar) keeps exactly the walk,
 ## the stairs' ramps and the props' clipping test it had (the visual pass, 19 Nov)
 var visual := true
+## zz/zone_fit_probe: with `record` on, every flight built is logged (kit-local lo/hi) and, on commit, filed with its holder
+## in `stair_registry`, so a probe can measure each flight's foot and head against the ground and the floor it joins.
+static var record := false
+static var stair_registry: Array[Dictionary] = []
+var stair_log: Array = []
 
 static var _mats: Dictionary = {}
 static var _skulls: Array[ArrayMesh] = []
@@ -463,6 +468,8 @@ func _arch_ring(key: String, base: Vector3, along: Vector3, nrm: Vector3, w: flo
 ## Straight flight from `lo` (foot, floor height) up to `hi` (head, floor height), `width` across.
 ## Steps are visual only; collision is one smooth ramp under the nosings (CharacterBody-friendly).
 func stairs(key: String, lo: Vector3, hi: Vector3, width: float, steps: int, base_y := NAN) -> void:
+	if record:
+		stair_log.append([key, lo, hi, width, steps])
 	var run := Vector3(hi.x - lo.x, 0.0, hi.z - lo.z)
 	var dir := run.normalized()
 	var side := dir.cross(Vector3.UP).normalized()
@@ -829,6 +836,9 @@ func bone_count() -> int:
 ## collision soup, and the prop MultiMeshes (one per prop mesh). Returns draw calls added.
 func commit(parent: Node3D, body_name := "Body") -> int:
 	var draws := 0
+	if record:
+		for sl: Array in stair_log:
+			stair_registry.append({"parent": parent, "key": sl[0], "lo": sl[1], "hi": sl[2], "w": sl[3], "n": sl[4]})
 	if debris_max > 0:
 		_debris()
 	for key in _st:

@@ -112,6 +112,19 @@ static func site_floor(s: Dictionary, p: Vector2, margin := 0.0) -> float:
 	return float(s.floor_y) if (s.rect as Rect2).grow(margin).has_point(p) else NAN
 
 
+## Past a flight's end (before its foot or beyond its head): the stamp's round cap round each end. TerrainStamp cuts the cap flush with
+## the floor, not 0.35 under it like the flight itself, so the ground meeting a stair's top or foot is level with it.
+static func past_end(s: Dictionary, p: Vector2) -> bool:
+	if not s.has("seg"):
+		return false
+	var a: Vector3 = s.seg[0]
+	var b: Vector3 = s.seg[1]
+	var a2 := Vector2(a.x, a.z)
+	var ab := Vector2(b.x, b.z) - a2
+	var t := (p - a2).dot(ab) / maxf(ab.length_squared(), 0.0001)
+	return t < 0.0 or t > 1.0
+
+
 static func register_lane(n: String, pts: Array, half_w: float) -> void:
 	for l: Array in extra_lanes:
 		if l[0] == n:

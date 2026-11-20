@@ -104,6 +104,7 @@ static func reserve(root: Node, _skip: PackedStringArray) -> void:
 		var yaw := atan2(to.x, to.y)
 		var base := lo
 		if id == "lamp_spire":
+			yaw = 0.0            # the door faces the south spur, where the tower's stair comes up (it faced the nearest way, over the bluff's cliff)
 			base = cy            # on the bluff's top: the lowest corner of the pad sat on its shoulder and sank the tower
 		if id == "saltmarket" or id == "saltworks" or id == "crust":
 			base = cy
@@ -117,6 +118,9 @@ static func reserve(root: Node, _skip: PackedStringArray) -> void:
 		else:
 			WorldLanes.register_site("poi_" + id, rect, lo + 0.05, lo)
 		spots[id] = {"at": Vector3(q.x, base, q.y), "yaw": yaw, "rect": rect, "lo": lo, "hi": hi}
+		if id == "lamp_spire":
+			var fl := _spire_flight(space, spots[id])
+			WorldLanes.register_flight("poi_spire_stair", fl[0], fl[1], 2.6)
 	if spots.has("saltworks"):
 		Works.reserve(space)
 		for f: Dictionary in PAN_FIELDS:
@@ -334,6 +338,56 @@ static func _dark_glass() -> StandardMaterial3D:
 
 # --- The Lamplighters' Spire -------------------------------------------------------------------------
 
+const SPIRE_STAIR_RUN := 14.0           ## the stair's run down the south spur from the door's steps
+const SPIRE_STAIR_W := 2.6
+
+
+## The stair from the door's steps (the plinth's footing, local z 7.2) down the bluff's south spur to the foot of the bluff:
+## [foot, head] in world space, the head at the footing's top, the foot set into the ground. The bluff stands 8 m over the
+## land on every side but this spur, and the door once faced the cliff (the way in hung over a drop).
+static func _spire_flight(space: PhysicsDirectSpaceState3D, s: Dictionary) -> Array[Vector3]:
+	var xf := _xf(s)
+	var hi := xf * Vector3(0.0, 0.0, 7.2)
+	hi.y = xf.origin.y + 0.06
+	var fwd := xf.basis * Vector3(0.0, 0.0, 1.0)
+	var lo := hi + fwd * SPIRE_STAIR_RUN + Vector3(0.9, 0.0, 0.0)
+	var gl := INF
+	for o: Vector2 in [Vector2.ZERO, Vector2(1.2, 0.0), Vector2(-1.2, 0.0), Vector2(0.0, 1.5), Vector2(0.0, 3.0)]:
+		gl = minf(gl, _gy(space, lo.x + o.x, lo.z + o.y))
+	lo.y = gl - 0.1
+	return [lo, hi]
+
+
+static func _spire_stair(host: Node3D, space: PhysicsDirectSpaceState3D, s: Dictionary) -> void:
+	var fl := _spire_flight(space, s)
+	var lo := fl[0]
+	var hi := fl[1]
+	var k := OssKit.new()
+	k.keep_lanes = false
+	var base := lo.y - 0.6
+	for i in 9:
+		var q := lo.lerp(hi, float(i) / 8.0)
+		base = minf(base, _gy(space, q.x, q.z) - 0.6)
+	var steps := maxi(8, int(ceilf((hi.y - lo.y) / 0.33)))
+	k.stairs("stone", lo, hi, SPIRE_STAIR_W, steps, base)
+	# low cheek walls the length of the flight, so the stair reads cut into the spur
+	var d := Vector3(hi.x - lo.x, 0.0, hi.z - lo.z)
+	var dir := d.normalized()
+	var side := dir.cross(Vector3.UP).normalized()
+	var b := Basis(side, Vector3.UP, dir)
+	for sd: float in [-1.0, 1.0]:
+		for j in 6:
+			var t0 := float(j) / 6.0
+			var t1 := float(j + 1) / 6.0
+			var a := lo.lerp(hi, (t0 + t1) * 0.5)
+			var ytop := a.y + 0.75
+			var ybot := minf(lo.lerp(hi, t0).y, lo.lerp(hi, t1).y) - 1.2
+			var c := a + side * (sd * (SPIRE_STAIR_W * 0.5 + 0.3))
+			k.box("stone", Vector3(c.x, (ytop + ybot) * 0.5, c.z), Vector3(0.5, ytop - ybot, d.length() / 6.0 + 0.05), b, true, 0.88)
+	k.commit(host, "SpireStairBody")
+
+
+
 static func _spire(host: Node3D, space: PhysicsDirectSpaceState3D, s: Dictionary) -> void:
 	var xf := _xf(s)
 	var rng := RandomNumberGenerator.new()
@@ -350,6 +404,7 @@ static func _spire(host: Node3D, space: PhysicsDirectSpaceState3D, s: Dictionary
 	for ly: float in [1.6, 5.4, 9.2]:
 		Interiors.light(host, "SpireCandles", xf * Vector3(0, ly, 1.6), Interiors.CANDLE, 1.3, 5.5, false, 0.1)
 	_plinth(host, space, xf)
+	_spire_stair(host, space, s)
 	# rock heaped at the foot, round the three sides the door is not on
 	for i in 7:
 		var a := float(i) / 7.0 * TAU + rng.randf() * 0.4

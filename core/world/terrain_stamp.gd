@@ -135,7 +135,7 @@ static func apply(root: Node) -> void:
 			var fy := WorldLanes.site_floor(st, Vector2(w.x, w.z), 0.6)
 			if is_nan(fy):
 				continue
-			var target: float = (fy - 0.05) if st.get("level", false) else (float(st.cut_y) if not st.has("seg") else fy - 0.35)
+			var target: float = (fy - 0.05) if st.get("level", false) else (float(st.cut_y) if not st.has("seg") else (fy - 0.06 if WorldLanes.past_end(st, Vector2(w.x, w.z)) else fy - 0.35))
 			var dy: float = target - w.y
 			if not st.get("level", false) and dy > -0.02:
 				continue                    # rect sites and flights only cut

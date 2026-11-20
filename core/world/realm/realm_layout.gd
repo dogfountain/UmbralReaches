@@ -330,7 +330,7 @@ const BASE_PATHS := [
 	# (map audit, 18 Nov: it left the road on the Sorrow's west bank and waded 1.1-1.3 m down the river's bend for 15 m;
 	# it leaves Weirford's bridge on the east bank now)
 	{"id": "siege_track", "w": 1.4, "pts": [Vector2(-202, 66), Vector2(-209, 84), Vector2(-210, 98), Vector2(-206, 105), Vector2(-203, 118), Vector2(-192, 132), Vector2(-181, 146), Vector2(-182.5, 159.06), Vector2(-177, 175), Vector2(-179, 190)]},
-	{"id": "spire_track", "w": 1.4, "pts": [Vector2(212, 74), Vector2(214, 52), Vector2(226, 30), Vector2(236, 14)]},
+	{"id": "spire_track", "w": 1.4, "pts": [Vector2(212, 74), Vector2(214, 52), Vector2(226, 30), Vector2(238, 29), Vector2(243, 27)]},   # (r39 zone fit: the track ends at the foot of the Spire's stair on the south spur, it ended under the cliff)
 	{"id": "anchor_track", "w": 1.4, "pts": [Vector2(180, 70), Vector2(174, 40), Vector2(172, 0), Vector2(178, -40), Vector2(196, -70), Vector2(204, -84), Vector2(205, -102), Vector2(206, -108)]},
 	{"id": "salt_track", "w": 1.4, "pts": [Vector2(212, 74), Vector2(212, 108), Vector2(212, 186), Vector2(196, 212)]},        # the Brine Road: straight from Saltmarket to the pump tower (realm_pois_east_works.gd), so it is not in MEANDER_IDS
 	{"id": "downs_track", "w": 1.4, "pts": [Vector2(-179, 190), Vector2(-150, 196), Vector2(-110, 190), Vector2(-44, 192), Vector2(0, 190), Vector2(44, 192), Vector2(110, 186), Vector2(160, 200), Vector2(196, 212)]},
