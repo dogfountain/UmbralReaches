@@ -809,7 +809,7 @@ static func bone_tone(at: Vector3) -> Color:
 		c = Color(0.5, 0.45, 0.4)                                                  # soot-dark
 	elif h % 7 == 0:
 		c = Color(0.72, 0.72, 0.7)                                                 # grey
-	return c * (0.62 + 0.45 * v)
+	return c * (0.3 + 0.42 * v)           # (the candles' light is strong: at full albedo the whole wall clipped to one gold; at 0.3 .. 0.72 the skulls read apart)
 
 
 static func multimesh(mesh: Mesh, xforms: Array, mat_override: Material, shadows := true, aged := false) -> MultiMeshInstance3D:
