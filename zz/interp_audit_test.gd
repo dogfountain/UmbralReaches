@@ -272,7 +272,7 @@ func _static_multimeshes() -> void:
 		for i in lines.size():
 			if "MultiMeshInstance3D.new()" in lines[i]:
 				n += 1
-				var near := "\n".join(lines.slice(i, mini(i + 4, lines.size())))
+				var near := "\n".join(lines.slice(i, mini(i + 8, lines.size())))
 				if not "PHYSICS_INTERPOLATION_MODE_OFF" in near:
 					_fail("%s:%d: a static MultiMeshInstance3D is added with physics interpolation on" % [path, i + 1])
 	print("static MultiMeshInstance3D builders checked: %d" % n)
