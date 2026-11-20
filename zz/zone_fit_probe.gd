@@ -484,8 +484,42 @@ func _cmd(a: PackedStringArray) -> void:
 				var en := hi + dir * 2.5
 				lines.append(" flight %s foot (%.1f,%.2f,%.1f) head (%.1f,%.2f,%.1f)" % [sr.key, lo.x, lo.y, lo.z, hi.x, hi.y, hi.z])
 				await _walk(PackedStringArray(["walk", "%.2f,%.2f,%.2f" % [st0.x, st0.z, maxf(lo.y, _terrain(st0.x, st0.z)) + 1.2], "%.2f,%.2f,%.2f" % [lo.x, lo.z, lo.y + 0.2], "%.2f,%.2f,%.2f" % [hi.x, hi.z, hi.y + 0.2], "%.2f,%.2f,%.2f" % [en.x, en.z, hi.y + 0.2]]))
+		"lampscan":                                # lampscan : props standing on a flight's centreline (a 0.4 m box 1 m to 1.8 m over the tread)
+			var box := BoxShape3D.new()
+			box.size = Vector3(0.4, 0.8, 0.4)
+			var qb := PhysicsShapeQueryParameters3D.new()
+			qb.shape = box
+			qb.collision_mask = Layers.WORLD | Layers.PROPS
+			for sr: Dictionary in OssKit.stair_registry:
+				var par := sr.parent as Node3D
+				if par == null or not is_instance_valid(par) or not par.is_inside_tree():
+					continue
+				var xf := par.global_transform
+				var lo: Vector3 = xf * (sr.lo as Vector3)
+				var hi: Vector3 = xf * (sr.hi as Vector3)
+				var seen := {}
+				var n := maxi(2, int(lo.distance_to(hi) / 0.4))
+				for i in n + 1:
+					var q := lo.lerp(hi, float(i) / float(n))
+					qb.transform = Transform3D(Basis.IDENTITY, Vector3(q.x, q.y + 1.4, q.z))
+					for h in _space().intersect_shape(qb, 6):
+						var cn := h.collider as Node
+						if cn == null or String(cn.name).begins_with("Terrain"):
+							continue
+						var key := str(cn.get_path())
+						if not seen.has(key):
+							seen[key] = true
+							lines.append("PROP ON STAIR %s %s (%.1f,%.2f,%.1f): %s" % [sr.key, par.name, q.x, q.y, q.z, _shape_desc(cn, int(h.shape))])
+		"ossroute":                                # the Ossuary's own walk, bridge to chapel, in world space
+			var pts := PackedStringArray(["walk"])
+			var first := true
+			for lp: Vector3 in [Vector3(-9, 12.6, -34), Vector3(19.6, 12.6, -34), Vector3(23, 12.6, -36.6), Vector3(23, 12.6, -39.5), Vector3(23, 8.4, -49.5), Vector3(23, 8.4, -52.5), Vector3(20, 8.4, -58), Vector3(20, 8.4, -65.5), Vector3(21, 8.4, -67.5), Vector3(21, 4.2, -78), Vector3(17.5, 4.2, -84), Vector3(16, 4.2, -95.5), Vector3(16, 4.2, -104)]:
+				var w := OssFrame.w(lp)
+				pts.append("%.2f,%.2f,%.2f" % [w.x, w.z, w.y + (0.6 if first else 0.0)])
+				first = false
+			await _walk(pts)
 		"oakstair":                                # oakstair : the Grandmother Oak's inner stair, walked step 10 by step 10 up to the crown
-			await _oakstair()
+			await _oakstair(a.size() > 1 and a[1] == "swap")
 		"axis":                                    # axis x0 z0 x1 z1 step yfrom : first solid along a line, with what it is
 			var a0 := Vector2(_fl(a, 1), _fl(a, 2))
 			var a1 := Vector2(_fl(a, 3), _fl(a, 4))
@@ -639,7 +673,7 @@ func _shot(a: PackedStringArray) -> void:
 
 ## The oak's stair: local position (sin a r, y, cos a r) about the trunk's sway; the radius is found by rays (the tread nearest the
 ## expected height), then the real Player climbs from the door, every tenth tread.
-func _oakstair() -> void:
+func _oakstair(swap := false) -> void:
 	var sm := load("res://core/world/realm/realm_pois_south_marches.gd") as GDScript
 	var oak: Dictionary = sm.get("oak")
 	if oak.is_empty():
@@ -665,7 +699,7 @@ func _oakstair() -> void:
 		var best_d := 0.3
 		var r := 2.5
 		while r < 6.6:
-			var lp := Vector3(sin(a) * r, 0.0, cos(a) * r) + sway
+			var lp := (Vector3(cos(a) * r, 0.0, sin(a) * r) if swap else Vector3(sin(a) * r, 0.0, cos(a) * r)) + sway
 			var w := xf * Vector3(lp.x, yy + 1.2, lp.z)
 			var hit := _space().intersect_ray(PhysicsRayQueryParameters3D.create(w, w + Vector3.DOWN * 2.2, Layers.WORLD | Layers.PROPS))
 			if not hit.is_empty():

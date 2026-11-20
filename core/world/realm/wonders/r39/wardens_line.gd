@@ -178,7 +178,7 @@ func _tower(no: int, c: Vector2, glo: float, ghi: float) -> void:
 		var run := maxf(2.4, float(steps) * 0.9)
 		var sill := _w(-HI - WALL, fl, 0.8)
 		var far := Vector3(sill.x + door_out.x * run, 0.0, sill.z + door_out.z * run)
-		var gf := WK.h(far.x, far.z)
+		var gf := WK.h(far.x, far.z) - 0.8                  # the site's cut and falloff lowers the ground by up to 0.95 here: the foot is set under it
 		k.kit.stairs("stone_big", Vector3(far.x, gf - 0.15, far.z), sill, 2.4, maxi(2, int(ceilf((y0 + fl - gf + 0.15) / 0.34))), gf - 1.6)
 		# a chest in the hall (the sixth tower's is the reliquary)
 		var tier := "reliquary" if no == 6 else "wood"

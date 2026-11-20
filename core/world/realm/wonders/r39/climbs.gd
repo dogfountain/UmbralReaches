@@ -192,7 +192,7 @@ func _stair(root: Node, i: int, p: Vector2, top: Vector2, rng: RandomNumberGener
 	var d3 := Vector3(d.x, 0.0, d.y)
 	var s3 := d3.cross(Vector3.UP)
 	var b := Basis(s3, Vector3.UP, d3)
-	var yb := WK.h(p.x, p.y)
+	var yb := minf(WK.h(p.x, p.y), WK.h(p.x - d.x * 1.5, p.y - d.y * 1.5))      # set into the ground before the foot too: it fell 1.4 m away
 	var yt := WK.h(top.x, top.y) + 0.4
 	var a3 := Vector3(p.x, yb, p.y)
 	var t3 := Vector3(top.x, yt, top.y)

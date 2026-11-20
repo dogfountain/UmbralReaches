@@ -1195,6 +1195,39 @@ static func _orchard_press(host: Node3D, space: PhysicsDirectSpaceState3D, s: Di
 
 # --- The Mother Tree (Cinder Orchard) ----------------------------------------------------------
 
+## The hollow's collision with its wall taken out over the way in: the arc centred on the gap the model left (the bearing, in the
+## mesh's own frame, where the wall's faces are fewest), 100 degrees wide, to 3.4 m from the trunk's middle and 5 m up.
+static func _mother_open(shell: ConcavePolygonShape3D) -> ConcavePolygonShape3D:
+	var f := shell.get_faces()
+	var bins := PackedInt32Array()
+	bins.resize(36)
+	for i in range(0, f.size(), 3):
+		var c := (f[i] + f[i + 1] + f[i + 2]) / 3.0
+		if Vector2(c.x, c.z).length() < 3.4 and c.y > 0.3 and c.y < 3.0:
+			bins[int(floorf((atan2(c.z, c.x) + PI) / TAU * 36.0)) % 36] += 1
+	var best := 0
+	var best_n := 1 << 30
+	for b in 36:
+		var n := bins[b] + bins[(b + 1) % 36] + bins[(b + 35) % 36]
+		if n < best_n:
+			best_n = n
+			best = b
+	var ang := (float(best) + 0.5) / 36.0 * TAU - PI
+	var keep := PackedVector3Array()
+	for i in range(0, f.size(), 3):
+		var c := (f[i] + f[i + 1] + f[i + 2]) / 3.0
+		var near := Vector2(c.x, c.z).length() < 3.4 and c.y < 5.0
+		if near and absf(angle_difference(atan2(c.z, c.x), ang)) < deg_to_rad(50.0):
+			continue
+		keep.append(f[i])
+		keep.append(f[i + 1])
+		keep.append(f[i + 2])
+	var out := ConcavePolygonShape3D.new()
+	out.set_faces(keep)
+	out.backface_collision = true
+	return out
+
+
 static func _orchard_heart(host: Node3D, space: PhysicsDirectSpaceState3D, s: Dictionary) -> void:
 	var xf := _xf(s)
 	var b := xf.basis
@@ -1211,6 +1244,9 @@ static func _orchard_heart(host: Node3D, space: PhysicsDirectSpaceState3D, s: Di
 		SouthKit.put(host, MOTHER, part, xf, Vector2(0.0, MOTHER_FAR))
 	var shell := SouthKit.trimesh(MOTHER, "MotherCol")
 	if shell != null:
+		# the way in was 1.4 m between the bark, so any approach but the exact middle met the shell: the collision is opened over a
+		# 100 degree arc of the hollow's wall (the opening's side, found from the model's own gap), a clear walk of 2 m and more
+		shell = _mother_open(shell)
 		SouthKit.body(host, "MotherShell", [[shell, xf]])
 	var far := SouthKit.mesh(MOTHER, "MotherFar")
 	if far != null:
