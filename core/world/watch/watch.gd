@@ -134,14 +134,15 @@ func _sleep() -> void:
 	_swing_t.clear()
 
 
-## The Watch's two uniforms (a hooded coat and a capped one, the same grey-brown, a sword in the right
+## The Watch's two uniforms (a hooded coat and a capped one, the same grey-brown, lifted a third in the polish pass: at 0.25 they were
+## two black cut-outs at night, a patrol of silhouettes; a sword in the right
 ## hand). Two looks, not one each, so only two meshes are ever built: WatchPosts prewarms both while
 ## the Realm loads, and a post that wakes in play builds nothing (each was a 250 ms stall).
 const LOOKS := [
 	{"seed": 7711, "sex": "m", "age": "adult", "garment": "coat", "hood": true, "hat": "", "beard": "short", "r": "sword", "girth": 1.04,
-		"cloth": Color(0.25, 0.21, 0.2), "cloth2": Color(0.2, 0.17, 0.16), "leather": Color(0.3, 0.2, 0.12), "skin": Color(0.7, 0.52, 0.4)},
+		"cloth": Color(0.43, 0.37, 0.33), "cloth2": Color(0.34, 0.3, 0.27), "leather": Color(0.42, 0.28, 0.16), "skin": Color(0.7, 0.52, 0.4)},
 	{"seed": 7723, "sex": "m", "age": "adult", "garment": "coat", "hood": false, "hat": "cap", "beard": "", "r": "sword", "girth": 1.0,
-		"cloth": Color(0.25, 0.21, 0.2), "cloth2": Color(0.2, 0.17, 0.16), "leather": Color(0.3, 0.2, 0.12), "skin": Color(0.62, 0.46, 0.36)},
+		"cloth": Color(0.43, 0.37, 0.33), "cloth2": Color(0.34, 0.3, 0.27), "leather": Color(0.42, 0.28, 0.16), "skin": Color(0.62, 0.46, 0.36)},
 ]
 
 
