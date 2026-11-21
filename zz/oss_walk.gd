@@ -73,9 +73,25 @@ func _ow(pts: Array) -> Array[Vector3]:
 	return out
 
 
-func _teleport(at: Vector3) -> void:
+## The terrain's own height under (x, z): a ray down through every collider that is not the Terrain (the Ossuary's roofs, the
+## crypt) to it.
+func _terrain_y(x: float, z: float) -> float:
 	var sp := (main as Node3D).get_world_3d().direct_space_state
-	var y := at.y if absf(at.y) > 0.01 else RealmLayout.ground(sp, at.x, at.z) + 0.9
+	var q := PhysicsRayQueryParameters3D.create(Vector3(x + 0.0037, 220.0, z + 0.0029), Vector3(x + 0.0037, -120.0, z + 0.0029), Layers.WORLD | Layers.PROPS)
+	var skip: Array[RID] = []
+	for i in 12:
+		q.exclude = skip
+		var hit := sp.intersect_ray(q)
+		if hit.is_empty():
+			break
+		if String((hit.collider as Node).name).begins_with("Terrain"):
+			return (hit.position as Vector3).y
+		skip.append(hit.rid)
+	return 0.0
+
+
+func _teleport(at: Vector3) -> void:
+	var y := at.y if absf(at.y) > 0.01 else _terrain_y(at.x, at.z) + 0.9
 	p.global_position = Vector3(at.x, y, at.z)
 	p.velocity = Vector3.ZERO
 	p.reset_physics_interpolation()
@@ -160,7 +176,7 @@ func _descent() -> void:
 		pts.append(Vector3(v[0], 0, v[1]))
 	ok("down the north stair, through the gallery to its far door", await _walk_pts("gallery", _ow(pts), Ossuary.GAL_Y, 0.9))
 	pts = []
-	for v: Array in [[21.0, -69.0], [21.0, -73.0], [21.0, -77.0], [20.5, -80.0], [17.5, -84.0]]:
+	for v: Array in [[21.0, -69.0], [21.0, -73.0], [21.0, -77.0], [20.5, -80.0], [22.0, -84.0]]:
 		pts.append(Vector3(v[0], 0, v[1]))
 	ok("down the pit stair onto the charnel pit", await _walk_pts("pit", _ow(pts), Ossuary.PIT_Y, 0.9))
 	pts = []
@@ -221,20 +237,21 @@ func _count() -> void:
 		pts.append(v)
 	_teleport(r.from)
 	await _frames(10)
-	ok("the chapel flight into the Uncounted Cells", await _walk_pts("cells", pts, float(s.goal.y) if absf(float(s.goal.y)) > 0.001 else NAN, 1.5))
+	ok("the chapel flight into the Uncounted Cells", await _walk_pts("cells", pts, float(s.goal.y) - OssFrame.ORIGIN.y, 1.5))
 	# the cage: its pin out, a ride up to the gallery's west arcade, the step off into the gallery
 	var rb := deep.find_child("RopeBottom", true, false)
 	_teleport(OssFrame.w(Vector3(15.3, -1.9, -64.4)))
 	await _frames(30)
+	State.mark("elites", "sexton")                        # (the Weighing is won: the bottom rope may knock the pin out)
 	if rb:
 		rb.call("interact", p)
 	await _frames(20)
+	ok("the pin is out: the shortcut is open", State.has("open", "deep_lift"))
 	ok("walk onto the cage", await _walk_pts("cage-on", _ow([Vector3(15.2, 0, -62.4)])))
-	var chain := deep.find_child("HaulChain", true, false)
-	if chain:
-		chain.call("interact", p)
 	var t0 := Time.get_ticks_msec()
 	var lift: Node = deep.get("_lift")
+	lift.call("send", true)                                # (the haul chain's own call)
+	await _frames(5)
 	while Time.get_ticks_msec() - t0 < 20000 and lift != null and bool(lift.call("moving")):
 		await get_tree().physics_frame
 	await _frames(30)
