@@ -115,11 +115,19 @@ flags (hewn) at the Lip, Hearthward's market cross, the henge's stones, Lastligh
 - [x] verification of those fixes (`after2/`, 11 views) and the walk again
 - [x] parse check (`tools/parse_all.gd`: 0 bad), `tools/lint.sh` clean
 
-## 6. What is left
+## 6. Round 2 (Luke, on the shots: "send it back"; the route stays)
 
-- The loading screen's camera "by the Spindle" (`ui/loading_screen.gd`, out of this brief's bounds) now looks from the air at the crag.
-- The Ossuary's pool still says "The starwater gives you back." (`player_vitals.gd` toast for `star` burns, used only by `oss_pool.gd`).
-- The crag's lavafall out of its own cleft was planned; the source is the east wall's falls by the summit (z -70, -88) and two boils.
+| Ask | Done |
+|---|---|
+| A big lava pit that makes sense: crust only at the village end, a broad molten lake from the Foot north, bright and moving, drifting crust plates with glowing cracks, wall to wall round the islands, brightest under the crag and the summit | `lava.gdshader`: each plate has an id; in the hot reaches about two in three are open lava (swirling with the current, hotter veins, a darker skin that tears, the seam against a raft the hottest) and the rest crust rafts drifting with their glowing cracks; the crust shelf by the rock is a narrow lip in the lake; brighter again under the crag and the summit. `realm_rift.gd`: crusted south of z -16, molten north of z -30 (from the Foot on). Islands spread through the lake at least 8.5 m apart |
+| The lavafall out of a cleft in the Ward Crag, reading from the rim as the source | `rift_kit.py` sec_fall: a basin at a vent on the crag's south-east shoulder, a channel to the lip, a chute cut down the corner between two basalt cheeks (the "ash" rock, glowing in its cracks along the fall), the falling sheet (40 m, LavaWorks' fall shader: crawl in the channel, a rush with crust rafts past the lip). Vent embers and smoke; a boil and splash at its foot; two of the lava's glow lights moved onto the fall's foot and the crag face beside it (no new light) |
+| No loose white cubes; dense modelled dressing | the Watchers' model rubble (plain boxes) dropped; `rift_rocks.py` boulders, cooled spatter, heaved crust slabs; `features.gd` crowds the walls' feet every metre or two and rings every island, the Watchers' plinths, the way's isles, the Foot and the crag's foot (MultiMesh a variant, no collision); shores every 5-8 m |
+| The Watchers' plinths meet the basalt | the pillars sit 0.18 m into the basalt table (no daylight under a tread) |
+| The loading view by the Spindle; the pool's toast | the view stands on the Ward Stair's second turn, beside the lavafall; "The dark water gives you back." |
+
+## 7. What is left
+
+(after the round-2 walk and shots)
 
 ## 5. Texts changed
 

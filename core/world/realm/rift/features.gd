@@ -215,7 +215,7 @@ func _open_lava(p: Vector2, r: float, top_y: float) -> bool:
 		return false                                 # the old Ossuary's east wall stays a bare cliff above y -7
 	for k in 5:
 		var o := Vector2.ZERO if k == 0 else Vector2(cos(TAU * float(k) / 4.0), sin(TAU * float(k) / 4.0)) * r
-		var hit := space.intersect_ray(PhysicsRayQueryParameters3D.create(Vector3(p.x + o.x, 40.0, p.y + o.y), Vector3(p.x + o.x, LAVA - 0.6, p.y + o.y), Layers.WORLD))
+		var hit := space.intersect_ray(PhysicsRayQueryParameters3D.create(Vector3(p.x + o.x, 40.0, p.y + o.y), Vector3(p.x + o.x, BED - 6.0, p.y + o.y), Layers.WORLD))
 		if hit.is_empty():
 			return false                             # (no ground under it at all: outside the chasm)
 		if not String((hit.collider as Node).name).begins_with("Terrain") or (hit.position as Vector3).y > LAVA - 0.3:
