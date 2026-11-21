@@ -69,6 +69,7 @@ var _gr := PackedFloat32Array()          ## per group: active_r   a by-name get(
 var _rescan_t := 3.0
 var _act := PackedInt32Array()          ## groups within their reach (visited every frame)
 var _scan_t := 0.0
+var _pre := 0                              ## the next group whose fade is walked ahead (_process)
 var _scan_cp := Vector3.INF
 var _kid := PackedInt32Array()          ## per group: its kind's index in _knames
 var _knames: Array[String] = []
@@ -777,6 +778,10 @@ func _process(dt: float) -> void:
 	_scan_t -= dt
 	if _gc.size() != groups.size() or _scan_t <= 0.0 or cp.distance_squared_to(_scan_cp) > 25.0:
 		_scan_groups(cp)
+	elif _pre < _gr.size():               # a hidden group's fade walked ahead, one a frame: its first show then costs nothing
+		if is_instance_valid(groups[_pre]) and not (groups[_pre] as Node).has_meta(&"fade_set"):
+			_fade_group(groups[_pre], _gr[_pre] - FADE_PAD)
+		_pre += 1
 	_kacc.fill(0.0)
 	_kgl.fill(0.0)
 	for k in _act:
