@@ -42,6 +42,8 @@ extends Node
 ##                                   quit like a player at the end (the engine saves its pipeline cache), not a kill
 ##   --camps[=a,b] / --towns[=a,b]   the camps and villages run (zz/perf_camps.gd): each camp crossed at a sprint or a gallop
 ##                                   with its foes awake, each town ridden into, looked round and left; frames over 16 ms named
+##   --defer-probe[ --defer-ms=8]    (with --hitches) name what ran in a slow frame's deferred flush: each redraw's _draw,
+##                                   each skeleton's update (zz/defer_probe.gd)
 ##   --early                         start measuring the moment the Realm is built (no 6 s settle):
 ##                                   shows what a player meets right after the load
 ## Frame time is the real frame delta (vsync off). "scripts" = every _process and _physics_process
@@ -542,6 +544,9 @@ func _process(d: float) -> void:
 const _PsoWatch := preload("res://zz/pso_watch.gd")
 const _PerfMoments := preload("res://zz/perf_moments.gd")
 const _PerfCamps := preload("res://zz/perf_camps.gd")
+const _DeferProbe := preload("res://zz/defer_probe.gd")
+var _defer: Node
+var _defer_on := "--defer-probe" in OS.get_cmdline_user_args()
 var _camps: Node
 var _camps_run := Array(OS.get_cmdline_user_args()).any(func(a: String) -> bool: return a.begins_with("--camps") or a.begins_with("--towns"))
 var _psow: _PsoWatch
@@ -630,6 +635,12 @@ func _hitch_log(d: float) -> void:
 	var segs := ""
 	if _m_proc_end > 0 and _m_def >= _m_proc_end and _m_pre >= _m_def and _m_post >= _m_pre:
 		segs = " | def %.1f pre %.1f draw %.1f" % [(_m_def - _m_proc_end) / 1000.0, (_m_pre - _m_def) / 1000.0, (_m_post - _m_pre) / 1000.0]
+	if _defer == null and phase != "" and _defer_on:
+		_defer = _DeferProbe.new()                   # (zz/defer_probe.gd: who spends the deferred flush)
+		_defer.set("tour", self)
+		add_child(_defer)
+	if _defer != null and _m_proc_end > 0 and _m_def >= _m_proc_end:
+		_defer.call("frame", _m_proc_end, _m_def, t)
 	_m_proc_end = Time.get_ticks_usec()
 	_mark_def.call_deferred()
 	var res := int(Performance.get_monitor(Performance.OBJECT_RESOURCE_COUNT))
