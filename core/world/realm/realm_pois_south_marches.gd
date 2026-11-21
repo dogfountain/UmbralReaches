@@ -100,12 +100,7 @@ static func reserve(root: Node) -> void:
 	var abbey: Array[Rect2] = []
 	for ab: Dictionary in preload("res://world/areas/ossuary/oss_abbey.gd").site_rects():
 		abbey.append((ab.rect as Rect2).grow(3.0))
-	var off_abbey := func(q: Vector2, half: Vector2) -> bool:
-		var rc := Rect2(q - half, half * 2.0)
-		for r: Rect2 in abbey:
-			if r.intersects(rc):
-				return false
-		return true
+	var off_abbey := func(q: Vector2, half: Vector2) -> bool: return not abbey.any(func(r: Rect2) -> bool: return r.intersects(Rect2(q - half, half * 2.0)))
 	var fq := LK.search_spot(space, fold_pref, 24.0, Vector2(9.0, 9.0), 1.5, 2.4, [], 2.0, func(q: Vector2) -> bool: return off_abbey.call(q, Vector2(9.0, 9.0)))
 	if fq == Vector2.INF:
 		fq = fold_pref
