@@ -62,9 +62,10 @@ func _run(root: Node) -> void:
 				var half := rc.size.x * 0.5 if d.x != 0.0 else rc.size.y * 0.5
 				var along := rc.size.y if d.x != 0.0 else rc.size.x
 				var perp := Vector2(d.y, d.x)
-				for tt: float in [0.0, -0.28, 0.28]:
-					var p0 := rc.get_center() + d * (half + 4.9) + perp * (tt * along)
-					cands.append([minf(Zones.lane_dist(p0), 24.0) + minf(_town_walk_dist(p0), 24.0) + minf(RealmLayout.path_dist(p0), 12.0), p0, d])
+				for out_m: float in [4.9, 6.3]:
+					for tt: float in [0.0, -0.28, 0.28]:
+						var p0 := rc.get_center() + d * (half + out_m) + perp * (tt * along)
+						cands.append([minf(Zones.lane_dist(p0), 24.0) + minf(_town_walk_dist(p0), 24.0) + minf(RealmLayout.path_dist(p0), 12.0) - out_m, p0, d])
 			cands.sort_custom(func(a: Array, b: Array) -> bool: return float(a[0]) > float(b[0]))
 			for cd: Array in cands:
 				var p: Vector2 = cd[1]
@@ -83,6 +84,7 @@ func _run(root: Node) -> void:
 				n += 1
 				break
 		total += n
+		print("REALM yards %s: %d buildings, %d yards" % [c, anchors.size(), n])
 	for key: Vector2i in cells:
 		var k := WK.new()
 		k.setup(root, "Yards_%d_%d" % [key.x, key.y], 9400 + key.x * 17 + key.y)
@@ -90,7 +92,7 @@ func _run(root: Node) -> void:
 			for sc: Array in (cells[key] as Array):
 				_scene(k, String(sc[1]), sc[0] as Vector3, float(sc[2]))
 		k.commit(120.0)
-	print("REALM yards: %d scenes in %d towns, %d kits" % [total, TOWNS.size(), cells.size()])
+	print("REALM yards: %d scenes in %d towns, %d kits; refused: %s" % [total, TOWNS.size(), cells.size(), why])
 
 
 ## The buildings of a town: the registered sites whose middle lies in its disc (past `inner` of it), of a house's size and not a well, a walk, a deck or a wall.
@@ -116,24 +118,39 @@ func _anchors(c: Vector2, r: float, inner: float) -> Array:
 func _open(space: PhysicsDirectSpaceState3D, q: PhysicsShapeQueryParameters3D, p: Vector2, made: Array[Vector2], anchor := "") -> bool:
 	for m: Vector2 in made:
 		if m.distance_to(p) < 7.5:
-			return false
-	if RealmLayout.path_dist(p) < 3.5 or WK.wet(p.x, p.y) or Zones.lane_dist(p) < 3.2 or WK.near_walk(p, 6.5):
-		return false
+			return _no("near another yard")
+	if RealmLayout.path_dist(p) < 3.5:
+		return _no("a way")
+	if WK.wet(p.x, p.y):
+		return _no("wet")
+	if Zones.lane_dist(p) < 3.2 or WK.near_walk(p, 5.0):
+		return _no("a lane or walk")
 	if _town_walk_dist(p) < 4.0:               # off the towns' own walks too: a fence on one left a reeve stuck mid-lane (21 Nov)
-		return false
+		return _no("a town walk")
 	var hit := space.intersect_ray(PhysicsRayQueryParameters3D.create(Vector3(p.x, 60.0, p.y), Vector3(p.x, -20.0, p.y), Layers.WORLD))
-	if hit.is_empty() or absf((hit.position as Vector3).y - WK.h(p.x, p.y)) > 0.6:
-		return false
+	# (the ground behind a house was settled up to a metre off the height formula: the ray's own ground is the one the scene stands on)
+	if hit.is_empty() or absf((hit.position as Vector3).y - WK.h(p.x, p.y)) > 1.2:
+		return _no("not open ground")
 	var span := WK.span(p, Vector2(3.4, 3.4), 0.0)       # the whole scene (a fence row runs 3 m each way), not its middle 4 m
-	if span.x == INF or span.y - span.x > 0.55:
-		return false
+	if span.x == INF or span.y - span.x > 0.7:
+		return _no("slope")
 	for st: Dictionary in WorldLanes.sites:
-		# a yard keeps 6 m off every building's site: a door's approach lies in that strip, and a fence stood 3.4 m out of the tithe
-		# barn's door (zone fit)
+		# a yard keeps 3.6 m off every other building's site (a door's approach lies in that strip: a fence stood 3.4 m out of the tithe barn's door, zone fit);
+		# its own house allows 2 m: it stands on that house's back
 		if WorldLanes.site_hits_rect(st, Rect2(p - Vector2(2.4, 2.4), Vector2(4.8, 4.8)), 2.0 if String(st.name) == anchor else 3.6):
-			return false
-	q.transform = Transform3D(Basis.IDENTITY, Vector3(p.x, WK.h(p.x, p.y) + 1.5, p.y))
-	return space.intersect_shape(q, 1).is_empty()
+			return _no("a site")
+	q.transform = Transform3D(Basis.IDENTITY, Vector3((hit.position as Vector3).x, (hit.position as Vector3).y + 1.5, (hit.position as Vector3).z))
+	if not space.intersect_shape(q, 1).is_empty():
+		return _no("something solid")
+	return true
+
+
+static var why := {}
+
+
+func _no(r: String) -> bool:
+	why[r] = int(why.get(r, 0)) + 1
+	return false
 
 
 func _scene(k, kind: String, o: Vector3, yaw: float) -> void:

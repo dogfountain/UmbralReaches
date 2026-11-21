@@ -47,6 +47,7 @@ var _props := 0
 var _fires := 0
 var _skipped := 0
 var _dropped := 0
+var _bare := 0
 
 
 ## camps: [{center: Vector3, ats: Array[Vector3], kinds: PackedStringArray, seal: String, route: Array[Vector3]}] (EnemySpawner._camp_view)
@@ -90,7 +91,7 @@ func _run(host: Node3D, camps: Array) -> void:
 			gi.visibility_range_end_margin = 20.0 if far else 12.0
 			gi.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
 		await tree.process_frame
-	last = "%d camps dressed (%d skipped), %d props (%d dropped for want of ground), %d fires in %d kits, %d ms" % [done, _skipped, _props, _dropped, _fires, _kits.size(), Time.get_ticks_msec() - t0]
+	last = "%d camps dressed (%d skipped, %d of them with no ground for a fire), %d props (%d dropped for want of ground), %d fires in %d kits, %d ms" % [done, _skipped, _bare, _props, _dropped, _fires, _kits.size(), Time.get_ticks_msec() - t0]
 	print("CAMP_DRESS ", last)
 
 
@@ -146,10 +147,12 @@ func _dress(c: Dictionary) -> bool:
 	var fwd := _toward_way(ctr)
 	var fa := fwd.angle()
 	var fire := ctr
-	for p: Vector2 in _pawns:                                 # a lone foe stands on the centre: the fire goes behind him
-		if p.distance_to(ctr) < 1.9:
-			fire = ctr - fwd * 2.6
-			break
+	if style in ["bivouac", "post", "halt"]:
+		fire = _hearth(ctr)
+		if is_nan(fire.x):                                      # no dry, flat, free ground for a fire within 5 m (a mere, a reed bed): nothing is built, a lone crate would be the scatter again
+			_skipped += 1
+			_bare += 1
+			return false
 	match style:
 		"bivouac":
 			_bivouac(fire, fa, n, armed, rid, n >= 4 or (armed and n >= 3), true)
@@ -173,6 +176,20 @@ func _dress(c: Dictionary) -> bool:
 				var a := fa + TAU * float(i) / float(m) + _rng.randf_range(-0.12, 0.12)
 				_stone_at(fire, a, 5.4 + _rng.randf_range(-0.5, 0.9))
 	return true
+
+
+## Where the fire goes: the camp's middle, else the nearest ground that takes a hearth (a lone foe stands on the middle: the fire is beside him).
+func _hearth(c: Vector2) -> Vector2:
+	for r: float in [0.0, 2.6, 5.0]:
+		for k in (1 if r == 0.0 else 8):
+			var o := c if r == 0.0 else c + Vector2.from_angle(TAU * float(k) / 8.0 + 0.3) * r
+			var crowded := false
+			for p: Vector2 in _pawns:
+				if p.distance_to(o) < 1.9:
+					crowded = true
+			if not crowded and not _fits(o, 0.0, 1.2, "").is_empty():
+				return o
+	return Vector2(NAN, NAN)
 
 
 ## The way the foes face the world: toward the nearest way (where the wanderer comes from), else toward the hub.

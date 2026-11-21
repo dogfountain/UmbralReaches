@@ -15,7 +15,10 @@ Brief: `docs/r39/briefs/camps_villages_look.md`. Luke, 21 Nov: "the world is unp
 - [x] Blender kit `tools/blender/props_camp.py` -> `art/models/props/camp_*.glb` (nine models, render-reviewed).
 - [x] `settlement_yards.gd`: yards are anchored to a house (see below).
 - [x] The floating lit barrel: found and fixed (see below).
-- [ ] Re-shoot of the changed places (one run) and the before/after pairs.
+- [x] Re-shoot of the changed places (one run, the same cameras as the before run) and the before/after pairs.
+- [x] After the re-shoot: yards loosened (anchored candidates at 4.9 and 6.3 m, the ray's own ground, near-walk 5 m, refusals counted and printed as `REALM yards ... refused:`) and a camp whose
+  middle is wet or sloped moves its hearth up to 5 m or is left bare. **These two were fixed from the re-shoot's findings and are not re-shot** (a second run was not allowed): the lead's suite run
+  and a look at `REALM yards` / `CAMP_DRESS` in the log are the check.
 
 ## What the audit found (the rules that made the scatter)
 1. **Enemy camps had no dressing at all** (only the Marches' seven had a lean-to and a cold ring). 85 of 85 shot places were bare ground with foes on it; wayside, site_dress and the
@@ -158,7 +161,23 @@ The outposts (`village_props.outpost`: a fire, a seat, the region's dressing) co
 `village.outpost_at`) and a before pass was not allowed once the build had begun. They are left as they were.
 
 ## Before / after pairs
-(filled after the one re-shoot)
+Scratch: `/private/tmp/claude-501/-Users-luke-UmbralReaches/10dbc585-c502-4f27-b1e3-a047668e1104/scratchpad/camps_look/before` and `.../after` (`strip_<n>_<tag>.jpg` = six views; `lk_<n>_<view>_<tag>.jpg` full size; numbers from `before/looks.txt`; views 0-4 under the review rig, 5 the normal night).
+What the re-shoot showed (`CAMP_DRESS 79 camps dressed (24 skipped), 735 props, 41 fires in 33 kits, 1.4 s`, spread over frames):
+- camps dressed and composed: 013 (war band: fire with pot, tent, palisade, lookout), 029 (quarry benches: fire, seats, palisade, tents, barrels), 080 (under the aqueduct: fire, rack, palisade,
+  lookout in the arch) read as places; 064 (a nest) has its den. Compare `before/strip_029_before.jpg` with `after/strip_029_after.jpg`, same for 013, 023, 080, 064.
+- 023 and 017 (the fen): wet ground took the fire and the tents; only a lookout / a crate and firewood were left. Fixed afterwards (hearth moves or the camp stays bare), not re-shot.
+- towns: **no visible change**: the anchored yards were refused almost everywhere (3 scenes in 7 towns). Loosened afterwards, not re-shot (see above).
+- the floating lit barrel: `before` = the audit's `grounding/places1/pl_035_0_before.jpg`; `after/barrel_almonry_a_after.png` (same camera, (23.8, 36.6) looking at (46, 40)) and
+  `barrel_almonry_b_after.png` (lit): the barrel stands on the ground, the embers are gone (they were the old kit barrel's).
+- camp/town critique of the sample strips read in full: 000 001 003 004 006 007 009 011 013 017 023 029 030 044 060 064 080 082 086 096 099 (before) and 004 009 013 017 023 029 064 080 (after).
 
 ## Left
-(filled at the end)
+- Yards: the loosened rules are untested (see above). If `REALM yards ... refused:` still shows most candidates refused by "a lane or walk", the villagers' walks (`WK.near_walk`) are what keeps the
+  backs of the houses empty: they run round every house, and that is the nav agent's to widen, not this pass's to move.
+- Wet camps (the fen, the meres, the reeds) stay bare when no dry ground lies within 5 m of the middle: nothing a camp could stand on without being a floating stage.
+- Outposts and the watch posts were not touched (they have their own dressing); the outposts have no before shots (see above). The kindled watch's posts could take the lookout and the palisade.
+- The camp props have no collider (a lookout can be walked through); the lookout's platform is not climbable. A walkable lookout needs the kit's colliders and a nav pass.
+- Flames and coals are unlit (no new lights, as asked): a camp's fire does not light the ground round it.
+- Town streets: stalls along streets and lanterns are the existing squares' and the towns' own lists (`dress_zones`, `reach_towns_dress`); no new street furniture was added (Saltmarket's square is still
+  bare gravel).
+- Not run: the test suite (the lead's), `tools/lint.sh` was run clean.
