@@ -380,8 +380,6 @@ func _warm_step() -> void:
 ## camera: their meshes are generated (GenCache) and their shaders compiled behind the cover.
 func _show_combat() -> void:
 	_fx_frames = 0
-	if _sweep != null:
-		_sweep.begin_capture()            # what the set adds (until it is cleared) is keyed for the sweep
 	var fwd := -_cam.global_basis.z
 	fwd.y = 0.0
 	fwd = fwd.normalized()
@@ -625,7 +623,7 @@ func _show_r28(c: Vector3, at: Vector3, right: Vector3, fwd: Vector3, col: Color
 
 func _clear_combat() -> void:
 	if _sweep != null:
-		_sweep.end_capture()              # everything the set added while it was on show, keyed before it goes
+		_sweep.flush()                    # everything the set added while it was on show, keyed before it goes
 	LootWarm.clear(_warm_loot)
 	_warm_loot.clear()
 	for n in _warm_nodes:

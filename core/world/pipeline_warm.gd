@@ -50,24 +50,25 @@ func _init(tree: SceneTree) -> void:
 	_tree = tree
 	_stack.append(tree.root)
 	_under.append(false)
+	_tree.node_added.connect(_on_added)          # from the tour's start until the sweep draws (end_capture)
 
 
 # --- collecting -------------------------------------------------------------------------------------------------
 
-## The loading screen shows its combat set (foes, spells, effects) for a few frames and frees it: what is added while
-## the capture is open is keyed at once in `end_capture`, before it goes.
-func begin_capture() -> void:
-	if not _tree.node_added.is_connected(_on_added):
-		_tree.node_added.connect(_on_added)
+## Every geometry node added while the sweep listens (from the tour's start: the combat set, the post-build merge's new
+## meshes, spawns, swaps) is keyed by `flush` (the loading screen flushes when it clears the combat set, before the set is
+## freed) or at the latest when the sweep draws (`end_capture`, which stops listening).
+func flush() -> void:
+	for o: Variant in _capture:
+		if is_instance_valid(o) and (o as Node).is_inside_tree():
+			_consider(o as GeometryInstance3D, _in_creature(o as Node))
+	_capture.clear()
 
 
 func end_capture() -> void:
 	if _tree.node_added.is_connected(_on_added):
 		_tree.node_added.disconnect(_on_added)
-	for o: Variant in _capture:
-		if is_instance_valid(o) and (o as Node).is_inside_tree():
-			_consider(o as GeometryInstance3D, _in_creature(o as Node))
-	_capture.clear()
+	flush()
 
 
 ## Part of a foe or a boss (whose death fades the body out): an Enemy among its ancestors.
@@ -244,6 +245,8 @@ func draw_step(host: Node3D, cam: Camera3D) -> bool:
 	if done:
 		return true
 	if not _started:
+		end_capture()                            # the last nodes added before the lab goes up
+		print("PIPEWARM %d records after the nodes added during the tour" % _recs.size())
 		_start(host, cam)
 		_build_batch()
 		_state = 0
@@ -406,6 +409,9 @@ func _free_batch() -> void:
 
 ## Everything the sweep made goes (also when the loading screen is left early).
 func clear() -> void:
+	if _tree.node_added.is_connected(_on_added):
+		_tree.node_added.disconnect(_on_added)
+	_capture.clear()
 	_free_batch()
 	if is_instance_valid(_host):
 		_host.queue_free()
