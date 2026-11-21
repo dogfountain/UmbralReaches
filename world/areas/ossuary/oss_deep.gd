@@ -18,7 +18,7 @@ extends Node3D
 ##     ossuant) and two wretches rise when you step on it. Put him down and the walk to
 ##   THE COUNTERWEIGHT CAGE opens: knock its pin out and it carries you up to the niche
 ##     gallery's west arcade, where a grille lifts: the shortcut from the fen door to the depths.
-##   Opening the hoard ends the count: a cold flame burns in the gate hall's belfry for good,
+##   Opening the hoard ends the count: a cold flame burns in the abbey tower's lantern for good,
 ##   seen across the valley, and the bell tolls once.
 ## State lives in the secrets' save (Travel.system_state("secrets")): groups open/solved/looted/
 ## elites plus st.deep = {drum, mirror_e, mirror_w, dials}. Texts: core/life/secrets/pages.gd.
@@ -57,7 +57,7 @@ const HOARD_DOOR_X := 6.4
 const EYE := Vector2(8.6, -87.05)
 const BEAM_Y := D + 1.5
 const SHELVES := [[-101.2, 4], [-103.4, 2], [-105.6, 5]]   ## z, skulls on the shelf (the answer)
-const BELFRY := Vector3(18.0, 25.4, -39.6)       ## the gate hall bell tower's open stage
+const BELFRY := Vector3(51.3, 51.5, -35.0)       ## The Charnel Abbey's bell tower, its lantern stage (oss_abbey.gd; the great tower the whole valley sees)
 
 ## Lanes the Ossuary's own under-structure keeps clear of (xz rects and circles).
 const CLEAR_RECTS := [
@@ -1184,7 +1184,7 @@ func _cage() -> void:
 		_set_grille(gb, gv, not State.has("open", "deep_lift"), animate))
 
 
-## The end of the count: a cold flame in the gate hall's belfry, and the bell tolls once.
+## The end of the count: a cold flame in the abbey tower's lantern, and the bell tolls once.
 var _beacon_node: Node3D
 
 
@@ -1225,7 +1225,7 @@ func _end_count(animate: bool) -> void:
 	_beacon_node.visible = true
 	if animate:
 		OssWorld.play("bell_great", BELFRY, 6.0, 0.8)
-		State.toast("Far above, in the gate hall's tower, the bell tolls once. The count is ended.")
+		State.toast("Far above, in the abbey's great tower, the bell tolls once. The count is ended.")
 		State.banner("the count is ended", "The Ossuary")
 
 

@@ -687,7 +687,8 @@ func append_mesh(key: String, mesh: ArrayMesh, xf: Transform3D) -> void:
 		var st := SurfaceTool.new()
 		st.begin(Mesh.PRIMITIVE_TRIANGLES)
 		_st[key] = st
-	(_st[key] as SurfaceTool).append_from(mesh, 0, xf)
+	for sf in mesh.get_surface_count():
+		(_st[key] as SurfaceTool).append_from(mesh, sf, xf)
 
 
 # --- prop meshes ----------------------------------------------------------------------------
