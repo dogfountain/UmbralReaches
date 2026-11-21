@@ -1,0 +1,8 @@
+---
+description: Use the project's code graph before editing, moving or deleting scripts
+alwaysApply: true
+---
+Before editing a script, and before moving, renaming or deleting anything, query `tools/code_graph.py`:
+`impact <file>` (what could break and which zz tests reach it), `who <file|Class>`, `signal <name>`, `group <name>`,
+`find <symbol>`. It indexes preload/load paths and their consts, "res://" path strings, class_name, extends, autoloads,
+Events signals, groups, scenes and Class.func() calls, and rebuilds itself when files change. Trust it over guessed names.
