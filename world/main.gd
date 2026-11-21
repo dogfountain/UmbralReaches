@@ -119,7 +119,7 @@ func _spawn_glimmers() -> void:
 	add_child(g)
 
 
-## The chasm's baked pieces (its sheet of lava and starwater, the haze in it and over the summit, the motes) were made
+## The chasm's baked pieces (its sheet of lava, the haze in it and over the summit, the motes) were made
 ## under Hearthward; they stand where the endgame does now, the far north-east (Endgame), before anything reads them.
 func _move_endgame() -> void:
 	for path: String in ["Zone/Lava", "Zone/Fog/ChasmHaze", "Zone/Fog/RiftHaze", "Zone/Particles/RiftMotes"]:

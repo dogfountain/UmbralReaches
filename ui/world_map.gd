@@ -11,7 +11,6 @@ extends CanvasLayer
 const LoreDB := preload("res://core/world/realm/lore_db.gd")
 const CodexStore := preload("res://core/world/realm/lore/codex_store.gd")
 const Land := preload("res://core/world/realm/realm_land.gd")
-const Rift := preload("res://core/world/realm/realm_rift.gd")
 const UiSound := preload("res://ui/ui_sound.gd")
 const MenuGate := preload("res://ui/menu_gate.gd")
 const Frame := preload("res://ui/world_map_frame.gd")
@@ -692,8 +691,8 @@ func _compute() -> void:
 			if x < b.position.x or x > b.end.x:
 				continue
 			var h := Land.height_at(x, z)
-			if Land.in_water(x, z) or (h < -13.0 and z > Rift.STAR_Z and absf(x) < 30.0):
-				water[j * fw + i] = 1.0                 # (the Threshold's starwater reads as water, not the rift's pit)
+			if Land.in_water(x, z):
+				water[j * fw + i] = 1.0
 				block[j * fw + i] = 1
 			elif h < -4.0:
 				pit[j * fw + i] = 1.0
