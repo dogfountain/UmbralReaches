@@ -9,11 +9,11 @@ Luke, 21 Nov: "the ossuary makes no sense and has no presence". A complete redes
 |---|---|---|
 | C1 | **No skyline.** From south_track, the lane and the downs nothing of the Ossuary reads; the one tower in the region is the Lantern of the Dead on the field. The tiers sit in a trench: their roofs top out 11 m over the field, 40 m back across the pit, behind trees. The "bell tower" is 14 m of black stub. | The **Charnel Abbey**: a church on the south bank behind the quarry's lip, 72 m long, the bell tower 48 m, every lancet lit. It is the tallest lit thing in the south. |
 | C2 | **No night read.** Two lit windows and one red ward; the candles end at 55 m; the masonry is black. | ~30 lit lancets, the belfry, the lantern stage, four lucarnes, the rose; all `oss_glow` (unshaded: they never end with distance). The Count's cold flame (the hoard's end) moves into the new tower's lantern: the whole valley sees it. |
-| C3 | **The tiers float.** Floors and corbel bands show as thin flat slabs past the walls, piers wear thin 3 m hats (`_pier` caps), nothing shows how the floors are carried. | A pier kit authored in Blender (footing, battered shaft, stepped corbel capital), the same pier under every tier; floors sit on it with a stone fascia (no loose slab edges). |
+| C3 | **The floors read as carried on nothing.** Boxy piers wore thin 3 m hats and a string course every 4 m; nothing showed how a floor stood on the pool. (Correction: the first before-shots were taken with the harness's near plane at 5 m, which clipped floors, walls and roofs near the camera; the before set was re-shot with the fix, the piers' caps are real.) | The Order's pier (footing, battered shaft in 4 m lengths, three-step corbel capital) from the same Blender file under every tier. |
 | C4 | **Three kinds of wall.** Cream plaster boxes, brick piers, grey ashlar: the tiers do not look like one order's work. | One stone (the Order's ashlar: the abbey's, the piers', the tiers' outer faces). Plaster stays only inside, behind the niches. |
 | C5 | **Nothing joins the tiers to anything above them.** The bank is bare turf over the gate hall. | The abbey's north wall stands behind the lip, its buttresses mark the tiers' rhythm, its tally bay stands over the Counting Door (the tally cut on the church is the tally on the door). |
 | C6 | **The descent is not announced.** The gate hall is a closed box; each stair head is dark; no lamp shows where the way goes. | Every stair head and landing carries the Order's lantern (a glow pane on an iron bracket, a candelabrum pair); the way lantern is the tier's mark. |
-| C7 | The chapel reads as four floating frames (its walls are cut by the near plane in one shot, a lit window hangs in the dark). | Same stone, same pier; the chapel gets its gable cap and a lit east window; the floor slab fascia closes it. |
+| C7 | The chapel and the pit court are bare: a 2 m heap on a 22 m floor, a lit window and little else. | The charnel mound is a 5 m stepped drum of skulls with a crown of long bones; the court's lanes run round it; the chapel door carries the way lanterns. |
 | C8 | Strengths (kept): the bone bridge and its ribs; the charnel mound; the Counting Door and its tally; the Pit Hall (the rotunda, the skull walls, the candle drum: it already has presence). | Kept untouched. |
 
 ## The silhouette (new)
@@ -67,8 +67,8 @@ the stair's slits look into the hall.
 - [x] plan (this file)
 - [x] abbey kit in Blender (tower, bay, blind bay, buttress, roof, gable, turret) + render review
 - [x] `oss_abbey.gd` (placement, foundations, collision) + hook in `ossuary.gd`
-- [ ] pier kit in Blender, `_pier` / `_undercroft` use it
-- [ ] tier walls in one stone; route lanterns
-- [ ] walk the real Player: Landing -> Pit Hall, the Lower Count, the lift, the abbey's footprint
-- [ ] re-shoot once; look at every frame
-- [ ] parse check; lint
+- [x] pier kit in Blender, `_pier` uses it
+- [x] tier walls in one stone; way lanterns; the mound
+- [x] walk the real Player: Landing -> Pit Hall, the Lower Count, the lift (zz/oss_walk)
+- [x] re-shoot; look at every frame
+- [x] parse check; lint
