@@ -83,6 +83,30 @@ func _run(root: Node) -> void:
 				made.append(p)
 				n += 1
 				break
+		# Then the town's open ground, as before the anchoring (21 Nov: behind the houses alone, 7 towns got 4 yards of their 77): a point in
+		# the disc, turned to face away from the nearest house so it still reads as that house's yard
+		var tries := 0
+		while n < want and tries < want * 120:
+			tries += 1
+			var p := c + Vector2.from_angle(rng.randf() * TAU) * lerpf(inner, 0.95, sqrt(rng.randf())) * r
+			if not _open(space, q, p, made):
+				continue
+			var face := Vector2.from_angle(rng.randf() * TAU)
+			var best := INF
+			for an: Array in anchors:
+				var hc := (an[1] as Rect2).get_center()
+				if hc.distance_to(p) < best:
+					best = hc.distance_to(p)
+					face = (p - hc).normalized() if p.distance_to(hc) > 0.1 else face
+			var kind := String(KINDS[(n * 3 + tries) % KINDS.size()])
+			if kind == "grave" and p.distance_to(c) < r * 0.6:
+				kind = "garden"
+			var key := Vector2i(floori(p.x / 56.0), floori(p.y / 56.0))
+			if not cells.has(key):
+				cells[key] = []
+			(cells[key] as Array).append([Vector3(p.x, WK.span(p, Vector2(3.4, 3.4), 0.0).x, p.y), kind, atan2(face.x, face.y)])
+			made.append(p)
+			n += 1
 		total += n
 		print("REALM yards %s: %d buildings, %d yards" % [c, anchors.size(), n])
 	for key: Vector2i in cells:
