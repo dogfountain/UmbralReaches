@@ -129,7 +129,7 @@ func _budget(at: Vector3) -> void:
 		i += 1
 		var d := at.distance_to(l.global_position)
 		if not l.visible or d > float(_own[l]) + l.distance_fade_length + 2.0:
-			_set_cut(l, false)                       # out of its own reach: nothing to decide
+			_set_cut(l, false, d)                    # out of its own reach: nothing to decide
 			continue
 		_cand.append([d * float(_prio[l]), l, d])
 	_sweep = i
@@ -150,7 +150,7 @@ func _budget(at: Vector3) -> void:
 	for k in cand.size():
 		var l: Light3D = cand[k][1]
 		var c := k >= keep
-		_set_cut(l, c)
+		_set_cut(l, c, float(cand[k][2]))
 		cut += 1 if c else 0
 		if fire_on and not c and float(cand[k][2]) < bd and _is_fire(l):
 			bd = float(cand[k][2])
@@ -167,16 +167,23 @@ static func _is_fire(l: Light3D) -> bool:
 	return l.has_meta(&"fire") or l.get_meta(&"light_class", &"") == &"beacon"
 
 
-func _set_cut(l: Light3D, c: bool) -> void:
+func _set_cut(l: Light3D, c: bool, d: float) -> void:
 	if bool(_cut.get(l, false)) != c:
 		_cut[l] = c
-		_moving[l] = true                        # (a cut light stays in the set: it follows the camera's distance)
+		_moving[l] = true
 	elif not c and l.distance_fade_begin != float(_own[l]):
 		_moving[l] = true                        # kept but not yet back at its own fade start
+	elif c and l.distance_fade_begin > d - l.distance_fade_length - 1.0 - CUT_SLACK * 0.5:
+		_moving[l] = true                        # cut, and the camera has come nearer: its fade start goes in again
 
 
-## Move each easing light's fade start toward its target: its own (kept) or just inside the camera (cut), EASE m/s.
-## A cut light keeps following the camera's distance, so it stays in the moving set while cut.
+## Move each easing light's fade start toward its target: its own (kept) or inside the camera (cut), EASE m/s.
+## A cut light is wholly faded once its fade start is a fade's length and a metre short of the camera; it goes CUT_SLACK
+## further in and leaves the set, and the budget pass (every TICK) puts it back once the camera has closed half of that.
+## It followed the camera's distance every frame (~60-150 cut lights in a town, each a renderer call a frame on the move).
+const CUT_SLACK := 10.0                     ## (half of it is ~0.35 s of a gallop: the pass comes round every ~0.2-0.3 s)
+
+
 func _ease(at: Vector3, dt: float) -> void:
 	for key: Variant in _moving.keys():
 		if not is_instance_valid(key):
@@ -187,12 +194,12 @@ func _ease(at: Vector3, dt: float) -> void:
 		var c := bool(_cut.get(l, false))
 		var want := own
 		if c:
-			want = maxf(0.0, at.distance_to(l.global_position) - l.distance_fade_length - 1.0)
+			want = maxf(0.0, at.distance_to(l.global_position) - l.distance_fade_length - 1.0 - CUT_SLACK)
 		var cur := l.distance_fade_begin
-		if absf(cur - want) > 0.01:
+		if absf(cur - want) > 0.01 and (not c or cur > want):
 			l.distance_fade_begin = move_toward(cur, want, EASE * dt)
-		elif not c:
-			_moving.erase(l)                         # back at its own: done
+		else:
+			_moving.erase(l)                         # back at its own, or cut with room to spare: done
 
 
 ## The nearest lit brazier on high settings casts; the last one's shadow eases out.
