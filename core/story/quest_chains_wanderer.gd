@@ -30,12 +30,12 @@ const QUESTS := {
 				"text": "Stand with the late pilgrim at the shut-out bell while he decides ({t} s)"},
 			{"kind": "find", "text": "Take the rope's end from the bell's yoke, where a ringer once tied it"},
 			{"kind": "talk", "who": "iorweth_4", "text": "Go north with him to the Crossing's foot, the last bell's stone, and speak with him"},
-			{"kind": "clues", "at": Vector2(318.0, -60.0), "r": 10.0, "need": 2, "label": "The last bell's stone",
+			{"kind": "clues", "at": Vector2(305.8, -27.0), "r": 10.0, "need": 2, "label": "The last bell's stone",
 				"text": "Read the last bell's stone for the name finished with a nail ({n}/{of} read)",
 				"clues": [
-					{"key": "name", "at": Vector2(317.0, -59.0), "name": "the name cut short", "text": "RANG LAST AND LONGEST. The ringer's name is cut off where the Stair broke, and finished, in a different hand, with a nail: HE WAS CALLED IORWETH. He is warm, the nail says. He is not to be pitied. He did not stop."},
-					{"key": "child", "at": Vector2(319.0, -61.0), "name": "a child's three letters", "text": "A very small mark on the stone's foot, cut with a thumbnail by a hand that could not have been taller than the stone: I O N. Three letters, and the stone has worn round them as it would round a living thing."},
-					{"key": "rope", "at": Vector2(318.0, -58.0), "prop": "mark", "name": "a knotted cord", "text": "A knotted cord round the stone's neck, with eleven knots, one for each year he had been a ringer. There is a twelfth knot, unfinished. He had been going to tie it that morning."},
+					{"key": "name", "at": Vector2(305.2, -26.6), "name": "the name cut short", "text": "RANG LAST AND LONGEST. The ringer's name is cut off where the Stair broke, and finished, in a different hand, with a nail: HE WAS CALLED IORWETH. He is warm, the nail says. He is not to be pitied. He did not stop."},
+					{"key": "child", "at": Vector2(306.6, -27.2), "name": "a child's three letters", "text": "A very small mark on the stone's foot, cut with a thumbnail by a hand that could not have been taller than the stone: I O N. Three letters, and the stone has worn round them as it would round a living thing."},
+					{"key": "rope", "at": Vector2(305.9, -26.0), "prop": "mark", "name": "a knotted cord", "text": "A knotted cord round the stone's neck, with eleven knots, one for each year he had been a ringer. There is a twelfth knot, unfinished. He had been going to tie it that morning."},
 				]},
 			{"kind": "place", "text": "Decide what the last bell's stone is for: ring it for him, let him ring it, or leave it still"},
 			{"kind": "talk", "who": "iorweth_5", "text": "Walk him home to Hearthward's green, and speak with him there"},
@@ -44,7 +44,7 @@ const QUESTS := {
 		"alt": {"ring": {9: "Tell Iorweth you rang the stone for him"}, "his": {9: "Tell Iorweth he rang it himself"}, "still": {9: "Tell Iorweth you left the stone still"}},
 		"reward": {"ash": 50, "items": {"relic_fragment": 3, "ember_shard": 2}},
 		"choose": [{"set": "bell", "slot": "lantern", "rarity": 3}, {"set": "kindler", "slot": "vestment", "rarity": 3}, {"set": "ferryman", "slot": "focus", "rarity": 3}],
-		"leaves": {"ring": {"at": Vector2(318.5, -61.5), "prop": "lantern_lit"}, "his": {"at": Vector2(318.5, -61.5), "prop": "lantern_lit"}, "still": {"at": Vector2(318.5, -61.5), "prop": "mark"}},
+		"leaves": {"ring": {"at": Vector2(306.2, -27.4), "prop": "lantern_lit"}, "his": {"at": Vector2(306.2, -27.4), "prop": "lantern_lit"}, "still": {"at": Vector2(306.2, -27.4), "prop": "mark"}},
 		"outcome": {"ring": "Iorweth sat on the green's stone with the rope in his lap, and said very little. 'You rang it,' he said. 'In the right order. Bottom to top.' He ran the rope through his hands. 'I have been listening for that for nine winters. I did not know I was, until I heard it.' He wept, without any fuss, like a man letting a long breath go.",
 			"his": "'I rang it myself.' Iorweth held up his hands and looked at them. 'The right way, the last time. I found I still knew how. They were not even shaking.' He laughed, to his own surprise. 'A ringer does not forget. A ringer is only made to stop.'",
 			"still": "'You left it.' Iorweth nodded slowly. 'There is a bell I do not need to ring. I did not know that was permitted.' He put the rope round his own neck, loosely, like a scarf, and sat in the lee of the green's fire, and was a man who had no particular business anywhere.",
@@ -54,7 +54,7 @@ const QUESTS := {
 const PICKUPS := {
 	"lr_tongue": {"quest": "last_ringer", "step": 4, "near": Vector2(241.0, 15.0), "kind": "mark", "name": "the rope's end", "verb": "Take",
 		"say": "At the bell's yoke, a rope's end is knotted: a ringer's knot, the sort you cannot untie with a hand that is in a hurry. It comes away in yours in a long loose curl, as if it had only been waiting to be asked."},
-	"lr_stone": {"quest": "last_ringer", "step": 7, "near": Vector2(318.5, -61.0), "kind": "place", "name": "the last bell's stone", "verb": "Answer", "conv": "story_last_ringer",
+	"lr_stone": {"quest": "last_ringer", "step": 7, "near": Vector2(306.2, -27.0), "kind": "place", "name": "the last bell's stone", "verb": "Answer", "conv": "story_last_ringer",
 		"say": "The last bell's stone."},
 }
 

@@ -130,7 +130,7 @@ const PLACES := [
 	["sh_scratch_5", Vector2(150.0, 70.0)], ["sh_scratch_6", Vector2(260.0, 72.0)],
 	["sh_hearth_noticeboard", Vector2(4.0, 44.0)], ["sh_hearth_mug", Vector2(-6.0, 34.0)], ["sh_chapel_psalm", Vector2(-76.0, 48.0)], ["sh_chapel_edda", Vector2(-79.0, 54.0)],
 	["sh_glade_vow", Vector2(-40.0, 12.0)], ["sh_thorn_axe", Vector2(-100.0, 20.0)], ["sh_henge_stone", Vector2(-92.0, -18.0)], ["sh_fen_marker", Vector2(70.0, 14.0)],
-	["sh_barrow_lodge", Vector2(86.0, -48.0)], ["sh_ossuary_stair", Vector2(-56.0, 150.0)], ["sh_rift_last", Vector2(318.0, -60.0)], ["sh_summit_floor", Vector2(310.0, -118.0)],
+	["sh_barrow_lodge", Vector2(86.0, -48.0)], ["sh_ossuary_stair", Vector2(-56.0, 150.0)], ["sh_rift_last", Vector2(305.6, -27.4)], ["sh_summit_floor", Vector2(310.0, -118.0)],
 	["sh_crags_chain", Vector2(0.0, -132.0)], ["sh_quarry_q", Vector2(-140.0, -96.0)], ["sh_holds_turf", Vector2(-157.0, 8.0)], ["sh_moor_cairn", Vector2(146.0, -16.0)],
 	["sh_foundry_pit", Vector2(130.0, -90.0)], ["sh_orchard_graft", Vector2(-92.0, 108.0)], ["sh_field_roll", Vector2(6.0, 112.0)], ["sh_mere_lamp", Vector2(100.0, 104.0)],
 	["sh_downs_fold", Vector2(20.0, 200.0)], ["sh_weir_wheel", Vector2(-208.0, 60.0)], ["sh_plinth_feet", Vector2(-214.0, -96.0)], ["sh_siege_trench", Vector2(-190.0, 150.0)],

@@ -14,7 +14,7 @@ const NODES := {
 	"iw1_a": Vector2(30.0, 64.0), "iw1_b": Vector2(38.0, 65.0),
 	"iw2_a": Vector2(-72.0, 44.0), "iw2_b": Vector2(-78.0, 42.0),
 	"iw3_a": Vector2(236.0, 19.0), "iw3_b": Vector2(244.0, 21.0),
-	"iw4_a": Vector2(310.0, -48.0), "iw4_b": Vector2(316.0, -48.0),
+	"iw4_a": Vector2(302.6, -24.6), "iw4_b": Vector2(304.2, -25.6),
 	"iw5_a": Vector2(6.0, 44.0), "iw5_b": Vector2(10.0, 44.0), "iw6_a": Vector2(-34.0, 14.0), "iw6_b": Vector2(-38.0, 12.0),
 }
 

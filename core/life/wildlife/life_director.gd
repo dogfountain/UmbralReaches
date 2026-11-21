@@ -649,9 +649,9 @@ func _place_bats() -> void:
 	# [centre, radius, count, visible to]
 	var swarms := [
 		# the chasm's (the far north-east: Endgame)
-		[Vector3(0, -4, -28) + Endgame.O, 13.0, 10, 140.0], [Vector3(-10, -2, -50) + Endgame.O, 15.0, 10, 140.0],
-		[Vector3(9, 1, -74) + Endgame.O, 12.0, 9, 140.0], [Vector3(-4, 4, -92) + Endgame.O, 10.0, 7, 140.0],
-		[Vector3(-8, 14, -52) + Endgame.O, 7.0, 6, 90.0],          # under the Ward Crag's traverses
+		[Vector3(0, -4, -28) + Endgame.O, 13.0, 10, 140.0], [Vector3(-8, -2, -40) + Endgame.O, 13.0, 10, 140.0],
+		[Vector3(6, 1, -84) + Endgame.O, 11.0, 9, 140.0], [Vector3(-4, 4, -92) + Endgame.O, 10.0, 7, 140.0],
+		[Vector3(6, 31, -57.7) + Endgame.O, 5.0, 6, 90.0],        # over the well-head in the Ward Crag (the stair's shaft)
 		[Vector3(18, 9.5, 30), 6.0, 4, 55.0], [Vector3(-82, 9, 52), 7.0, 5, 60.0], [Vector3(80, 5, -40), 9.0, 4, 70.0],
 		# the Ossuary's gate-hall roof and its chapel spire (nothing lived on the high ground); where it stands now
 		[Vector3(-43, 13.6, 175), 6.0, 5, 90.0], [Vector3(29, 6.6, 167), 5.0, 4, 70.0],
