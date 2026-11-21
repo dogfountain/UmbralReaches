@@ -56,9 +56,9 @@ func _think() -> void:
 				var me := instance_from_id(eid) as Enemy
 				if me == null or not me.is_alive():
 					return
-				for a in BossKit.summon(me.get_parent(), CONSCRIPT, me.global_position, 2, 3.5, "siege_captain"):
+				BossKit.summon_spread(me.get_parent(), CONSCRIPT, me.global_position, 2, 3.5, "siege_captain", func(a: Enemy) -> void:
 					a.set_meta(&"display_name", "Conscript")
-					a.set_meta(&"conscript_of", eid))
+					a.set_meta(&"conscript_of", eid)))
 			return
 		if _hammer_cd <= 0.0 and _dist < HAMMER_R + 1.2:
 			_hammer_cd = HAMMER_EVERY

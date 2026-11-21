@@ -46,5 +46,6 @@ func take_hit(dmg: float, from: Node = null) -> void:
 		_called = true
 		BossKit.roar(self, "The Answerer calls up the dark.", ECHO_COL)
 		var wretch := load("res://core/enemy/wretch.gd") as GDScript
-		var got := BossKit.summon(get_parent(), wretch, global_position, 2, 3.0, "elite_" + ID)
-		Guardians.scale_summoned(got, int(get_meta(&"enc_tier", 0)), "wretch")
+		var tier := int(get_meta(&"enc_tier", 0))
+		BossKit.summon_spread(get_parent(), wretch, global_position, 2, 3.0, "elite_" + ID, func(m: Enemy) -> void:     # one a frame
+			Guardians.scale_summoned([m], tier, "wretch"))

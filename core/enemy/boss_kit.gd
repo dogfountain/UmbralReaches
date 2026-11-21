@@ -371,27 +371,48 @@ static func summon(host: Node, script: GDScript, at: Vector3, n: int, ring := 3.
 	var out: Array[Enemy] = []
 	if host == null:
 		return out
-	var space := (host as Node3D).get_world_3d().direct_space_state if host is Node3D else null
 	for i in n:
-		var a := TAU * float(i) / float(n) + randf() * 0.4
-		var p := at + Vector3(cos(a) * ring, 0, sin(a) * ring)
-		if space:
-			var hit := space.intersect_ray(PhysicsRayQueryParameters3D.create(p + Vector3.UP * 2.5, p + Vector3.DOWN * 6.0, Layers.WORLD))
-			if hit.is_empty():
-				continue
-			p = hit.position
-		var e := script.new() as Enemy
-		e.set_meta(&"summoned_by", owner_id)
-		e.set_meta(&"no_leash", true)            # r33: a boss's adds fight to the end, they never reset home
-		e.hunt_leash = maxf(e.hunt_leash, 60.0)
-		e.chase_range = maxf(e.chase_range, 30.0)
-		e.can_call = false
-		host.add_child(e)
-		e.global_position = p + Vector3.UP * 0.05
-		e.wake()
-		SpellFx.rift_in(p)
-		out.append(e)
+		var e := _summon_one(host, script, at, TAU * float(i) / float(n) + randf() * 0.4, ring, owner_id)
+		if e != null:
+			out.append(e)
 	return out
+
+
+## As summon, one a frame (the first now): `each` is called with each as it rises. A call for help mid-fight built two or
+## three foes in one frame of it (each 1.4-7 ms warm); this is for the callers that need nothing back at once.
+static func summon_spread(host: Node, script: GDScript, at: Vector3, n: int, ring: float, owner_id: String, each: Callable) -> void:
+	if host == null or not host.is_inside_tree():
+		return
+	var tree := host.get_tree()
+	for i in n:
+		if i > 0:
+			await tree.process_frame
+			if not is_instance_valid(host) or not host.is_inside_tree():
+				return
+		var e := _summon_one(host, script, at, TAU * float(i) / float(n) + randf() * 0.4, ring, owner_id)
+		if e != null and each.is_valid():
+			each.call(e)
+
+
+static func _summon_one(host: Node, script: GDScript, at: Vector3, a: float, ring: float, owner_id: String) -> Enemy:
+	var space := (host as Node3D).get_world_3d().direct_space_state if host is Node3D else null
+	var p := at + Vector3(cos(a) * ring, 0, sin(a) * ring)
+	if space:
+		var hit := space.intersect_ray(PhysicsRayQueryParameters3D.create(p + Vector3.UP * 2.5, p + Vector3.DOWN * 6.0, Layers.WORLD))
+		if hit.is_empty():
+			return null
+		p = hit.position
+	var e := script.new() as Enemy
+	e.set_meta(&"summoned_by", owner_id)
+	e.set_meta(&"no_leash", true)            # a boss's adds fight to the end, they never reset home
+	e.hunt_leash = maxf(e.hunt_leash, 60.0)
+	e.chase_range = maxf(e.chase_range, 30.0)
+	e.can_call = false
+	host.add_child(e)
+	e.global_position = p + Vector3.UP * 0.05
+	e.wake()
+	SpellFx.rift_in(p)
+	return e
 
 
 ## Scale an enemy into a boss: bigger rig and capsule, bar higher, knockback mostly ignored,
