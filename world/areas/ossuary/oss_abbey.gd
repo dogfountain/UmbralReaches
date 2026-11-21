@@ -17,7 +17,6 @@ extends RefCounted
 
 const Data := preload("res://core/world/realm/oss_abbey_data.gd")
 const Kit := preload("res://core/world/realm/south_marches_kit.gd")
-const RealmLand := preload("res://core/world/realm/realm_land.gd")
 const GLB := "res://art/models/oss_abbey.glb"
 
 const FRONT_X := 46.5                         ## the north wall's front face (local x)
@@ -25,6 +24,7 @@ const TOWER_Z := -35.0
 const BAY_N := 8
 const Z_N := -39.8                            ## where the bays begin (the tower's south face)
 const TALLY_BAY := 6                          ## the bay over the Counting Door: its lancet bricked, the Count's tally cut in it
+const BASES := [18.5, 18.5, 18.0, 18.0, 16.0, 16.0, 14.0, 14.0]   ## per bay: its base (local y), stepping down the bank
 const FOUNDATION := 7.0                       ## how far the stone foundation goes under a module's base
 
 static var built := false
@@ -68,45 +68,8 @@ static func pier(k: OssKit, base: Vector3, top: float, w: float) -> void:
 	k.append_mesh("stone", cap, Transform3D(Basis.from_scale(Vector3(s, 1.0, s)), Vector3(base.x, top - ch, base.z)))
 
 
-## The terrain's own height (local y) under local (x, z): a ray down through every collider that is not the terrain (a prop, a
-## tree's trunk, a roof) to the Terrain body; RealmLayout.ground falls back to the macro shape there, which was 10 m under the bank.
-static func _gy(space: PhysicsDirectSpaceState3D, x: float, z: float) -> float:
-	var wp := OssFrame.w(Vector3(x, 0.0, z))
-	var q := PhysicsRayQueryParameters3D.create(Vector3(wp.x + 0.0037, 220.0, wp.z + 0.0029), Vector3(wp.x + 0.0037, -120.0, wp.z + 0.0029), Layers.WORLD | Layers.PROPS)
-	var skip: Array[RID] = []
-	var seen: PackedStringArray = []
-	for i in 60:
-		q.exclude = skip
-		var hit := space.intersect_ray(q)
-		if hit.is_empty():
-			break
-		if String((hit.collider as Node).name).begins_with("Terrain"):
-			return (hit.position as Vector3).y - OssFrame.ORIGIN.y
-		seen.append(String((hit.collider as Node).name))
-		skip.append(hit.rid)
-	print("OSSUARY abbey: no terrain under (%.1f, %.1f); passed %s" % [x, z, seen.slice(0, 6)])
-	return RealmLand.height_at(wp.x, wp.z) - OssFrame.ORIGIN.y
-
-
-## The terrain's height (local y) under the church's middle by a ray down to the Terrain body, NAN until that is in. The ground
-## there moves after the Realm is done (the stamps, the settle), so the caller waits for it to hold still.
-static func ground_probe(space: PhysicsDirectSpaceState3D) -> float:
-	var wp := OssFrame.w(Vector3(FRONT_X + 1.0, 0.0, Z_N - 20.0))
-	var q := PhysicsRayQueryParameters3D.create(Vector3(wp.x, 220.0, wp.z), Vector3(wp.x, -120.0, wp.z), Layers.WORLD | Layers.PROPS)
-	var skip: Array[RID] = []
-	for i in 10:
-		q.exclude = skip
-		var hit := space.intersect_ray(q)
-		if hit.is_empty():
-			return NAN
-		if String((hit.collider as Node).name).begins_with("Terrain"):
-			return (hit.position as Vector3).y
-		skip.append(hit.rid)
-	return NAN
-
-
 ## Build the abbey under `area` (the Ossuary). The Realm's ground must be in (the caller waits for it).
-static func build(area: Node3D, space: PhysicsDirectSpaceState3D) -> void:
+static func build(area: Node3D) -> void:
 	if built and is_instance_valid(area.get_node_or_null("Abbey")):
 		return
 	var t0 := Time.get_ticks_msec()
@@ -122,23 +85,12 @@ static func build(area: Node3D, space: PhysicsDirectSpaceState3D) -> void:
 	host.name = "Abbey"
 	host.set_meta("site", "oss_abbey")
 	area.add_child(host)
-	# the ground the bays stand on: a base per pair of bays (the church steps down the bank), never rising to the south
+	# the ground the bays stand on: authored heights (the bank's terrain is fixed; the church steps down it in pairs of bays, a
+	# stone foundation under each to the slope; measured with zz/oss_shots --probe: 19 m at the tower, 14 at the gable)
 	base_y.resize(BAY_N)
-	var prev := INF
-	for g in range(BAY_N >> 1):
-		var s := 0.0
-		for j in 2:
-			var zc := Z_N - bw * (float(g * 2 + j) + 0.5)
-			s += (_gy(space, FRONT_X + 0.5, zc) + _gy(space, FRONT_X + 0.5, zc - 2.4) + _gy(space, FRONT_X + 0.5, zc + 2.4)) / 6.0
-		var b := snappedf(s / 2.0 - 0.5, 0.5)
-		b = minf(b, prev)
-		prev = b
-		for j in 2:
-			base_y[g * 2 + j] = b
-	tower_base = snappedf(_gy(space, FRONT_X + depth * 0.5, TOWER_Z) - 0.5, 0.5)
-	tower_base = maxf(tower_base, base_y[0])
-	base_y[0] = tower_base                    # the tower and the first pair stand level (the tower's plinth runs along them)
-	base_y[1] = tower_base
+	for i in BAY_N:
+		base_y[i] = BASES[i]
+	tower_base = BASES[0]
 	var bases: PackedFloat32Array = base_y
 	var xf_bay := func(i: int, back: bool) -> Transform3D:
 		var zc := Z_N - bw * (float(i) + 0.5)

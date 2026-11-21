@@ -205,7 +205,8 @@ func _descent() -> void:
 func _abbey() -> void:
 	var ab: Node = main.find_child("Abbey", true, false)
 	ok("the abbey stands", ab != null and ab.get_node_or_null("AbbeyBody") != null)
-	_teleport(OssFrame.w(Vector3(40.4, 0, -28.0)))
+	var st := OssFrame.w(Vector3(40.4, 0, -28.0))
+	_teleport(Vector3(st.x, 0.0, st.z))
 	await _frames(20)
 	var a: Array = []
 	for z: float in [-45.0, -62.0, -80.0, -100.0, -108.0]:

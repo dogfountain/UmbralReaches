@@ -57,7 +57,7 @@ const HOARD_DOOR_X := 6.4
 const EYE := Vector2(8.6, -87.05)
 const BEAM_Y := D + 1.5
 const SHELVES := [[-101.2, 4], [-103.4, 2], [-105.6, 5]]   ## z, skulls on the shelf (the answer)
-const BELFRY := Vector3(51.3, 51.5, -35.0)       ## The Charnel Abbey's bell tower, its lantern stage (oss_abbey.gd; the great tower the whole valley sees)
+const BELFRY := Vector3(51.3, 52.0, -35.0)       ## The Charnel Abbey's bell tower, its lantern stage (oss_abbey.gd; the great tower the whole valley sees)
 
 ## Lanes the Ossuary's own under-structure keeps clear of (xz rects and circles).
 const CLEAR_RECTS := [
