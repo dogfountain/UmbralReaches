@@ -40,7 +40,11 @@ func _ready() -> void:
 
 ## The far side of an owner's reach: a foe missing there is built again asleep.
 static func ahead(d: float, far_r: float) -> bool:
-	return d > far_r + PAD
+	return d > far_r + PAD and not OFF
+
+
+## `-- --no-staging` (A/B): nothing is built ahead; each is built where the old rule built it.
+static var OFF := "--no-staging" in OS.get_cmdline_user_args()
 
 
 ## A foe the owner has just built: waiting (asleep, not risen) when `wait`, else left as built.
@@ -153,6 +157,9 @@ static func _extras(e: Enemy, on: bool) -> void:
 
 func _process(_dt: float) -> void:
 	if done or director == null or not bool(director.ready_done):
+		return
+	if OFF:
+		_finish()
 		return
 	var t0 := Time.get_ticks_usec()
 	while Time.get_ticks_usec() - t0 < BUDGET_US:
