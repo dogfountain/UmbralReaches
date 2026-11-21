@@ -822,7 +822,7 @@ func prop(file: String, at: Vector3, yaw: float, size: float, by_height := false
 	var sc := size / ext
 	var foot := Vector3(bx.get_center().x, bx.position.y, bx.get_center().z)
 	var pxf := Transform3D(Basis(Vector3.UP, yaw).scaled(Vector3(sc, sc, sc)), at) * Transform3D(Basis.IDENTITY, -foot)
-	_prec.append([file, _seat(file, pxf)])      # r39: the footing on the ground, not one sample of it
+	_prec.append([file, _seat(file, pxf)])      # the footing on the ground, not one sample of it
 
 
 ## A modelled prop (art/models/props/<file>.glb) at `xf` as it was authored (no fit to a size): the regions' signature props,
@@ -831,7 +831,7 @@ func prop_xf(file: String, xf: Transform3D) -> void:
 	_prec.append([file, _seat(file, xf)])
 
 
-## A modelled prop's transform with its footing on the ground (r39 grounding): never lowered more than a slope's worth.
+## A modelled prop's transform with its footing on the ground (grounding): never lowered more than a slope's worth.
 func _seat(file: String, xf: Transform3D) -> Transform3D:
 	var meshes: Array = []
 	for pd: Dictionary in Props.parts(file):

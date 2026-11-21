@@ -422,7 +422,7 @@ func _wall_chunks(segs: int) -> void:
 
 
 ## [Mesh, Transform3D] parts of the wall, one list per chunk, the same placements for the near and the far modules.
-## How far the land under the wall at `p` lies below the floor's level (the wall's foot is carried down to it; r39 grounding: 4 m of bramble hung in the air
+## How far the land under the wall at `p` lies below the floor's level (the wall's foot is carried down to it; 4 m of bramble hung in the air
 ## on the downhill side), capped so a cliff is the cliff's own, and 0.3 m more to bury the foot.
 func _wall_drop(p: Vector3) -> float:
 	var g := Land.height_at(p.x, p.z)
@@ -444,7 +444,7 @@ func _wall_parts(lo: bool, segs: int) -> Array:
 		var bas := Basis(Vector3.UP, -a0 + PI * 0.5)
 		var seg_len := TAU * WALL_R / float(segs) + 0.12
 		var wdrop := _wall_drop(p)
-		p.y -= wdrop                                       # r39: the thicket reaches the ground where the land falls away from the floor's level
+		p.y -= wdrop                                       # the thicket reaches the ground where the land falls away from the floor's level
 		_briar_run(parts, rng, Transform3D(bas, p), seg_len, WALL_H * 1.3 + wdrop, lo)
 		if i % 3 == 1:
 			var tm := _Kit.mesh(BRIAR, "BriarLoTrunk" if lo else "BriarTrunk")

@@ -221,7 +221,7 @@ static func _put(kind: String, p: Vector2, yaw: float, scale := 1.0, lift := 0.0
 		return false                                   # the fen's water line
 	if lift == 0.0 and kind not in FLAT and _blocked(Vector3(p.x, y, p.y), rad, kind.begins_with("stall")):
 		return false
-	# r39 grounding: the ground under the whole footprint, not the one ray at its middle: it sits on its lowest corner (the high side buried), and
+	# the ground under the whole footprint, not the one ray at its middle: it sits on its lowest corner (the high side buried), and
 	# ground that falls more than 0.5 m under it is no place for a stall or a crate (re-placed: the caller tries another spot)
 	var drop := 0.0
 	if kind not in FLAT and lift == 0.0:

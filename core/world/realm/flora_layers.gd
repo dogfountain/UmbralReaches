@@ -161,7 +161,7 @@ static func _put(layer: String, sp: String, x: float, z: float, near := 0.0, s :
 	if near_way and bool(F._near_lane(xf * (F.mesh_aabb(id) as AABB))) and bool(F._intrudes(xf * (F.mesh_aabb(id) as AABB), 0.3)):
 		return false
 	if sp == "log" or sp == "stump":
-		# r39 grounding: a fallen trunk 5 m long lies along a slope that curves under it: it sits on its lowest point (no draw, same layout), never lifted
+		# a fallen trunk 5 m long lies along a slope that curves under it: it sits on its lowest point (no draw, same layout), never lifted
 		var sm: Variant = TreeGen.kind(id).solid
 		if sm is Mesh:
 			xf.origin.y = minf(xf.origin.y, Footing.seat_y(F.ground_y, Footing.base_points(sm as Mesh), xf.basis, Vector2(x, z), xf.origin.y, 0.9))

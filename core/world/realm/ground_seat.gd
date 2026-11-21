@@ -1,6 +1,6 @@
 extends RefCounted
 ## (No class_name: const GroundSeat := preload("res://core/world/realm/ground_seat.gd").)
-## r39 grounding: the one way a placing system sets a rigid piece on uneven ground. A piece modelled on a flat floor and set down by one
+## the one way a placing system sets a rigid piece on uneven ground. A piece modelled on a flat floor and set down by one
 ## ground sample hangs over the land on its downhill side (the grounding probe's float) or, on a rise, buries its door. Here the piece's
 ## footing (its mesh's lowest vertices, Footing.base_points) is read against the ground under each point as it stands, and the origin is
 ## lowered until the lowest-standing point touches (and raised again when the whole base is buried past `allow`). Pieces that lie on the

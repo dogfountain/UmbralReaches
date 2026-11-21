@@ -457,7 +457,7 @@ func finish() -> int:
 ## TextPoint in world space (the inscription's floor), or `xf.origin` for a model without one.
 func prop(file: String, xf: Transform3D, collide := true) -> Vector3:
 	var d := StoneProps.info(file)
-	xf = GroundSeat.seat_file(GroundSeat.fast_fn(), file, xf, 0.7)      # r39: the model's footing on the ground, not one sample of it
+	xf = GroundSeat.seat_file(GroundSeat.fast_fn(), file, xf, 0.7)      # the model's footing on the ground, not one sample of it
 	_props.append([file, xf])
 	if collide and not (d.points as PackedVector3Array).is_empty():
 		var pts := PackedVector3Array()
@@ -535,7 +535,7 @@ static func style_of(key: String) -> String:
 
 ## Queue a RockKit mesh instance (drawn as one MultiMesh per mesh at finish; convex collision).
 func rock(mesh: Mesh, xf: Transform3D, collide := false) -> void:
-	xf = GroundSeat.seat_mesh(GroundSeat.fast_fn(), mesh, xf, 0.7)      # r39: the stone's lowest points on the ground (a rise buries its high side)
+	xf = GroundSeat.seat_mesh(GroundSeat.fast_fn(), mesh, xf, 0.7)      # the stone's lowest points on the ground (a rise buries its high side)
 	if not _rocks.has(mesh):
 		_rocks[mesh] = []
 	(_rocks[mesh] as Array).append([xf, collide])

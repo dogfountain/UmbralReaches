@@ -64,7 +64,7 @@ static func build(parent: Node3D, name: String, vs: Array, space: PhysicsDirectS
 		var fpts := GroundSeat.parts_points("wc:" + key, meshes)
 		var gfn := GroundSeat.fast_fn()
 		for xf: Transform3D in clutter[key]:
-			var sxf := GroundSeat.seat_pts(gfn, fpts, xf, 0.5)      # r39: the prop's footing on the ground, one transform for all its parts
+			var sxf := GroundSeat.seat_pts(gfn, fpts, xf, 0.5)      # the prop's footing on the ground, one transform for all its parts
 			for part: Dictionary in parts:
 				_merge(by_mat, part.mesh as Mesh, sxf, false, part.mat as Material)
 	var n := 0
