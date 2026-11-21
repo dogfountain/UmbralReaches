@@ -20,6 +20,9 @@ at the end.
       `--merge-why`, `--why-under`, `--casters`, HUD shots)
 - [x] after, once (Luke: plain tour, `--stress=2`, the path, `--attrib` at the two worst, the HUD shot; `<S>/after/`), and a
       headless load of the night (`--boot-only`)
+- [x] round two (lead, 20-21 Nov: no merge with a regression): an A/B of batch two at `--stress=2`, a repeat of the 1% low
+      drops, the path's spindle frame named and fixed, F14-F17; re-measured once (`--stress=2` tour, then the plain tour
+      with the path; `<S>/final2/`)
 - [ ] tests: not run here (Luke: the lead runs the one suite after merging)
 
 ## Baseline (Balanced, fov 90, 1600x1000, vsync off; mean of two plain runs; GPU column = fps at 2x2 the pixels)
@@ -117,6 +120,61 @@ The leaf cards (alpha-tested: the Apple GPU's hidden-surface removal cannot drop
 GPU cost at both, then the lights and the moon's shadow; none was cut here (the look: dark night, the Enshrouded grade).
 The shadow casters' own share is small now (people cast from proxies). The headless load (`--boot-only`) builds the night
 with no script error (playable at 15.3 s).
+
+## Round two (lead, 20-21 Nov)
+
+**The `--stress=2` drop at the Downs, the orchard and Reedholm was not batch two.** Back to back, the four views at
+`--stress=2` for 6 s each (`<S>/ab/`, toggles by an environment variable, since removed):
+
+| run (fps at 2x2 the pixels) | r_spawn_west | r_orchard_save | r_downs_w_n | t_reedholm |
+|---|---|---|---|---|
+| batch one's state (its HUD files from 5daf579e, every batch-two 3D change off) | 81.0 | 69.5 | 74.3 | 76.5 |
+| batch two's 3D off (split, cells, chunk cells, proxies, rocks), the HUD baked | 81.2 | 69.8 | 74.5 | 73.7 |
+| batch two without the split | 81.0 | 69.0 | 73.6 | 73.5 |
+| batch two, twice | 81.1 / 81.0 | 69.5 / 69.3 | 73.8 / 73.9 | 75.5 / 74.4 |
+
+All within a run's spread (Reedholm alone 73.5-76.5 on the same code); batch one's own code read 74.3 at the Downs that
+night, against 78.2 in the morning's baseline. The merge cells, the split and the chunk cells stay, with their draws.
+The re-measure below has the three views at 78.2, 69.4 and 77.4 (baseline 78.2, 68.7, 77.3). Found on the way: F14-F16.
+
+**The after run's 1% low drops were one 4 s window's noise** (a 1% low there is the mean of about five frames). Repeated
+(`<S>/ab/lows.log`, `--hitches=14`): r_downs_w_n 48.3 -> 88.5 (baseline 64.7 / 60.4), t_lastlight 78.4 -> 126.1 (101.9 /
+71.8), fr_kings_barrows 79.4 -> 108.0 (98.2 / 92.5), with no frame over 14 ms.
+
+**The path's 35.6 ms frame was in the baseline too** (35.0 ms at the same spot by the spindle, (304.8, 10.6, -55.5); 34.5
+in after1). `--probe` could not place it until its renumbering was fixed (9878f8e7); then: HollowLantern/Story/QuestTrail
+27.7 ms, and timed inside, `NavigationServer3D.query_path` blocking the main thread (23.3 ms for a 16 m leg round the
+spindle's stair; 3.6-4 ms for a 28 m leg on every rebuild). F17 moved the queries to a worker thread: the next path's rim
+leg had a worst frame of 26.3 ms and no frame over 33 ms.
+
+### Re-measure (one `--stress=2` tour, then one plain tour with the path; against the baseline)
+
+| view | fps | 1% low | scripts ms | render-cpu ms | rest(gpu) ms | fps --stress=2 (gpu ms) | draws |
+|---|---|---|---|---|---|---|---|
+| t_reedholm | 112.8 -> 129.3 | 48.6 -> 106.1 | 1.98 -> 1.78 | 2.48 -> 2.33 | 4.41 -> 3.63 | 77.3 -> 77.4 (8.26 -> 8.50) | 2362 -> 1963 |
+| t_ll_road | 127.2 -> 138.2 | 78.5 -> 97.1 | 1.92 -> 1.76 | 2.02 -> 1.85 | 3.93 -> 3.62 | 65.5 -> 66.2 (10.78 -> 10.82) | 1619 -> 1223 |
+| r_spawn_west | 89.8 -> 110.6 | 57.8 -> 81.2 | 2.79 -> 2.47 | 2.70 -> 2.51 | 5.66 -> 4.06 | 76.5 -> 81.1 (7.21 -> 6.86) | 2555 -> 2170 |
+| t_fallowmere | 131.0 -> 147.9 | 70.0 -> 117.3 | 1.83 -> 1.64 | 2.17 -> 2.02 | 3.65 -> 3.10 | 78.2 -> 79.0 (8.54 -> 8.72) | 1890 -> 1522 |
+| r37_far_east | 123.8 -> 143.9 | 56.0 -> 111.4 | 1.83 -> 1.59 | 2.31 -> 2.14 | 3.94 -> 3.22 | 80.8 -> 81.2 (8.02 -> 8.25) | 2044 -> 1625 |
+| r_orchard_save | 105.8 -> 119.0 | 56.0 -> 85.3 | 2.29 -> 2.06 | 2.50 -> 2.24 | 4.66 -> 4.11 | 68.7 -> 69.4 (9.35 -> 9.50) | 2263 -> 1884 |
+| fr_kings_barrows | 136.0 -> 140.8 | 95.3 -> 95.3 | 1.62 -> 1.43 | 1.65 -> 1.49 | 4.08 -> 4.19 | 59.0 -> 58.7 (12.74 -> 12.99) | 1150 -> 809 |
+| r_downs_w_n | 111.5 -> 126.5 | 62.5 -> 93.2 | 2.12 -> 1.90 | 2.43 -> 2.18 | 4.41 -> 3.82 | 78.2 -> 78.2 (7.87 -> 8.18) | 2258 -> 1859 |
+| t_lastlight | 148.7 -> 168.7 | 86.8 -> 126.4 | 1.83 -> 1.66 | 1.83 -> 1.68 | 3.08 -> 2.59 | 82.7 -> 79.2 (8.06 -> 8.82) | 1312 -> 914 |
+| r37_marches | 126.0 -> 141.8 | 72.9 -> 109.0 | 1.88 -> 1.71 | 2.31 -> 2.16 | 3.75 -> 3.18 | 73.1 -> 72.8 (9.24 -> 9.51) | 1926 -> 1564 |
+| r_barrows | 111.0 -> 125.8 | 53.7 -> 99.2 | 1.94 -> 1.69 | 2.44 -> 2.29 | 4.64 -> 3.98 | 65.5 -> 65.1 (10.53 -> 10.94) | 2333 -> 1947 |
+| r_downs_w_s | 143.7 -> 157.4 | 56.9 -> 93.4 | 1.79 -> 1.57 | 1.75 -> 1.51 | 3.42 -> 3.28 | 73.4 -> 74.4 (9.63 -> 9.91) | 1542 -> 1194 |
+| r37_river | 118.9 -> 130.4 | 70.2 -> 97.1 | 2.17 -> 1.99 | 2.13 -> 1.96 | 4.11 -> 3.71 | 55.7 -> 56.6 (12.91 -> 12.80) | 1783 -> 1428 |
+
+All 47 views: mean fps 135.5 -> 150.3, mean 1% low 78.5 -> 108.5, views under a 1% low of 85: 30 -> 1 (r_spawn_west,
+81.2); no view below its baseline fps, none below its baseline 1% low (fr_kings_barrows level at 95.3). Scripts 1.85 ->
+1.65 ms, render-cpu 2.06 -> 1.88 ms, draws 1682 -> 1310 (the HUD's canvas draws 430-456 -> 80-110, 144-172 at the
+Thornwood views). The tour's worst frame 90.1 -> 23.4 ms, no frame over 33 ms. `--stress=2`: mean 73.3 -> 73.6 fps; only
+t_lastlight is more than 2 fps under its baseline (82.7 -> 79.2; after1 read 79.7 with batch one's code). The path (the
+fixed route, against `<S>/base/path_plain.log`): 140.4 -> 154.6 fps, 1% low 66.8 -> 99.8, worst frame 35.0 -> 18.2 ms.
+
+Read with care: one run against the baseline's two, taken at night with the machine quieter than by day. The 1% lows'
+jump since the after set has a cause: the quest trail's blocking query (F17) ran every 1.5 s wherever the tour stood off
+the trail's route, a 4-8 ms frame two or three times in every 4 s window, and the hotbar's 2 Hz bake burst (F16).
 
 ## Fixes (each: what, why, commit)
 
