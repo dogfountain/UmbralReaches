@@ -63,6 +63,12 @@ static func _load(path: String) -> AudioStream:
 	return _streams[path]
 
 
+## A take loaded ahead (audio_prefetch.gd): the first time it plays reads nothing from disk.
+static func keep(path: String, s: AudioStream) -> void:
+	if s != null and not _streams.has(path):
+		_streams[path] = s
+
+
 ## A take index for (key, count) that is not the one played last.
 static func _pick(key: String, count: int) -> int:
 	if count <= 1:
