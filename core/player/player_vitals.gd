@@ -29,8 +29,8 @@ func _init(p: Player) -> void:
 	player = p
 
 
-## Lava: a heavy Gloom burn and a throw back to the last solid ground (see Lava). `star`: a pool of
-## light that gives you back with a lighter wound and no fire (the Ossuary's pool, oss_pool.gd).
+## Lava: a heavy Gloom burn and a throw back to the last solid ground (see Lava). `star`: a pool of dark
+## water that gives you back with a lighter wound and no fire (the Ossuary's pool, oss_pool.gd).
 func lava_burn(amount: float, star := false) -> void:
 	if player._burn_cd > 0.0 or player._hollowing:
 		return
@@ -45,7 +45,7 @@ func lava_burn(amount: float, star := false) -> void:
 	player.locomotion.teleport(to + Vector3.UP * 0.1)
 	SpellFx.rift_in(to)
 	player.camera_ctl.kick(0.8)
-	Events.toast.emit("The starwater gives you back." if star else "The molten dark spits you back out.")
+	Events.toast.emit("The dark water gives you back." if star else "The molten dark spits you back out.")
 
 
 ## A strike or pounce passed through you during a Rift Step: slow time, stagger and mark the

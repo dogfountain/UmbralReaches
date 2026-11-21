@@ -26,7 +26,7 @@ const VIEWS := [
 	[Vector3(-40.0, NAN, 147.5), -0.1],        # the Ossuary's Pilgrims' Landing (the Waiting Field's west end)
 	[Vector3(12.0, -1.5, 167.0), 0.05],        # the Ossuary pit (on the charnel floor)
 	[Vector3(0.0, 2.6, -10.0) + Endgame.O, -0.05],         # the Crossing (the far north-east: Endgame)
-	[Vector3(-8.3, 19.8, -43.5) + Endgame.O, -0.2],        # the viaduct by the Spindle
+	[Vector3(6.2, 9.4, -57.3) + Endgame.O, -0.12],         # the Ward Stair's second turn, beside the lavafall out of the crag
 	[Vector3(0.0, 29.7, -92.0) + Endgame.O, -0.1],         # the summit
 	# r28: the Lower Count under the Ossuary, the Singing Stones, the Ash-Hermit's perch (agent D)
 	[Vector3(12.0, -6.2, 169.0), 0.0],         # inside the Count Drum
