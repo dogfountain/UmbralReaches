@@ -11,6 +11,7 @@ const StoneProps := preload("res://core/world/realm/lore/stone_props.gd")
 
 const STAND := 0.2                   ## an origin this far over the ground or less is 'on the ground'
 
+static var _mesh_pts := {}           ## Mesh -> PackedVector3Array (its lowest vertices, SLAB deep)
 static var _file_pts := {}           ## glb file -> PackedVector3Array (the model's footing, every part)
 
 
@@ -25,7 +26,31 @@ static func fast_fn() -> Callable:
 		return g if g >= -60.0 and g <= 160.0 else Land.height_at(x, z)
 
 
+## A mesh's lowest vertices (within SLAB of its lowest, the lowest in each 0.25 m square): a round stone's side must not be asked to touch the ground
+## (Footing.base_points keeps a 0.35 m slab for trees and buried a stone by the slab's height).
+const SLAB := 0.08
+static func mesh_points(mesh: Mesh) -> PackedVector3Array:
+	if mesh == null:
+		return PackedVector3Array()
+	if _mesh_pts.has(mesh):
+		return _mesh_pts[mesh]
+	var faces := mesh.get_faces()
+	var lo := INF
+	for v in faces:
+		lo = minf(lo, v.y)
+	var cells := {}
+	for v in faces:
+		if v.y < lo + SLAB:
+			var key := Vector2i(roundi(v.x / 0.25), roundi(v.z / 0.25))
+			if not cells.has(key) or (cells[key] as Vector3).y > v.y:
+				cells[key] = v
+	var pts := PackedVector3Array(cells.values())
+	_mesh_pts[mesh] = pts
+	return pts
+
+
 static func release() -> void:
+	_mesh_pts.clear()
 	_file_pts.clear()
 
 
@@ -36,12 +61,12 @@ static func file_points(file: String) -> PackedVector3Array:
 	var all := PackedVector3Array()
 	var lo := INF
 	for p: Dictionary in (StoneProps.info(file).parts as Array):
-		for v: Vector3 in Footing.base_points(p.mesh as Mesh):
+		for v: Vector3 in mesh_points(p.mesh as Mesh):
 			all.append(v)
 			lo = minf(lo, v.y)
 	var out := PackedVector3Array()
 	for v: Vector3 in all:
-		if v.y < lo + 0.35:
+		if v.y < lo + SLAB:
 			out.append(v)
 	_file_pts[file] = out
 	return out
@@ -54,12 +79,12 @@ static func parts_points(key: String, meshes: Array) -> PackedVector3Array:
 	var all := PackedVector3Array()
 	var lo := INF
 	for m: Mesh in meshes:
-		for v: Vector3 in Footing.base_points(m):
+		for v: Vector3 in mesh_points(m):
 			all.append(v)
 			lo = minf(lo, v.y)
 	var out := PackedVector3Array()
 	for v: Vector3 in all:
-		if v.y < lo + 0.35:
+		if v.y < lo + SLAB:
 			out.append(v)
 	_file_pts[key] = out
 	return out
@@ -88,7 +113,7 @@ static func seat_pts(ground: Callable, pts: PackedVector3Array, xf: Transform3D,
 
 
 static func seat_mesh(ground: Callable, mesh: Mesh, xf: Transform3D, cap := 1.0) -> Transform3D:
-	return seat_pts(ground, Footing.base_points(mesh), xf, cap)
+	return seat_pts(ground, mesh_points(mesh), xf, cap)
 
 
 static func seat_file(ground: Callable, file: String, xf: Transform3D, cap := 1.0) -> Transform3D:

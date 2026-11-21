@@ -10,6 +10,7 @@ extends RefCounted
 const TreeGen := preload("res://core/world/realm/tree_gen.gd")
 const RockKit := preload("res://core/world/realm/rock_kit.gd")
 const Footing := preload("res://core/world/footing.gd")
+const GroundSeat := preload("res://core/world/realm/ground_seat.gd")
 
 const CHUNK := 24.0                    ## undergrowth chunks
 const TREE_CHUNK := 32.0               ## tree chunks
@@ -200,7 +201,7 @@ static func emit(host: Node3D, items: Dictionary, stones: Dictionary, canopy: Di
 					counts.y += 1
 	for key: String in stones:
 		var mesh: Mesh = prop_mesh.call(key)
-		var feet := Footing.base_points(mesh)
+		var feet := GroundSeat.mesh_points(mesh)
 		var kind := key.split("|")[0]
 		var pr: Array = PROPS.get(kind, ["", STONE_SIZES[0], "", 0.0, STONE_RANGE, false])
 		var per: Dictionary = stones[key]

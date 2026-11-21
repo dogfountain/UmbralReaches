@@ -113,7 +113,7 @@ const _STATIC_CACHES := {
 	"res://core/world/realm/realm_pois_east_reach.gd": ["_mats"],
 	"res://core/world/realm/realm_pois_west_reach.gd": ["_mats"],
 	"res://core/world/realm/realm_pois_deep_south.gd": ["_sw_mats"],
-	"res://core/world/realm/ground_seat.gd": ["_file_pts"],
+	"res://core/world/realm/ground_seat.gd": ["_file_pts", "_mesh_pts"],
 }
 
 
