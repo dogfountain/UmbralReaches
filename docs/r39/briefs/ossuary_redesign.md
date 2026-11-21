@@ -15,6 +15,9 @@
 
 ## The job
 
+Luke, after: "the ossuary bone bridge is terrible, complete redesign or removal". Replace it completely (a crossing in the abbey's masonry, bones only as ornament) or remove it and link the Landing to the gate hall another way; never patch the old one.
+
+
 **Presence.** The Ossuary is a landmark. From the field and the roads round it, it must read at a distance as a great charnel monastery:
 - a silhouette on the skyline: bell tower, buttresses, a lantern-lit facade over the pit;
 - warm windows and candle glow, so it reads at night from afar (dark night, bright landmarks);
