@@ -166,11 +166,18 @@ func _finish() -> void:
 
 
 func _make_wisp(at: Vector3) -> void:
-	_wisp = Node3D.new()
-	_wisp.name = "Wisp"
-	_wisp.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF
-	add_child(_wisp)
-	_wisp.global_position = at
+	_wisp = build_wisp(self, at)
+	_trail = _wisp.get_node(^"Trail") as GPUParticles3D
+
+
+## The wisp of embers (its core, its light and its trail) under `host` at `at`; the loading screen's combat set shows one,
+## so the road's first flight compiles nothing.
+static func build_wisp(host: Node, at: Vector3) -> Node3D:
+	var wisp := Node3D.new()
+	wisp.name = "Wisp"
+	wisp.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF
+	host.add_child(wisp)
+	wisp.global_position = at
 	var core := MeshInstance3D.new()
 	var sph := SphereMesh.new()
 	sph.radius = 0.16
@@ -186,18 +193,20 @@ func _make_wisp(at: Vector3) -> void:
 	m.emission_energy_multiplier = 1.2
 	core.material_override = m
 	core.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	_wisp.add_child(core)
+	wisp.add_child(core)
 	var l := OmniLight3D.new()
 	l.light_color = Color(1.0, 0.6, 0.3)
 	l.light_energy = 2.2
 	l.omni_range = 7.0
 	l.shadow_enabled = false
-	_wisp.add_child(l)
+	wisp.add_child(l)
 	# short-lived: the camera follows the wisp's line, and sparks still hanging there met the lens
-	_trail = Vfx.emitter(EMBER, {"count": 60, "life": 0.32, "speed": Vector2(0.1, 0.6), "size": 0.045, "gravity": -0.4,
+	var trail := Vfx.emitter(EMBER, {"count": 60, "life": 0.32, "speed": Vector2(0.1, 0.6), "size": 0.045, "gravity": -0.4,
 		"spread": 180.0, "radius": 0.14, "turbulence": true})
-	_trail.emitting = true
-	_wisp.add_child(_trail)
+	trail.name = "Trail"
+	trail.emitting = true
+	wisp.add_child(trail)
+	return wisp
 
 
 func _make_fade() -> void:
