@@ -78,7 +78,8 @@ move north with the heat (none over the south rim). Heat shimmer over the pool a
 | Fire baskets | the iron set `WestKit.mat("iron")` | every West Marches lamp and brazier |
 
 The old `starlit_stone` (a tinted, glowing kit stone) and the Crossing's tinted `_mat()` copies are gone from the rift.
-Side-by-side (`after/m*`): the Cinder Way's stone next to Hearthward's gate and the henge's stones.
+Side-by-side (`after2/m_side_by_side.png`, from `after2/m23_mat_way_v2` and `after/m24`..`m26`): the Cinder Way's parapet (stone) and
+flags (hewn) at the Lip, Hearthward's market cross, the henge's stones, Lastlight's curtain wall.
 
 ## 4. Build checklist (live)
 
@@ -100,8 +101,25 @@ Side-by-side (`after/m*`): the Cinder Way's stone next to Hearthward's gate and 
     (on the floor, y -12.42), as everywhere
   - first pass fixes: a 0.33 m lip at every flight's foot and at the Lip's steps (the collision is now one ramp through the tread middles,
     no step-up needed), the branch met the chapel's walled forecourt corner (it now arrives on its east side, where the old quay did)
-- [ ] re-shoot once (`after/`) and look at every shot; material side-by-side
-- [ ] parse check, `tools/lint.sh`
+- [x] re-shoot once (`after/`, 26 views: the rim road, the Lip, every landing, the air, lava level, the materials) and looked at every
+  shot. What they showed, and what was done:
+  - it reads as a new place: from the rim road the Lip's fires, the black plain, the Watchers and the Z of fires up the Ward Crag; from
+    the air the molten channel and the pool under the crag, the crust going black towards the Lip (`r01`, `a15`, `a17`)
+  - the flags and steps wore the ember rock: a name test took `__ashlar` for `__ash` (fixed: exact set names; the flags and steps are
+    now the Realm's `hewn`, the parapets its `stone`)
+  - the chasm's haze was still the starwater's violet mist (`l06`, `v19`): now the lava's smoke, ash-grey, lit dull red from below
+  - the walk's floor contact lapses going down D2 and D3 at the debug drive's sprint (8.3 m between contacts, `falls_hurt` 0, the legs
+    on L2 and the Foot reached at their heights: not a fall). The collision was a slab per tread with an edge at every joint; it is now one
+    slab per straight run, and the lapse is the same: the drive's speed down a 26 degree run, not the geometry
+  - two lava-level cameras stood inside the Cinder Isle and behind a stack (`v20`, `v21`): moved for the check below
+- [x] verification of those fixes (`after2/`, 11 views) and the walk again
+- [x] parse check (`tools/parse_all.gd`: 0 bad), `tools/lint.sh` clean
+
+## 6. What is left
+
+- The loading screen's camera "by the Spindle" (`ui/loading_screen.gd`, out of this brief's bounds) now looks from the air at the crag.
+- The Ossuary's pool still says "The starwater gives you back." (`player_vitals.gd` toast for `star` burns, used only by `oss_pool.gd`).
+- The crag's lavafall out of its own cleft was planned; the source is the east wall's falls by the summit (z -70, -88) and two boils.
 
 ## 5. Texts changed
 
