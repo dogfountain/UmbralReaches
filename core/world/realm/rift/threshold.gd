@@ -16,7 +16,7 @@ const ROCKS := "res://art/models/rift_rocks.glb"
 const LAVA := -15.5
 ## The Watchers' feet: the plinths' tops (LAVA + PLINTH_TOP) carry them. West at the molten pool's edge, east in the crust; the Cinder
 ## Way passes between (rift_from_scratch.md in the docs' round-39 folder).
-const WATCHERS := [Vector3(-2.5, LAVA, -42.5), Vector3(15.0, LAVA, -23.5)]
+const WATCHERS := [Vector3(-2.0, LAVA, -43.2), Vector3(15.0, LAVA, -23.5)]
 const TURN := [0.22, -0.1]             ## each one's turn off facing the village (the east one less: its plinth's corner keeps off the wall)
 const PLINTH_TOP := 1.3                ## rift_rocks.py: the plinth's flat top over the lava
 const WATCHER_R := 7.4                 ## the plinth's reach
@@ -27,6 +27,7 @@ var rng := RandomNumberGenerator.new()
 var report: Array[String] = []
 var _audit: Array[String] = []         ## every piece that touched something it should not (printed)
 var _last_hit := ""                    ## what the last failed _clear touched
+var _clear_ignore := ""                ## a node path part _clear lets through (the Cinder Way's branch meets the chapel's forecourt by design)
 
 
 func build(root: Node, host: Node3D) -> void:
@@ -57,7 +58,10 @@ func build(root: Node, host: Node3D) -> void:
 func _chapel(host: Node3D) -> bool:
 	if "--no-chapel" in OS.get_cmdline_user_args():
 		return false                       # (a measuring switch: the Threshold without the chapel)
-	return Chapel.new().build(self, host)
+	_clear_ignore = "CinderWay"
+	var ok: bool = Chapel.new().build(self, host)
+	_clear_ignore = ""
+	return ok
 
 
 # --- the Watchers ---------------------------------------------------------------------------------
@@ -274,6 +278,8 @@ func _clear(xf: Transform3D, size: Vector3, grow := 0.3, ground_ok := false) -> 
 	for hit: Dictionary in space.intersect_shape(q, 24):
 		var c := hit.get("collider") as Node
 		if ground_ok and c != null and String(c.name).begins_with("Terrain"):
+			continue
+		if c != null and _clear_ignore != "" and String(c.get_path()).contains(_clear_ignore):
 			continue
 		_last_hit = String(c.get_path()) if c else "?"
 		return false

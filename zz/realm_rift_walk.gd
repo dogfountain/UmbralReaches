@@ -55,7 +55,7 @@ func _ready() -> void:
 				cut = i
 				break
 		route = route.slice(0, cut + 1)
-		route.append([Vector3(isle.x + 2.4, 0, isle.z - 5.7), "off the isle's open north-east edge into the lava"])
+		route.append_array([[Vector3(isle.x + 1.8, 0, isle.z - 2.2), "the isle's north-east corner"], [Vector3(isle.x + 2.0, 0, isle.z - 7.2), "off its open edge into the lava"]])
 	else:
 		for q: Vector2 in Crossing.lane_pts("rift_crossing_turn"):
 			route.append([Vector3(q.x, 0, q.y), "ward stair"])

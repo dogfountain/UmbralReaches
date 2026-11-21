@@ -14,6 +14,7 @@ const ROCKS := "res://art/models/rift_rocks.glb"
 const LAVA := -15.5
 const BED := -19.5
 const COOL_Z := -30.0                   ## south of this (z greater) the lava has crusted: plates, no islands
+const CHAPEL := Rect2(-25.0, -42.5, 14.5, 9.5)    ## the Pilgrims' Chapel cut into the west wall and its forecourt (rift/chapel.gd ORIGIN)
 
 var vents: Array[Vector3] = []
 var watchers: Array = []                ## [Vector3] the Watchers' feet (rift/threshold.gd): the plinths keep this clear
@@ -23,6 +24,7 @@ var report: Array[String] = []
 var _st := {}                           ## style -> SurfaceTool (the merged pieces)
 var _body: StaticBody3D
 var _variants := {}                     ## name -> [mesh, style, shapes [[Shape3D, Transform3D]], aabb]
+var _placed: Array[Vector3] = []        ## the pieces put so far: (x, z, radius)
 
 const FISSURE_SHADER := """shader_type spatial;
 render_mode unshaded, cull_disabled, depth_draw_never, blend_mix;
@@ -94,6 +96,8 @@ func _load_variants() -> void:
 ## One piece at `xf` (rift coordinates) into the merged mesh and the shared body.
 func _put(key: String, xf: Transform3D) -> void:
 	var v: Array = _variants[key]
+	var ab: AABB = v[3]
+	_placed.append(Vector3(xf.origin.x, xf.origin.z, maxf(ab.size.x, ab.size.z) * 0.5))
 	var style: String = v[1]
 	if not _st.has(style):
 		var st := SurfaceTool.new()
@@ -119,20 +123,20 @@ func _commit(host: Node3D) -> void:
 		mi.queue_free()
 
 
-## Space for a piece of footprint radius `r` at p (rift coordinates): off the Cinder Way, the Watchers, the paths, the Ossuary's old
-## wall, and clear of anything already built there (a box query: the way's rock, another piece; the ground is allowed).
+## Space for a piece of footprint radius `r` at p (rift coordinates): off the Cinder Way, the Watchers, the chapel, the paths, the
+## Ossuary's old wall, and nothing built under its middle or its rim (rays down from over its top: the way's rock, another piece; the
+## ground is allowed).
 func _free(p: Vector2, r: float, top_y: float) -> bool:
 	if _blocked(p, top_y, minf(r, 1.2)):
 		return false
-	var sh := BoxShape3D.new()
-	sh.size = Vector3(r * 1.6, maxf(top_y - LAVA + 1.0, 1.0), r * 1.6)
-	var q := PhysicsShapeQueryParameters3D.new()
-	q.shape = sh
-	q.transform = Transform3D(Basis.IDENTITY, Vector3(p.x, (top_y + LAVA) * 0.5, p.y))
-	q.collision_mask = Layers.WORLD
-	for hit: Dictionary in space.intersect_shape(q, 8):
-		var c := hit.get("collider") as Node
-		if c != null and not String(c.name).begins_with("Terrain"):
+	for q: Vector3 in _placed:
+		if p.distance_to(Vector2(q.x, q.y)) < (r + q.z) * 0.75:
+			return false                             # (another piece: the bodies just added may not answer rays yet)
+	for k in 9:
+		var o := Vector2.ZERO if k == 0 else Vector2(cos(TAU * float(k) / 8.0), sin(TAU * float(k) / 8.0)) * r * 0.8
+		var q := PhysicsRayQueryParameters3D.create(Vector3(p.x + o.x, top_y + 8.0, p.y + o.y), Vector3(p.x + o.x, LAVA - 0.4, p.y + o.y), Layers.WORLD)
+		var hit := space.intersect_ray(q)
+		if not hit.is_empty() and not String((hit.collider as Node).name).begins_with("Terrain"):
 			return false
 	return true
 
@@ -215,8 +219,11 @@ func _ground(x: float, z: float, from_y := 70.0) -> float:
 	return (hit.position as Vector3).y
 
 
-## True where nothing may stand: the Cinder Way (sites + lanes), the Watchers, paths, the Ossuary's old wall above y -7.
+## True where nothing may stand: the Cinder Way (sites + lanes), the Watchers, the Pilgrims' Chapel, paths, the Ossuary's old wall
+## above y -7.
 func _blocked(p: Vector2, top_y: float, pad := 1.5) -> bool:
+	if CHAPEL.grow(pad).has_point(p):
+		return true
 	for w: Vector3 in watchers:
 		if p.distance_to(Vector2(w.x, w.z)) < 7.4 + pad:
 			return true

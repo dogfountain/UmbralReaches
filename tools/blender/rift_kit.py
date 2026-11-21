@@ -265,7 +265,7 @@ S3 = (T3.high()[0] - 5.0, -57.6, T3.high()[0], -65.4)
 T4 = Flight("rift_t4", (T3.high()[0], T3.top, T_Z[3]), (1.0, 0.0), [23], [], 7.6)
 WARD = (-4.0, -62.0, 4.0, -71.15)
 ## Kept clear of the crag's rough foot: the west Watcher's plinth (rift/threshold.gd WATCHERS) and the Pilgrims' Chapel (rift/chapel.gd).
-WATCHERS_AVOID = [(-2.5, -42.5, 6.8), (-17.0, -38.0, 4.5)]
+WATCHERS_AVOID = [(-2.0, -43.2, 6.8), (-17.0, -38.0, 4.5)]
 WARD_Y = 25.2
 
 
@@ -332,10 +332,11 @@ def sec_descent(objs):
     site("rift_foot", FOOT, FOOT_Y)
     LAYOUT["points"]["foot"] = [round((fx0 + fx1) * 0.5, 2), FOOT_Y, round((fz0 + fz1) * 0.5, 2)]
     # the chapel branch: a low causeway north-west along the wall's foot to the chapel's forecourt (its threshold at -11.97)
-    br = [((-6.4, fz1 + 0.2)), (-9.0, -31.6), (-11.4, -34.4)]
-    _causeway(M, rock, br, FOOT_Y, -12.0, sides=(1, -1), name="branch")                             # rising to the chapel's forecourt
-    LAYOUT["lanes"]["rift_crossing_chapel"] = [[round(p[0], 2), round(p[1], 2)] for p in [((fx0 + fx1) * 0.5, (fz0 + fz1) * 0.5)] + br + [(-13.1, -36.85)]]
-    fire(M, "branch", (-12.6, FOOT_Y + 0.2, -33.0), lit=False, tag="the chapel's lamp")
+    # (it meets the forecourt on its east side, where the old quay did: the forecourt's south end is walled)
+    br = [((-6.4, fz1 + 0.2)), (-8.4, -32.6), (-9.9, -37.4), (-11.5, -40.0)]
+    _causeway(M, rock, br, FOOT_Y, -12.05, sides=(1, -1), name="branch")                            # rising to (just under) the chapel's forecourt
+    LAYOUT["lanes"]["rift_crossing_chapel"] = [[round(p[0], 2), round(p[1], 2)] for p in [((fx0 + fx1) * 0.5, (fz0 + fz1) * 0.5)] + br + [(-13.1, -40.0), (-13.1, -36.85)]]
+    fire(M, "branch", (-10.6, FOOT_Y + 0.2, -30.4), lit=False, tag="the chapel's lamp")
     # the ledge: the rock under it all, fused, roughened away from the walks
     n = massing(rock, M.keeps, 401, 10, (-15.0, 6.0), (-10.8, -13.5), (L + 1.0, -2.0), w=(1.2, 2.6))           # under the Lip and D1: ribs to the lava
     n += massing(rock, M.keeps, 402, 10, (-25.0, -21.5), (-4.0, -27.0), (-3.0, 2.0), w=(1.2, 2.4))             # the west wall's face behind

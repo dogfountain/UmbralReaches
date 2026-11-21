@@ -63,7 +63,7 @@ move north with the heat (none over the south rim). Heat shimmer over the pool a
 
 **Content.**
 - **The Watchers** stand on modelled basalt plinths (`rift_rocks.glb` Plinth) either side of the Cinder Way's middle, facing the village:
-  the west one at the molten pool's edge under the crag (-2.5, -42.5), the east one in the crust (16, -24).
+  the west one at the molten pool's edge under the crag (-2, -43.2), the east one in the crust (15, -23.5).
 - **The Pilgrims' Chapel** stays where it was cut, in the west wall north of the Foot (its secret intact); no starfall now: the doorway
   looks out over the cooled crust. Reached by the branch from the Foot (7 m along the wall). Quest and secret texts updated (section 5).
 - **The camp**: the seal guards hold the Cinder Isle and the Ward Landing.
