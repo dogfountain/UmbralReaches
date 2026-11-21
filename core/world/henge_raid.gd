@@ -554,6 +554,7 @@ func _litter() -> void:
 		var mi := MultiMeshInstance3D.new()
 		mi.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF     # static litter: an interpolated add copies the buffer
 		mi.name = "RaidLitter%d" % v
+		mi.set_meta(&"site_owned", true)         # the arena's own litter: the scatter cull inside its site must leave it
 		mi.multimesh = mm
 		mi.material_override = mats[1] if v == 2 else mats[0]
 		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF

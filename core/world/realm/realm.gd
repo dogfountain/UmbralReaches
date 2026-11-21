@@ -192,6 +192,9 @@ static func build(root: Node) -> void:
 	prof_add("stage: terrain settle", t)
 	await _run("nav", root)                      # after every collider is in; waits a bounded time for the bake
 	t = Time.get_ticks_usec()
+	var pois := root.get_node_or_null("RealmPois")
+	if pois != null:
+		WorldLanes.own(pois)                     # the places' own batches (flames, halos, candles, yards' barrels, kerbs, footings): placed on purpose, not scatter
 	print("REALM cull ", WorldLanes.cull_scatter(root))
 	prof_add("stage: cull scatter", t)
 	var keys := prof.keys()

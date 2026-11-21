@@ -686,6 +686,7 @@ func _lamps() -> void:
 	mm.custom_aabb = AABB(Vector3(-400, -60, -200), Vector3(800, 160, 640))
 	lamps = MultiMeshInstance3D.new()
 	lamps.name = "WayLamps"
+	lamps.set_meta(&"live_pool", true)          # its slots are its own (rewritten by the wayfarers): the scatter cull leaves a live pool
 	lamps.multimesh = mm
 	var mat := ShaderMaterial.new()
 	mat.shader = LAMP_SH
