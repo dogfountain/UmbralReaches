@@ -1304,10 +1304,13 @@ func _pose_chop(k: float) -> void:
 	var r := rig
 	var cyc := fposmod(act_t, 1.7) / 1.7
 	var block := _m(village.call("anchor", "@block_" + id)) + Vector3.UP * 0.05
+	if not block.is_finite():
+		return                                       # (no block anchor for this villager: Vector3.INF made every pose vector non-finite, 80 warnings a run)
 	var tips: Array = r.tips
 	var grips: Array = r.grip
 	var reach_v: Vector3 = (tips[0] as Vector3) - (grips[0] as Vector3)
-	var hit_d := (Vector3(block.x, 0, block.z).normalized() + Vector3.DOWN * 0.55).normalized()
+	var flat := Vector3(block.x, 0, block.z)      # (an anchor at the origin was a zero vector: the logs of "cannot be normalized" in every windowed run)
+	var hit_d := ((flat.normalized() if flat.length() > 0.01 else Vector3.FORWARD) + Vector3.DOWN * 0.55).normalized()
 	var hit_g := block - hit_d * reach_v.length()
 	var up_g := Vector3(0.06, 1.42, -0.02) * k
 	var up_d := Vector3(0, 0.9, 0.45).normalized()
@@ -1326,7 +1329,8 @@ func _pose_chop(k: float) -> void:
 		d = hit_d
 	var u := Vector3.DOWN.slide(d).normalized() if absf(d.y) < 0.95 else Vector3(0, 0, -1)
 	if cyc < 0.55:
-		u = Vector3(0, 0, -1).slide(d).normalized()
+		var us := Vector3(0, 0, -1).slide(d)
+		u = us.normalized() if us.length() > 0.01 else Vector3.UP
 	var wind2 := smoothstep(0.0, 0.5, cyc) * (1.0 - smoothstep(0.55, 0.6, cyc))
 	var hit2 := exp(-pow((cyc - 0.63) / 0.06, 2.0))
 	var bend := 0.1 - 0.08 * wind2 + 0.32 * smoothstep(0.55, 0.62, cyc) * (1.0 - smoothstep(0.75, 1.0, cyc))
