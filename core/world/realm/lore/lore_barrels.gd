@@ -11,7 +11,7 @@ const RANGE := 70.0
 
 static func seat(xf: Transform3D) -> Transform3D:
 	var meshes: Array = []
-	for pd: Dictionary in SiteProps.parts("barrel.glb"):
+	for pd: Dictionary in SiteProps.parts("barrel"):
 		meshes.append(pd.mesh)
 	return GroundSeat.seat_pts(GroundSeat.fast_fn(), GroundSeat.parts_points("lk:barrel", meshes), xf, 0.7)
 
@@ -23,7 +23,7 @@ static func commit(holder: Node3D, xfs: Array[Transform3D]) -> int:
 	node.name = "Barrels"
 	holder.add_child(node)
 	var n := 0
-	for pd: Dictionary in SiteProps.parts("barrel.glb"):
+	for pd: Dictionary in SiteProps.parts("barrel"):
 		var mmi := OssKit.multimesh(pd.mesh as Mesh, xfs, pd.mat as Material, true)
 		mmi.name = "Barrel_%d" % n
 		mmi.add_to_group(&"final_seat")

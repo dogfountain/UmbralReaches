@@ -344,7 +344,8 @@ func _fits(at: Vector2, yaw: float, rad: float, _file: String, nested := false) 
 	return {"g": g}
 
 
-func _place(file: String, at: Vector2, yaw: float, rad: float, spot: Dictionary) -> bool:
+func _place(file_glb: String, at: Vector2, yaw: float, rad: float, spot: Dictionary) -> bool:
+	var file := file_glb.get_basename()                       # (site_props takes a model's name, not its file)
 	var g: float = spot.g
 	var xf := Transform3D(Basis(Vector3.UP, yaw), Vector3(at.x, g, at.y))
 	if not _pts.has(file):
@@ -357,7 +358,7 @@ func _place(file: String, at: Vector2, yaw: float, rad: float, spot: Dictionary)
 	k._prec.append([file, xf])
 	_taken.append([at, rad])
 	_props += 1
-	if file == "camp_watch.glb":                              # the lookout's lantern: a lit pane on the hook (no light: the glow shader only)
+	if file == "camp_watch":                              # the lookout's lantern: a lit pane on the hook (no light: the glow shader only)
 		var b := xf.basis
 		k.kit.box("glow", xf.origin + b * Vector3(0.0, 5.05, 1.05), Vector3(0.2, 0.26, 0.2), b, false, 1.0)
 	return true
