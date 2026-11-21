@@ -151,10 +151,10 @@ func _run() -> void:
 	if wf:
 		wf.queue_free()
 	await _frames(30)
-	if _want("descent"):
-		await _descent()
 	if _want("abbey"):
 		await _abbey()
+	if _want("descent"):
+		await _descent()
 	if _want("count"):
 		await _count()
 	print("OSSWALK DONE %d fails" % fails)

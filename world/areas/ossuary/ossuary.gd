@@ -1009,7 +1009,12 @@ func _abbey() -> void:
 	if not is_inside_tree():
 		return
 	await get_tree().physics_frame
-	OssAbbey.build(self, get_world_3d().direct_space_state)
+	var tries := 0
+	while is_inside_tree() and tries < 900 and not OssAbbey.ground_ready(get_world_3d().direct_space_state):
+		tries += 1
+		await get_tree().physics_frame
+	if is_inside_tree():
+		OssAbbey.build(self, get_world_3d().direct_space_state)
 
 
 ## r34 crypt: take the terrain triangles whose centres lie in `r` out of Zone/Terrain and its body.

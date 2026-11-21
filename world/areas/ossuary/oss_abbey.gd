@@ -85,6 +85,23 @@ static func _gy(space: PhysicsDirectSpaceState3D, x: float, z: float) -> float:
 	return RealmLand.height_at(wp.x, wp.z) - OssFrame.ORIGIN.y
 
 
+## True once the terrain's collision is in under the church (a ray down at its middle meets the Terrain body): before that the
+## ground is the lattice's macro shape, 9 m under the bank, and the church was built half buried.
+static func ground_ready(space: PhysicsDirectSpaceState3D) -> bool:
+	var wp := OssFrame.w(Vector3(FRONT_X + 1.0, 0.0, Z_N - 20.0))
+	var q := PhysicsRayQueryParameters3D.create(Vector3(wp.x, 220.0, wp.z), Vector3(wp.x, -120.0, wp.z), Layers.WORLD | Layers.PROPS)
+	var skip: Array[RID] = []
+	for i in 10:
+		q.exclude = skip
+		var hit := space.intersect_ray(q)
+		if hit.is_empty():
+			return false
+		if String((hit.collider as Node).name).begins_with("Terrain"):
+			return true
+		skip.append(hit.rid)
+	return false
+
+
 ## Build the abbey under `area` (the Ossuary). The Realm's ground must be in (the caller waits for it).
 static func build(area: Node3D, space: PhysicsDirectSpaceState3D) -> void:
 	if built and is_instance_valid(area.get_node_or_null("Abbey")):
