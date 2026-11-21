@@ -567,16 +567,16 @@ func _elite_tick(pos: Vector3, may_build := true) -> void:
 			elite_nodes.erase(id)
 		var d := pos.distance_to(at)
 		var rise := d < ELITE_NEAR and not LightGrid.is_lit(at) and not _busy_fight()
-		if e == null:      # built where the old rule did (near), or again asleep well out of reach (staging.gd)
-			if may_build and not slain(id) and (rise or Staging.ahead(d, ELITE_FAR) and not LightGrid.is_lit(at)):
-				Staging.built(spawn_elite(id), not rise, d)
+		if e == null:      # built where the old rule did if the builder has not built it ahead (staging.gd)
+			if may_build and not slain(id) and rise:
+				spawn_elite(id)
 				may_build = false
 			continue
-		if Staging.waits(e, rise, d):
+		if Staging.waits(e, rise):
 			continue
 		var de := pos.distance_to(e.global_position)
 		if d > ELITE_FAR and de > ELITE_FAR:
-			if not Staging.stand_down([e], d):   # untouched: asleep where it stands; else back to its haunt, healed
+			if not Staging.stand_down([e]):      # untouched: waiting again where it stands; else back to its haunt, healed
 				_unmake(e, false)
 				elite_nodes.erase(id)
 			continue
@@ -839,11 +839,8 @@ func room(pos: Vector3) -> int:
 
 
 func near_count(pos: Vector3, r := CAP_R) -> int:
-	var n := 0
-	for e in get_tree().get_nodes_in_group(Groups.ENEMY):
-		if e is Enemy and (e as Enemy).is_alive() and (e as Node3D).global_position.distance_to(pos) < r:
-			n += 1
-	return n
+	return get_tree().get_nodes_in_group(Groups.ENEMY).filter(func(e: Node) -> bool:
+		return e is Enemy and (e as Enemy).is_alive() and (e as Node3D).global_position.distance_to(pos) < r).size()
 
 
 ## Ground a foe may appear on, for every spawner: out of the havens and the towns (SpawnRules.SAFE), in bounds, never
@@ -982,11 +979,7 @@ func _prune(pos: Vector3) -> void:
 			continue
 		keep.append(e)
 	ambushers = keep
-	var hk: Array = []
-	for e in hunters:
-		if is_instance_valid(e) and e.is_alive():
-			hk.append(e)
-	hunters = hk
+	hunters = hunters.filter(func(e: Variant) -> bool: return is_instance_valid(e) and (e as Enemy).is_alive())
 
 
 func _make_motes() -> GPUParticles3D:

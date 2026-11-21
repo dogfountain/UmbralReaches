@@ -241,16 +241,16 @@ func _process(delta: float) -> void:
 			var due := now >= int(_dead_until.get(id, 0))
 			var lit := LightGrid.is_lit(at)
 			_show_marker(id, due and not lit)      # a lit haunt has no body, so no pin either
-			# one a tick (a teleport built every rare in reach in one frame); far off it is built asleep, waiting (staging.gd)
-			if due and not lit and not built and (d < NEAR or Staging.ahead(d, FAR)):
-				Staging.built(spawn_rare(id), d >= NEAR, d)
+			# one a tick (a teleport built every rare in reach in one frame); the builder builds them ahead, unseen (staging.gd)
+			if due and not lit and not built and d < NEAR:
+				spawn_rare(id)
 				built = true
 			continue
-		if Staging.waits(e, d < NEAR, d):
+		if Staging.waits(e, d < NEAR):
 			continue
 		var de := p.global_position.distance_to(e.global_position)
 		if d > FAR and de > FAR:
-			if not Staging.stand_down([e], d):    # untouched: asleep where it stands, waiting
+			if not Staging.stand_down([e]):       # untouched: waiting again where it stands
 				e.queue_free()                     # back into the dark, whole
 				nodes.erase(id)
 		elif de > e.sleep_range:
@@ -268,6 +268,7 @@ func spawn_rare(id: String) -> Enemy:
 	if not RARES.has(id) or not haunts.has(id):
 		return null
 	if is_instance_valid(nodes.get(id)):
+		Staging.rise(nodes[id] as Enemy)          # (a direct call wants it up: the builder's waits unseen)
 		return nodes[id] as Enemy
 	var d: Dictionary = RARES[id]
 	var script: GDScript = _scripts.get(String(d.kind))

@@ -114,7 +114,8 @@ var sites: Array[Dictionary] = []  ## {at: Vector3, id, key, from: "group"|"api"
 var nodes: Dictionary = {}         ## key -> Enemy (the guardian)
 var escorts: Dictionary = {}       ## key -> Array[Enemy]
 var _fallback_done := false
-var staging: Staging               ## builds every guardian, elite and rare ahead, asleep (staging.gd)
+var staging: Staging               ## builds guardians, escorts, elites and rares ahead, unseen (staging.gd)
+var _filling := {}                 ## key -> its escort array while the rest of it is being built (_escort_later)
 var _site_n := -1                  ## the group's size and the API's at the last refresh (a refresh is a walk of both)
 var _extra_n := -1
 
@@ -250,18 +251,19 @@ func tick(pos: Vector3, may_build := true) -> bool:
 		var d := pos.distance_to(at)
 		if e == null:
 			nodes.erase(key)
-			var near := d < NEAR and not busy
-			if may_build and not built and not slain(key) and (near or Staging.ahead(d, FAR)) and not LightGrid.is_lit(at):
-				Staging.built(spawn(s, true), not near, d)
+			if may_build and not built and not slain(key) and d < NEAR and not busy and not LightGrid.is_lit(at):
+				spawn(s, true)                           # (the builder had not built it ahead: staging.gd)
 				built = true
 			continue
 		var group: Array = [e]
 		group.append_array(escorts.get(key, []))
-		if Staging.waits_group(group, d < NEAR and not busy and not LightGrid.is_lit(at), d):
+		if Staging.waits_group(group, d < NEAR and not busy and not LightGrid.is_lit(at)):
 			continue
+		if escort_missing(key) and not _filling.has(key):           # risen before the builder stood its whole escort: the rest now
+			_escort_later(key, at, Tiers.tier_at(at), GUARDIANS[String(s.id)].get("escort", []), escorts[key], (escorts[key] as Array).size())
 		var de := pos.distance_to(e.global_position)
 		if d > FAR and de > FAR:
-			if not Staging.stand_down(group, d):
+			if not Staging.stand_down(group):
 				_dismiss(key)
 			continue
 		if e.is_alive():
@@ -339,7 +341,16 @@ func spawn(s: Dictionary, spread := false, escort := true) -> Enemy:
 	return e
 
 
-## The next of a guardian's escort built now (staging.gd builds them one at a time, inside its frame budget); false once the
+## Whether a guardian's escort still lacks a member it would have had (none yet built, or the builder is part way).
+func escort_missing(key: String) -> bool:
+	var esc: Variant = escorts.get(key)
+	if not (esc is Array) or not is_instance_valid(nodes.get(key)):
+		return false
+	var id := String((nodes[key] as Node).get_meta(&"guardian_id", ""))
+	return (esc as Array).size() < (GUARDIANS.get(id, {}).get("escort", []) as Array).size()
+
+
+## The next of a guardian's escort built now (staging.gd builds them one at a time, on frames with room); false once the
 ## whole escort stands (or the guardian is gone).
 func escort_next(key: String) -> bool:
 	var esc: Variant = escorts.get(key)
@@ -359,13 +370,18 @@ func escort_next(key: String) -> bool:
 
 ## The escort one every third frame (a build is a heavy frame: back to back they read as one long stall); stops if
 ## the guardian was dismissed or replaced meanwhile.
-func _escort_later(key: String, at: Vector3, tier: int, kinds: Array, esc: Array[Enemy]) -> void:
-	for i in kinds.size():
+func _escort_later(key: String, at: Vector3, tier: int, kinds: Array, esc: Array[Enemy], from := 0) -> void:
+	_filling[key] = esc
+	for i in range(from, kinds.size()):
 		for _f in 3:
 			await get_tree().process_frame
 		if not is_inside_tree() or not is_same(escorts.get(key), esc) or not is_instance_valid(nodes.get(key)):
+			if is_same(_filling.get(key), esc):
+				_filling.erase(key)
 			return
 		_escort_one(key, at, tier, kinds, i, esc)
+	if is_same(_filling.get(key), esc):
+		_filling.erase(key)
 
 
 func _escort_one(key: String, at: Vector3, tier: int, kinds: Array, i: int, esc: Array[Enemy]) -> void:
@@ -391,7 +407,7 @@ func _escort_one(key: String, at: Vector3, tier: int, kinds: Array, i: int, esc:
 	esc.append(m)
 	var lead: Variant = nodes.get(key)
 	if Staging.waiting(lead as Enemy if is_instance_valid(lead) else null):
-		Staging.stage(m, 0.0 if (lead as Enemy).visible else INF)     # its guardian waits (built ahead): so does it
+		Staging.stage(m)                                 # its guardian waits (built ahead): so does it
 
 
 ## A base kind made a champion: more of everything but its tells (never a shorter telegraph).

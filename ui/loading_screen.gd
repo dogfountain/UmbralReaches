@@ -259,8 +259,7 @@ func _process(delta: float) -> void:
 				_paces.remove_at(0)
 			var pace := _median(_paces)
 			var lw := get_tree().get_first_node_in_group(&"lava_works") as LavaWorks
-			var busy := (lw != null and lw.mapping > 0) or (not zone.has_meta("post_done") and _phase_t < 25.0) \
-				or (not zone.has_meta("foes_staged") and zone.get_node_or_null("Encounters") != null and _phase_t < 25.0)   # (staging.gd)
+			var busy := (lw != null and lw.mapping > 0) or (not zone.has_meta("post_done") and _phase_t < 25.0)
 			_steady = _steady + 1 if not busy and _paces.size() >= 10 and delta < maxf(pace * 1.35, 0.012) and delta < 0.05 else 0
 			if _steady >= 20 or _phase_t > 12.0:
 				_next("fade")

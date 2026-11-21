@@ -481,8 +481,7 @@ func _process(d: float) -> void:
 		return
 	# and the post-build pass (the static merge: the loading screen waits for it, so a player never plays during it; it
 	# ran into the first views once it took longer than the settle)
-	var staged := main.has_meta("foes_staged") or main.get_node_or_null("Encounters/Guardians/Staging") == null   # (staging.gd)
-	if (not main.has_meta("post_done") or not staged) and not "--early" in OS.get_cmdline_user_args() and t < 40.0:
+	if not main.has_meta("post_done") and not "--early" in OS.get_cmdline_user_args() and t < 40.0:
 		return
 	_mute_scripts()
 	_quiet_enemies()

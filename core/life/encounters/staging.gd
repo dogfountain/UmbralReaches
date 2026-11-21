@@ -1,68 +1,69 @@
 extends Node
 ## Foes built ahead of the wanderer (camps and villages perf pass, 21 Nov). The guardians and their escorts, the named
 ## elites and the rares were each built the moment the wanderer came near them (55, 72 and 95 m): a whole creature in one
-## frame (3-7 ms warm; the 10-15 ms script frames of every camp the perf tour's path passed) that appeared from nothing
-## at that distance. Now each is built once, asleep, behind the loading cover (a few a frame, BUDGET_US), and stands at
-## its post like a camp pawn: coming near only wakes it.
-##   waiting   meta `staged`: built but "not risen yet". It stays asleep and inert where the old rule had no body at all,
-##             and rises when the old rule would have built it, or the moment it is hurt or alerted (a bolt from afar).
-##   out of reach   an untouched group (full health, at rest, no Marks, not enraged) simply sleeps again where it stands,
-##             waiting (the old rule freed it and built it afresh: the same foe). A hurt, enraged or broken group is freed
-##             as before and built again asleep once the wanderer is well past the owner's FAR (PAD), one a tick: never
-##             in the middle of the fight it came from.
-## Owners: director.gd (elites), guardians.gd (guardians, escorts; it adds this node), core/enemy/rares.gd (rares). The
-## zone gets meta `foes_staged` when the first pass is done (the loading screen waits for it).
+## frame (1.4-7 ms warm) on top of the frame's own work. Now each is built a little ahead, in play, one at a time and only
+## on a frame with room to spare (`claim`), and waits unseen until the moment the old rule built it:
+##   builder   the nearest missing guardian, escort, elite or rare within BUILD_R, outside its owner's rise radius, one a
+##             claimed frame. The camps' next pawns (EnemySpawner) and an ambush's risers (ambush_prep.gd) claim the same
+##             frames, so two builds never share one.
+##   waiting   meta `staged`: built, asleep, hidden, no collision, out of Groups.ENEMY: nothing draws, casts, scans or hits
+##             it. It rises (shown) where the old rule built it, as the old rule showed it.
+##   out of reach   an untouched group (full health, at rest, no Marks, not enraged) goes back to waiting where it stands
+##             (the old rule freed it and built it afresh: the same foe); a hurt, enraged or broken group is freed as before
+##             and the builder makes it again later.
+## Nothing is built under the loading cover (the load is as before). Owners: director.gd (elites), guardians.gd
+## (guardians, escorts; it adds this node), core/enemy/rares.gd (rares). `-- --no-staging`: nothing built ahead (A/B).
 ## Load by path (no class_name).
 
-const HIDE_R := 170.0                  ## a waiting foe further than this is not drawn at all (EnemySpawner.HIDE_R)
-const PAD := 15.0                      ## built again asleep once the wanderer is this far past the owner's FAR
-const BUDGET_US := 5000                ## the first pass: builds a frame until this much time is spent (at least one)
+const BUILD_R := 170.0                 ## the builder looks this far for what to build
+const ROOM_MS := 10.0                  ## a build goes on a frame whose last frame took less than this
+const GAP := 4                         ## and at least this many frames after the last build
 const STAGED := &"staged"
 const HIDDEN := &"stage_hide"          ## a child shown only while its foe has risen (a rare's shimmer and motes)
+const LAYER := &"stage_layer"          ## the collision layer a waiting foe had (it has none while it waits)
+const TickPhase := preload("res://core/util/tick_phase.gd")
 const AudioPrefetch := preload("res://core/vfx/audio_prefetch.gd")
 
-var guardians: Variant                 ## guardians.gd (sites, nodes, spawn)
+## `-- --no-staging` (A/B): nothing is built ahead; each is built where the old rule built it.
+static var OFF := "--no-staging" in OS.get_cmdline_user_args()
+static var _built_at := -1000          ## the frame the last build was claimed (every builder shares it)
+
+var guardians: Variant                 ## guardians.gd (sites, nodes, spawn, escort_next)
 var director: Variant                  ## director.gd (haunts, elite_nodes, slain, spawn_elite, spawner, root)
-var done := false
-var _step := 0                         ## 0 elites, 1 guardians, 2 rares, 3 done
-var _keys: Array = []
-var _k := 0
-var _built := 0
-var _esc_key := ""                     ## the guardian whose escort the pass is building
-var _t0 := 0
+var built := 0
+var _near := {}                        ## owner -> its rise radius (read from its script once)
+var _todo: Array = []                  ## [distance, kind, key]: what the last look found missing, nearest first
+var _look_t := 0.0
 
 
 func _ready() -> void:
 	name = "Staging"
-	_t0 = Time.get_ticks_msec()
+	_look_t = TickPhase.first(self, 0.5)
 	AudioPrefetch.start(get_parent())          # their voices too: every take loaded ahead, off the main thread
 
 
-## The far side of an owner's reach: a foe missing there is built again asleep.
-static func ahead(d: float, far_r: float) -> bool:
-	return d > far_r + PAD and not OFF
+## A frame with room for one build (the last frame was quick, none was built in the last GAP frames): true claims it.
+static func claim(n: Node) -> bool:
+	if OFF:
+		return false
+	var f := Engine.get_process_frames()
+	if f - _built_at < GAP or n.get_process_delta_time() * 1000.0 > ROOM_MS:
+		return false
+	_built_at = f
+	return true
 
 
-## `-- --no-staging` (A/B): nothing is built ahead; each is built where the old rule built it.
-static var OFF := "--no-staging" in OS.get_cmdline_user_args()
-
-
-## A foe the owner has just built: waiting (asleep, not risen) when `wait`, else left as built.
-static func built(e: Enemy, wait: bool, d: float) -> void:
-	if e != null and wait:
-		stage(e, d)
-
-
-## Asleep and waiting (built ahead, or stood down out of reach); drawn only inside HIDE_R. Out of Groups.ENEMY while it
-## waits: the twenty-odd systems that walk the foes (aim, targeting, the minimap, stamina, the horse, the foe index, the
-## encounters' cap) walk what they walked before, when it was not built at all; a bolt still finds its body (take_hit).
-static func stage(e: Enemy, d: float) -> void:
+## Waiting: asleep, hidden, no collision, out of the foes' group.
+static func stage(e: Enemy) -> void:
 	if e == null or not is_instance_valid(e):
 		return
-	e.set_meta(STAGED, true)
+	if not e.has_meta(STAGED):
+		e.set_meta(STAGED, true)
+		e.set_meta(LAYER, e.collision_layer)
 	e.sleep()
+	e.visible = false
+	e.collision_layer = 0
 	_extras(e, false)
-	e.visible = d <= HIDE_R
 	if e.is_in_group(Groups.ENEMY):
 		e.remove_from_group(Groups.ENEMY)
 
@@ -71,47 +72,36 @@ static func waiting(e: Enemy) -> bool:
 	return e != null and is_instance_valid(e) and e.has_meta(STAGED)
 
 
-## Hurt, alerted or dead: a waiting foe that met the wanderer rises whatever the distance.
-static func disturbed(e: Enemy) -> bool:
-	return is_instance_valid(e) and (not e.is_alive() or e.hp < float(e.max_hp) - 0.001 or e._state != Enemy.IDLE)
-
-
-## Risen: what the old rule built at this moment. Its owner wakes it (or not) by its own sleep rule.
+## Risen: what the old rule built at this moment, shown as it showed it. Its owner wakes it (or not) by its own rule.
 static func rise(e: Enemy) -> void:
 	if not waiting(e):
 		return
+	e.collision_layer = int(e.get_meta(LAYER, e.collision_layer))
 	e.remove_meta(STAGED)
+	e.remove_meta(LAYER)
 	e.visible = true
 	_extras(e, true)
 	if e.is_alive() and not e.is_in_group(Groups.ENEMY):
 		e.add_to_group(Groups.ENEMY)
 
 
-## True while `e` waits (kept asleep, drawn by distance); false once it has risen: `rise_now` (the owner's old build rule
-## holds) or it was disturbed. Not waiting at all: false.
-static func waits(e: Enemy, rise_now: bool, d: float) -> bool:
+## True while `e` waits; false once it has risen (`rise_now`: the owner's old build rule holds). Not waiting: false.
+static func waits(e: Enemy, rise_now: bool) -> bool:
 	if not waiting(e):
 		return false
-	if rise_now or disturbed(e):
+	if rise_now:
 		rise(e)
 		return false
 	if e.process_mode != Node.PROCESS_MODE_DISABLED:
-		e.sleep()                            # woken by a neighbour's call but untouched: back to rest
-	var show := d <= HIDE_R
-	if e.visible != show:
-		e.visible = show
+		e.sleep()                            # woken by a neighbour's call: back to rest, unseen
 	return true
 
 
-## A guardian and its escort wait and rise together (anything disturbed raises them all). True while they wait.
-static func waits_group(group: Array, rise_now: bool, d: float) -> bool:
+## A guardian and its escort wait and rise together. True while they wait.
+static func waits_group(group: Array, rise_now: bool) -> bool:
 	if group.is_empty() or not waiting(group[0] as Enemy):
 		return false
-	var up := rise_now
-	for m: Variant in group:
-		if is_instance_valid(m) and disturbed(m as Enemy):
-			up = true
-	if up:
+	if rise_now:
 		for m: Variant in group:
 			if is_instance_valid(m):
 				rise(m as Enemy)
@@ -120,7 +110,7 @@ static func waits_group(group: Array, rise_now: bool, d: float) -> bool:
 		return false
 	for m: Variant in group:
 		if is_instance_valid(m):
-			waits(m as Enemy, false, d)
+			waits(m as Enemy, false)
 	return true
 
 
@@ -133,15 +123,15 @@ static func untouched(e: Variant) -> bool:
 		and en.marks == 0 and not bool(en.get_meta(&"guardian_enraged", false))
 
 
-## Out of reach: an untouched group sleeps where it stands, waiting again (true). Anything else (false) the owner frees.
-static func stand_down(group: Array, d: float) -> bool:
-	if group.is_empty():
+## Out of reach: an untouched group goes back to waiting where it stands (true). Anything else (false) the owner frees.
+static func stand_down(group: Array) -> bool:
+	if group.is_empty() or OFF:
 		return false
 	for m: Variant in group:
 		if not untouched(m):
 			return false
 	for m: Variant in group:
-		stage(m as Enemy, d)
+		stage(m as Enemy)
 	return true
 
 
@@ -153,100 +143,103 @@ static func _extras(e: Enemy, on: bool) -> void:
 				(c as GPUParticles3D).emitting = on
 
 
-# --- the first pass: everything built once, asleep, a few a frame -------------------------------------------------
+# --- the builder: one a claimed frame, the nearest first -------------------------------------------------------------
 
-func _process(_dt: float) -> void:
-	if done or director == null or not bool(director.ready_done):
+func _process(dt: float) -> void:
+	if OFF or director == null or not bool(director.ready_done):
 		return
-	if OFF:
-		_finish()
-		return
-	var t0 := Time.get_ticks_usec()
-	while Time.get_ticks_usec() - t0 < BUDGET_US:
-		if not _build_one():
-			break
-	if _step >= 3:
-		_finish()
-
-
-## Builds the next foe of the pass (true), or moves on a step (true) or waits for the world (false).
-func _build_one() -> bool:
+	if get_tree().get_first_node_in_group(&"loading_screen") != null:
+		return                                   # nothing under the cover: the load is as it was
 	var player := get_tree().get_first_node_in_group(Groups.PLAYER) as Node3D
-	var pos := player.global_position if player != null else Vector3.INF
-	match _step:
-		0:
-			if _keys.is_empty() and _k == 0:
-				_keys = (director.haunts as Dictionary).keys()
-			if _k >= _keys.size():
-				return _next()
-			var id := String(_keys[_k])
-			_k += 1
-			var at: Vector3 = director.haunts[id]
-			var have: Variant = (director.elite_nodes as Dictionary).get(id)
-			if (have != null and is_instance_valid(have)) or bool(director.slain(id)) or LightGrid.is_lit(at):
-				return true
-			stage(director.spawn_elite(id) as Enemy, _d(pos, at))
-			_built += 1
-			return true
-		1:
-			if _esc_key != "":                  # the last guardian's escort, one a call (each waits as its guardian does)
-				if bool(guardians.escort_next(_esc_key)):
-					_built += 1
-					return true
-				_esc_key = ""
-			if _keys.is_empty() and _k == 0:
-				guardians.refresh_sites()
-				_keys = (guardians.sites as Array).duplicate()
-			if _k >= _keys.size():
-				return _next()
-			var s: Dictionary = _keys[_k]
-			_k += 1
-			var key := String(s.key)
-			if is_instance_valid((guardians.nodes as Dictionary).get(key)) or bool(guardians.slain(key)) or LightGrid.is_lit(s.at as Vector3):
-				return true
-			stage(guardians.spawn(s, false, false) as Enemy, _d(pos, s.at as Vector3))
-			_esc_key = key
-			_built += 1
-			return true
-		2:
+	if player == null:
+		return
+	var pos := player.global_position
+	_look_t -= dt
+	if _look_t <= 0.0:
+		_look_t = TickPhase.next(_look_t, 0.5)
+		_look(pos)
+	while not _todo.is_empty():
+		var job: Array = _todo[0]
+		if not _still_missing(job):
+			_todo.pop_front()
+			continue
+		if not claim(self):
+			return
+		if _build(job, pos):
+			built += 1
+		if String(job[1]) != "escort":
+			_todo.pop_front()                    # (an escort job stays until the whole escort stands)
+		return
+
+
+## An owner's rise radius, from its script's own constant (no copy of the number here).
+func _rise_r(owner: Variant, name_c: String) -> float:
+	var sc := (owner as Object).get_script() as Script
+	var k := sc.resource_path + ":" + name_c
+	if not _near.has(k):
+		_near[k] = float(sc.get_script_constant_map().get(name_c, 95.0))
+	return float(_near[k])
+
+
+## What is missing within BUILD_R, outside each owner's rise radius, nearest first.
+func _look(pos: Vector3) -> void:
+	_todo.clear()
+	for id: String in director.haunts:
+		var at: Vector3 = director.haunts[id]
+		var d := pos.distance_to(at)
+		if d < BUILD_R and d > _rise_r(director, "ELITE_NEAR") and not is_instance_valid((director.elite_nodes as Dictionary).get(id)) \
+				and not bool(director.slain(id)) and not LightGrid.is_lit(at):
+			_todo.append([d, "elite", id])
+	guardians.refresh_sites()
+	for s: Dictionary in guardians.sites:
+		var key := String(s.key)
+		var d2 := pos.distance_to(s.at as Vector3)
+		if d2 >= BUILD_R or bool(guardians.slain(key)):
+			continue
+		var g: Variant = (guardians.nodes as Dictionary).get(key)
+		if is_instance_valid(g):
+			if waiting(g as Enemy) and bool(guardians.escort_missing(key)):
+				_todo.append([d2, "escort", key])
+		elif d2 > _rise_r(guardians, "NEAR") and not LightGrid.is_lit(s.at as Vector3):
+			_todo.append([d2, "guardian", key, s])
+	var sp: EnemySpawner = director.spawner
+	if sp != null and is_instance_valid(sp) and sp.rares != null and is_instance_valid(sp.rares):
+		var rares: Variant = sp.rares
+		for id2: String in rares.haunts:
+			var at2: Vector3 = rares.haunts[id2]
+			var d3 := pos.distance_to(at2)
+			if d3 < BUILD_R and d3 > _rise_r(rares, "NEAR") and not is_instance_valid((rares.nodes as Dictionary).get(id2)) \
+					and bool(rares.due(id2)) and not LightGrid.is_lit(at2):
+				_todo.append([d3, "rare", id2])
+	_todo.sort_custom(func(a: Array, b: Array) -> bool: return float(a[0]) < float(b[0]))
+
+
+func _still_missing(job: Array) -> bool:
+	match String(job[1]):
+		"elite":
+			return not is_instance_valid((director.elite_nodes as Dictionary).get(job[2]))
+		"guardian":
+			return not is_instance_valid((guardians.nodes as Dictionary).get(job[2]))
+		"escort":
+			return waiting((guardians.nodes as Dictionary).get(job[2]) as Enemy) and bool(guardians.escort_missing(job[2]))
+		"rare":
 			var sp: EnemySpawner = director.spawner
-			if sp == null or not is_instance_valid(sp):
-				return _next()
-			if not sp.settled:
-				return false                    # (the rares find their haunts once the camps are settled)
-			if sp.rares == null or not is_instance_valid(sp.rares):
-				return _next()
-			var rares: Variant = sp.rares
-			if _keys.is_empty() and _k == 0:
-				_keys = (rares.haunts as Dictionary).keys()
-			if _k >= _keys.size():
-				return _next()
-			var id := String(_keys[_k])
-			_k += 1
-			var at: Vector3 = rares.haunts[id]
-			if is_instance_valid((rares.nodes as Dictionary).get(id)) or not bool(rares.due(id)) or LightGrid.is_lit(at):
-				return true
-			stage(rares.spawn_rare(id) as Enemy, _d(pos, at))
-			_built += 1
-			return true
+			return sp != null and is_instance_valid(sp) and sp.rares != null and not is_instance_valid((sp.rares.nodes as Dictionary).get(job[2]))
 	return false
 
 
-func _next() -> bool:
-	_step += 1
-	_keys = []
-	_k = 0
-	return _step < 3
-
-
-static func _d(pos: Vector3, at: Vector3) -> float:
-	return pos.distance_to(at) if pos.is_finite() else 0.0
-
-
-func _finish() -> void:
-	done = true
-	set_process(false)
-	var root: Variant = director.root
-	if root is Node:
-		(root as Node).set_meta(&"foes_staged", true)
-	print("STAGING %d guardians, escorts, elites and rares built ahead, asleep (%.1f s after the encounters came up)" % [_built, (Time.get_ticks_msec() - _t0) / 1000.0])
+func _build(job: Array, _pos: Vector3) -> bool:
+	match String(job[1]):
+		"elite":
+			stage(director.spawn_elite(String(job[2])) as Enemy)
+			return true
+		"guardian":
+			stage(guardians.spawn(job[3] as Dictionary, false, false) as Enemy)
+			return true
+		"escort":
+			return bool(guardians.escort_next(String(job[2])))
+		"rare":
+			var sp: EnemySpawner = director.spawner
+			stage(sp.rares.spawn_rare(String(job[2])) as Enemy)
+			return true
+	return false
