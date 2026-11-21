@@ -519,9 +519,17 @@ func _go(skip: Array[RID], fwd: Vector3, w: Vector3, want: float, sc: float, dt:
 			_yaw = lerp_angle(_yaw, atan2(-sdir.x, -sdir.z), (1.0 - exp(-6.0 * dt)) * e)
 	# the way along a face is taken up over ~0.1 s, not in one tick: at a gallop a tree met by the probe turned the line of
 	# travel by thirty degrees at once (a 7 cm jump of the whole horse in a frame)
+	var safe := dir
 	_defl = lerpf(_defl, fwd.signed_angle_to(dir, Vector3.UP) if not hit.is_empty() else 0.0, 1.0 - exp(-10.0 * dt))
 	if absf(_defl) > 0.001:
 		dir = fwd.rotated(Vector3.UP, _defl)
+	if not hit.is_empty():
+		# the easing never carries it further into the face than the slide would (a thin wall or a boss, met head on,
+		# was walked through while the eased line still pointed at it)
+		var n := hit.n as Vector3
+		if dir.dot(-n) > safe.dot(-n) + 0.001:
+			dir = safe
+			_defl = fwd.signed_angle_to(safe, Vector3.UP)
 	if not _air and _gather <= 0.0 and speed > 3.5 and _mv.hop_cd <= 0.0 and _land < 0.3:
 		# a knee-high rise right ahead (a stone, a kerb, a log): a hop over it, not a stumble
 		var da := 0.55 * sc + 0.05 * speed
@@ -626,19 +634,19 @@ func _ride_follow(dt: float, ph: float) -> void:
 	# the seat rides the back (most of it: the hips take the rest), rises out of the saddle once a trot
 	# stride (a posting trot, ~9 cm) and rocks fore-and-aft with the gallop's bound
 	var gal_w := smoothstep(float(_d.trot), float(_d.gallop), speed)
-	t.x = _rig.last_dy * 0.85 + trot_w * 0.045 * (1.0 + sin(ph + 0.3)) \
+	t.x = _rig.seat_dy * 0.85 + trot_w * 0.045 * (1.0 + sin(ph + 0.3)) \
 			+ gal_w * 0.035 * (0.5 + 0.5 * sin(ph + 1.2)) + (0.12 if _air else 0.0)
 	t.y = _lean + 0.1 * smoothstep(0.35, 0.65, k) + 0.28 * smoothstep(0.6, 1.0, k) + 0.1 * _rig.rock - _rig.body_pitch * (0.2 if _air else 0.7) - acc * 0.07
 	t.z = -_rig.body_roll * 0.9
 	var n := clampi(ceili(dt / (1.0 / 240.0)), 1, 12)
 	var d := minf(dt, 0.1) / float(n)
 	# the back as the seat feels it: its quick ripples (the legs' reach) are taken out
-	var raw: float = _rig.last_dy
+	var raw: float = _rig.seat_dy
 	var prev: float = _back if _back < INF else raw
 	_back = lerpf(prev, raw, 1.0 - exp(-dt / (0.004 if raw > prev else 0.012))) if _back < INF else raw
 	var back_v := clampf((_back - prev) / dt, -6.0, 6.0)
 	# the seat rides the whole back (it took 92 % and the horse out-bounced its rider), its quick ripples
-	# (the legs' reach) taken out; the horse's own back now eases into those too (horse_rig DROP_ATTACK)
+	# (the legs' reach) taken out; the seat reads the back through horse_rig.seat_dy (a stiff spring)
 	# the seat rides the whole back (it took 92 % and the horse out-bounced its rider), its quick ripples
 	# (the legs' reach) taken out, a hand's breadth clear of the floor below so the two never fight
 	t.x = _back + 0.012 + (t.x - raw * 0.85)

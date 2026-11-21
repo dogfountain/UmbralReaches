@@ -461,7 +461,8 @@ func _process(delta: float) -> void:
 	if follow != null:
 		_follow(dt)
 	else:
-		_step_state(dt)
+		for i in maxi(1, ceili(dt / 0.12)):     # a far step's saved time, in slices (one long stride left Penn under the turf)
+			_step_state(clampf(dt - 0.12 * i, 0.0, 0.12))
 	if state != "walk" and follow == null:
 		walk_amt = move_toward(walk_amt, 0.0, dt * 3.0)
 		yaw = lerp_angle(yaw, face_yaw, minf(1.0, dt * 4.0))

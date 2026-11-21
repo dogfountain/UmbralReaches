@@ -18,6 +18,7 @@ const RockKit := preload("res://core/world/realm/rock_kit.gd")
 
 const BARROW := Vector2(101.6, -45.0)       ## passage mouth is at BARROW.x - 3.8, facing -x
 const CRYPT := Vector2(100.0, 12.0)
+const CRYPT_WADE := [Vector2(86.0, 22.0), Vector2(91.0, 17.0), Vector2(95.0, 12.0)]     ## the wade out to the crypt (the wayside keeps off it)
 const LAMPS := [["eye", "an eye", 200.0], ["mouth", "a mouth", 128.0], ["heart", "a heart", 56.0], ["hand", "a hand", -16.0], ["crown", "a crown", -88.0]]
 const RITE := ["eye", "mouth", "heart"]
 const POSTERN_TOP := Vector2(35.3, -32.6)

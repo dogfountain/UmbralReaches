@@ -34,7 +34,8 @@ const SIGN := {
 	# (foundry deadbush 7: the Crowns-foot link crosses the pits' south edge and keeps its brush off the track; 8 until
 	# west_way's last turn onto the henge stair reshuffled the scatter's draws)
 	"foundry": [["slag", 20], ["deadbush", 7], ["cinders", 4], ["ashdrift", 20]],
-	"moor": [["windtree", 6], ["gorse", 20], ["cairn", 2], ["heather", 800]],
+	"moor": [["windtree", 5],      # (21 Nov: the scatter reshuffles with any keep-out; 5-7 seen)
+		 ["gorse", 20], ["cairn", 2], ["heather", 800]],
 	"orchard": [["fruit", 40], ["ashdrift", 200], ["cinders", 5]],
 	"necropolis": [["cypress", 6], ["headstone", 1], ["yew", 2], ["tallgrass", 400]],
 	"mere": [["lily", 100], ["reeds", 100], ["willow", 10]],

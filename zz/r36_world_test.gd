@@ -207,6 +207,10 @@ func _horses() -> void:
 	iev.action = "interact"
 	iev.pressed = true
 	p.call("_unhandled_input", iev)
+	for i in 150:                          # the horse comes to a walk, then the climb runs backwards (horse-feel, 20 Nov)
+		if p.riding == null:
+			break
+		await get_tree().physics_frame
 	ok(p.riding == null, "and [interact] gets you down")
 	# the call
 	p.teleport(p.global_position + Vector3(20.0, 0.0, 0.0))

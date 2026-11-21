@@ -75,6 +75,8 @@ func _open(space: PhysicsDirectSpaceState3D, q: PhysicsShapeQueryParameters3D, p
 			return false
 	if RealmLayout.path_dist(p) < 3.5 or WK.wet(p.x, p.y) or Zones.lane_dist(p) < 3.2 or WK.near_walk(p, 6.5):
 		return false
+	if _town_walk_dist(p) < 4.0:               # off the towns' own walks too: a fence on one left a reeve stuck mid-lane (21 Nov)
+		return false
 	var hit := space.intersect_ray(PhysicsRayQueryParameters3D.create(Vector3(p.x, 60.0, p.y), Vector3(p.x, -20.0, p.y), Layers.WORLD))
 	if hit.is_empty() or absf((hit.position as Vector3).y - WK.h(p.x, p.y)) > 0.6:
 		return false
@@ -171,3 +173,22 @@ func _scene(k, kind: String, o: Vector3, yaw: float) -> void:
 			k.kit.box("chalk", o + b * Vector3(0.3, 2.3, -0.5), Vector3(2.8, 0.06, 1.6), b * Basis(Vector3.RIGHT, 0.2), false, 0.8)
 			for i in 6:
 				k.kit.box("wax", o + b * Vector3(-0.6 + 0.35 * float(i), 0.92, -0.8), Vector3(0.22, 0.14 + 0.1 * rng.randf(), 0.2), Basis(Vector3.UP, rng.randf() * TAU), false, 0.9)
+
+
+static var _walks: Array = []
+
+
+## The reach towns' villager walks (village_reach_towns.gd NODES / EDGES): the distance from `p` to the nearest.
+static func _town_walk_dist(p: Vector2) -> float:
+	if _walks.is_empty():
+		var src := (load("res://core/life/village/village_reach_towns.gd") as GDScript).get_script_constant_map()
+		var nodes: Dictionary = src.get("NODES", {})
+		for e: Array in src.get("EDGES", []):
+			if nodes.has(e[0]) and nodes.has(e[1]):
+				_walks.append([nodes[e[0]] as Vector2, nodes[e[1]] as Vector2])
+	var best := INF
+	for w: Array in _walks:
+		var a: Vector2 = w[0]
+		var b: Vector2 = w[1]
+		best = minf(best, p.distance_to(Geometry2D.get_closest_point_to_segment(p, a, b)))
+	return best

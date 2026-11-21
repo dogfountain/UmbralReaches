@@ -338,7 +338,11 @@ func _elites() -> void:
 	var at: Vector3 = haunts.hobb
 	_tp(at + Vector3(14, 0.5, 0))
 	await _frames(2)
-	d.call("step", 0.3)
+	for i in 4:                             # one guardian or elite is built a tick (fps pass): a guardian near may go first
+		d.call("step", 0.3)
+		if is_instance_valid((d.get("elite_nodes") as Dictionary).get("hobb")):
+			break
+		await _frames(1)
 	var nodes: Dictionary = d.get("elite_nodes")
 	var e: Enemy = nodes.get("hobb")
 	check("elite: Hobb rises near his haunt", is_instance_valid(e) and e.has_meta(&"elite_id"))

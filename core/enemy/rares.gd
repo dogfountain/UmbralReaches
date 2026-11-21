@@ -97,9 +97,10 @@ const RARES := {
 	"fare_caller": {"title": "The Fare-Caller", "kind": "husk", "variant": "drowned", "hp": 40, "scale": 1.4,
 		"spots": [Vector2(135, 111), Vector2(129, 105)], "ash": 42, "loot": [["relic_fragment", 2], ["ferry_coin", 1]],
 		"line": "The Fare-Caller goes under without its fare."},
-	# the eighth keeper: the Order left him at the Spire's foot to see the shut-out bell stayed quiet
+	# the eighth keeper: the Order left him at the Spire's foot to see the shut-out bell stayed quiet (at the stair's foot since the
+	# stair down the south spur took his old ground, 21 Nov)
 	"lamp_shutter": {"title": "The Shutter", "kind": "bulwark", "hp": 50, "scale": 1.5,
-		"spots": [Vector2(240.5, 13.0), Vector2(244.5, 13.0), Vector2(242.0, 15.0)], "ash": 48, "loot": [["relic_fragment", 3]],
+		"spots": [Vector2(237.0, 28.0), Vector2(248.5, 28.0), Vector2(242.5, 31.0)], "ash": 48, "loot": [["relic_fragment", 3]],
 		"line": "The Shutter lowers his shutter for the last time. Behind it the lamp is lit."},
 	# --- south marches ---
 	"bell_wether": {"title": "The Bell-Wether", "kind": "gaunt", "hp": 28, "scale": 1.4,

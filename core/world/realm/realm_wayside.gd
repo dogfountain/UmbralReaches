@@ -211,9 +211,11 @@ static func _interests(root: Node) -> void:
 		var pat: Variant = c.get("patrol", [])
 		if pat is Array:
 			_keep_line(pat as Array, KEEP_WALK)
-	var crest: Variant = (load("res://core/life/secrets/site_fen.gd") as GDScript).get_script_constant_map().get("CREST", [])
-	if crest is Array:
-		_keep_line(crest as Array, KEEP_WALK)
+	var fen := (load("res://core/life/secrets/site_fen.gd") as GDScript).get_script_constant_map()
+	for walk: String in ["CREST", "CRYPT_WADE"]:          # the postern's crest path and the wade out to Corvin's crypt
+		var line: Variant = fen.get(walk, [])
+		if line is Array:
+			_keep_line(line as Array, KEEP_WALK)
 	var cast := load("res://core/life/village/village_cast.gd") as GDScript
 	var outposts: Dictionary = cast.get_script_constant_map().get("OUTPOSTS", {}) if cast else {}
 	for id: String in outposts:

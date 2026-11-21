@@ -541,6 +541,7 @@ func _litter() -> void:
 		for i in xfs.size():
 			mm.set_instance_transform(i, xfs[i])
 		var mi := MultiMeshInstance3D.new()
+		mi.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF     # static litter: an interpolated add copies the buffer
 		mi.name = "RaidLitter%d" % v
 		mi.multimesh = mm
 		mi.material_override = mats[1] if v == 2 else mats[0]
