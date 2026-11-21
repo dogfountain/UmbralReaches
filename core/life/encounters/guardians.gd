@@ -20,6 +20,7 @@ const Tiers := preload("res://core/life/encounters/tiers.gd")
 const Variants := preload("res://core/life/encounters/variants.gd")
 const PlacementLog := preload("res://core/world/realm/placement_log.gd")
 const SpawnRules := preload("res://core/life/encounters/spawn_rules.gd")
+const Staging := preload("res://core/life/encounters/staging.gd")
 const ESCORT_GROUND := {"ways": false}             ## an escort stands on its guardian's floor (a place's ground may hold a way)
 const GROUP := &"guardian_site"
 const NEAR := 55.0                 ## the guardian rises when you come this close to its site
@@ -113,6 +114,9 @@ var sites: Array[Dictionary] = []  ## {at: Vector3, id, key, from: "group"|"api"
 var nodes: Dictionary = {}         ## key -> Enemy (the guardian)
 var escorts: Dictionary = {}       ## key -> Array[Enemy]
 var _fallback_done := false
+var staging: Staging               ## builds every guardian, elite and rare ahead, asleep (staging.gd)
+var _site_n := -1                  ## the group's size and the API's at the last refresh (a refresh is a walk of both)
+var _extra_n := -1
 
 
 ## Register a site by code (the world's builders may call this any time).
@@ -131,6 +135,10 @@ func _ready() -> void:
 	name = "Guardians"
 	if not Events.enemy_killed.is_connected(_on_killed):
 		Events.enemy_killed.connect(_on_killed)
+	staging = Staging.new()
+	staging.guardians = self
+	staging.director = director
+	add_child(staging)
 
 
 func _state() -> Dictionary:
@@ -174,6 +182,11 @@ static func pick_id(at: Vector3, key: String, taken: Array = []) -> String:
 ## Gather every site: the group, the API, then the fallbacks (once, on clear ground, if nothing
 ## else is near them).
 func refresh_sites() -> void:
+	var n_group := get_tree().get_node_count_in_group(GROUP)
+	if _fallback_done and n_group == _site_n and _extra.size() == _extra_n:
+		return                                         # nothing new: the tick's refresh walked every site 4 times a second
+	_site_n = n_group
+	_extra_n = _extra.size()
 	var have := {}
 	for s: Dictionary in sites:
 		have[s.key] = true
@@ -224,9 +237,12 @@ func refresh_sites() -> void:
 
 ## Builds at most one guardian a tick, and none when `may_build` is false (the director's tick built one already): two
 ## or three built in one frame after a teleport or a respawn were the encounters' 10-27 ms frames. Returns whether it built.
+## Every guardian is built ahead, asleep (staging.gd): within NEAR one rises (it was built there before); a missing one
+## (felled groups excepted) is built again asleep once the wanderer is well out of reach.
 func tick(pos: Vector3, may_build := true) -> bool:
 	refresh_sites()
 	var built := false
+	var busy := bool(director.call("_busy_fight"))
 	for s: Dictionary in sites:
 		var key: String = s.key
 		var at: Vector3 = s.at
@@ -234,13 +250,19 @@ func tick(pos: Vector3, may_build := true) -> bool:
 		var d := pos.distance_to(at)
 		if e == null:
 			nodes.erase(key)
-			if may_build and not built and not slain(key) and d < NEAR and not LightGrid.is_lit(at) and not bool(director.call("_busy_fight")):
-				spawn(s, true)
+			var near := d < NEAR and not busy
+			if may_build and not built and not slain(key) and (near or Staging.ahead(d, FAR)) and not LightGrid.is_lit(at):
+				Staging.built(spawn(s, true), not near, d)
 				built = true
+			continue
+		var group: Array = [e]
+		group.append_array(escorts.get(key, []))
+		if Staging.waits_group(group, d < NEAR and not busy and not LightGrid.is_lit(at), d):
 			continue
 		var de := pos.distance_to(e.global_position)
 		if d > FAR and de > FAR:
-			_dismiss(key)
+			if not Staging.stand_down(group, d):
+				_dismiss(key)
 			continue
 		if e.is_alive():
 			if de > e.sleep_range:
@@ -346,6 +368,9 @@ func _escort_one(key: String, at: Vector3, tier: int, kinds: Array, i: int, esc:
 	m.global_position = g + Vector3.UP * 0.05
 	m.home = g
 	esc.append(m)
+	var lead: Variant = nodes.get(key)
+	if Staging.waiting(lead as Enemy if is_instance_valid(lead) else null):
+		Staging.stage(m, 0.0 if (lead as Enemy).visible else INF)     # its guardian waits (built ahead): so does it
 
 
 ## A base kind made a champion: more of everything but its tells (never a shorter telegraph).
@@ -409,10 +434,14 @@ func enrage(e: Enemy) -> void:
 	e._glint = 1.0
 	BossKit.roar(e, "", Color(1.8, 0.7, 0.25))
 	HitText.pop(e.global_position + Vector3.UP * (e.hp_bar_y + 0.9), "it calls its kin", Color(1.2, 0.6, 0.3), true)
-	var got := BossKit.summon(e.get_parent(), Tiers.script_for(String(d.enrage_call)), e.global_position, 2, 3.5, "guardian_" + String(e.get_meta(&"guardian_key", "")))
-	scale_summoned(got, int(e.get_meta(&"enc_tier", 0)), String(d.enrage_call))
-	for m in got:
-		m.alerted(e)
+	# the two kin rise a frame apart (both in one frame of the fight were two builds at once)
+	var tier := int(e.get_meta(&"enc_tier", 0))
+	var kind := String(d.enrage_call)
+	BossKit.summon_spread(e.get_parent(), Tiers.script_for(kind), e.global_position, 2, 3.5, "guardian_" + String(e.get_meta(&"guardian_key", "")),
+		func(m: Enemy) -> void:
+			scale_summoned([m], tier, kind)
+			if is_instance_valid(e):
+				m.alerted(e))
 
 
 ## Kin that rose in the tree (a summon) take the same two calls the escort loop makes: the
