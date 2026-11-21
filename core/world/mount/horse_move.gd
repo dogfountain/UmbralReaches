@@ -8,6 +8,7 @@ extends RefCounted
 ##   unwedge   no progress for WEDGE_T while driven: a back-and-turn out of it, by itself
 ## Load by path.
 
+const FoeIndex := preload("res://core/enemy/foe_index.gd")
 const WEDGE_T := 0.6               ## s of being driven and getting nowhere
 const WEDGE_M := 0.2               ## m: less than this in a window is wedged (a start from rest covers more)
 const HEAD_ON := 0.8               ## how square to a face counts as head-on (cos of the angle)
@@ -35,7 +36,7 @@ func gather(tree: SceneTree, at: Vector3, radius: float) -> Array[Enemy]:
 	var out: Array[Enemy] = []
 	soft.clear()
 	var r2 := radius * radius
-	for n in tree.get_nodes_in_group(Groups.ENEMY):
+	for n in FoeIndex.around(tree, at, radius):          # (each physics tick of a ride: not the whole group, ~400)
 		var e := n as Enemy
 		if e == null or e.boss or not e.is_alive():
 			continue

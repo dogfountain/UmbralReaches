@@ -13,6 +13,7 @@ extends Node
 ## yet rendered is simply not played. `Settings.score_intensity` scales the bus. No class_name.
 
 const Stems := preload("res://core/audio/score_stems.gd")
+const FoeIndex := preload("res://core/enemy/foe_index.gd")
 const Reg := preload("res://core/world/night_life/night_registry.gd")
 const MixDirector := preload("res://core/audio/mix_director.gd")
 
@@ -193,9 +194,8 @@ func _sense(now: int) -> void:
 		return
 	var p := pl.global_position
 	var best := 999.0
-	for e: Node in get_tree().get_nodes_in_group(Groups.ENEMY):
-		var n3 := e as Node3D
-		if n3 == null or not n3.is_inside_tree() or not n3.can_process() or n3.is_queued_for_deletion():
+	for n3 in FoeIndex.around(get_tree(), p, 0.0):                # every awake foe is in it (and a few resting: skipped)
+		if not n3.is_inside_tree() or not n3.can_process() or n3.is_queued_for_deletion():
 			continue
 		best = minf(best, n3.global_position.distance_to(p))
 	_near_d = best

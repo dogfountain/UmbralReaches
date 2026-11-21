@@ -10,6 +10,7 @@ extends CanvasLayer
 ## TextDirector (ui/text_director.gd): lanes, priorities, one banner at a time.
 
 const Med := preload("res://ui/medieval_style.gd")
+const FoeIndex := preload("res://core/enemy/foe_index.gd")
 const LILAC := Med.GILT
 const LANTERN := Color("#FFB347")
 const EMBER := Color("#FF5A1F")
@@ -644,8 +645,7 @@ func _stage_tick(delta: float) -> void:
 
 func _foe_near(p: Node3D, r: float) -> bool:
 	var cam := get_viewport().get_camera_3d()
-	for e in get_tree().get_nodes_in_group(Groups.ENEMY):
-		var n := e as Node3D
+	for n in FoeIndex.around(get_tree(), p.global_position, r):     # the awake foes and the resting ones near (not all ~400)
 		if n and n.global_position.distance_squared_to(p.global_position) < r * r and (not n.has_method("is_alive") or n.call("is_alive")):
 			# in view, or close enough to be at your back: a foe beyond a wall or behind the town is no lesson
 			if cam == null or n.global_position.distance_squared_to(p.global_position) < 100.0:
