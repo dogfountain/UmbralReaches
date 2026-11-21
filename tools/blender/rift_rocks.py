@@ -76,12 +76,13 @@ def build():
             hh = h * rnd.uniform(0.35, 0.7)
             b.append(((math.cos(a) * r * 0.9, L + (hh - 3.0) * 0.5, math.sin(a) * r * 0.9), (r * 0.7, (hh + 3.0) * 0.5, r * 0.6), rnd.uniform(0, 90), rnd.uniform(-8, 8), 0))
         variant(objs, "Stack%d" % i, b, 40 + i, "basalt", tris=1600, disp=0.6)
-    # the Watchers' plinth: a broad basalt table, its top flat at +1.3 (rift/threshold.gd WATCHER_LIFT), the sides broken
-    b = [((0, L + (1.3 - 3.5) * 0.5, 0), (6.6, (1.3 + 3.5) * 0.5, 6.6), 8, 0, 0)]
+    # the Watchers' plinth: a basalt table just broad enough for the pillar's own 7 m base, its top flat at +1.3 (rift/threshold.gd
+    # PLINTH_TOP), the sides broken (it was 18 m across and, with the isles, crowded the lake out)
+    b = [((0, L + (1.3 - 3.5) * 0.5, 0), (5.0, (1.3 + 3.5) * 0.5, 5.0), 8, 0, 0)]
     for k in range(7):
         a = k / 7.0 * math.tau + rnd.uniform(-0.2, 0.2)
-        b.append(((math.cos(a) * 6.2, L + (0.7 - 3.5) * 0.5, math.sin(a) * 6.2), (2.6, (0.7 + 3.5) * 0.5, 2.0), math.degrees(a) + rnd.uniform(-20, 20), 0, rnd.uniform(-6, 6)))
-    variant(objs, "Plinth", b, 50, "ash", tris=2400, flat=[((-6.2, L + 1.0, -6.2), (6.2, L + 1.6, 6.2))])
+        b.append(((math.cos(a) * 4.9, L + (0.7 - 3.5) * 0.5, math.sin(a) * 4.9), (1.6, (0.7 + 3.5) * 0.5, 1.3), math.degrees(a) + rnd.uniform(-20, 20), 0, rnd.uniform(-6, 6)))
+    variant(objs, "Plinth", b, 50, "ash", disp=0.3, tris=2000, flat=[((-4.9, L + 1.0, -4.9), (4.9, L + 1.6, 4.9))])
     # the dressing the banks and islands are crowded with (set densely by features.gd, no collision):
     # boulders: chunky, half sunk (tops 0.5 .. 1.6 m over the lava)
     for i, (r, top) in enumerate([(0.9, 0.8), (1.4, 1.2), (2.0, 1.6), (1.1, 0.5), (1.7, 0.9)]):

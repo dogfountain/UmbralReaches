@@ -62,9 +62,9 @@ def _apply(ob, mod):
     bpy.ops.object.modifier_apply(modifier=mod.name)
 
 
-def blocks_obj(name, blocks):
+def blocks_obj(name, blocks, cyls=()):
     """blocks: [(centre game xyz, half size (x across, y up, z along game z), yaw deg about up, tilt deg about game x, roll deg)] ->
-    one object of overlapping boxes (Blender frame)."""
+    one object of overlapping boxes (Blender frame); `cyls` [((x, z), radius, y0, y1)] adds upright round prisms (48 sides)."""
     bm = bmesh.new()
     for b in blocks:
         c, h = b[0], b[1]
@@ -72,6 +72,9 @@ def blocks_obj(name, blocks):
         pitch = math.radians(b[3]) if len(b) > 3 else 0.0
         roll = math.radians(b[4]) if len(b) > 4 else 0.0
         _box_bm(bm, bl(c), (h[0], h[2], h[1]), yaw, pitch, roll)
+    for (cx, cz), r, y0, y1 in cyls:
+        bmesh.ops.create_cone(bm, cap_ends=True, cap_tris=False, segments=48, radius1=r, radius2=r, depth=y1 - y0,
+                              matrix=Matrix.Translation(bl((cx, (y0 + y1) * 0.5, cz))))
     return _obj_from_bm(bm, name)
 
 
@@ -106,18 +109,24 @@ class _Keeps:
         return best
 
 
-def rock_mass(name, blocks, voxel=0.45, cuts=(), disp=0.55, freq=0.16, facet=9.0, seed=1, keep=(), flat=(), tris=None, strata=0.0):
-    """One natural rock from overlapping blocks: fused (voxel remesh), the cuts taken out (each a block like `blocks`), the skin roughened
-    with noise and, with `tris`, collapsed to about that many triangles (broad angular facets). Near the `keep` volumes (the walks: game
-    AABBs) the skin may only sink, never grow towards them, and a surface facing up inside one (a floor under the flags) stays true."""
+def rock_mass(name, blocks, voxel=0.45, cuts=(), disp=0.55, freq=0.16, facet=9.0, seed=1, keep=(), flat=(), tris=None, strata=0.0,
+              cut_cyls=(), calm=None):
+    """One natural rock from overlapping blocks: fused (voxel remesh), the cuts taken out (each a block like `blocks`; `cut_cyls` round
+    prisms as blocks_obj's `cyls`, and with those the cut skin is remeshed too, so it roughens like the rest), the skin roughened with
+    noise and, with `tris`, collapsed to about that many triangles (broad angular facets). Near the `keep` volumes (the walks: game
+    AABBs) the skin may only sink, never grow towards them, and a surface facing up inside one (a floor under the flags) stays true.
+    `calm(game point) -> metres or None`: where it answers, the roughening moves the skin no more than that (a shaft's wall the steps
+    are let into)."""
     ob = blocks_obj(name, blocks)
     rm = ob.modifiers.new("vox", 'REMESH')
     rm.mode = 'VOXEL'
     rm.voxel_size = voxel
     rm.use_smooth_shade = False
     _apply(ob, rm)
-    if cuts:
-        cut = blocks_obj(name + "_cut", cuts)
+    # one boolean per cutter group (the round prisms, then the blocks): a cutter of overlapping closed pieces counts the overlap as
+    # outside (inside twice), and left a slab of rock across the door and every window where they met the shaft
+    for group in ([([], [c]) for c in cut_cyls] + ([(list(cuts), [])] if cuts else [])):
+        cut = blocks_obj(name + "_cut", group[0], group[1])
         bo = ob.modifiers.new("cut", 'BOOLEAN')
         bo.operation = 'DIFFERENCE'
         bo.object = cut
@@ -129,6 +138,12 @@ def rock_mass(name, blocks, voxel=0.45, cuts=(), disp=0.55, freq=0.16, facet=9.0
                 continue
         _apply(ob, bo)
         bpy.data.objects.remove(cut)
+    if cut_cyls:                                       # the cut's broad flat faces get the voxel skin too (else a clean prism)
+        rm = ob.modifiers.new("vox2", 'REMESH')
+        rm.mode = 'VOXEL'
+        rm.voxel_size = voxel
+        rm.use_smooth_shade = False
+        _apply(ob, rm)
     bm = bmesh.new()
     bm.from_mesh(ob.data)
     bm.normal_update()
@@ -151,6 +166,10 @@ def rock_mass(name, blocks, voxel=0.45, cuts=(), disp=0.55, freq=0.16, facet=9.0
                 d = 0.0                                                  # a floor under a walk: true
             else:
                 d = -abs(d) * (0.45 + 0.55 * smoothstep(0.0, K.REACH, dk))   # beside a walk: only sinks back, never flat
+        if calm is not None:
+            lim = calm(gm(co))
+            if lim is not None:
+                d = max(-lim, min(lim, d))
         moves.append(v.normal * d)
     for v, m in zip(bm.verts, moves):
         v.co += m

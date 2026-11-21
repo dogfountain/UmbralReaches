@@ -10,9 +10,10 @@ Plan and reasons: docs/r39/rift_from_scratch.md. Placed by core/world/realm/rift
 The route, low over the lava, then one climb:
   the LIP (the rim terrace at CROSSING_FOOT, 0.6) -> the DESCENT, three flights on a basalt ledge built against the south-west corner
   (39 steps, two landings) -> the FOOT (-12.4; the chapel branch leaves it) -> the CINDER WAY, a causeway on basalt islands across the
-  crust plain with two low bridges and the Cinder Isle -> the WARD STAIR, four traverses cut into the Ward Crag's south face (113 steps,
-  switchback landings S1-S3) -> the WARD LANDING (25.2, fixed).
-Risers 0.33 m, treads 0.68 m, 3.6 m between parapets.
+  crust plain with two low bridges and the Cinder Isle -> F, the forecourt before the Ward Crag's door -> the WARD STAIR, wound up
+  inside the crag: a round shaft cut down through the rock, 114 steps two and a half turns round its wall about an open well, three
+  windows out through the south face -> the WARD LANDING on the crag's top (25.2, fixed).
+Risers 0.33 m, treads 0.68 m (0.66 m at the shaft stair's middle), 3.6 m between parapets (3.1 m on the shaft stair).
 """
 import json
 import math
@@ -261,27 +262,61 @@ FOOT = (D3.a[0], -20.6, -3.0, -28.0)      # x0 (west, D3's foot), z0, x1, z1
 WAY_Y = FOOT_Y
 I1 = (4.0, -28.6)                         # isle centres (xz)
 I2 = (9.6, -37.2)                         # the Cinder Isle
-F0 = (3.5, -46.4, 9.2, -52.8)             # the foot of the climb (x0, z0, x1, z1)
-R_T = 10.0 / 30.0
-T_Z = [-51.0, -55.2, -59.4, -63.6]        # the traverses' centrelines
-T1 = Flight("rift_t1", (3.5, WAY_Y, T_Z[0]), (-1.0, 0.0), [15, 15], [1.6], 10.0)
-S1 = (T1.high()[0] - 5.5, -49.2, T1.high()[0], -57.0)
-T2 = Flight("rift_t2", (T1.high()[0], T1.top, T_Z[1]), (1.0, 0.0), [15, 15], [1.6], 10.0)
-S2 = (T2.high()[0], -53.4, T2.high()[0] + 5.5, -61.2)
-T3 = Flight("rift_t3", (T2.high()[0], T2.top, T_Z[2]), (-1.0, 0.0), [15, 15], [3.42], 10.0)
-S3 = (T3.high()[0] - 5.0, -57.6, T3.high()[0], -65.4)
-T4 = Flight("rift_t4", (T3.high()[0], T3.top, T_Z[3]), (1.0, 0.0), [23], [], 7.6)
-WARD = (-4.0, -62.0, 4.0, -71.15)
+F0 = (3.6, -44.6, 9.6, -48.3)             # the foot of the climb before the crag's door (x0, z0 south, x1, z1 north: the crag's face)
+FACE_Z = F0[3]
+WARD_Y = 25.2
+## THE WARD STAIR, inside the Ward Crag (Luke, 21 Nov: "why are there stairs going back and forth so high"): a door in the crag's south
+## face, a round shaft cut down through the rock, and a stair wound up its wall two and a half turns round an open well, lit through
+## three windows in the face; out at the top onto the ward landing. Outside the crag shows a door, three lit windows and the well-head.
+SH = (6.0, -57.7)                         # the shaft's axis (xz)
+SH_R = 6.55                               # its wall
+SH_RI = 3.45                              # the walk's inner edge (the inner parapet stands inside it, the open well inside that)
+SH_RC = (SH_RI + SH_R) * 0.5              # the walk's middle (5.0: treads 0.66 m there)
+SH_N = 114                                # risers, the shaft's floor to the ward landing
+SH_RISE = (WARD_Y - WAY_Y) / SH_N
+SH_A0 = 0.4                               # the first riser, this far round from due south (the door): the stair climbs by the east,
+SH_A1 = 5.0 * math.pi - 0.35              # north and west; the last riser, and the top flat runs on through due north (2.5 turns up)
+SH_DA = (SH_A1 - SH_A0) / (SH_N - 1)
+SH_TOP = 5.0 * math.pi + 0.6              # the top flat's end, walled across (past it the well drops to the turn below)
+DOOR_H = 4.6
+## The windows (angle round the shaft): low to the door's west and east, and high over it; every one a lit fire in its embrasure.
+WINDOWS = [2.0 * math.pi - 0.55, 2.0 * math.pi + 0.55, 4.0 * math.pi]
+WARD = (-4.0, -64.6, 9.6, -71.15)         # the ward landing (x0, z0 south, x1, z1 north): the stair's top flat meets its south edge
 ## Kept clear of the crag's rough foot: the west Watcher's plinth (rift/threshold.gd WATCHERS) and the Pilgrims' Chapel (rift/chapel.gd).
 WATCHERS_AVOID = [(-2.0, -43.2, 6.8), (-17.0, -38.0, 4.5)]
-WARD_Y = 25.2
+
+
+def sh_p(a, r, y):
+    """Game point at angle a round the shaft (0 due south, then east, north, west, on round), radius r, height y."""
+    return (SH[0] + r * math.sin(a), y, SH[1] + r * math.cos(a))
+
+
+def sh_yaw(a):
+    """M.block's yaw (deg) for a block lying along the radius at angle a."""
+    return math.degrees(math.atan2(-math.cos(a), math.sin(a)))
+
+
+def sh_walk(a):
+    """The tread height at angle a (the floor before the first riser, the ward landing's height past the last)."""
+    if a < SH_A0:
+        return WAY_Y
+    if a >= SH_A1:
+        return WARD_Y
+    return WAY_Y + (int((a - SH_A0) / SH_DA) + 1) * SH_RISE
+
+
+def sh_ramp(a):
+    """The collision's height at angle a: one helical ramp through the tread middles (no lip anywhere)."""
+    return max(WAY_Y, min(WARD_Y, WAY_Y + ((a - SH_A0) / SH_DA + 0.5) * SH_RISE))
 
 
 def report():
-    for F in (D1, D2, D3, T1, T2, T3, T4):
+    for F in (D1, D2, D3):
         lo, hi = F.pt(0), F.high()
         print("FLIGHT %s: %d risers of %.3f, run %.2f, from (%.2f, %.2f, %.2f) to (%.2f, %.2f, %.2f)" % (F.name, F.n, F.r, F.run, lo[0], lo[1], lo[2], hi[0], hi[1], hi[2]))
         LAYOUT["flights"].append({"name": F.name, "a": [round(v, 3) for v in lo], "b": [round(v, 3) for v in hi], "hw": HW})
+    print("SHAFT stair: %d risers of %.3f, treads %.3f m at the middle (%.3f rad), %.2f turns, windows at %s" % (
+        SH_N, SH_RISE, SH_RC * SH_DA, SH_DA, (SH_A1 - SH_A0) / math.tau, ", ".join("%.2f" % sh_walk(a) for a in WINDOWS)))
 
 
 def site(name, rect, y, hard=False):
@@ -351,10 +386,16 @@ def sec_descent(objs):
     n += massing(rock, M.keeps, 403, 8, (-17.0, -9.5), (-18.0, -20.6), (L + 0.6, -10.0), w=(1.0, 2.2))         # D3's spur, south side
     n += massing(rock, M.keeps, 404, 6, (-17.0, -9.5), (-25.6, -28.5), (L + 0.6, -10.0), w=(1.0, 2.2))         # D3's spur, north side
     print("DESCENT massing blocks", n)
-    ob = R.rock_mass("Descent", rock, voxel=0.42, keep=M.keeps, seed=11, tris=18000)
+    ob = R.rock_mass("Descent", rock, voxel=0.42, keep=M.keeps, seed=11, tris=18000, calm=_waterline)
     objs += R.rock_finish(ob, "DescentRock", "basalt", col_ratio=0.3)
     objs += M.finish("Descent")
     objs.append(M.col_finish("Descent"))
+
+
+def _waterline(p):
+    """rock_mass `calm`: at the lava's surface a rock moves no more than 0.45 m (its roughening bulged the masses' feet 2-3 m out
+    into the lake, and with the plinths and the isles they covered most of it)."""
+    return 0.45 if p[1] < L + 1.5 else None
 
 
 def _keeps(flights):
@@ -520,93 +561,242 @@ def sec_way(objs):
     site("rift_cinder", (I2[0] - 3.2, I2[1] + 3.0, I2[0] + 3.4, I2[1] - 3.4), y)
     site("rift_isle", (I1[0] - 2.2, I1[1] + 2.2, I1[0] + 2.2, I1[1] - 2.2), y)
     LAYOUT["points"]["camp"] = [round(I2[0] + 1.0, 2), y, round(I2[1] - 0.6, 2)]
-    b2a, b2b = (I2[0] - 0.6, I2[1] - 4.0), (7.2, F0[1] - 0.2)
+    b2a, b2b = (I2[0] - 0.6, I2[1] - 4.0), (7.6, F0[1] - 0.2)
     _causeway(M, rock, [(I2[0], I2[1]), b2a], y, y, rock_too=False)
     bridge(M, b2a, b2b, y, "rift_b2")
     LAYOUT["lanes"]["rift_crossing"] = [[0.0, -3.2], [0.0, -7.0], [D1.high()[0], -8.4], [D1.pt(0)[0], -8.4], [D2.a[0], -9.6], [D2.high()[0], D2.high()[2]],
                                         [D2.a[0], D2.a[2] - 1.8], [D3.high()[0], D3.a[2]], [D3.a[0], D3.a[2]], [FOOT[2] - 0.2, -24.4], [0.4, -26.6], [I1[0], I1[1]],
-                                        list(b1a), list(b1b), [I2[0], I2[1]], list(b2a), list(b2b), [T1.a[0] + 2.4, T1.a[2]]]
-    ob = R.rock_mass("Isles", rock, voxel=0.4, keep=M.keeps, seed=21, tris=9000)
+                                        list(b1a), list(b1b), [I2[0], I2[1]], list(b2a), list(b2b), [6.6, -46.4]]
+    ob = R.rock_mass("Isles", rock, voxel=0.4, keep=M.keeps, seed=21, tris=9000, disp=0.32, calm=_waterline)   # compact: the lake stays open
     objs += R.rock_finish(ob, "WayRock", "ash", col_ratio=0.3)
     objs += M.finish("Way")
     objs.append(M.col_finish("Way"))
 
 
+def _wedge(M, a0, a1, top, bot_min=None, key="hewn", r0=SH_RI - 0.15, r1=SH_R + 0.35, depth=1.1):
+    """One tread of the shaft's stair (or a piece of its top flat) between angles a0 and a1: three stones across, each as wide as the
+    wedge at its outer end (so no gap opens at the wall), let 0.35 m into the wall and under the inner parapet."""
+    cuts = sorted((RND.uniform(4.2, 4.7), RND.uniform(5.5, 6.0)))
+    edges = [r0] + cuts + [r1]
+    bot = top - depth
+    if bot_min is not None:
+        bot = min(bot, bot_min)
+    am = (a0 + a1) * 0.5
+    for e0, e1 in zip(edges, edges[1:]):
+        c = sh_p(am, (e0 + e1) * 0.5, (top + bot) * 0.5)
+        M.block(key, c, (e1 - e0 - 0.03, top - bot, e1 * (a1 - a0) + 0.04), sh_yaw(am), bevel=0.06, shade=RND.uniform(0.82, 1.0))
+
+
+def _helix_col(objs):
+    """The stair's collision: one helical ramp through the tread middles (then flat over the top flat), a body per turn (the trail's ray
+    sees every turn, not only the topmost one: quest_trail.gd _seat skips a body once it is hit)."""
+    import bmesh
+    a_s = SH_A0 - SH_DA * 0.5
+    a_e = SH_TOP + 0.05
+    n = int(math.ceil((a_e - a_s) / (SH_DA * 0.5)))
+    radii = [SH_RI - 0.05, SH_RC, SH_R + 0.3]
+    turns = {}
+    for i in range(n):
+        aa, ab = a_s + (a_e - a_s) * i / n, a_s + (a_e - a_s) * (i + 1) / n
+        t = int((aa - a_s) / math.tau)
+        bm = turns.setdefault(t, bmesh.new())
+        for ra, rb in zip(radii, radii[1:]):
+            vs = [bm.verts.new(bl(sh_p(a, r, sh_ramp(a)))) for a, r in ((aa, ra), (aa, rb), (ab, rb), (ab, ra))]
+            f = bm.faces.new(vs)
+            f.normal_update()
+            if f.normal.z < 0.0:
+                f.normal_flip()
+    for t, bm in sorted(turns.items()):
+        me = bpy.data.meshes.new("ShaftTurn%d-colonly" % t)
+        bm.to_mesh(me)
+        bm.free()
+        ob = bpy.data.objects.new("ShaftTurn%d-colonly" % t, me)
+        bpy.context.scene.collection.objects.link(ob)
+        objs.append(ob)
+
+
 def sec_crag(objs):
-    """The Ward Crag and the Ward Stair: four traverses cut into its south face, the switchback landings, the climb's foot F; the
-    lavafall's cleft in the east face; the Ward Landing on the north-east shoulder."""
+    """The Ward Crag and the Ward Stair inside it: the climb's foot F before the door in the south face, the door's passage, the round
+    shaft cut down through the rock with its stair wound round the wall (an open well in the middle, a fire at its foot), three windows
+    in the face, the well-head and the ward landing on the crag's top; the lavafall's cleft at the south-east corner stays open."""
     M = R.Mas(4401)
     rock = []
+    cuts = []
     y = WAY_Y
-    # F: the foot of the climb
+    # F: the forecourt before the door (the bridge from the Cinder Isle lands on its south edge)
     fx0, fz0, fx1, fz1 = F0
     paving(M, fx0, fz1, fx1, fz0, y)
-    wall_run(M, (fx1 + PW * 0.5, fz0), (fx1 + PW * 0.5, fz1), y)                                    # east (the channel)
-    wall_run(M, (fx0, fz0 + PW * 0.5), (fx1 - 3.6, fz0 + PW * 0.5), y)                               # south, west of the bridge
-    rock.append((((fx0 + fx1) * 0.5, (y - 0.35 + BED) * 0.5, (fz0 + fz1) * 0.5), ((fx1 - fx0) * 0.5 + 0.7, (y - 0.35 - BED) * 0.5, (fz0 - fz1) * 0.5 + 0.5), 0.0))
-    fire(M, "f", (fx1 - 0.9, y, fz0 - 0.9), tag="the foot of the climb")
+    wall_run(M, (fx1 + PW * 0.5, fz0), (fx1 + PW * 0.5, fz1 - 0.4), y)                              # east (the fall's pool)
+    wall_run(M, (fx0 - PW * 0.5, fz0), (fx0 - PW * 0.5, fz1 - 0.4), y)                              # west (the Watcher's pool)
+    wall_run(M, (fx0 - PW, fz0 + PW * 0.5), (5.1, fz0 + PW * 0.5), y)                                # south, west of the bridge
+    rock.append((((fx0 + fx1) * 0.5, (y - 0.35 + BED) * 0.5, (fz0 + fz1) * 0.5), ((fx1 - fx0) * 0.5 + 0.7, (y - 0.35 - BED) * 0.5, (fz0 - fz1) * 0.5 + 0.6), 0.0))
+    fire(M, "door_e", (fx1 - 0.9, y, fz1 + 0.9), tag="the crag's door")
+    fire(M, "door_w", (fx0 + 0.9, y, fz1 + 0.9), lit=False, tag="the crag's door")
     site("rift_f", F0, y)
-    # the traverses: parapet on the south (the drop), the next tier's rock on the north
-    for F, out in ((T1, (0.5, 0.0)), (T2, (-0.15, 0.5)), (T3, (0.5, -0.15)), (T4, (-0.15, 0.5))):
-        side_out = -1 if F.d[0] < 0 else 1           # +off is (-dz, dx): for a westward flight that is north, so its south (the drop) is -1
-        flight_build(M, F, sides=(side_out,), rock=rock, rock_out=out)
-    # the switchback landings
-    for name, rect, yy, fx, fz in (("rift_s1", S1, T1.top, S1[0] + 1.0, S1[1] - 1.0), ("rift_s2", S2, T2.top, S2[2] - 1.0, S2[1] - 1.0),
-                                   ("rift_s3", S3, T3.top, S3[0] + 1.0, S3[1] - 1.0)):
-        x0, z0, x1, z1 = rect
-        paving(M, x0, z1, x1, z0, yy)
-        rock.append((((x0 + x1) * 0.5, (yy - 0.35 + BED) * 0.5, (z0 + z1) * 0.5), ((x1 - x0) * 0.5 + 0.6, (yy - 0.35 - BED) * 0.5, (z0 - z1) * 0.5 + 0.6), 0.0))
-        if name == "rift_s2":                         # the east edge over the channel (S1's and S3's west is the rock)
-            wall_run(M, (x1 + PW * 0.5, z0 + 0.2), (x1 + PW * 0.5, z1 - 0.2), yy)
-        wall_run(M, (x0, z0 + PW * 0.5), (x1, z0 + PW * 0.5), yy)
-        fire(M, name[5:], (fx, yy, fz), tag={"rift_s1": "the first turn", "rift_s2": "the second turn", "rift_s3": "the third turn"}[name])
-        site(name, rect, yy)
-        LAYOUT["points"][name[5:]] = [round((x0 + x1) * 0.5, 2), round(yy, 3), round((z0 + z1) * 0.5, 2)]
-    # the rock walls behind each landing and the crest behind T4; the east face over the channel, the shoulder under the landing
-    rock.append(((S1[0] - 2.8, (T1.top + 4.0 + BED) * 0.5, (S1[1] + S1[3]) * 0.5), (2.6, (T1.top + 4.0 - BED) * 0.5, 5.2), 0.0))
-    rock.append(((S3[0] - 2.8, (T3.top + 5.0 + BED) * 0.5, (S3[1] + S3[3]) * 0.5 - 2.0), (2.6, (T3.top + 5.0 - BED) * 0.5, 7.0), 0.0))
-    cx0, cx1 = S3[0] - 2.0, WARD[0] - 0.6
-    rock.append((((cx0 + cx1) * 0.5, (26.6 + BED) * 0.5, -68.7), ((cx1 - cx0) * 0.5, (26.6 - BED) * 0.5, 3.3), 0.0))                     # the crest behind T4
-    rock.append(((0.0, (WARD_Y - 0.6 + BED) * 0.5, -66.6), (5.4, (WARD_Y - 0.6 - BED) * 0.5, 5.2), 0.0))                                   # under the landing
-    rock.append(((6.8, (WARD_Y - 2.4 + BED) * 0.5, -66.0), (2.8, (WARD_Y - 2.4 - BED) * 0.5, 4.6), 0.0, 0.0, -4.0))                       # its east shoulder (north of S2)
-    rock.append(((-25.0, (8.0 + BED) * 0.5, -60.0), (2.4, (8.0 - BED) * 0.5, 12.0), 0.0))                                                    # west shoulder into the wall
-    # the ward landing: a masonry deck on the shoulder, parapets on the south and east, the west open for T4
+    LAYOUT["points"]["f"] = [round((fx0 + fx1) * 0.5, 2), y, round((fz0 + fz1) * 0.5, 2)]
+    # the door: a passage through the face into the shaft, flagged, framed in dressed stone (jambs and a lintel of big blocks)
+    dz_in = SH[1] + SH_R - 0.4
+    cuts.append(((SH[0], y - 0.4 + (DOOR_H + 0.4) * 0.5, (FACE_Z + 2.0 + dz_in) * 0.5), (HW, (DOOR_H + 0.4) * 0.5, (FACE_Z + 2.0 - dz_in) * 0.5), 0.0))
+    paving(M, SH[0] - HW, dz_in, SH[0] + HW, FACE_Z, y)
+    for side in (-1.0, 1.0):
+        for k, (h0, h1) in enumerate(((y - 0.2, y + 1.7), (y + 1.7, y + 3.4), (y + 3.4, y + DOOR_H))):
+            M.block("hewn", (SH[0] + side * (HW + 0.45), (h0 + h1) * 0.5, FACE_Z - 0.7 + (0.08 if k == 1 else 0.0)), (0.9, h1 - h0 - 0.03, 2.2), 0.0, bevel=0.07)
+        M.col_box((SH[0] + side * (HW + 0.45), y + DOOR_H * 0.5, FACE_Z - 0.7), (0.9, DOOR_H, 2.2))
+    M.block("hewn", (SH[0], y + DOOR_H + 0.45, FACE_Z - 0.7), (2.0 * HW + 1.8, 0.9, 2.3), 0.0, bevel=0.08)
+    M.block("stone", (SH[0], y + DOOR_H + 1.25, FACE_Z - 0.8), (2.0 * HW + 2.4, 0.7, 2.0), 0.0, bevel=0.08, shade=0.8)
+    site("rift_door", (SH[0] - HW, FACE_Z, SH[0] + HW, dz_in), y)
+    LAYOUT["points"]["door"] = [SH[0], y, round(FACE_Z - 1.2, 2)]
+    # the shaft: cut round, floored with flags; a big fire at the foot of the open well (seen from the well-head, 37 m down)
+    z = SH[1] - SH_R - 0.2
+    while z < SH[1] + SH_R + 0.2:
+        dz = RND.uniform(1.0, 1.5)
+        x = SH[0] - SH_R - 0.2
+        while x < SH[0] + SH_R + 0.2:
+            dx = RND.uniform(1.0, 1.6)
+            if math.hypot(x + dx * 0.5 - SH[0], z + dz * 0.5 - SH[1]) < SH_R + 0.25:
+                M.block("hewn", (x + dx * 0.5, y - 0.175, z + dz * 0.5), (dx - 0.03, 0.35, dz - 0.03), RND.uniform(-1.2, 1.2), bevel=0.05, warp=0.015, shade=RND.uniform(0.8, 1.0))
+            x += dx
+        z += dz
+    M.col_box((SH[0], y - 0.2, SH[1]), (2.0 * SH_R + 0.8, 0.4, 2.0 * SH_R + 0.8))
+    M.keeps.append(((SH[0] - SH_R, y - 0.45, SH[1] - SH_R), (SH[0] + SH_R, y + 3.2, SH[1] + SH_R)))
+    fire(M, "well", (SH[0], y, SH[1]), big=True, tag="the foot of the well")
+    site("rift_shaft", (SH[0] - SH_R, SH[1] + SH_R, SH[0] + SH_R, SH[1] - SH_R), y)
+    LAYOUT["points"]["well"] = [SH[0], y, SH[1]]
+    # the stair: 113 treads round the wall (the first turn's treads stand on solid masonry down to the floor while the gap under them
+    # would be a crawl space), then the top flat
+    for k in range(1, SH_N):
+        a0 = SH_A0 + (k - 1) * SH_DA
+        top = WAY_Y + k * SH_RISE
+        _wedge(M, a0, a0 + SH_DA, top, bot_min=(y - 0.3) if top - y < 3.7 else None)
+    a = SH_A1
+    while a < SH_TOP - 0.02:
+        a1 = min(a + 0.22, SH_TOP)
+        _wedge(M, a, a1, WARD_Y, depth=1.2)
+        a = a1
+    # the walk's keeps (the shaft's wall only sinks back from it, and calmly: see `calm` below)
+    a = SH_A0 - SH_DA
+    while a < SH_TOP:
+        a1 = min(a + 0.35, SH_TOP)
+        ps = [sh_p(t, r, 0.0) for t in (a, (a + a1) * 0.5, a1) for r in (SH_RI, SH_R)]
+        lo, hi = min(sh_ramp(a), sh_ramp(a1)) - 0.5, max(sh_ramp(a), sh_ramp(a1)) + 3.2
+        M.keeps.append(((min(p[0] for p in ps), lo, min(p[2] for p in ps)), (max(p[0] for p in ps), hi, max(p[2] for p in ps))))
+        a = a1
+    # the inner parapet round the open well (a stone to every two treads, its foot on the floor along the first steps), walled across the
+    # top flat's end
+    a = SH_A0 - 0.01
+    while a < SH_TOP - 0.01:
+        a1 = min(a + 2.0 * SH_DA, SH_TOP)
+        hi = max(sh_walk(a), sh_walk(a1 - 1e-4))
+        lo = min(sh_walk(a), sh_walk(a1 - 1e-4))
+        top = hi + PAR_H + RND.uniform(-0.05, 0.06)
+        bot = (y - 0.3) if lo - y < 3.7 else lo - 1.1
+        am = (a + a1) * 0.5
+        rm = SH_RI - PW * 0.5
+        ln = SH_RI * (a1 - a) + 0.03
+        M.block("stone", sh_p(am, rm, (top + bot) * 0.5), (PW, top - bot, ln), sh_yaw(am), shade=RND.uniform(0.74, 0.92))
+        M.col_box(sh_p(am, rm, top - 0.8), (PW, 1.6, ln), sh_yaw(am))
+        a = a1
+    ln = SH_R + 0.35 - (SH_RI - PW)
+    c = sh_p(SH_TOP + 0.05, SH_RI - PW + ln * 0.5, WARD_Y + (PAR_H - 1.2) * 0.5)
+    M.block("stone", c, (ln, PAR_H + 1.2, PW), sh_yaw(SH_TOP + 0.05), shade=0.82)
+    M.col_box((c[0], WARD_Y + PAR_H - 0.8, c[2]), (ln, 1.6, PW), sh_yaw(SH_TOP + 0.05))
+    # the windows: an embrasure cut out through the face at each, a sill, jambs and a lintel at the shaft's side, a lit fire in it
+    for i, wa in enumerate(WINDOWS):
+        wy = sh_walk(wa)
+        sill, wtop = wy + 0.9, wy + 4.5
+        rc = SH_R + 3.85
+        cuts.append((sh_p(wa, rc, (sill + wtop) * 0.5), (4.15, (wtop - sill) * 0.5, 1.3), sh_yaw(wa)))
+        ps = [sh_p(wa + s * 1.5 / rr, rr, 0.0) for rr in (SH_R - 0.3, SH_R + 8.0) for s in (-1.0, 1.0)]
+        M.keeps.append(((min(p[0] for p in ps), sill - 0.3, min(p[2] for p in ps)), (max(p[0] for p in ps), wtop + 0.3, max(p[2] for p in ps))))
+        M.block("hewn", sh_p(wa, SH_R + 0.45, sill - 0.16), (1.2, 0.32, 3.1), sh_yaw(wa), bevel=0.05)
+        for s in (-1.0, 1.0):
+            M.block("hewn", sh_p(wa + s * 1.65 / SH_R, SH_R + 0.35, (sill + wtop) * 0.5), (1.0, wtop - sill + 0.3, 0.7), sh_yaw(wa), bevel=0.06)
+        M.block("hewn", sh_p(wa, SH_R + 0.35, wtop + 0.35), (1.0, 0.7, 4.1), sh_yaw(wa), bevel=0.07)
+        fire(M, "window%d" % i, sh_p(wa + 0.55 / (SH_R + 1.7), SH_R + 1.7, sill), tag="a window in the crag")
+    # the well-head: a parapet round the shaft's mouth on the crag's top, open to the north where the stair comes out on the landing
+    gap = (HW + 0.05) / (SH_R + 0.35)
+    a = 0.0
+    while a < math.tau - 0.01:
+        da = RND.uniform(1.0, 1.4) / (SH_R + 0.35)
+        a1 = min(a + da, math.tau)
+        am = (a + a1) * 0.5
+        if abs(am - math.pi) > gap + da * 0.5:
+            c = sh_p(am, SH_R + 0.35, WARD_Y + (PAR_H - 1.0) * 0.5)
+            M.block("stone", c, (PW, PAR_H + 1.0 + RND.uniform(-0.05, 0.06), (SH_R + 0.65) * (a1 - a) + 0.02), sh_yaw(am), shade=RND.uniform(0.74, 0.9))
+            M.col_box((c[0], WARD_Y + PAR_H - 0.5, c[2]), (PW, 1.0, (SH_R + 0.65) * (a1 - a)), sh_yaw(am))
+        a = a1
+    # the ward landing on the crag's top: flags, a masonry skirt down the east edge, a parapet along it (the vent's basin below)
     x0, z0, x1, z1 = WARD
     paving(M, x0, z1, x1, z0, WARD_Y, depth=0.6)
-    for k in range(4):                                       # its masonry skirt down onto the rock
-        M.block("stone", (x0 + 1.0 + k * 2.0, WARD_Y - 1.4, z0 - 0.3), (1.95, 1.6, 0.6), 0.0, shade=RND.uniform(0.72, 0.86))
-    for k in range(5):
-        M.block("stone", (x1 - 0.3, WARD_Y - 1.4, z0 - 0.9 - k * 1.85), (0.6, 1.6, 1.8), 0.0, shade=RND.uniform(0.72, 0.86))
-    wall_run(M, (x0 + 0.1, z0 + PW * 0.5), (x1 + PW * 0.5, z0 + PW * 0.5), WARD_Y)
-    wall_run(M, (x1 + PW * 0.5, z0), (x1 + PW * 0.5, z1 + 0.6), WARD_Y)
-    wall_run(M, (x0 - PW * 0.5, T_Z[3] - HW - PW), (x0 - PW * 0.5, z1 + 0.6), WARD_Y)
-    fire(M, "ward_w", (x0 + 0.9, WARD_Y, T_Z[3] - HW - 1.2), tag="the ward landing")
-    fire(M, "ward_beacon", (x1 - 1.0, WARD_Y, z0 - 1.0), big=True, tag="the ward beacon")
+    for k in range(4):
+        M.block("stone", (x1 - 0.3, WARD_Y - 1.4, z0 - 0.9 - k * 1.65), (0.6, 1.6, 1.6), 0.0, shade=RND.uniform(0.72, 0.86))
+    wall_run(M, (x1 + PW * 0.5, z0 - 0.4), (x1 + PW * 0.5, z1 + 0.6), WARD_Y)
+    fire(M, "ward_w", (x0 + 0.9, WARD_Y, z0 - 1.2), lit=False, tag="the ward landing")
+    fire(M, "ward_beacon", (x1 - 1.0, WARD_Y, z0 - 1.6), big=True, tag="the ward beacon")
     site("rift_ward_landing", WARD, WARD_Y, hard=True)
     LAYOUT["points"]["ward"] = [0.0, WARD_Y, -66.5]
-    LAYOUT["lanes"]["rift_crossing_turn"] = [[T1.a[0] + 2.4, T1.a[2]], [T1.a[0], T1.a[2]], [T1.high()[0], T1.a[2]], [S1[0] + 2.2, T_Z[0]], [S1[0] + 2.2, T_Z[1]],
-                                             [T2.a[0], T_Z[1]], [T2.high()[0], T_Z[1]], [S2[2] - 2.2, T_Z[1]], [S2[2] - 2.2, T_Z[2]], [T3.a[0], T_Z[2]],
-                                             [T3.high()[0], T_Z[2]], [S3[0] + 2.0, T_Z[2]], [S3[0] + 2.0, T_Z[3]], [T4.a[0], T_Z[3]], [T4.high()[0], T_Z[3]]]
-    LAYOUT["lanes"]["rift_crossing_top"] = [[T4.high()[0], T_Z[3]], [0.0, -64.0], [0.0, -71.0]]
-    # the lavafall's cleft at the crag's south-east corner stays open (sec_fall builds it): no rough rock in it or at its foot
-    M.keeps.append(((FALL_X - 3.4, L - 1.0, -64.5), (FALL_X + 3.4, 21.0, -46.6)))
-    n = massing(rock, M.keeps, 501, 14, (-24.0, 9.0), (-44.5, -48.4), (L + 0.8, L + 5.0), w=(1.4, 2.6),
-                avoid=WATCHERS_AVOID + [(FALL_X, -48.5, 3.0)])                                              # the foot in the pool
-    n += massing(rock, M.keeps, 502, 12, (10.0, 13.0), (-46.0, -74.0), (0.0, 21.0), w=(1.5, 3.4),
-                 avoid=[(FALL_X, -51.0, 4.5), (FALL_X, -57.0, 4.5), (FALL_X, -62.0, 3.5)])                   # the east face's buttresses
+    # the lanes: through the door, round the stair (a point every 0.3 rad at the walk's middle), out across the landing; the landing's
+    # lane starts more than the trail's join reach (5 m) from every turn, so no route jumps a turn
+    turn = [[6.6, -46.4], [SH[0], FACE_Z - 1.0], [SH[0], SH[1] + SH_R - 1.2], list(sh_p(SH_A0 - 0.35, SH_RC, 0.0)[::2])]
+    a = SH_A0
+    while a < 5.0 * math.pi:
+        turn.append(list(sh_p(a, SH_RC, 0.0)[::2]))
+        a += 0.3
+    turn += [list(sh_p(5.0 * math.pi, SH_RC, 0.0)[::2]), [SH[0], z0 - 0.6], [4.0, -66.4], [2.0, -67.6]]
+    LAYOUT["lanes"]["rift_crossing_turn"] = [[round(p[0], 2), round(p[1], 2)] for p in turn]
+    LAYOUT["lanes"]["rift_crossing_top"] = [[2.0, -67.6], [0.0, -69.0], [0.0, -71.0]]
+    LAYOUT["stair"] = {"centre": list(SH), "r_in": SH_RI, "r_out": SH_R, "a0": SH_A0, "a1": SH_A1, "top": SH_TOP, "risers": SH_N,
+                       "rise": round(SH_RISE, 4), "from": WAY_Y, "to": WARD_Y}
+    _helix_col(objs)
+    # the rock: the keep round the shaft (its top the crag's top at the well-head and under the landing), the lower west body behind the
+    # chapel's pool, the crest behind the landing, the north-east body behind the vent, the west shoulder into the wall
+    top = WARD_Y - 0.2
+    rock.append(((5.0, (top + BED) * 0.5, -60.0), (10.0, (top - BED) * 0.5, 11.7), 0.0))                               # x -5..15, z -48.3..-71.7
+    rock.append(((-14.5, (20.5 + BED) * 0.5, -62.3), (9.6, (20.5 - BED) * 0.5, 11.6), 0.0))                            # x -24..-5, z -50.7..-73.9
+    rock.append(((-9.3, (26.6 + BED) * 0.5, -68.7), (4.7, (26.6 - BED) * 0.5, 3.3), 0.0))                              # the crest
+    rock.append(((18.3, (23.0 + BED) * 0.5, -69.4), (3.3, (23.0 - BED) * 0.5, 4.8), 0.0))                              # behind the vent
+    rock.append(((-25.0, (8.0 + BED) * 0.5, -60.0), (2.4, (8.0 - BED) * 0.5, 12.0), 0.0))                              # the west shoulder
+    # the skyline: broken teeth along the keep's south rim (clear of the windows' and the door's line, over the high window's top) and
+    # knuckles on the west body, so the crag never reads as a cut block
+    trnd = random.Random(507)
+    for tx, tz in ((-4.0, -49.6), (-1.6, -50.4), (2.4, -49.2), (9.6, -49.4), (12.6, -50.2), (14.2, -52.6), (14.0, -57.0), (14.4, -61.5),
+                   (-4.4, -55.0), (-4.2, -60.5)):
+        t = trnd.uniform(26.5, 30.0)
+        rock.append(((tx, (t + 22.5) * 0.5, tz), (trnd.uniform(1.0, 1.7), (t - 22.5) * 0.5, trnd.uniform(0.9, 1.5)), trnd.uniform(0, 90),
+                     trnd.uniform(-6, 6), trnd.uniform(-6, 6)))
+    for k in range(9):
+        tx, tz = trnd.uniform(-22.0, -7.0), trnd.uniform(-52.0, -64.0)
+        t = trnd.uniform(21.5, 25.5)
+        rock.append(((tx, (t + 18.0) * 0.5, tz), (trnd.uniform(1.4, 2.6), (t - 18.0) * 0.5, trnd.uniform(1.2, 2.2)), trnd.uniform(0, 90),
+                     trnd.uniform(-8, 8), trnd.uniform(-8, 8)))
+    # the lavafall's cleft at the crag's south-east corner stays open (sec_fall builds it): no rough rock in its channel
+    M.keeps.append(((FALL_X - 1.9, L - 1.0, -64.5), (FALL_X + 1.9, 21.0, -46.6)))
+    fall_avoid = [(FALL_X, -48.5, 3.0), (FALL_X, -53.0, 3.2), (FALL_X, -58.0, 3.2), (FALL_X, -62.5, 3.0)]
+    n = massing(rock, M.keeps, 501, 9, (-24.0, 15.0), (-47.4, -50.4), (L + 0.8, L + 5.0), w=(1.2, 2.0),
+                avoid=WATCHERS_AVOID + fall_avoid)                                                       # the foot in the pool, close in
+    n += massing(rock, M.keeps, 502, 14, (-24.0, 15.0), (-47.8, -51.2), (2.0, 20.0), w=(1.3, 2.4), lean=4.0,
+                 avoid=WATCHERS_AVOID + fall_avoid)                                                      # buttresses up the south face
     n += massing(rock, M.keeps, 503, 10, (-27.0, -5.5), (-66.8, -72.5), (26.5, 31.5), w=(1.0, 2.4), lean=5.0)   # the crest's broken spires
     n += massing(rock, M.keeps, 504, 8, (-30.0, -25.0), (-46.0, -72.0), (2.0, 22.0), w=(1.5, 3.0))              # the west shoulder
+    n += massing(rock, M.keeps, 505, 12, (-22.0, 20.0), (-71.0, -75.5), (2.0, 21.0), w=(1.5, 3.0))              # the north face
     print("CRAG massing blocks", n)
     CRAG_KEEPS[:] = M.keeps[:-1]
-    ob = R.rock_mass("Crag", rock, voxel=0.5, keep=M.keeps, seed=31, tris=34000, disp=0.75)
+    sh = (SH[0], SH[1])
+
+    def calm(p):                       # the shaft's wall: the steps are let 0.35 m into it, so it moves no more than 0.18 m
+        if p[1] > WAY_Y - 1.0 and math.hypot(p[0] - sh[0], p[2] - sh[1]) < SH_R + 0.9:
+            return 0.18
+        return _waterline(p)
+    ob = R.rock_mass("Crag", rock, voxel=0.5, cuts=cuts, cut_cyls=[(sh, SH_R + 0.05, WAY_Y - 0.45, 45.0)], keep=M.keeps, seed=31,
+                     tris=46000, disp=0.75, calm=calm)
     objs += R.rock_finish(ob, "CragRock", "basalt", col_ratio=0.25)
     objs += M.finish("Crag")
     objs.append(M.col_finish("Crag"))
 
 
 # ============================================================================================ the lavafall
-FALL_X = 13.0
-CRAG_KEEPS = []           # the crag's walk volumes (sec_crag), so the cleft's rock keeps off S2 and the climb's foot too
+FALL_X = 17.5
+CRAG_KEEPS = []           # the crag's walk volumes (sec_crag), so the cleft's rock keeps off the climb's foot and the windows
 ## The source: lava wells up in a basin on the crag's south-east shoulder, runs a short channel to the lip and pours down a chute cut in
 ## the corner, between two cheeks of basalt, into the pool by the climb's foot. Game points, the vent first; FALL_LIP is the lip's index.
 FALL = [(FALL_X, 19.35, -63.4), (FALL_X, 19.25, -60.9), (FALL_X, 18.5, -60.15), (FALL_X, 10.0, -57.5), (FALL_X, 0.0, -54.1),
@@ -654,7 +844,7 @@ def sec_fall(objs):
     for side in (-1.0, 1.0):
         rock.append(((FALL_X + side * 2.55, v1.y + 0.6, (v0.z + v1.z) * 0.5), (0.75, 1.4, 2.2), 0.0))
     lines.append(((v0.x, v0.y, v0.z), (v1.x, v1.y, v1.z), 2.6))
-    keep = CRAG_KEEPS + [((FALL_X - 1.6, L - 1.0, -64.0), (FALL_X + 1.6, 21.0, -47.0))]      # the sheet's channel, S2, the foot: the rock only sinks back
+    keep = CRAG_KEEPS + [((FALL_X - 1.6, L - 1.0, -64.0), (FALL_X + 1.6, 21.0, -47.0))]      # the sheet's channel, the foot: the rock only sinks back
     ob = R.rock_mass("Cleft", rock, voxel=0.3, keep=keep, seed=41, tris=5000, disp=0.45)
     objs += R.rock_finish(ob, "Cleft", "ash", col_ratio=0.3, ember_lines=lines)
     # the sheet: rows every half metre down the path, 1.6 m wide at the vent, 2.6 at the lip, 3.0 at the foot
@@ -711,11 +901,14 @@ def build():
              ((48, 42, -10), (-2, -6, -40), 30),                  # the air, south-east
              ((2, 110, -36), (0, -10, -37), 32),                  # from above
              ((30, 4, -36), (-8, 4, -58), 30),                    # the crag from the east, low
-             ((-4, -11, -38), (-6, 4, -56), 32),                  # the climb from the pool
+             ((-4, -11, -38), (6, 2, -52), 32),                   # the door and the windows from the pool
              ((-4, 3, -30), (-16, -6, -14), 32),                  # the descent from the plain
-             ((14, 30, -46), (-8, 18, -64), 32),                  # the top of the climb
-             ((26, 4, -34), (13, 2, -56), 30),                    # the lavafall's cleft from the south-east
-             ((0, 2.5, -2), (12, 4, -56), 45)]                    # the cleft from the Lip
+             ((6, 60, -57.7), (6, -12, -57.6), 24),               # down the well
+             ((6.0, -11.0, -52.2), (6.0, 8.0, -60.5), 14),       # up the well from its foot
+             ((10.2, 0.6, -56.0), (2.0, 4.0, -61.0), 14),         # on the stair, first turn (inside)
+             ((14, 32, -46), (-2, 22, -66), 32),                  # the well-head and the landing
+             ((30, 4, -34), (16, 2, -56), 30),                    # the lavafall's cleft from the south-east
+             ((0, 2.5, -2), (12, 4, -56), 45)]                    # the crag from the Lip
     R.review(vis, "rift_way", [(tuple(bl(p)), tuple(bl(t)), lens) for p, t, lens in views])
 
 
