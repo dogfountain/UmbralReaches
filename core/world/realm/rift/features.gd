@@ -1,23 +1,28 @@
 extends RefCounted
-## Ashen Rift set dressing (RealmRift): what turns the straight old trench into a wound.
-##   - basalt organ pipes crowding both lava banks (hex column bundles; the east bank stays below
-##     the Ossuary's floor, under y -7) and basalt cliffs (RockKit) at the waterline of the walls
-##   - columned stacks and cooled-crust islands out in the river (the islands have collision, so
-##     LavaWorks' bank mask gives each its own crust shelf and glowing contact rim)
-##   - ash fields on the rim shelves: buried ash-rock drifts and spalled basalt (MultiMesh)
-##   - glowing fissures draped over the rim ground and the slopes by the forecourt, with smoke and
-##     ember vents at their mouths (positions handed to LavaWorks too)
-## Keeps off the Crossing (its sites and lane), the Ossuary's volume and every RealmLayout path.
+## The Ashen Rift's natural rock (RealmRift), from scratch (21 Nov): the basalt the lava cooled into, modelled in Blender
+## (tools/blender/rift_rocks.py -> art/models/rift_rocks.glb) and set about the rift here:
+##   - shores: broken basalt along both walls at the lava line (their backs buried in the rock)
+##   - crust plates: thin cold rafts in the south, where the lava has crusted over
+##   - islands: low basalt in the cooling middle and the molten pool
+##   - stacks: tall broken basalt in the molten east channel (the skyline from the Lip)
+## Each piece has its collision, so LavaWorks' bank mask gives it a crust shelf and a glowing contact rim. Merged per material (two
+## draws, cut in 24 m cells). On the rim, as before: ash drifts and spalls, glowing fissures with smoke and ember vents at their mouths.
+## Keeps off the Cinder Way (its sites, lanes and rock), the Watchers' plinths, the old Ossuary site and every RealmLayout path.
 
-const Basalt := preload("res://core/world/realm/rift/basalt.gd")
+const RockKitS := preload("res://core/world/realm/rock_kit.gd")
+const ROCKS := "res://art/models/rift_rocks.glb"
 const LAVA := -15.5
 const BED := -19.5
+const COOL_Z := -30.0                   ## south of this (z greater) the lava has crusted: plates, no islands
 
 var vents: Array[Vector3] = []
-var star_z := INF                       ## RealmRift.STAR_Z: south of it (z greater) the Threshold, no volcanic dressing
+var watchers: Array = []                ## [Vector3] the Watchers' feet (rift/threshold.gd): the plinths keep this clear
 var rng := RandomNumberGenerator.new()
 var space: PhysicsDirectSpaceState3D
 var report: Array[String] = []
+var _st := {}                           ## style -> SurfaceTool (the merged pieces)
+var _body: StaticBody3D
+var _variants := {}                     ## name -> [mesh, style, shapes [[Shape3D, Transform3D]], aabb]
 
 const FISSURE_SHADER := """shader_type spatial;
 render_mode unshaded, cull_disabled, depth_draw_never, blend_mix;
@@ -42,15 +47,160 @@ void fragment(){
 func build(root: Node, host: Node3D) -> void:
 	rng.seed = 7071
 	space = (root as Node3D).get_world_3d().direct_space_state
-	_bank_pipes(host)
-	_cliffs(host)
-	_islands(host)
+	_load_variants()
+	if not _variants.is_empty():
+		_body = StaticBody3D.new()
+		_body.name = "RiftRockBody"
+		_body.collision_layer = Layers.WORLD
+		_body.collision_mask = 0
+		host.add_child(_body)
+		_shores()
+		_lava_rock()
+		_commit(host)
 	await root.get_tree().process_frame
 	_ash_fields(host)
 	_fissures(host)
 	_vents(host)
 	for s in report:
 		print("RIFT ", s)
+
+
+# --- the modelled pieces ------------------------------------------------------------------------------
+
+func _load_variants() -> void:
+	var ps := load(ROCKS) as PackedScene
+	if ps == null:
+		report.append("rocks: %s missing" % ROCKS)
+		return
+	var inst := ps.instantiate()
+	for n in inst.find_children("*", "MeshInstance3D", true, false):
+		var mi := n as MeshInstance3D
+		var nm := String(mi.name)
+		if nm.contains("-colonly") or not nm.contains("__") or mi.mesh == null:
+			continue
+		var key := nm.get_slice("__", 0)
+		var style := nm.get_slice("__", 1).get_slice(".", 0).get_slice("_", 0)
+		var shapes: Array = []
+		var body := inst.find_child(key, true, false)
+		if body == null:
+			body = inst.find_child(key + "-colonly", true, false)
+		if body != null:
+			for cs in body.find_children("*", "CollisionShape3D", true, false):
+				shapes.append([(cs as CollisionShape3D).shape, (cs as Node3D).transform])
+		_variants[key] = [mi.mesh, style, shapes, mi.mesh.get_aabb()]
+	inst.free()
+
+
+## One piece at `xf` (rift coordinates) into the merged mesh and the shared body.
+func _put(key: String, xf: Transform3D) -> void:
+	var v: Array = _variants[key]
+	var style: String = v[1]
+	if not _st.has(style):
+		var st := SurfaceTool.new()
+		st.begin(Mesh.PRIMITIVE_TRIANGLES)
+		_st[style] = st
+	(_st[style] as SurfaceTool).append_from(v[0], 0, xf)
+	for s: Array in v[2]:
+		var cs := CollisionShape3D.new()
+		cs.shape = s[0]
+		cs.transform = xf * (s[1] as Transform3D)
+		_body.add_child(cs)
+
+
+func _commit(host: Node3D) -> void:
+	for style: String in _st:
+		var mi := MeshInstance3D.new()
+		mi.name = "RiftRock_" + style
+		mi.mesh = (_st[style] as SurfaceTool).commit()
+		mi.material_override = RockKitS.material(style)
+		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF     # lit from the lava below
+		host.add_child(mi)
+		MeshChunks.split(mi)
+		mi.queue_free()
+
+
+## Space for a piece of footprint radius `r` at p (rift coordinates): off the Cinder Way, the Watchers, the paths, the Ossuary's old
+## wall, and clear of anything already built there (a box query: the way's rock, another piece; the ground is allowed).
+func _free(p: Vector2, r: float, top_y: float) -> bool:
+	if _blocked(p, top_y, r):
+		return false
+	var sh := BoxShape3D.new()
+	sh.size = Vector3(r * 1.6, maxf(top_y - LAVA + 1.0, 1.0), r * 1.6)
+	var q := PhysicsShapeQueryParameters3D.new()
+	q.shape = sh
+	q.transform = Transform3D(Basis.IDENTITY, Vector3(p.x, (top_y + LAVA) * 0.5, p.y))
+	q.collision_mask = Layers.WORLD
+	for hit: Dictionary in space.intersect_shape(q, 8):
+		var c := hit.get("collider") as Node
+		if c != null and not String(c.name).begins_with("Terrain"):
+			return false
+	return true
+
+
+## The wall's x at height y and z (the first terrain hit going out from the middle), or NAN.
+func _wall_x(side: float, y: float, z: float) -> float:
+	var from := Vector3(side * 4.0, y, z)
+	for i in 6:
+		var hit := space.intersect_ray(PhysicsRayQueryParameters3D.create(from, Vector3(side * 50.0, y, z), Layers.WORLD))
+		if hit.is_empty():
+			return NAN
+		if String((hit.collider as Node).name).begins_with("Terrain"):
+			return (hit.position as Vector3).x
+		from = (hit.position as Vector3) + Vector3(side * 0.2, 0.0, 0.0)
+	return NAN
+
+
+## Broken basalt along both walls at the lava line, every 9-13 m, backs into the rock (local -x is a shore's back).
+func _shores() -> void:
+	var placed := 0
+	for side: float in [-1.0, 1.0]:
+		var z := -12.0
+		while z > -100.0:
+			z -= rng.randf_range(9.0, 13.0)
+			var key := "Shore%d" % rng.randi_range(0, 2)
+			if not _variants.has(key):
+				continue
+			var wx := _wall_x(side, LAVA + 0.6, z)
+			if is_nan(wx):
+				continue
+			var top := LAVA + (_variants[key][3] as AABB).end.y
+			if side > 0.0 and z < -21.0 and top > -7.5:
+				continue                                    # the old Ossuary's wall: a bare cliff above y -7
+			var p := Vector2(wx - side * 1.6, z)
+			if not _free(p, 3.0, top):
+				continue
+			var b := Basis(Vector3.UP, (0.0 if side < 0.0 else PI) + rng.randf_range(-0.15, 0.15))
+			_put(key, Transform3D(b, Vector3(p.x, LAVA, p.y)))
+			placed += 1
+	report.append("shores: %d" % placed)
+
+
+## Plates on the crusted south, islands in the cooling middle and the pool, stacks in the molten channel.
+func _lava_rock() -> void:
+	var n := {"Plate": 0, "Isle": 0, "Stack": 0}
+	var want := [["Plate", 3, 11, Rect2(-17.0, -40.0, 36.0, 28.0)], ["Isle", 4, 9, Rect2(-16.0, -50.0, 34.0, 20.0)],
+			["Isle", 4, 5, Rect2(13.0, -96.0, 12.0, 46.0)], ["Stack", 3, 4, Rect2(13.0, -92.0, 12.0, 40.0)]]
+	for w: Array in want:
+		var kind: String = w[0]
+		var r: Rect2 = w[3]
+		var got := 0
+		for i in 120:
+			if got >= int(w[2]):
+				break
+			var key := "%s%d" % [kind, rng.randi_range(0, int(w[1]) - 1)]
+			if not _variants.has(key):
+				continue
+			var ab: AABB = _variants[key][3]
+			var p := Vector2(rng.randf_range(r.position.x, r.end.x), rng.randf_range(r.position.y, r.end.y))
+			if kind == "Plate" and p.y < COOL_Z - 8.0:
+				continue
+			var rad := maxf(ab.size.x, ab.size.z) * 0.5
+			if not _free(p, rad + 0.8, LAVA + ab.end.y):
+				continue
+			_put(key, Transform3D(Basis(Vector3.UP, rng.randf() * TAU), Vector3(p.x, LAVA, p.y)))
+			got += 1
+		n[kind] = int(n[kind]) + got
+	report.append("lava rock: %d plates, %d islands, %d stacks" % [n.Plate, n.Isle, n.Stack])
 
 
 # --- placement guards ------------------------------------------------------------------------------
@@ -65,10 +215,11 @@ func _ground(x: float, z: float, from_y := 70.0) -> float:
 	return (hit.position as Vector3).y
 
 
-## True where nothing may stand: the Crossing (sites + lane), paths, the Ossuary above y -7.
+## True where nothing may stand: the Cinder Way (sites + lanes), the Watchers, paths, the Ossuary's old wall above y -7.
 func _blocked(p: Vector2, top_y: float, pad := 1.5) -> bool:
-	if p.distance_to(Vector2(-8.3, -50.0)) < 10.0:
-		return true                                  # the Spindle and its turn
+	for w: Vector3 in watchers:
+		if p.distance_to(Vector2(w.x, w.z)) < 7.4 + pad:
+			return true
 	for s: Dictionary in WorldLanes.sites:
 		if String(s.name).begins_with("rift_") and not is_nan(WorldLanes.site_floor(s, p, pad)):
 			return true
@@ -85,125 +236,23 @@ func _blocked(p: Vector2, top_y: float, pad := 1.5) -> bool:
 				return true
 	if RealmLayout.path_dist(Endgame.w2(p)) < 1.2:
 		return true                                  # (built at home, it stands Endgame.O east: the ways are where it will stand)
-	var oss := AABB(Endgame.l(RealmLayout.OSSUARY_OLD.position), RealmLayout.OSSUARY_OLD.size)         # (the Ossuary left this wall; the old site stays clear of rocks and pipes: a bare cliff)
+	var oss := AABB(Endgame.l(RealmLayout.OSSUARY_OLD.position), RealmLayout.OSSUARY_OLD.size)         # (the Ossuary left this wall; the old site stays a bare cliff)
 	if p.x > oss.position.x - 0.5 and p.x < oss.end.x and p.y > oss.position.z and p.y < oss.end.z and top_y > oss.position.y - 1.0:
 		return true
 	return false
 
 
-# --- basalt -------------------------------------------------------------------------------------------
-
-## Organ pipes along both banks: bundles stepping up against the walls, lowest at the waterline.
-func _bank_pipes(host: Node3D) -> void:
-	var st := Basalt.new_tool()
-	var n := 0
-	var bundles := 0
-	for side: float in [-1.0, 1.0]:
-		var z := -14.0
-		while z > -117.0:
-			z -= rng.randf_range(5.0, 9.0)
-			var x := side * rng.randf_range(15.5, 18.0)
-			var r := rng.randf_range(2.0, 3.8)
-			var east_low := side > 0.0 and z > -111.0 and z < -21.0
-			var hi := rng.randf_range(-9.0, -2.0) if not east_low else rng.randf_range(-12.5, -8.0)
-			if side < 0.0 and rng.randf() < 0.3:
-				hi = rng.randf_range(1.0, 5.0)                 # a few tall ones against the west wall
-			if z > star_z - 2.0 or _blocked(Vector2(x, z), hi, 2.0):
-				continue
-			var wall := side
-			var top := func(d: float) -> float:
-				return lerpf(hi, LAVA + 0.6, clampf(d * d, 0.0, 1.0)) + rng.randf_range(-1.2, 0.6)
-			# columns nearer the wall stand taller: shift the bundle's high point towards it
-			n += Basalt.bundle(st, rng, Vector3(x + wall * r * 0.35, BED, z), r, rng.randf_range(0.42, 0.6), top, 0.8,
-				func(p: Vector2) -> bool: return _blocked(p, hi, 1.2))
-			bundles += 1
-	# columned stacks out in the river (low, broken), and a tall one by the first tower
-	for c: Array in [[Vector2(9.0, -27.0), 2.4, -11.0], [Vector2(11.0, -58.0), 3.0, -12.0], [Vector2(-6.0, -78.0), 2.6, -9.5],
-			[Vector2(8.0, -86.0), 2.2, -12.5], [Vector2(-11.0, -16.0), 1.8, -10.0], [Vector2(7.5, -40.5), 2.0, -9.0], [Vector2(-14.0, -88.0), 2.8, -6.0]]:
-		var p: Vector2 = c[0]
-		var hi: float = c[2]
-		if p.y > star_z - 2.0 or _blocked(p, hi, 1.0):
-			continue
-		n += Basalt.bundle(st, rng, Vector3(p.x, BED, p.y), float(c[1]), 0.48, func(d: float) -> float: return lerpf(hi, LAVA + 0.4, d * d) + rng.randf_range(-1.5, 0.5), 0.8)
-		bundles += 1
-	var mi := Basalt.commit(st, host, "BankPipes", "basalt", false)
-	if mi:
-		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF     # lit from the lava below
-		MeshChunks.split(mi)                                                 # 24 m cells with LODs
-		mi.queue_free()
-	report.append("basalt: %d bundles, %d columns" % [bundles, n])
-
-
-## Basalt cliff faces (RockKit) at the foot of the walls: they break the trench's straight banks.
-func _cliffs(host: Node3D) -> void:
-	var rk := Basalt.rock_kit()
-	if rk == null:
-		report.append("cliffs: RockKit missing, skipped")
-		return
-	var placed := 0
-	for side: float in [-1.0, 1.0]:
-		var z := -16.0
-		while z > -116.0:
-			var len := rng.randf_range(7.0, 11.0)
-			var zc := z - len * 0.5
-			z -= len + rng.randf_range(2.0, 9.0)
-			var east_low := side > 0.0 and zc > -112.0 and zc < -20.0
-			var h := rng.randf_range(5.0, 9.0) if not east_low else rng.randf_range(4.0, 6.5)
-			var base := LAVA - 1.2
-			if east_low and base + h > -7.2:
-				h = -7.2 - base
-			var x := side * 18.6
-			if zc > star_z - 2.0 or _blocked(Vector2(x - side * 2.0, zc), base + h, 1.0):
-				continue
-			var mesh: Mesh = rk.call("cliff", rng.randi(), Vector3(len, h, 3.2), "basalt")
-			var xf := Transform3D(Basis(Vector3.UP, -side * PI * 0.5 + rng.randf_range(-0.12, 0.12)), Vector3(x, base, zc))
-			var mi: MeshInstance3D = rk.call("spawn", host, mesh, xf, false, 180.0)
-			mi.name = "BasaltCliff%d" % placed
-			mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-			placed += 1
-	report.append("cliffs: %d basalt faces" % placed)
-
-
-## Cooled-crust islands: flat ash rocks awash in the river, with collision for the bank mask.
-func _islands(host: Node3D) -> void:
-	var rk := Basalt.rock_kit()
-	if rk == null:
-		return
-	var placed := 0
-	var tries := 0
-	while placed < 34 and tries < 500:
-		tries += 1
-		var wide := rng.randf_range(-24.0, 24.0) if rng.randf() < 0.6 else rng.randf_range(-15.0, 15.0)
-		var p := Vector2(wide, rng.randf_range(-112.0, -14.0))
-		if p.y > star_z - 4.0 or _blocked(p, LAVA + 1.0, 2.5):
-			continue
-		if p.y < -88.0 and absf(p.x) < 15.0:
-			continue                                     # under the summit dais: never seen
-		var s := Vector3(rng.randf_range(2.5, 6.5), rng.randf_range(0.9, 1.6), rng.randf_range(2.0, 5.0))
-		if placed % 3 == 0:
-			s *= 1.5
-		var mesh: Mesh = rk.call("boulder", rng.randi(), s, "ash" if placed % 2 == 0 else "basalt")
-		var xf := Transform3D(Basis(Vector3.UP, rng.randf() * TAU), Vector3(p.x, LAVA - s.y * 0.55, p.y))
-		var mi: MeshInstance3D = rk.call("spawn", host, mesh, xf, true, 200.0)
-		mi.name = "CrustIsland%d" % placed
-		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		placed += 1
-	report.append("crust islands: %d" % placed)
-
-
 # --- ash fields -----------------------------------------------------------------------------------------
 
-## The rim shelves inside the rift rect, west and east of the trench: ash-rock drifts sunk in the
-## ground and spalled basalt, seated on the real terrain (MultiMesh per mesh, culled at 90 m).
+## The rim shelves inside the rift rect, west and east of the trench: ash-rock drifts sunk in the ground and spalled basalt, seated on
+## the real terrain (MultiMesh per mesh, culled at 60 m).
 func _ash_fields(host: Node3D) -> void:
-	var rk := Basalt.rock_kit()
-	if rk == null:
-		return
+	var rk := RockKitS
 	var meshes: Array[Mesh] = []
 	for i in 3:
-		meshes.append(rk.call("boulder", 100 + i, Vector3(1.6, 0.5, 1.2), "ash"))
+		meshes.append(rk.boulder(100 + i, Vector3(1.6, 0.5, 1.2), "ash"))
 	for i in 2:
-		meshes.append(rk.call("boulder", 200 + i, Vector3(0.9, 0.8, 0.8), "basalt"))
+		meshes.append(rk.boulder(200 + i, Vector3(0.9, 0.8, 0.8), "basalt"))
 	var xfs: Array = [[], [], [], [], []]
 	var n := 0
 	for i in 380:
@@ -214,8 +263,6 @@ func _ash_fields(host: Node3D) -> void:
 		var y := _ground(p.x, p.y)
 		if is_nan(y) or y < LAVA + 1.5 or _blocked(p, y, 0.5):
 			continue
-		if p.y > star_z and y < -2.0:
-			continue                                     # the Threshold's terraces stand on that slope
 		var kind := rng.randi_range(0, 4)
 		var s := rng.randf_range(0.35, 1.3) * (1.0 if kind < 3 else 0.7)
 		var b := Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3(s, s * rng.randf_range(0.6, 1.0), s))
@@ -244,17 +291,15 @@ func _ash_fields(host: Node3D) -> void:
 
 # --- fissures and vents ------------------------------------------------------------------------------
 
-## Molten seams draped on the ground (one mesh): wandering cracks on the rim shelves and down the
-## slopes beside the forecourt. Their mouths become smoke and ember vents.
+## Molten seams draped on the ground (one mesh): wandering cracks on the rim shelves. Their mouths become smoke and ember vents. None
+## by the Lip (the south rim stays cold: the lava has crusted there).
 func _fissures(host: Node3D) -> void:
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
 	var count := 0
 	var seeds: Array[Vector2] = []
 	for i in 14:
-		seeds.append(Vector2(rng.randf_range(-30.0, -21.0), rng.randf_range(-112.0, -14.0)))
-	for i in 4:
-		seeds.append(Vector2(rng.randf_range(-15.0, -7.0) * (1.0 if i % 2 == 0 else -1.0), rng.randf_range(-11.0, -6.0)))
+		seeds.append(Vector2(rng.randf_range(-30.0, -21.0), rng.randf_range(-112.0, -30.0)))
 	for i in 3:
 		seeds.append(Vector2(rng.randf_range(20.0, 30.0), rng.randf_range(-19.0, -10.0)))
 	for s in seeds:
@@ -274,8 +319,6 @@ func _fissures(host: Node3D) -> void:
 		if pts.size() < 6:
 			continue
 		var w := rng.randf_range(0.25, 0.7)
-		if s.y > star_z:
-			continue                                     # the Threshold: no seams by the forecourt (a lit line read as a beam)
 		var m := 0.0
 		for i in pts.size() - 1:
 			var a := pts[i]
@@ -312,18 +355,16 @@ func _fissures(host: Node3D) -> void:
 	report.append("fissures: %d" % count)
 
 
-## Smoke columns and ember spits at fissure mouths (every other one) and over the river.
+## Smoke columns and ember spits at fissure mouths (every other one) and over the hot lava (the pool and the east channel).
 func _vents(host: Node3D) -> void:
 	var spots: Array[Vector3] = []
 	for i in vents.size():
 		if i % 2 == 0:
 			spots.append(vents[i])
-	for p: Vector2 in [Vector2(6.0, -20.0), Vector2(-9.0, -66.0), Vector2(10.0, -72.0), Vector2(-4.0, -30.0)]:
-		if p.y < star_z:
-			spots.append(Vector3(p.x, LAVA + 0.1, p.y))
+	for p: Vector2 in [Vector2(14.0, -50.0), Vector2(18.0, -66.0), Vector2(16.0, -82.0), Vector2(-12.0, -44.0)]:
+		spots.append(Vector3(p.x, LAVA + 0.1, p.y))
 	for p in spots:
-		var star := p.z > star_z                       # a star seam's mouth breathes a pale mist, no fire
-		var smoke := Vfx.emitter(Color(0.36, 0.32, 0.52, 0.22) if star else Color(0.16, 0.13, 0.13, 0.35), {"count": 14, "life": 7.0, "speed": Vector2(0.6, 1.3), "size": 2.4, "gravity": 0.25, "radius": 0.5, "spread": 12.0, "additive": false, "turbulence": true, "damping": 0.2, "grow": 0.5})
+		var smoke := Vfx.emitter(Color(0.16, 0.13, 0.13, 0.35), {"count": 14, "life": 7.0, "speed": Vector2(0.6, 1.3), "size": 2.4, "gravity": 0.25, "radius": 0.5, "spread": 12.0, "additive": false, "turbulence": true, "damping": 0.2, "grow": 0.5})
 		if smoke:
 			smoke.name = "VentSmoke"
 			smoke.visibility_aabb = AABB(Vector3(-6, -1, -6), Vector3(12, 18, 12))
@@ -342,7 +383,7 @@ func _vents(host: Node3D) -> void:
 			host.add_child(smoke)
 			smoke.global_position = p + Vector3.UP * 0.3
 			smoke.emitting = true
-		if star or (p.y > LAVA + 1.0 and spots.find(p) % 2 == 1):
+		if p.y > LAVA + 1.0 and spots.find(p) % 2 == 1:
 			continue                                     # every other rim vent only smokes
 		var spit := Vfx.emitter(Color(1.8, 0.6, 0.12), {"count": 18, "life": 2.4, "speed": Vector2(0.8, 2.6), "size": 0.05, "gravity": -1.2, "radius": 0.3, "spread": 25.0, "turbulence": true})
 		if spit:

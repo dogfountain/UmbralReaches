@@ -535,6 +535,7 @@ static func _heights() -> void:
 			if k > 0.0:
 				var o := old_height_at(x - preload("res://core/world/realm/rift/pit.gd").shift(x, z), z)      # (the lava pit's wider bowl: rift/pit.gd)
 				if not is_nan(o):
+					o = preload("res://core/world/realm/rift/pit.gd").carve(x, z, o)         # (the Cinder Way's first landing: rift/pit.gd)
 					h = lerpf(h, o, k)
 				h = RealmLayout.raid_shape(x, z, h)          # r34: the summit's raid volume is cut out of the kept core too
 			h = preload("res://core/world/realm/rift/scorch.gd").ground(x, z, h)          # the Ashen Rift's gash and its cooled flows (the far north-east)

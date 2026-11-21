@@ -7,7 +7,7 @@ extends RefCounted
 ## tongues down the east berm towards the Realm's east edge. Fire and spatter burned the ground round it, and the ash fell
 ## downwind (east-south-east, the foliage shader's wind) in pale drifts. The burn is deepest at the lip and fades out
 ## through charred snags, rust-leaved dying trees and grey grass into the living land; it thins to almost nothing by the
-## Pilgrims' Threshold, where the lava cools into starwater (and Lastlight's fields stay green).
+## Pilgrims' Threshold, where the lava has cooled to a black crust (and Lastlight's fields stay green).
 ##
 ## One 1 m grid over RECT, built once (lazily, on the first single-threaded call) from authored flows,
 ## the lip and noise. Readers:
@@ -26,7 +26,7 @@ const NX := 135
 const NZ := 165
 const LIP := Rect2(Vector2(-24.0, -121.0) + O, Vector2(48.0, 109.0))   ## the chasm's lip (O.x +-24, z -121..-12)
 const WIND := Vector2(0.8, 0.6)                          ## ash carries this way (realm_foliage.gdshader's wind)
-const MOUTH_Z := Vector2(-36.0, -6.0)                    ## the starwater mouth: the burn dies back over these z
+const MOUTH_Z := Vector2(-36.0, -6.0)                    ## the crusted south mouth: the burn dies back over these z
 const RING := 30.0                                       ## metres of dying wood and dry turf round the burn
 const HERMIT := Vector2(-36.0, -50.0) + O                ## the Ash-Hermit's Perch's rim spot (a secret): no snags on it
 
@@ -326,7 +326,7 @@ static func _burn_at(p: Vector2) -> float:
 	# tongues: the burn reached out further along a few bearings from the rift's middle (a scar, not a halo)
 	var ang := (p - (Vector2(0.0, -66.0) + O)).angle()
 	r += 24.0 * pow(maxf(_n_lo.get_noise_1d(ang * 38.0 + 400.0), 0.0) * 2.2, 1.6)
-	# the starwater mouth: the burn dies back towards Hearthward
+	# the crusted south mouth: the burn dies back towards Lastlight
 	var mouth := smoothstep(MOUTH_Z.x, MOUTH_Z.y, p.y)
 	r *= lerpf(1.0, 0.3, mouth)
 	var dd := d - _n_mid.get_noise_2d(p.x, p.y) * 10.0

@@ -204,7 +204,6 @@ core/world/realm/realm_lore.gd 1 0 0 1 0
 core/world/realm/realm_pois.gd 4 0 0 9 0
 core/world/realm/realm_pois_doubled_realm.gd 1 0 0 10 1557
 core/world/realm/realm_wayfinding.gd 1 0 0 3 0
-core/world/realm/rift/basalt.gd 1 0 0 0 0
 core/world/realm/rift/features.gd 6 0 0 0 0
 core/world/realm/rock_kit.gd 0 0 0 1 0
 core/world/realm/tree_gen.gd 1 0 0 3 1124
