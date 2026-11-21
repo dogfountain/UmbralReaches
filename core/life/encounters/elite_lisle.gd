@@ -27,8 +27,9 @@ func take_hit(dmg: float, from: Node = null) -> void:
 		_called = true
 		BossKit.roar(self, "Brother Lisle calls the count.", Color(1.2, 0.55, 2.6))
 		var crawler := load("res://core/enemy/crawler.gd") as GDScript
-		var got := BossKit.summon(get_parent(), crawler, global_position, 2, 3.2, "elite_" + ID)
-		Guardians.scale_summoned(got, int(get_meta(&"enc_tier", 0)), "crawler")   # the camp crawler of his row
+		var tier := int(get_meta(&"enc_tier", 0))
+		BossKit.summon_spread(get_parent(), crawler, global_position, 2, 3.2, "elite_" + ID, func(m: Enemy) -> void:     # one a frame
+			Guardians.scale_summoned([m], tier, "crawler"))   # the camp crawler of his row
 
 
 func _die() -> void:

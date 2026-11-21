@@ -77,9 +77,14 @@ func _bake() -> void:
 	# as they did drawn directly. A pixel of margin round the box: antialiased edges reach half a pixel past it
 	var p0 := _to_px().origin
 	_frac = p0 - p0.floor()
-	_vp.size = Vector2i(ceili(size.x * s + _frac.x) + 2, ceili(size.y * s + _frac.y) + 2)
-	_vp.canvas_transform = Transform2D(0.0, Vector2(s, s), 0.0, Vector2(1.0, 1.0) + _frac)
-	_vp.oversampling_override = s                             # text rasterised at the screen's scale, as it is drawn there
+	var want := Vector2i(ceili(size.x * s + _frac.x) + 2, ceili(size.y * s + _frac.y) + 2)
+	if _vp.size != want:
+		_vp.size = want                                        # (a new render target only when the box truly changed)
+	var xf := Transform2D(0.0, Vector2(s, s), 0.0, Vector2(1.0, 1.0) + _frac)
+	if _vp.canvas_transform != xf:
+		_vp.canvas_transform = xf
+	if not is_equal_approx(_vp.oversampling_override, s):
+		_vp.oversampling_override = s                         # text rasterised at the screen's scale, as it is drawn there
 	_canvas.size = size
 	_canvas.queue_redraw()
 	_vp.render_target_update_mode = SubViewport.UPDATE_ONCE

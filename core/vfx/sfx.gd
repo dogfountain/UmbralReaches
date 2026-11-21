@@ -26,6 +26,12 @@ static func stream(path: String) -> AudioStream:
 	return _streams[path]
 
 
+## A one-shot loaded ahead (audio_prefetch.gd).
+static func keep(path: String, s: AudioStream) -> void:
+	if s != null and not _streams.has(path):
+		_streams[path] = s
+
+
 static var _voices: Array[AudioStreamPlayer3D] = []
 static var _started: PackedInt64Array = PackedInt64Array()    ## per voice: msec it last started
 static var _next := 0

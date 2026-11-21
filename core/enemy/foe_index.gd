@@ -73,3 +73,16 @@ func _build(tree: SceneTree) -> void:
 		var cell: PackedInt32Array = _grid.get(c, PackedInt32Array())
 		cell.append(i)
 		_grid[c] = cell
+
+
+## The foes that can be within `r` of `at`, as nodes (still in the group, valid), in the group's order: every processing
+## foe and the resting ones near. A superset: the caller measures each. For the scans that walked the whole group a tick
+## (the horse's shoulder, the head's look, Breath's fight check, the music's sense, the HUD's lesson, the wildlife's).
+static func around(tree: SceneTree, at: Vector3, r: float) -> Array[Node3D]:
+	var fi: Variant = of(tree)
+	var out: Array[Node3D] = []
+	for i: int in fi.near(tree, at, r):
+		var n: Variant = fi.node(i)
+		if is_instance_valid(n) and n is Node3D and (n as Node).is_in_group(Groups.ENEMY):
+			out.append(n as Node3D)
+	return out

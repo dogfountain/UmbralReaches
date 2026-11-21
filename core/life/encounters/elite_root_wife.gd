@@ -51,5 +51,6 @@ func take_hit(dmg: float, from: Node = null) -> void:
 		_called = true
 		BossKit.roar(self, "The Root-Wife calls the grubs up.", SNARE_GLOW)
 		var mite := load("res://core/enemy/mite.gd") as GDScript
-		var got := BossKit.summon(get_parent(), mite, global_position, 2, 2.8, "elite_" + ID)
-		Guardians.scale_summoned(got, int(get_meta(&"enc_tier", 0)), "mite")
+		var tier := int(get_meta(&"enc_tier", 0))
+		BossKit.summon_spread(get_parent(), mite, global_position, 2, 2.8, "elite_" + ID, func(m: Enemy) -> void:     # one a frame
+			Guardians.scale_summoned([m], tier, "mite"))

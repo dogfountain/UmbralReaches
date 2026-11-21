@@ -845,7 +845,7 @@ func _landing_sfx(impact: float) -> void:
 
 
 func _trample(fwd: Vector3) -> void:
-	for node in get_tree().get_nodes_in_group(Groups.ENEMY):
+	for node in Move.FoeIndex.around(get_tree(), global_position, 1.6 * _scale()):     # (a tick of a gallop: not all ~400)
 		var e := node as Enemy
 		if e == null or not e.is_alive() or e.boss:
 			continue

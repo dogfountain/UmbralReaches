@@ -39,6 +39,9 @@ const QuestWorld := preload("res://core/story/quest_world.gd")
 const WayfarerDB := preload("res://core/life/wayfarers/wayfarer_db.gd")
 
 const CYCLE := 600.0                  ## one village night (s)
+const BEGINS := 2                     ## people who begin a new routine in one frame (_process)
+const TickPhase := preload("res://core/util/tick_phase.gd")
+const FoeIndex := preload("res://core/enemy/foe_index.gd")
 const FORGE := Vector2(11.0, 60.0)
 const WELL := Vector2(-10.0, 48.5)
 ## The Thornwood's far west, clear of the enemy camps (r31: in from -102, where the r30 edge cliffs and
@@ -456,6 +459,9 @@ func _phase_name() -> String:
 func _process(delta: float) -> void:
 	if not _ready_done:
 		return
+	# every walk's floor heights read ahead (village_nav.gd), a sliver a frame (4 ms a frame under the cover lengthened the load)
+	(nav as VNav).warm(300)
+	_park_step(delta)
 	var dt := delta * time_scale
 	if clock + dt >= CYCLE:
 		nights += 1
@@ -467,7 +473,7 @@ func _process(delta: float) -> void:
 			_pending[id] = true
 	_mode_t -= delta
 	if _mode_t <= 0.0:
-		_mode_t = 1.0
+		_mode_t = TickPhase.next(_mode_t, 1.0)
 		var m := _mode_now()
 		if m != mode:
 			mode = m
@@ -475,6 +481,9 @@ func _process(delta: float) -> void:
 				if routine_for(id2) != String((villagers[id2] as Node).get("routine")):
 					_pending[id2] = true
 				(villagers[id2] as Node).set("hurry", 1.9 if m == "danger" else 1.0)
+	# a few a frame: at a change of phase all ~85 people began their next routine in one frame (each a walk planned over the
+	# network, villager.gd _walk_to), every few minutes; the rest begin in the next frames
+	var begun := 0
 	for id: String in _pending.keys():
 		var v: Node3D = villagers.get(id)
 		if v == null:
@@ -482,6 +491,9 @@ func _process(delta: float) -> void:
 			continue
 		if bool(v.call("busy")) or v.get("attend") != null:
 			continue
+		if begun >= BEGINS:
+			break
+		begun += 1
 		_pending.erase(id)
 		v.call("begin", routine_for(id))
 	# lamps burn down and ease toward lit / out
@@ -503,6 +515,41 @@ func _process(delta: float) -> void:
 		forge_flare.visible = true
 
 
+## A villager past PARK_R from the camera (nothing of him is drawn) does not process: he is stepped from here every
+## sixteenth frame with the time saved up, exactly as his own _process stepped him that far out (villager.gd), without the
+## fifty-odd calls a frame that only counted the time (the whole Realm's people, most of them hundreds of metres off).
+const PARK_R := 152.0                 ## (his own far stepping begins at 150 m)
+var _parked := {}                     ## villager -> time saved up since its last step
+
+
+func _park_step(delta: float) -> void:
+	var cam := get_viewport().get_camera_3d()
+	if cam == null:
+		return
+	var cp := cam.global_position
+	var f := Engine.get_process_frames()
+	for id: String in villagers:
+		var v: Node3D = villagers[id]
+		if v == null or not is_instance_valid(v):
+			continue
+		var far := cp.distance_squared_to(v.global_position) > PARK_R * PARK_R      # (talking, attend, is never this far)
+		if not _parked.has(v):
+			if far and v.is_processing():
+				v.set_process(false)
+				_parked[v] = 0.0
+			continue
+		var acc := float(_parked[v]) + delta
+		if not far or v.is_processing():
+			_parked.erase(v)                  # near again (or woken by another hand): his own frames from here, time kept
+			v.set_process(true)
+			v._process(acc)
+			continue
+		if (f + v.get_instance_id()) % 16 == 0:
+			v._process(acc)
+			acc = 0.0
+		_parked[v] = acc
+
+
 ## The routine a villager follows now: the phase's, unless it rains (a "rain" routine) or the
 ## village is in danger ("flee": into the Keg).
 func routine_for(id: String) -> String:
@@ -522,10 +569,12 @@ func _mode_now() -> String:
 	if _tide:
 		return "danger"
 	var c := Vector3(4.0, 0.0, 40.0)
-	for e: Node in get_tree().get_nodes_in_group(Groups.ENEMY):
-		if e is Node3D and is_instance_valid(e) and not e.is_queued_for_deletion():
+	var fi := FoeIndex.of(get_tree()) as FoeIndex          # the awake foes and the resting ones near (not the whole group)
+	for i in fi.near(get_tree(), c, 30.0):
+		var e := fi.node(i)
+		if is_instance_valid(e) and e is Node3D and not e.is_queued_for_deletion() and e.is_in_group(Groups.ENEMY):
 			var p := (e as Node3D).global_position
-			if Vector2(p.x - c.x, p.z - c.z).length_squared() < 30.0 * 30.0 and bool(e.get("visible")):
+			if Vector2(p.x - c.x, p.z - c.z).length_squared() < 30.0 * 30.0 and (e as Node3D).visible:
 				return "danger"
 	if _weather == null or not is_instance_valid(_weather):
 		var w := get_parent().get_node_or_null("Wildlife") if get_parent() else null
@@ -649,6 +698,7 @@ func refresh(announce := true) -> void:
 					Events.toast.emit(String(r.toast))
 	if not fresh.is_empty():
 		VState.save()
+		(nav as VNav).forget()             # what was restored may stand on a walk: its floors are read again
 	_spawn_present()
 
 

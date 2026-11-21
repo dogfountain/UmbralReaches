@@ -185,7 +185,12 @@ func _assault() -> void:
 	var held := int((_state().held as Dictionary).get(id, 0))
 	var n := clampi(int(round(float(3 + held / 2) * ReachState.pressure())), 3, 7)
 	var host := get_parent()
+	Events.toast.emit("%s: the dark comes at the watch." % title)
 	for i in n:
+		if i > 0:                            # one a frame: three to seven built in one frame were 10-35 ms of scripts
+			await get_tree().process_frame
+			if not is_inside_tree() or not _in_assault:
+				return
 		var a := randf_range(-1.2, 1.2)
 		var at := _come_from(global_position + face.rotated(Vector3.UP, a) * COME_FROM)
 		var e: Enemy = ((Husk as GDScript) if i % 3 == 2 else (Wretch as GDScript)).new() as Enemy
@@ -198,7 +203,6 @@ func _assault() -> void:
 		e.hunt_leash = COME_FROM * 3.0
 		e.focus = men[i % men.size()] if not men.is_empty() else null
 		_wave.append(e)
-	Events.toast.emit("%s: the dark comes at the watch." % title)
 
 
 func _fight(delta: float) -> void:

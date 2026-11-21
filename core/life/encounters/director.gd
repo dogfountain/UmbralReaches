@@ -31,6 +31,8 @@ const PlacementLog := preload("res://core/world/realm/placement_log.gd")
 const SpawnRules := preload("res://core/life/encounters/spawn_rules.gd")
 const RealmLand := preload("res://core/world/realm/realm_land.gd")
 const AmbushSites := preload("res://core/life/encounters/ambush_sites.gd")
+const Staging := preload("res://core/life/encounters/staging.gd")
+const AmbushPrep := preload("res://core/life/encounters/ambush_prep.gd")
 
 const TICK := 0.25
 const CAP := 12                    ## most enemies near the player that tides/ambushes/elites add to
@@ -82,6 +84,7 @@ var _rest_at := Vector3.INF
 
 var ambushes: Array[Dictionary] = []
 var ambushers: Array = []
+var _sprung: Dictionary = {}       ## the ambush being sprung: its risers built ahead (ambush_prep.gd)
 var _ambush_gap := 30.0
 
 var haunts: Dictionary = {}        ## elite id -> Vector3 (on the ground)
@@ -266,10 +269,7 @@ func step(dt: float) -> void:
 
 
 func _busy_fight() -> bool:
-	for a in get_tree().get_nodes_in_group(&"boss_arena"):
-		if (a as BossArena)._active:
-			return true
-	return false
+	return get_tree().get_nodes_in_group(&"boss_arena").any(func(a: Node) -> bool: return (a as BossArena)._active)
 
 
 ## Hearthward, its tavern, the Rooted Holds and the towns: no tide gathers here and nothing of ours rises in them.
@@ -454,6 +454,7 @@ func _ambush_tick(dt: float, pos: Vector3, lit: bool) -> void:
 	_ambush_gap = maxf(0.0, _ambush_gap - dt)
 	for s: Dictionary in ambushes:
 		s.cd = maxf(0.0, float(s.cd) - dt)
+	AmbushPrep.step(ambushes, pos, self, int(state.get("ambushes", 0)), _make)     # the nearest site's risers, built ahead
 	if tide_on or lit or _ambush_gap > 0.0 or _busy_fight():
 		return
 	# a horse's gallop covers the trigger ring in a breath: the ring reaches as far as the headlight
@@ -470,6 +471,7 @@ func _ambush_tick(dt: float, pos: Vector3, lit: bool) -> void:
 
 
 func trigger_ambush(s: Dictionary) -> int:
+	_sprung = s
 	s.cd = AMBUSH_CD
 	_ambush_gap = AMBUSH_GAP
 	var pos := _player.global_position if _player else (s.at as Vector3)
@@ -509,7 +511,12 @@ func trigger_ambush(s: Dictionary) -> int:
 
 ## One of an ambush: it rises asleep (a breath to see it), wakes 0.9 s later.
 func _rise(kind: String, spot: Vector3, tier: int, look: String) -> Enemy:
-	var e := _make(kind, spot, tier, look)
+	var e := AmbushPrep.next(_sprung)               # built ahead at the site (ambush_prep.gd), else built now
+	if e != null:
+		AmbushPrep.place(e, spot)
+		SpellFx.rift_in(spot)
+	else:
+		e = _make(kind, spot, tier, look)
 	if e == null:
 		return null
 	e.set_meta(&"enc_ambush", true)
@@ -568,15 +575,19 @@ func _elite_tick(pos: Vector3, may_build := true) -> void:
 		elif ev != null:
 			elite_nodes.erase(id)
 		var d := pos.distance_to(at)
-		if e == null:
-			if may_build and not slain(id) and d < ELITE_NEAR and not LightGrid.is_lit(at) and not _busy_fight():
+		var rise := d < ELITE_NEAR and not LightGrid.is_lit(at) and not _busy_fight()
+		if e == null:      # built where the old rule did if the builder has not built it ahead (staging.gd)
+			if may_build and not slain(id) and rise:
 				spawn_elite(id)
 				may_build = false
 			continue
+		if Staging.waits(e, rise):
+			continue
 		var de := pos.distance_to(e.global_position)
 		if d > ELITE_FAR and de > ELITE_FAR:
-			_unmake(e, false)                # out of the region: it goes back to its haunt, healed
-			elite_nodes.erase(id)
+			if not Staging.stand_down([e]):      # untouched: waiting again where it stands; else back to its haunt, healed
+				_unmake(e, false)
+				elite_nodes.erase(id)
 			continue
 		if de > e.sleep_range:
 			e.sleep()
@@ -833,19 +844,12 @@ func _on_boss(boss: Node, _title: String) -> void:
 
 ## How many more enemies may come near `pos` (CAP alive within CAP_R).
 func room(pos: Vector3) -> int:
-	var n := 0
-	for e in get_tree().get_nodes_in_group(Groups.ENEMY):
-		if e is Enemy and (e as Enemy).is_alive() and (e as Node3D).global_position.distance_to(pos) < CAP_R:
-			n += 1
-	return maxi(0, CAP - n)
+	return maxi(0, CAP - near_count(pos))
 
 
 func near_count(pos: Vector3, r := CAP_R) -> int:
-	var n := 0
-	for e in get_tree().get_nodes_in_group(Groups.ENEMY):
-		if e is Enemy and (e as Enemy).is_alive() and (e as Node3D).global_position.distance_to(pos) < r:
-			n += 1
-	return n
+	return get_tree().get_nodes_in_group(Groups.ENEMY).filter(func(e: Node) -> bool:
+		return e is Enemy and (e as Enemy).is_alive() and (e as Node3D).global_position.distance_to(pos) < r).size()
 
 
 ## Ground a foe may appear on, for every spawner: out of the havens and the towns (SpawnRules.SAFE), in bounds, never
@@ -944,7 +948,7 @@ func _search(c: Vector2, reach: float, ignore_light := false) -> Vector3:
 	return Vector3.INF
 
 
-func _make(kind: String, at: Vector3, tier: int, variant: String) -> Enemy:
+func _make(kind: String, at: Vector3, tier: int, variant: String, fx := true) -> Enemy:
 	var e := Tiers.script_for(kind).new() as Enemy
 	if e == null:
 		return null
@@ -958,7 +962,7 @@ func _make(kind: String, at: Vector3, tier: int, variant: String) -> Enemy:
 		Variants.dress(e, variant)
 	e.global_position = at + Vector3.UP * 0.05
 	e.home = at
-	SpellFx.rift_in(at)
+	if fx: SpellFx.rift_in(at)
 	return e
 
 
@@ -984,11 +988,7 @@ func _prune(pos: Vector3) -> void:
 			continue
 		keep.append(e)
 	ambushers = keep
-	var hk: Array = []
-	for e in hunters:
-		if is_instance_valid(e) and e.is_alive():
-			hk.append(e)
-	hunters = hk
+	hunters = hunters.filter(func(e: Variant) -> bool: return is_instance_valid(e) and (e as Enemy).is_alive())
 
 
 func _make_motes() -> GPUParticles3D:

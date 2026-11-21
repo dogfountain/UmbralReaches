@@ -27,6 +27,8 @@ var _q := PhysicsShapeQueryParameters3D.new()
 var _exclude: Array[RID] = []
 var _astar := AStar3D.new()
 var _ids := {}                     ## id -> astar index
+var _inv := PackedStringArray()    ## astar index -> id (route: it was rebuilt from _ids for every walk)
+var _legs := {}                    ## "a>b" -> the floor heights of a leg's samples (path: read once, not every walk)
 
 
 func _init() -> void:
@@ -158,9 +160,12 @@ func build(space: PhysicsDirectSpaceState3D, node_xz: Dictionary, edge_list: Arr
 		edges[b][a] = l
 	_astar.clear()
 	_ids.clear()
+	_inv.clear()
+	_legs.clear()
 	var i := 0
 	for id: String in nodes:
 		_ids[id] = i
+		_inv.append(id)
 		_astar.add_point(i, nodes[id])
 		i += 1
 	for a: String in edges:
@@ -212,6 +217,7 @@ func at(id: String) -> Vector3:
 ## After the ground settles under the floors (TerrainStamp.settle, after the village is built): every node's height
 ## read again, so one stood on all night is on the turf as it is now. Returns "id dy" for each that moved.
 func resettle() -> PackedStringArray:
+	forget()
 	var out := PackedStringArray()
 	for id: String in nodes:
 		var p: Vector3 = nodes[id]
@@ -243,15 +249,14 @@ func route(a: String, b: String) -> Array[String]:
 	if a == b:
 		out.append(a)
 		return out
-	var inv := {}
-	for id: String in _ids:
-		inv[_ids[id]] = id
 	for pi in _astar.get_id_path(_ids[a], _ids[b]):
-		out.append(String(inv[pi]))
+		out.append(_inv[pi])
 	return out
 
 
-## World points along the route, resampled every STEP with their floor heights (smoothed).
+## World points along the route, resampled every STEP with their floor heights (smoothed). A leg's heights are read
+## from the floor once (two rays a sample, ~170 for a 60 m walk) and kept: ~85 people start walks all night, and a
+## change of the village's phase started them all in one frame.
 func path(a: String, b: String) -> PackedVector3Array:
 	var ids := route(a, b)
 	var pts := PackedVector3Array()
@@ -261,13 +266,66 @@ func path(a: String, b: String) -> PackedVector3Array:
 	for i in range(1, ids.size()):
 		var p0: Vector3 = nodes[ids[i - 1]]
 		var p1: Vector3 = nodes[ids[i]]
-		var n := maxi(1, ceili(Vector2(p1.x - p0.x, p1.z - p0.z).length() / (STEP * 2.0)))
+		var n := _samples(p0, p1)
+		var ys := _leg(ids[i - 1], ids[i])
 		for j in range(1, n + 1):
 			var t := float(j) / float(n)
-			var x := lerpf(p0.x, p1.x, t)
-			var z := lerpf(p0.z, p1.z, t)
-			pts.append(Vector3(x, floor_at(x, z) if j < n else p1.y, z))
+			pts.append(Vector3(lerpf(p0.x, p1.x, t), ys[j - 1] if j < n else p1.y, lerpf(p0.z, p1.z, t)))
 	return pts
+
+
+static func _samples(p0: Vector3, p1: Vector3) -> int:
+	return maxi(1, ceili(Vector2(p1.x - p0.x, p1.z - p0.z).length() / (STEP * 2.0)))
+
+
+## The floor heights of the samples inside the leg a -> b (its ends are the nodes'), read once; b -> a is its reverse.
+func _leg(a: String, b: String) -> PackedFloat32Array:
+	var key := a + ">" + b
+	var p0: Vector3 = nodes[a]
+	var p1: Vector3 = nodes[b]
+	var n := _samples(p0, p1)
+	var ys: PackedFloat32Array = _legs.get(key, PackedFloat32Array())
+	if ys.size() == n - 1:
+		return ys
+	ys.resize(n - 1)
+	for j in range(1, n):
+		var t := float(j) / float(n)
+		ys[j - 1] = floor_at(lerpf(p0.x, p1.x, t), lerpf(p0.z, p1.z, t))
+	_legs[key] = ys
+	var back := ys.duplicate()
+	back.reverse()
+	_legs[b + ">" + a] = back
+	return ys
+
+
+## The kept floor heights go (the ground or the floors changed: the settle, a restoration built in the village).
+func forget() -> void:
+	_legs.clear()
+	_warm_keys = PackedStringArray()
+	_warm_done = false
+
+
+var _warm_keys := PackedStringArray()   ## the legs still to read ahead ("a>b"), filled on the first warm() after a forget
+var _warm_done := false
+
+
+## Reads the legs ahead, for at most `budget_us` a call (the loading cover gives it most); nothing once every leg is kept.
+func warm(budget_us: int) -> void:
+	if _warm_done or _space == null:
+		return
+	if _warm_keys.is_empty():
+		for a: String in edges:
+			for b: String in edges[a]:
+				if a < b and not _legs.has(a + ">" + b):
+					_warm_keys.append(a + ">" + b)
+		_warm_done = _warm_keys.is_empty()
+	var t0 := Time.get_ticks_usec()
+	while not _warm_keys.is_empty() and Time.get_ticks_usec() - t0 < budget_us:
+		var k := _warm_keys[_warm_keys.size() - 1]
+		_warm_keys.remove_at(_warm_keys.size() - 1)
+		var ab := k.split(">")
+		if nodes.has(ab[0]) and nodes.has(ab[1]):
+			_leg(ab[0], ab[1])
 
 
 ## Every node reachable from `from` (for the test's connectivity check).

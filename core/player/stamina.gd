@@ -11,6 +11,7 @@ extends Node
 ##   const Stamina := preload("res://core/player/stamina.gd")
 
 const Access := preload("res://ui/access.gd")
+const FoeIndex := preload("res://core/enemy/foe_index.gd")
 
 const MAX := 100.0
 const REGEN := 34.0              ## per second once recovering
@@ -135,7 +136,7 @@ func _foe_awake() -> bool:
 	if _player == null or not _player.is_inside_tree():
 		return false
 	var at := _player.global_position
-	for node in get_tree().get_nodes_in_group(Groups.ENEMY):
+	for node in FoeIndex.around(get_tree(), at, FIGHT_R):         # (4 Hz: not the whole group)
 		var e := node as Enemy
 		if e == null or not e.is_alive() or e._state == Enemy.IDLE:
 			continue

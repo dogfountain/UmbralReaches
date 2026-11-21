@@ -148,11 +148,12 @@ func _hatch() -> void:
 	if n <= 0:
 		return
 	var host := get_parent()
-	var got := BossKit.summon(host, load(MITE) as GDScript, global_position, n, 1.8, gid)
-	broods += got.size()
-	Guardians.scale_summoned(got, int(get_meta(&"enc_tier", 0)), "mite")
-	for m in got:
-		m.alerted(self)
+	var tier := int(get_meta(&"enc_tier", 0))
+	BossKit.summon_spread(host, load(MITE) as GDScript, global_position, n, 1.8, gid, func(m: Enemy) -> void:     # one a frame
+		broods += 1
+		Guardians.scale_summoned([m], tier, "mite")
+		if is_instance_valid(self) and is_alive():
+			m.alerted(self))
 	Vfx.burst(_sac.global_position if _sac else global_position + Vector3.UP * 2.0, Color(0.3, 1.6, 1.1), {"count": 40, "life": 0.6, "speed": Vector2(2.0, 5.0), "size": 0.07, "gravity": -8.0, "additive": false})
 	Sfx.play_stream(EnemyAudio.kit("spit"), global_position + Vector3.UP * 2.0, 2.0, 0.5)
 

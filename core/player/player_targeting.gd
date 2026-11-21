@@ -4,6 +4,8 @@ extends Node
 ## Part of Player (core/player/player.gd): Player owns this node and keeps its public surface;
 ## the state lives on Player unless declared here.
 
+const FoeIndex := preload("res://core/enemy/foe_index.gd")
+
 var player: Player
 
 var _lock_lost := 0.0
@@ -22,7 +24,7 @@ func _nearest_foe() -> Enemy:
 	var best: Enemy = null
 	var bd := 14.0 * 14.0
 	var fwd := -player._visual.global_basis.z
-	for node in player.get_tree().get_nodes_in_group(Groups.ENEMY):
+	for node in FoeIndex.around(player.get_tree(), player.global_position, 14.0):     # (5 Hz: not the whole group)
 		var e := node as Enemy
 		if e == null or not e.is_alive():
 			continue

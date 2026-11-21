@@ -156,7 +156,13 @@ func _procession(p: Node3D) -> void:
 	to_summit.y = 0.0
 	var dir := to_summit.normalized() if to_summit.length() > 1.0 else Vector3.FORWARD
 	var route: Array[Vector3] = [_at - dir * 10.0, _at + dir * 25.0]
+	var at0 := _at
+	_need = 5
+	Events.toast.emit("Singing on the road. A procession of the hollowed, walking to the Stair.")
+	var _p := p
 	for i in 5:
+		if i > 0 and not await _next_frame(at0):
+			return
 		var e: Enemy = _make(Wretch if i % 2 == 0 else Husk)
 		e.set_meta(&"roam", kind)
 		get_parent().add_child(e)
@@ -165,14 +171,15 @@ func _procession(p: Node3D) -> void:
 		e.roam = true
 		e.patrol_speed = 1.1
 		_foes.append(e)
-	_need = 5
-	Events.toast.emit("Singing on the road. A procession of the hollowed, walking to the Stair.")
-	var _p := p
 
 
 func _incursion() -> void:
 	_need = 5
+	var at0 := _at
+	Events.toast.emit("The dark leans on a fire. Hollowed gather at the edge of its light.")
 	for i in 5:
+		if i > 0 and not await _next_frame(at0):
+			return
 		var a := TAU * float(i) / 5.0 + _rng.randf() * 0.4
 		var at := _at + Vector3(cos(a), 0.0, sin(a)) * 11.0
 		var e: Enemy = _make(Wretch if i % 2 == 0 else Spitter)
@@ -180,7 +187,13 @@ func _incursion() -> void:
 		get_parent().add_child(e)
 		e.global_position = _fair(at, 5.0) + Vector3.UP * 0.1
 		_foes.append(e)
-	Events.toast.emit("The dark leans on a fire. Hollowed gather at the edge of its light.")
+
+
+## The next frame, and whether the event that began at `at0` is still on: its five foes rise one a frame (five built in
+## one frame were 10-35 ms of scripts, beside a town or a fire).
+func _next_frame(at0: Vector3) -> bool:
+	await get_tree().process_frame
+	return is_inside_tree() and kind != "" and _at == at0
 
 
 func _tick_foes() -> void:

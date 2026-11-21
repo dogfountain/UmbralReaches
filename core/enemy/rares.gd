@@ -16,6 +16,7 @@ const Tiers := preload("res://core/life/encounters/tiers.gd")
 const Variants := preload("res://core/life/encounters/variants.gd")
 const PlacementLog := preload("res://core/world/realm/placement_log.gd")
 const SpawnRules := preload("res://core/life/encounters/spawn_rules.gd")
+const Staging := preload("res://core/life/encounters/staging.gd")
 const RealmLand := preload("res://core/world/realm/realm_land.gd")
 ## A rare's ground: the camps' rules (no pool, lip, slope or rock), but it may walk a way, and the Holds' edge
 ## is Old Rook's by design.
@@ -230,6 +231,7 @@ func _process(delta: float) -> void:
 	if p == null:
 		return
 	var now := Time.get_ticks_msec()
+	var built := false
 	for id: String in haunts:
 		var at: Vector3 = haunts[id]
 		var e := nodes.get(id) as Enemy if is_instance_valid(nodes.get(id)) else null
@@ -239,23 +241,34 @@ func _process(delta: float) -> void:
 			var due := now >= int(_dead_until.get(id, 0))
 			var lit := LightGrid.is_lit(at)
 			_show_marker(id, due and not lit)      # a lit haunt has no body, so no pin either
-			if due and d < NEAR and not lit:
+			# one a tick (a teleport built every rare in reach in one frame); the builder builds them ahead, unseen (staging.gd)
+			if due and not lit and not built and d < NEAR:
 				spawn_rare(id)
+				built = true
+			continue
+		if Staging.waits(e, d < NEAR):
 			continue
 		var de := p.global_position.distance_to(e.global_position)
 		if d > FAR and de > FAR:
-			e.queue_free()                         # back into the dark, whole
-			nodes.erase(id)
+			if not Staging.stand_down([e]):       # untouched: waiting again where it stands
+				e.queue_free()                     # back into the dark, whole
+				nodes.erase(id)
 		elif de > e.sleep_range:
 			e.sleep()
 		else:
 			e.wake()
 
 
+## Its respawn time has come (it is not lying dead).
+func due(id: String) -> bool:
+	return Time.get_ticks_msec() >= int(_dead_until.get(id, 0))
+
+
 func spawn_rare(id: String) -> Enemy:
 	if not RARES.has(id) or not haunts.has(id):
 		return null
 	if is_instance_valid(nodes.get(id)):
+		Staging.rise(nodes[id] as Enemy)          # (a direct call wants it up: the builder's waits unseen)
 		return nodes[id] as Enemy
 	var d: Dictionary = RARES[id]
 	var script: GDScript = _scripts.get(String(d.kind))
@@ -372,9 +385,11 @@ func _shimmer(e: Enemy) -> void:
 	l.omni_range = 3.2
 	l.shadow_enabled = false
 	l.position = Vector3.UP * e.hp_bar_y * 0.6
+	l.set_meta(Staging.HIDDEN, true)               # (a rare built ahead, asleep, shows neither until it rises)
 	e.add_child(l)
 	var fx := Vfx.emitter(Color(SILVER.r * 1.6, SILVER.g * 1.6, SILVER.b * 1.8), {"count": 14, "life": 1.4, "speed": Vector2(0.1, 0.5), "size": 0.035, "gravity": -0.5, "radius": 0.5, "turbulence": true})
 	fx.position = Vector3.UP * e.hp_bar_y * 0.5
+	fx.set_meta(Staging.HIDDEN, true)
 	e.add_child(fx)
 	fx.emitting = true
 

@@ -117,6 +117,7 @@ func _process(delta: float) -> void:
 	if _tick <= 0.0:
 		_tick = TickPhase.next(_tick, TICK)
 		_refresh()
+	_wake_one()
 	if _alarm_end > 0.0:
 		_alarm_end -= delta
 		if _alarm_end <= 0.0:
@@ -465,8 +466,21 @@ func _refresh() -> void:
 		if f.awake:
 			if d > SLEEP_R:
 				f.set_awake(false)
-		elif d < WAKE_R and not bool(f.held):
+		elif d < WAKE_R and not bool(f.held) and not _wake_q.has(f):
+			_wake_q.append(f)
+
+
+## One person woken a frame (_process): a town's dozen woke on one tick as the wanderer rode in, each shown (its rig's
+## nodes and meshes) and posed for the first time in that frame. A frame apart is unseen at 80 m.
+var _wake_q: Array = []
+
+
+func _wake_one() -> void:
+	while not _wake_q.is_empty():
+		var f: Variant = _wake_q.pop_front()
+		if is_instance_valid(f) and not bool(f.awake) and not bool(f.held):
 			f.set_awake(true)
+			return
 
 
 func _on_tide(active: bool) -> void:

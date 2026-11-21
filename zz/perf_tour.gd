@@ -40,6 +40,10 @@ extends Node
 ##   --loading                       run the real loading screen (build + shader warm-up) first
 ##   --moments / --psolog / --clean-quit   play moments (zz/perf_moments.gd); name each in-play compile (zz/pso_watch.gd);
 ##                                   quit like a player at the end (the engine saves its pipeline cache), not a kill
+##   --camps[=a,b] / --towns[=a,b]   the camps and villages run (zz/perf_camps.gd): each camp crossed at a sprint or a gallop
+##                                   with its foes awake, each town ridden into, looked round and left; frames over 16 ms named
+##   --defer-probe[ --defer-ms=8]    (with --hitches) name what ran in a slow frame's deferred flush: each redraw's _draw,
+##                                   each skeleton's update (zz/defer_probe.gd)
 ##   --early                         start measuring the moment the Realm is built (no 6 s settle):
 ##                                   shows what a player meets right after the load
 ## Frame time is the real frame delta (vsync off). "scripts" = every _process and _physics_process
@@ -97,6 +101,7 @@ var realm_points := [
 	["t_fallowmere", Vector3(-146.0, NAN, 300.0), 1.11],         # from the green to the tithe barn
 	["t_lastlight", Vector3(314.0, NAN, 64.0), -0.92],           # from the street over the yard, the inn and the tower
 	["t_ll_road", Vector3(266.0, NAN, 72.0), -1.27],             # the walls from the road
+	["t_hearthward", Vector3(-8.0, NAN, 46.0), -0.62],           # Hearthward's square: from the well over the green to the Keg
 	# the rest of the Far Reaches (docs/far_reaches.md, perf critique 16 Nov): 40 m out from each, toward Hearthward, facing it
 	["fr_greyfell", Vector3(-277.0, NAN, -88.0), 1.265],         # the Broken Keep on its crag
 	["fr_lanternwood", Vector3(-275.0, NAN, 8.0), 1.596],        # the ring of giant caps
@@ -320,7 +325,7 @@ func _unpause() -> void:
 ## is put to sleep for good (sleep_range below zero: every tick puts it to sleep, which it already is) and only its
 ## parts are hidden (the body, the bar, a rare's shimmer), so nothing toggles.
 func _quiet_enemies() -> void:
-	if "--with-enemies" in OS.get_cmdline_user_args():
+	if "--with-enemies" in OS.get_cmdline_user_args() or _camps_run:
 		return
 	for n in get_tree().get_nodes_in_group(Groups.ENEMY):
 		if not (n is Node3D):
@@ -493,6 +498,15 @@ func _process(d: float) -> void:
 		elif "--bosses" in OS.get_cmdline_user_args():
 			phase = "bosses"
 			_bosses_begin()
+		elif _camps_run:                                    # --camps / --towns (zz/perf_camps.gd)
+			phase = "camps"
+			_camps = _PerfCamps.new()
+			_camps.set("tour", self)
+			_camps.set("p", p)
+			_camps.set("main", main)
+			_camps.process_mode = Node.PROCESS_MODE_ALWAYS
+			add_child(_camps)
+			_camps.call("run")
 		elif blame:
 			phase = "blame"
 			points = [points[0]]
@@ -524,6 +538,12 @@ func _process(d: float) -> void:
 ## The window a frame belongs to (PsoWatch labels each compile with it).
 const _PsoWatch := preload("res://zz/pso_watch.gd")
 const _PerfMoments := preload("res://zz/perf_moments.gd")
+const _PerfCamps := preload("res://zz/perf_camps.gd")
+const _DeferProbe := preload("res://zz/defer_probe.gd")
+var _defer: Node
+var _defer_on := "--defer-probe" in OS.get_cmdline_user_args()
+var _camps: Node
+var _camps_run := Array(OS.get_cmdline_user_args()).any(func(a: String) -> bool: return a.begins_with("--camps") or a.begins_with("--towns"))
 var _psow: _PsoWatch
 var _moments: _PerfMoments
 
@@ -538,6 +558,8 @@ func where() -> String:
 			return "boss:%s%s" % [(_bs_arenas[_bs_i] as BossArena).boss_id if _bs_i >= 0 and _bs_i < _bs_arenas.size() and is_instance_valid(_bs_arenas[_bs_i]) else "?", " pull" if _bs_stage == 1 else ""]
 		"moments":
 			return "moments:" + (_moments.name_now if _moments != null and _moments.name_now != "" else "-")
+		"camps":
+			return "camps:" + (String(_camps.get("name_now")) if _camps != null else "-")
 	return "settle"
 
 
@@ -608,6 +630,12 @@ func _hitch_log(d: float) -> void:
 	var segs := ""
 	if _m_proc_end > 0 and _m_def >= _m_proc_end and _m_pre >= _m_def and _m_post >= _m_pre:
 		segs = " | def %.1f pre %.1f draw %.1f" % [(_m_def - _m_proc_end) / 1000.0, (_m_pre - _m_def) / 1000.0, (_m_post - _m_pre) / 1000.0]
+	if _defer == null and phase != "" and _defer_on:
+		_defer = _DeferProbe.new()                   # (zz/defer_probe.gd: who spends the deferred flush)
+		_defer.set("tour", self)
+		add_child(_defer)
+	if _defer != null and _m_proc_end > 0 and _m_def >= _m_proc_end:
+		_defer.call("frame", _m_proc_end, _m_def, t)
 	_m_proc_end = Time.get_ticks_usec()
 	_mark_def.call_deferred()
 	var res := int(Performance.get_monitor(Performance.OBJECT_RESOURCE_COUNT))
@@ -631,7 +659,7 @@ func _hitch_log(d: float) -> void:
 	_ev_mem = mem
 	if _ev_ring.size() > 4:
 		_ev_ring.pop_front()
-	if d * 1000.0 > hitch_ms and _hitch_n < 400:
+	if d * 1000.0 > hitch_ms and _hitch_n < (2000 if _camps_run else 400):     # (a camps run teleports two dozen times)
 		_hitch_n += 1
 		print("HITCH t %.2f s %s %.1f ms:" % [t, phase if phase != "" else "settle", d * 1000.0])
 		for e: Array in _ev_ring:
