@@ -27,6 +27,18 @@ They are placed by many systems:
 
 The terrain is also settled under some floors (`TERRAIN_SETTLE`).
 
+## Widened (Luke, 21 Nov): a full-map placement audit
+
+"not just that, the world is unpolished, so many map pieces just have objects randomly placed, like underneath arenas, the
+smoke going into the sky, is that even in a good spot?? audit the entire map". Add to the probe and the fixes:
+- objects where they make no sense: under or inside arenas, raid floors, buildings, bridges, stairs and cliffs; poking
+  through models; on roofs, under water, in the sky; in paths or doorways; without context (a lone crate, a lamp lighting
+  nothing, a sign facing a wall);
+- composition: camps, wayside spots, yards, ruins and lore sites read as designed scenes round a purpose, not scatter;
+- effects in the sky: the Hearthward plume (fire_plume.gd) and every plume, beacon, shaft and particle column. Each one
+  rises from a sensible source, clips nothing, and reads well at 60/150/300 m; move, resize or remove (and report);
+- the worst 60 spots shot before and after; a per-region verdict in the report.
+
 ## The job
 
 1. **Measure everything.** Write a realm-wide grounding probe.
