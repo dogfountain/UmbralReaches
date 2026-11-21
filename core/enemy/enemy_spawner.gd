@@ -210,7 +210,6 @@ const HIDE_R := 170.0              ## a sleeping pawn further than this is hidde
 var _camps: Array = []
 var _realm := false
 var _slots: Array[Dictionary] = []
-var _tick := 0.0
 var _scripts: Dictionary = {}
 static var _cap: CapsuleShape3D
 
@@ -552,39 +551,64 @@ func seal_guards() -> Array:
 	return out
 
 
+## The slots are looked at in turn, a share each frame (a whole pass every PASS seconds, as the half-second tick did), and
+## at most one pawn a frame is woken, put to sleep or shown: the tick looked at all ~400 slots on one frame and woke a
+## whole camp in it as the wanderer came within its range (each wake switches the processing of the pawn's ~70 nodes
+## and its meshes' ranges, and the next frame starts them all at once). A camp now wakes over a few frames at 46 m.
+const PASS := 0.5
+const SHOWS := 4
+var _cursor := 0
+
+
 func _process(delta: float) -> void:
 	if not _refill_q.is_empty():
 		_refill_step()
-	_tick += delta
-	if _tick < 0.5:
+	var n := _slots.size()
+	if n == 0:
 		return
-	_tick = 0.0
 	var player := _player()
-	for slot in _slots:
+	var share := mini(n, ceili(float(n) * minf(delta, 0.1) / PASS))
+	var switched := false                                  # a pawn woken or put to sleep this frame
+	var shown := 0                                         # pawns shown or hidden (cheaper: SHOWS a frame)
+	for _j in share:
+		if _cursor >= n:
+			_cursor = 0
+		var slot: Dictionary = _slots[_cursor]
 		var pawn: Variant = slot.pawn
 		if not is_instance_valid(pawn):
 			# freed (killed and dissolved): `pawn is Enemy` on a freed object is a script error
-			if slot.get("sealed_dead", false):
-				continue
-			if not slot.pending:
+			if not slot.get("sealed_dead", false) and not slot.pending:
 				_schedule(slot, _respawn_delay(slot))
+			_cursor += 1
 			continue
 		if player == null or not (pawn is Enemy):
+			_cursor += 1
 			continue
 		var enemy := pawn as Enemy
 		var d2 := player.global_position.distance_squared_to(enemy.global_position)
 		var reach := enemy.sleep_range
+		var awake := enemy.process_mode != Node.PROCESS_MODE_DISABLED
 		if d2 > reach * reach:
 			# far past its body's draw range it is not shown at all, so its skin stops at its first check each frame
 			# (the doubled Realm keeps a few hundred camp pawns asleep at any spot). Visibility flips only when it
 			# changes (sleep() shows it): asleep, hidden and far, it is left alone.
 			var far := d2 > HIDE_R * HIDE_R
-			if enemy.process_mode != Node.PROCESS_MODE_DISABLED or (not far and not enemy.visible):
+			var show := not far and not enemy.visible
+			var flip := show or (far and enemy.visible)
+			if (awake and switched) or (flip and shown >= SHOWS):
+				break                                   # this slot is the next frame's first
+			if awake or show:
 				enemy.sleep()
 			if far and enemy.visible:
 				enemy.visible = false
-		else:
+			switched = switched or awake
+			shown += 1 if flip else 0
+		elif not awake or not enemy.visible:
+			if switched:
+				break                                   # one wake a frame: this slot is the next frame's first
 			enemy.wake()
+			switched = true
+		_cursor += 1
 
 
 func _on_killed(enemy: Node) -> void:
