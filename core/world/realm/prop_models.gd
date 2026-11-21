@@ -7,6 +7,7 @@ extends RefCounted
 ## moves. Load by path (no class_name):
 ##   const PropModels := preload("res://core/world/realm/prop_models.gd")
 
+const GroundSeat := preload("res://core/world/realm/ground_seat.gd")
 const StoneProps := preload("res://core/world/realm/lore/stone_props.gd")
 const WestKit := preload("res://core/world/realm/west_marches_kit.gd")
 
@@ -34,6 +35,8 @@ static func kit_add(k: OssKit, key: String, file: String, xf: Transform3D, part:
 
 ## Add `part` of `file` (every part when "") at `xf` (world; the host stands at the origin like a kit's).
 func add(file: String, xf: Transform3D, part := "") -> void:
+	if part == "":
+		xf = GroundSeat.seat_file(GroundSeat.fast_fn(), file, xf, 0.5)      # r39: a whole model's footing on the ground (a part is placed by its builder, in a set)
 	var found := false
 	for p: Dictionary in (StoneProps.info(file).parts as Array):
 		if part != "" and String(p.name) != part:

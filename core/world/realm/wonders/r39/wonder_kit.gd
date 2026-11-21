@@ -9,6 +9,7 @@ extends RefCounted
 ## floors and the nav meshes include them). Nothing runs per frame. No class_name: load by path.
 ##   const WK := preload(wonder_kit.gd, in core/world/realm/wonders/ and its world-pass folder)
 
+const GroundSeat := preload("res://core/world/realm/ground_seat.gd")
 const Chest := preload("res://core/world/realm/loot_chest.gd")
 const Land := preload("res://core/world/realm/realm_land.gd")
 const Wayfinding := preload("res://core/world/realm/realm_wayfinding.gd")
@@ -820,13 +821,22 @@ func prop(file: String, at: Vector3, yaw: float, size: float, by_height := false
 		return
 	var sc := size / ext
 	var foot := Vector3(bx.get_center().x, bx.position.y, bx.get_center().z)
-	_prec.append([file, Transform3D(Basis(Vector3.UP, yaw).scaled(Vector3(sc, sc, sc)), at) * Transform3D(Basis.IDENTITY, -foot)])
+	var pxf := Transform3D(Basis(Vector3.UP, yaw).scaled(Vector3(sc, sc, sc)), at) * Transform3D(Basis.IDENTITY, -foot)
+	_prec.append([file, _seat(file, pxf)])      # r39: the footing on the ground, not one sample of it
 
 
 ## A modelled prop (art/models/props/<file>.glb) at `xf` as it was authored (no fit to a size): the regions' signature props,
 ## modelled to the kit's own measures (tools/blender/signature_props.py), so they stand where the kit's colliders do.
 func prop_xf(file: String, xf: Transform3D) -> void:
-	_prec.append([file, xf])
+	_prec.append([file, _seat(file, xf)])
+
+
+## A modelled prop's transform with its footing on the ground (r39 grounding): never lowered more than a slope's worth.
+func _seat(file: String, xf: Transform3D) -> Transform3D:
+	var meshes: Array = []
+	for pd: Dictionary in Props.parts(file):
+		meshes.append(pd.mesh)
+	return GroundSeat.seat_pts(GroundSeat.fast_fn(), GroundSeat.parts_points("wk:" + file, meshes), xf, 0.45)
 
 
 func _commit_props() -> int:
