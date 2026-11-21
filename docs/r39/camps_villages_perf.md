@@ -14,7 +14,11 @@ with the branch at the end. Every fix below is built from the code and those log
 - [x] harness: `zz/perf_camps.gd` (`--camps`, `--towns`), the `t_hearthward` view
 - [x] fixes built (below)
 - [x] parse check (headless: every changed script loads), `tools/lint.sh` clean
-- [ ] one measurement set at the end: master + harness, then the branch (camp passes, town rides, town views)
+- [x] one measurement set at the end (`<S>/meas/`): master's game code with the branch's harness, then the branch, back to back,
+      the same HOME and a copy of Luke's save: camp passes and town rides (`--loading --camps --towns --hitches=16 --probe
+      --probe-ms=6`), then the town views (`--loading --points-only`, plain); master's code put back in the clone's working tree
+      for the before runs (`<S>/code.sh`), the harness (zz/) the branch's in both
+- [x] after the set: the staged escorts budgeted (the set showed the load 3.8 s longer); not re-measured
 - [ ] tests: not run here (the lead runs the one suite after merging)
 
 ## Harness
@@ -78,10 +82,117 @@ with the branch at the end. Every fix below is built from the code and those log
       awake foes and the resting ones near; the waiting foes are kept out of Groups.ENEMY (staging.gd), so the ~130 built
       ahead add nothing to any scan
 
-## Before / after
+## Before / after (21 Nov, 16:20-16:51; `<S>/meas/before_camps.log`, `after_camps.log`, `before_points.log`, `after_points.log`)
 
-(filled after the one measurement set)
+### Camp passes and town rides (each window: worst frame, frames over 16 ms, fps, 1% low)
+
+| window | worst ms | frames over 16 ms | fps | 1% low |
+|---|---|---|---|---|
+| thornwood_warband pass | 59.7 -> 73.3 | 120 -> 186 | 110 -> 92 | 20 -> 15 |
+| east_way pass | 51.5 -> 54.8 | 53 -> 29 | 106 -> 96 | 27 -> 33 |
+| barrow_field pass | 51.9 -> 53.7 | 44 -> 64 | 112 -> 97 | 30 -> 22 |
+| quarry_benches pass | 61.3 -> 57.4 | 62 -> 59 | 128 -> 138 | 28 -> 28 |
+| founders_pits pass | 56.4 -> 54.4 | 165 -> 30 | 95 -> 112 | 19 -> 31 |
+| orchard_nest pass | 63.2 -> 61.2 | 147 -> 151 | 82 -> 86 | 18 -> 18 |
+| waiting_graves pass | 24.3 -> 51.9 | 25 -> 24 | 99 -> 102 | 61 -> 49 |
+| mere_east pass | 21.4 -> 50.4 | 2 -> 11 | 110 -> 99 | 73 -> 58 |
+| siege_lines pass | 42.1 -> 51.8 | 13 -> 27 | 131 -> 119 | 65 -> 47 |
+| white_pans pass | 15.4 -> 25.2 | 0 -> 9 | 134 -> 116 | 84 -> 65 |
+| keeps_gate pass | 13.6 -> 18.3 | 0 -> 2 | 141 -> 133 | 87 -> 82 |
+| stone_row pass | 15.0 -> 23.3 | 0 -> 4 | 140 -> 133 | 89 -> 79 |
+| elite_hobb pass | 28.2 -> 27.8 | 2 -> 4 | 108 -> 97 | 68 -> 64 |
+| elite_old_sunk pass | 18.3 -> 22.8 | 5 -> 14 | 102 -> 98 | 66 -> 60 |
+| downs_patrol pass | 16.3 -> 20.4 | 1 -> 3 | 118 -> 112 | 72 -> 66 |
+| arches_valley pass | 11.9 -> 13.6 | 0 -> 0 | 142 -> 156 | 95 -> 93 |
+| moor_north pass | 15.6 -> 23.1 | 0 -> 4 | 111 -> 103 | 69 -> 66 |
+| ford_road pass | 16.6 -> 21.7 | 1 -> 3 | 139 -> 128 | 84 -> 81 |
+| hearthward in | 33.9 -> 22.7 | 13 -> 13 | 90 -> 89 | 54 -> 55 |
+| hearthward turn | 18.0 -> 20.0 | 8 -> 5 | 87 -> 88 | 58 -> 57 |
+| hearthward out | 14.9 -> 14.8 | 0 -> 0 | 120 -> 101 | 77 -> 74 |
+| weirford in | 14.6 -> 21.1 | 0 -> 3 | 108 -> 101 | 75 -> 66 |
+| weirford turn | 13.6 -> 20.0 | 0 -> 1 | 103 -> 103 | 77 -> 66 |
+| weirford out | 11.4 -> 20.1 | 0 -> 3 | 140 -> 122 | 92 -> 72 |
+| saltmarket in | 15.2 -> 23.4 | 0 -> 5 | 110 -> 98 | 74 -> 62 |
+| saltmarket turn | 13.6 -> 13.2 | 0 -> 0 | 99 -> 101 | 75 -> 81 |
+| saltmarket out | 13.1 -> 21.5 | 0 -> 3 | 134 -> 114 | 86 -> 75 |
+| lastlight in | 12.6 -> 23.2 | 0 -> 2 | 132 -> 120 | 85 -> 76 |
+| lastlight turn | 13.2 -> 20.4 | 0 -> 1 | 110 -> 112 | 78 -> 72 |
+| lastlight out | 10.9 -> 14.0 | 0 -> 0 | 145 -> 168 | 108 -> 102 |
+| fallowmere in | 12.3 -> 24.8 | 0 -> 3 | 139 -> 130 | 92 -> 78 |
+| fallowmere turn | 12.0 -> 19.6 | 0 -> 2 | 122 -> 119 | 86 -> 71 |
+| fallowmere out | 10.5 -> 12.7 | 0 -> 0 | 142 -> 130 | 98 -> 95 |
+| reedholm in | 13.0 -> 20.2 | 0 -> 1 | 142 -> 129 | 96 -> 82 |
+| reedholm turn | 12.0 -> 12.9 | 0 -> 0 | 125 -> 123 | 88 -> 84 |
+| reedholm out | 10.7 -> 15.9 | 0 -> 0 | 145 -> 173 | 105 -> 96 |
+before: windows 36, worst 63.2 ms, frames over 16 ms 661 (passes 640, towns 21), nudges 99
+after: windows 36, worst 73.3 ms, frames over 16 ms 666 (passes 624, towns 42), nudges 100
+
+Read with care: one run each, the before first; the tour's `--probe` (a stamp node per subtree) and `--hitches` add ~1 ms of
+scripts to every frame of both; the camp passes start where the land lets a sprint through (`nudges`: a run stuck on a rock
+was carried 5 m on, ~100 in each run).
+
+**What the slow frames were** (camp passes; each frame over 16 ms by its own record):
+
+| cause | before | after |
+|---|---|---|
+| a foe built in the frame (a guardian, an elite, a rare, their escort) | 10 (+170, +64, +53 nodes ...) | 3 (respawns, a summon) |
+| scripts over 9 ms | 28 | 21 |
+| the deferred flush over 15 ms (one frame of 35-70 ms, often in pairs two frames apart) | 147 | 201 |
+| the draw over 10 ms with ~2 ms of render CPU (the GPU or the drawable) | 17 | 90 |
+| pipeline compile | 2 | 3 |
+| 16-30 ms with no single cause (scripts 4-9, flush 5-8, draw 4-8 in a fight) | 485 | 360 |
+
+- **The builds on approach are gone**: the guardians, escorts, elites and rares were built in the frame the wanderer came
+  within 55, 72 or 95 m (the orchard nest's +170 and +53 nodes, the elite haunts); now they stand asleep from the load and only
+  wake. The founders' pits pass (the Bell-Founder and his cinder casters): 165 -> 30 frames over 16 ms, fps 95 -> 112.
+  Staging built 59-60 a run, ~1,200 more nodes asleep (55,030 -> 58,978 at the end of the camps run), none in any foe scan.
+- **The biggest cost left is the deferred flush**: one frame of 35-70 ms of the flush (the canvas redraws, the Containers'
+  layout passes, every posed skeleton's update and every call_deferred, between the last _process and the draw), in both
+  runs, two frames apart, wherever the run fought or ran past interactables and new ground (the warband by the
+  Thornwarden's arena, the east way, the barrows, the quarry, the pits, the orchard nest), and in the fights' other frames
+  5-8 ms of it. The probe names scripts by subtree, not the flush; `--defer-probe` (zz/defer_probe.gd: every redraw, layout
+  pass and skeleton update stamped) was built for it but not run (Luke: one measurement set). The HITCH records round these
+  frames list UI built (VBoxContainer Labels and Buttons, key caps of the prompts) and Cue_hurt_body / Cue_landmark_inked /
+  Cue_ui_chronicle cues; the unit frames' baked layers re-bake every due frame while the Gloom or Breath or a portrait pop
+  changes (their signature carries raw Gloom). Suspects, in order: a baked HUD layer's bake (`ui/hud_bake.gd`: the
+  SubViewport is resized and its oversampling set on every bake), the prompts' and chronicle's Controls rebuilt in
+  Containers, combat text's font size animated per frame (`ui/combat_text.gd` punch: a new font size each frame).
+- **More single GPU-side frames in the after run** (draw 13-20 ms with ~2 ms of render CPU), mostly in the quiet passes and
+  the towns (the town rides 21 -> 42 frames over 16 ms, worst 33.9 -> 24.8 ms): not attributed. The after run came second,
+  straight after the before run; the staged foes in view add a few draws (the town views' draws are equal).
+
+### Town views (plain, `--loading --points-only`, 4 s at each)
+
+| view | fps | 1% low | worst ms | scripts ms | render-cpu ms | rest(gpu) ms | draws |
+|---|---|---|---|---|---|---|---|
+| r_spawn_west | 102.5 -> 102.0 | 75.5 -> 69.3 | 13.8 -> 22.0 | 2.71 -> 2.83 | 2.73 -> 2.72 | 4.32 -> 4.25 | 2159 -> 2160 |
+| r_orchard_save | 104.6 -> 100.6 | 64.0 -> 56.5 | 19.8 -> 20.0 | 2.37 -> 2.52 | 2.53 -> 2.62 | 4.66 -> 4.80 | 1976 -> 1980 |
+| t_reedholm | 110.2 -> 118.0 | 83.8 -> 62.5 | 12.7 -> 20.7 | 2.30 -> 2.19 | 2.45 -> 2.26 | 4.32 -> 4.02 | 1973 -> 1979 |
+| t_fallowmere | 133.5 -> 138.9 | 85.4 -> 92.5 | 16.4 -> 15.5 | 2.08 -> 2.04 | 1.92 -> 1.87 | 3.50 -> 3.29 | 1514 -> 1514 |
+| t_lastlight | 163.2 -> 163.1 | 103.9 -> 100.6 | 13.0 -> 13.5 | 1.73 -> 1.73 | 1.55 -> 1.54 | 2.85 -> 2.85 | 925 -> 924 |
+| t_ll_road | 134.4 -> 135.4 | 97.6 -> 94.1 | 10.6 -> 13.0 | 1.81 -> 1.87 | 1.67 -> 1.68 | 3.95 -> 3.84 | 1204 -> 1204 |
+| t_hearthward | 122.4 -> 119.1 | 96.7 -> 86.2 | 10.6 -> 15.1 | 2.17 -> 2.22 | 2.19 -> 2.23 | 3.81 -> 3.95 | 1845 -> 1856 |
+
+Within one run's spread (the fps pass: ~5 % fps, a 1% low is ~5 frames). The views stand still: what changed for them (the
+phase change spread, the folk woken one a frame, the walking network's kept floors, the far villagers stepped from the village)
+is in moving and over minutes, not in a 4 s stand. Against `docs/r39/fps_pass.md`'s re-measure, master itself reads lower today
+(t_reedholm 129.3 -> 110.2 fps on the same code path: the restored props, the abbey, the mound, the final seat since).
+
+### Load
+
+The cover lifted 3.8 s later (27.4 -> 31.2 s to play, the warm runs): the settle phase 1.5 -> 3.1 s and the warm tour
+2.6 -> 4.8 s, the staged guardians' escorts built by their coroutine several a frame under the cover (outside the pass's
+5 ms budget), beside the audio prefetch. Fixed after the set (1dc5af8a: the pass builds each escort itself, one a call,
+inside its budget); not re-measured.
 
 ## Not done, and why
 
-(filled at the end)
+- **The deferred-flush stall** (above): the largest hitch near camps, not named; `--defer-probe` is ready
+  (`zz/perf_tour.tscn -- --loading --camps=thornwood_warband,founders_pits,orchard_nest --hitches=16 --defer-probe`).
+- **The town views' targets** (1% low 100, average 130): not met at r_spawn_west (102 fps, 69), r_orchard_save (101, 57),
+  t_hearthward (119, 86), t_reedholm (118, 63); met at t_lastlight, nearly at t_fallowmere and t_ll_road. Their frames are
+  scripts 2.2-2.8 + render CPU 2.2-2.7 + GPU 3.8-4.8 ms; no change here moved those (merging town props, a cheaper crowd pose
+  and a light cap per view were not built: the fps pass's merge already holds the towns to a dozen draws each, the crowds pose
+  at distance rates already, the light budget already caps the local lights).
+- **Respawns and ambushes** still build their foe in the frame they rise (one a frame since the fps pass): 1.4-7 ms warm.
+- **The GPU-side single frames** of the after run: not attributed (an A/B with staging off is the next check).
