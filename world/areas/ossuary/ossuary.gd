@@ -622,23 +622,9 @@ func _pit(k: OssKit) -> void:
 		k.candle_cluster(p + Vector3(0, 1.6, 0), 6, 0.6, _rng)
 	# the charnel mound (the court's heart; it was a 2 m heap on a 22 m floor): a stepped drum of skulls 5 m across and 2 m
 	# high on a core of rock, a crown of upright long bones, a ring of candles. Solid: the court is walked round it.
-	for tier in 6:
-		var r := 2.5 - 0.4 * float(tier)
-		var ty := 0.3 * float(tier)
-		for j in 12:                                  # the core: twelve slabs from the middle out, a round drum (squares put corners through the skulls)
-			var ca := TAU * float(j) / 12.0
-			var len := r - 0.15
-			k.box("bone", c + Vector3(cos(ca) * len * 0.5, ty + 0.17, sin(ca) * len * 0.5), Vector3(len, 0.34, len * 0.56), Basis(Vector3.UP, -ca), false, 0.8)
-		var cnt := maxi(3, int(TAU * r / 0.21))
-		for i in cnt:
-			var a := TAU * float(i) / float(cnt) + float(tier) * 0.3
-			# laid straight into the kit's skulls: the clipping test (skull()) rejected every one of them (the mound stands on the court's lanes)
-			(k.skulls[tier % 2] as Array).append(Transform3D(Basis(Vector3.UP, -a + PI * 0.5) * Basis(Vector3.RIGHT, -0.15).scaled(Vector3.ONE * 1.05), c + Vector3(cos(a) * r, 0.02 + ty, sin(a) * r)))
+	OssAbbey.mound(k, c)                       # Blender: oss_abbey.py OssMound (the kit's prop skulls did not draw out here)
 	k.collider(c + Vector3(0, 0.95, 0), Vector3(4.7, 1.9, 4.7))
 	k.collider(c + Vector3(0, 0.95, 0), Vector3(4.7, 1.9, 4.7), Basis(Vector3.UP, PI * 0.25))
-	for i in 14:
-		var a := TAU * float(i) / 14.0
-		k.bone(c + Vector3(cos(a) * 0.22, 1.75, sin(a) * 0.22), Basis(Vector3.UP, -a) * Basis(Vector3.RIGHT, -1.25 + 0.1 * float(i % 3)) * Basis.from_scale(Vector3.ONE * 2.0), 0, false)
 	for i in 16:
 		var a := TAU * float(i) / 16.0 + 0.1
 		k.candle_cluster(c + Vector3(cos(a), 0, sin(a)) * 3.3, _rng.randi_range(3, 6), 0.22, _rng)

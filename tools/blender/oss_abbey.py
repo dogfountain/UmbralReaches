@@ -645,6 +645,33 @@ def build_bridge(m, objs):
     objs.append(ob)
     DATA["BRIDGE"] = {"l": BR_L, "w": BR_W, "d": BR_D}
 
+
+# =================================================================================================
+# the charnel mound of the pit court: a stepped drum of skulls and a crown of long bones
+# =================================================================================================
+
+def build_mound(m, objs):
+    mt = {"rubble": m["rubble"], "bone": m["bone"], "dark": m["dark"]}
+    b = B("OssMound", mt)
+    for t in range(6):
+        r = 2.5 - 0.4 * t
+        y = 0.3 * t
+        lathe(b, [(r - 0.08, y), (r - 0.08, y + 0.34)], "rubble", 16, 0.0, 3.2, cap_top=True)
+        cnt = max(6, int(math.tau * r / 0.2))
+        for i in range(cnt):
+            a = math.tau * i / cnt + t * 0.3
+            out = (math.cos(a), 0.0, math.sin(a))
+            OG.skull(b, (math.cos(a) * (r - 0.02), y + 0.19, math.sin(a) * (r - 0.02)), out, (0, 1, 0), s=1.3)
+    # the crown: upright long bones leaning in
+    for i in range(14):
+        a = math.tau * i / 14
+        base = (math.cos(a) * 0.25, 1.82, math.sin(a) * 0.25)
+        tip = (math.cos(a) * (0.55 + 0.1 * (i % 3)), 3.6 + 0.12 * (i % 4), math.sin(a) * (0.55 + 0.1 * (i % 3)))
+        b.tube(base, tip, 0.05, 0.03, "bone", sides=5, bark=0.6)
+        b.box(tip, (0.12, 0.1, 0.12), "bone", jit=0.01, seed=i)
+    ob = b.finish()
+    objs.append(ob)
+
 # =================================================================================================
 # main
 # =================================================================================================
@@ -681,6 +708,7 @@ def main():
     build_tower(m, objs)
     build_pier(m, objs)
     build_bridge(m, objs)
+    build_mound(m, objs)
     L.export(os.path.join(L.MODEL_DIR, "oss_abbey.glb"), objs)
     write_data()
     if PREVIEW:
@@ -717,6 +745,11 @@ def main():
             if o.name == "OssBridgeSpan":
                 o.location = G((0, 0, 0))
         L.preview(os.path.join(PREVIEW, "bridge.png"), objs, look_at=(0, -1, 0), dist=13.0, views=((200, 0.15), (235, 0.2), (160, -0.15)), res=(1200, 800), lens=35)
+        show(["OssMound"])
+        for o in objs:
+            if o.name == "OssMound":
+                o.location = G((0, 0, 0))
+        L.preview(os.path.join(PREVIEW, "mound.png"), objs, look_at=(0, 1.6, 0), dist=9.0, views=((200, 0.2), (240, 0.35)), res=(1000, 800), lens=35)
         show(["AbbeyGable", "AbbeyTurret"])
         for o in objs:
             if o.name == "AbbeyGable":

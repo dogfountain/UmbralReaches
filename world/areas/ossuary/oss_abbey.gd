@@ -44,6 +44,13 @@ static func part(nm: String) -> ArrayMesh:
 	return Kit.parts(GLB).get(nm) as ArrayMesh
 
 
+## The charnel mound of the pit court (oss_abbey.py OssMound: the stepped skull drum and its crown of long bones) at `at`.
+static func mound(k: OssKit, at: Vector3) -> void:
+	var m := part("OssMound")
+	if m != null:
+		k.append_modelled(m, Transform3D(Basis.IDENTITY, at))
+
+
 ## The Order's pier (oss_abbey.py OssPier*): a footing at `base`, a shaft of 4 m lengths (the last stretched to fit) and a
 ## capital whose top is at `top`, `w` wide (modelled 2 m). Appended to the kit's stone, so it takes the tiers' own material.
 static func pier(k: OssKit, base: Vector3, top: float, w: float) -> void:
