@@ -266,6 +266,38 @@ func _stair_down(k: OssKit, lo: Vector3, hi: Vector3) -> void:
 		k.lantern(b + side * (s * 0.3) + Vector3.UP * 0.05 + dir * 0.25, Vector3(0.26, 0.4, 0.26))
 
 
+# --- the Lower Count's bone bridge plates and ribs (oss_deep.gd builds its span from them) ---------
+
+static var _plate: ArrayMesh
+static var _ribs: Array[ArrayMesh] = []
+static var _great_rib: ArrayMesh
+
+
+## One fused vertebral plate of the bridge deck: crown flush with the walking surface (y 0),
+## a keel underneath, transverse bulges at the rails.
+static func _plate_mesh() -> ArrayMesh:
+	if _plate == null:
+		var cm := CreatureMesh.new(301)
+		cm.blob(Vector3(0, -0.19, 0), Vector3(0.31, 0.19, 1.52), Basis.IDENTITY, Color.WHITE, 0.25, 0.05, 0.0, 6, 12)
+		cm.blob(Vector3(0, -0.5, 0), Vector3(0.2, 0.28, 0.42), Basis.IDENTITY, Color(0.9, 0.86, 0.8), 0.3, 0.07, 0.0, 5, 8)
+		for s: float in [-1.0, 1.0]:
+			cm.blob(Vector3(0, -0.2, s * 1.32), Vector3(0.24, 0.17, 0.32), Basis.IDENTITY, Color.WHITE, 0.3, 0.06, 0.0, 4, 8)
+			cm.blob(Vector3(0, -0.3, s * 0.7), Vector3(0.12, 0.08, 0.5), Basis.IDENTITY, Color(0.85, 0.8, 0.74), 0.2, 0.05, 0.0, 3, 6)
+		_plate = cm.commit()
+	return _plate
+
+
+## Rail rib, rising from the deck edge, bowing outward (+z for side 1) and hooking back in.
+static func _rib_mesh(side: int) -> ArrayMesh:
+	if _ribs.is_empty():
+		for sd: float in [-1.0, 1.0]:
+			var cm := CreatureMesh.new(310 + int(sd))
+			cm.tube(PackedVector3Array([Vector3(0, -0.15, 0), Vector3(0, 0.3, sd * 0.16), Vector3(0, 0.75, sd * 0.22), Vector3(0, 1.08, sd * 0.08), Vector3(0, 1.2, -sd * 0.1)]),
+				PackedFloat32Array([0.085, 0.07, 0.055, 0.04, 0.025]), 7, Color.WHITE, 0.4, 0.05, 0.0, Vector2(1.0, 0.7))
+			_ribs.append(cm.commit())
+	return _ribs[0 if side < 0 else 1]
+
+
 # --- the Pilgrims' Bridge -----------------------------------------------------------------
 
 ## The Pilgrims' Bridge (it replaced the bone bridge, Luke 21 Nov): four spans of pointed arches in the abbey's masonry from the
