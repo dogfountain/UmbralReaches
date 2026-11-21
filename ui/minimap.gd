@@ -21,6 +21,12 @@ extends Control
 ## moon on the rim where it hangs, and a clock under the dial if the night ever keeps one.
 ## Added by ui/hud.gd (one line). Hidden while paused, under the loading screen, and off the Realm.
 
+const TickPhase := preload("res://core/util/tick_phase.gd")
+const HudBake := preload("res://ui/hud_bake.gd")
+const BEZEL_PAD := 16.0                  ## the bezel's reach past the dial (its widest ring: r + 14.5)
+## The place's plate over the dial and the range tab under it, baked: their box round the dial (a long name and the gear
+## hint run wider than the dial)
+const LABELS_PAD := Rect2(-260.0, -112.0, 300.0, 156.0)   ## (position, and what it adds to the dial's size)
 const LANTERN := Color("#FFB347")
 const EMBER := Color("#FF6A2A")
 const INK := Color(0.93, 0.88, 0.8)
@@ -69,6 +75,8 @@ void fragment() {
 var _font: Font
 var _body: Font
 var _ground: ColorRect
+var _bezel: HudBake                      ## the bezel, baked (_draw_bezel)
+var _labels: HudBake                     ## the place's plate and the range tab, baked (_draw_labels)
 var _mat: ShaderMaterial
 var _tex: ImageTexture
 var _task := -1
@@ -96,6 +104,7 @@ var _seeded := false                     ## the first scan's markers were alread
 
 
 func _ready() -> void:
+	_scan = TickPhase.first(self, 0.5)
 	name = "Minimap"
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
@@ -121,6 +130,16 @@ func _ready() -> void:
 	_ground.material = _mat
 	_ground.show_behind_parent = true
 	add_child(_ground)
+	# the brass bezel never changes: drawn once into a texture, one draw call (it was 17: each arc and stud is its own)
+	_bezel = HudBake.new()
+	_bezel.name = "Bezel"
+	_bezel.art = _draw_bezel
+	_bezel.show_behind_parent = true
+	add_child(_bezel)
+	_labels = HudBake.new()
+	_labels.name = "Labels"
+	_labels.art = _draw_labels
+	add_child(_labels)
 	modulate.a = 0.0
 
 
@@ -165,7 +184,7 @@ func _process(delta: float) -> void:
 	# half second while something moving is marked (foes), and only as a slow backstop otherwise
 	_scan -= delta
 	if _scan <= 0.0:
-		_scan = 0.5 if _moving_marks else 4.0
+		_scan = TickPhase.next(_scan, 0.5) if _moving_marks else 4.0
 		_rescan()
 		_dirty = true
 	var young := false
@@ -321,25 +340,9 @@ func _draw() -> void:
 		return
 	var c := size * 0.5
 	var r := DIAM * 0.5
-	# the frame: a brass astrolabe bezel, engraved with degree ticks, a lit edge and four studs
-	draw_arc(c, r + 6.0, 0.0, TAU, 96, Color(0, 0, 0, 0.35), 17.0, true)
-	draw_arc(c, r + 5.5, 0.0, TAU, 96, Color(0.03, 0.02, 0.012, 0.98), 15.0, true)
-	draw_arc(c, r + 5.5, 0.0, TAU, 96, Color(0.5, 0.35, 0.16), 12.0, true)
-	draw_arc(c, r + 3.0, 0.0, TAU, 96, Color(0.36, 0.25, 0.11), 3.0, true)
-	draw_arc(c, r + 1.2, PI * 0.95, PI * 1.9, 40, Color(0.95, 0.76, 0.42, 0.95), 1.8, true)
-	draw_arc(c, r + 10.0, PI * 0.95, PI * 1.9, 40, Color(0.86, 0.66, 0.34, 0.7), 1.2, true)
-	draw_arc(c, r + 10.0, PI * 0.1, PI * 0.9, 40, Color(0.2, 0.12, 0.05, 0.9), 1.4, true)
-	for k in 72:
-		var ta := TAU * float(k) / 72.0
-		var td := Vector2(cos(ta), sin(ta))
-		var tl := 5.0 if k % 6 == 0 else 2.5
-		draw_line(c + td * (r + 9.0 - tl), c + td * (r + 9.0), Color(0.12, 0.07, 0.03, 0.9), 1.0)
-	draw_arc(c, r - 0.5, 0.0, TAU, 96, Color(0.03, 0.02, 0.01, 0.95), 2.0, true)
-	for k in 4:
-		var sa := TAU * float(k) / 4.0 + PI * 0.25
-		var sp := c + Vector2(cos(sa), sin(sa)) * (r + 5.5)
-		draw_circle(sp, 3.6, Color(0.04, 0.028, 0.015))
-		draw_circle(sp, 2.5, Color(0.95, 0.78, 0.45))
+	_bezel.position = Vector2(-BEZEL_PAD, -BEZEL_PAD)
+	_bezel.size = size + Vector2(BEZEL_PAD, BEZEL_PAD) * 2.0
+	_bezel.refresh(size)
 	# north on the rim
 	var n := _place(_you + Vector3(0, 0, -100000.0), r + 1.0)
 	var np := c + Vector2(n.x, n.y)
@@ -407,20 +410,55 @@ func _draw() -> void:
 	draw_colored_polygon(arrow, Color(0.06, 0.045, 0.04))
 	var inner := PackedVector2Array([c + f * 7.0, c - f * 4.5 + s * 4.8, c - f * 2.0, c - f * 4.5 - s * 4.8])
 	draw_colored_polygon(inner, Color(0.95, 0.9, 0.78))
-	# range under the dial (and the clock, when the night keeps one), on a small tab
+	_draw_moon(c, r)
+	_labels.position = LABELS_PAD.position
+	_labels.size = size + LABELS_PAD.size
+	_labels.refresh([_region, _tier, _gear, _tier_i, _range_i, _clock, size])
+
+
+## The range tab under the dial (and the clock, when the night keeps one) and the place's plate over it: on the
+## labels' baked texture, whose box starts at LABELS_PAD.position.
+func _draw_labels(ci: CanvasItem) -> void:
+	ci.draw_set_transform(-LABELS_PAD.position)
+	var c := size * 0.5
+	var r := DIAM * 0.5
 	if _font:
 		var t := "%d m" % int(RANGES[_range_i])
 		if _clock != "":
 			t = _clock + "   ·   " + t
 		var w := _font.get_string_size(t, HORIZONTAL_ALIGNMENT_LEFT, -1, 14).x
-		Forge.tab(self, Rect2(c.x - w * 0.5 - 8.0, size.y + 14.0, w + 16.0, 22.0))
-		draw_string(_font, Vector2(c.x - w * 0.5, size.y + 30.0), t, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(INK, 0.85))
-	_draw_moon(c, r)
-	_draw_place(c, r)
+		Forge.tab(ci, Rect2(c.x - w * 0.5 - 8.0, size.y + 14.0, w + 16.0, 22.0))
+		ci.draw_string(_font, Vector2(c.x - w * 0.5, size.y + 30.0), t, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(INK, 0.85))
+	_draw_place(ci, c, r)
+
+
+## The frame: a brass astrolabe bezel, engraved with degree ticks, a lit edge and four studs. Drawn on the bezel's
+## baked texture (ui/hud_bake.gd), whose box starts BEZEL_PAD before the dial's.
+func _draw_bezel(ci: CanvasItem) -> void:
+	var c := size * 0.5 + Vector2(BEZEL_PAD, BEZEL_PAD)
+	var r := DIAM * 0.5
+	ci.draw_arc(c, r + 6.0, 0.0, TAU, 96, Color(0, 0, 0, 0.35), 17.0, true)
+	ci.draw_arc(c, r + 5.5, 0.0, TAU, 96, Color(0.03, 0.02, 0.012, 0.98), 15.0, true)
+	ci.draw_arc(c, r + 5.5, 0.0, TAU, 96, Color(0.5, 0.35, 0.16), 12.0, true)
+	ci.draw_arc(c, r + 3.0, 0.0, TAU, 96, Color(0.36, 0.25, 0.11), 3.0, true)
+	ci.draw_arc(c, r + 1.2, PI * 0.95, PI * 1.9, 40, Color(0.95, 0.76, 0.42, 0.95), 1.8, true)
+	ci.draw_arc(c, r + 10.0, PI * 0.95, PI * 1.9, 40, Color(0.86, 0.66, 0.34, 0.7), 1.2, true)
+	ci.draw_arc(c, r + 10.0, PI * 0.1, PI * 0.9, 40, Color(0.2, 0.12, 0.05, 0.9), 1.4, true)
+	for k in 72:
+		var ta := TAU * float(k) / 72.0
+		var td := Vector2(cos(ta), sin(ta))
+		var tl := 5.0 if k % 6 == 0 else 2.5
+		ci.draw_line(c + td * (r + 9.0 - tl), c + td * (r + 9.0), Color(0.12, 0.07, 0.03, 0.9), 1.0)
+	ci.draw_arc(c, r - 0.5, 0.0, TAU, 96, Color(0.03, 0.02, 0.01, 0.95), 2.0, true)
+	for k in 4:
+		var sa := TAU * float(k) / 4.0 + PI * 0.25
+		var sp := c + Vector2(cos(sa), sin(sa)) * (r + 5.5)
+		ci.draw_circle(sp, 3.6, Color(0.04, 0.028, 0.015))
+		ci.draw_circle(sp, 2.5, Color(0.95, 0.78, 0.45))
 
 
 ## r33: the place's name on an engraved scroll over the dial (WoW's zone text), the tier under it.
-func _draw_place(c: Vector2, r: float) -> void:
+func _draw_place(ci: CanvasItem, c: Vector2, r: float) -> void:
 	if _region == "" or _font == null:
 		return
 	var pt := 19
@@ -428,18 +466,18 @@ func _draw_place(c: Vector2, r: float) -> void:
 	var sw := maxf(w + 64.0, 190.0)
 	var top := c.y - r - 72.0
 	var plate := Rect2(Vector2(c.x - sw * 0.5, top), Vector2(sw, 32))
-	Forge.strip(self, plate, 1.0, 16.0, 0.92)
+	Forge.strip(ci, plate, 1.0, 16.0, 0.92)
 	var col: Color = Danger.color(_tier_i)
-	Forge.label(self, _font, Vector2(plate.position.x, top + 23.0), _region, pt, col, HORIZONTAL_ALIGNMENT_CENTER, sw, 3)
+	Forge.label(ci, _font, Vector2(plate.position.x, top + 23.0), _region, pt, col, HORIZONTAL_ALIGNMENT_CENTER, sw, 3)
 	if _tier != "":
 		var tw := _font.get_string_size(_tier, HORIZONTAL_ALIGNMENT_LEFT, -1, 14).x
-		Forge.tab(self, Rect2(c.x - tw * 0.5 - 10.0, top + 34.0, tw + 20.0, 22.0))
-		draw_string(_font, Vector2(c.x - tw * 0.5, top + 50.0), _tier, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(col, 0.9))
+		Forge.tab(ci, Rect2(c.x - tw * 0.5 - 10.0, top + 34.0, tw + 20.0, 22.0))
+		ci.draw_string(_font, Vector2(c.x - tw * 0.5, top + 50.0), _tier, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(col, 0.9))
 		if _gear != "":                                           # the gear is behind the ground's call: a hint under the plate
 			var gw := _font.get_string_size(_gear, HORIZONTAL_ALIGNMENT_LEFT, -1, 13).x
 			var gx := minf(c.x - gw * 0.5, size.x + MARGIN - 18.0 - gw)   # wider than the dial: it keeps inside the screen's edge
-			Forge.tab(self, Rect2(gx - 10.0, top + 58.0, gw + 20.0, 20.0))
-			draw_string(_font, Vector2(gx, top + 72.0), _gear, HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color(Danger.color(3), 0.95))
+			Forge.tab(ci, Rect2(gx - 10.0, top + 58.0, gw + 20.0, 20.0))
+			ci.draw_string(_font, Vector2(gx, top + 72.0), _gear, HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color(Danger.color(3), 0.95))
 
 
 ## r33: the moon on the rim, toward where it hangs (the zone's Moon light), a pale disc and crescent.

@@ -52,6 +52,7 @@ static func _instances(host: Node3D, mesh: Mesh, tfs: Array[Transform3D], nm: St
 	for i in tfs.size():
 		mm.set_instance_transform(i, tfs[i])
 	var mmi := MultiMeshInstance3D.new()
+	mmi.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF   # never moves (umbral-donts: Static MultiMeshes)
 	mmi.name = nm
 	mmi.multimesh = mm
 	mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF

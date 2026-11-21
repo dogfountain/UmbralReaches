@@ -9,8 +9,9 @@ extends Node
 ## child of the story director (story.gd), group "quest_trail".
 ##   - the route: from the wanderer to the tracked step's foot point (quest_track.gd). The ways first (TrailRoute: one A*
 ##     over RealmLayout.PATHS, the walkway lanes and the henge's pilgrim stair, getting on and off wherever the whole way
-##     is shortest, metres across country counted dearer); the legs on and off by the navigation mesh (asked
-##     asynchronously, one query each) or straight, and the mesh's own path (or a straight line, with the mesh still
+##     is shortest, metres across country counted dearer); the legs on and off by the navigation mesh (one query each, on
+##     a worker thread: the server's query_path blocks, 4 ms for a 28 m leg and 23 ms for 16 m round the spindle's stair,
+##     on every rebuild; the fps pass) or straight, and the mesh's own path (or a straight line, with the mesh still
 ##     baking) where the ways would not help (none, or a detour past DETOUR). Rebuilt only when
 ##     the followed step or its place changes, the place moves more than MOVED m, the wanderer strays STRAY m off the
 ##     route, or the mesh came in; at most every REBUILD_GAP seconds. Nothing searches per frame: the aim is a few
@@ -67,6 +68,7 @@ var _legs: Array = []                                    ## [{type, a, b, pts}] 
 var _pending := 0
 var _wait := 0.0
 var _wants_nav := false                                  ## made without the mesh: made again when it is in
+var _jobs: Array = []                                    ## [task id, req, leg, result]: mesh queries on worker threads
 
 
 func _ready() -> void:
@@ -84,6 +86,8 @@ func _find_track() -> void:
 func _process(delta: float) -> void:
 	_poll -= delta
 	_gap -= delta
+	if not _jobs.is_empty():
+		_collect()
 	if _pending > 0:
 		_wait += delta
 	if _poll <= 0.0:
@@ -211,9 +215,30 @@ func _build(here: Vector3, foot: Vector3) -> void:
 		q.path_search_max_polygons = NavAssist.MAX_POLYS
 		var res := NavigationPathQueryResult3D.new()
 		_pending += 1
-		NavigationServer3D.query_path(q, res, func() -> void: _leg_done.call_deferred(req, i, res))
+		# the task holds only the query and its result, never this node (_exit_tree waits for it)
+		var task := WorkerThreadPool.add_task(func() -> void: NavigationServer3D.query_path(q, res))
+		_jobs.append([task, req, i, res])
 	if _pending == 0:
 		_finish_legs(false)
+
+
+## The mesh queries that are done: each answers its leg (a stale one is let go by _leg_done).
+func _collect() -> void:
+	var k := 0
+	while k < _jobs.size():
+		var job: Array = _jobs[k]
+		if not WorkerThreadPool.is_task_completed(int(job[0])):
+			k += 1
+			continue
+		WorkerThreadPool.wait_for_task_completion(int(job[0]))
+		_jobs.remove_at(k)
+		_leg_done(int(job[1]), int(job[2]), job[3] as NavigationPathQueryResult3D)
+
+
+func _exit_tree() -> void:
+	for job: Array in _jobs:
+		WorkerThreadPool.wait_for_task_completion(int(job[0]))
+	_jobs.clear()
 
 
 func _leg_done(req: int, i: int, res: NavigationPathQueryResult3D) -> void:

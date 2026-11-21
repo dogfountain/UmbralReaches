@@ -12,6 +12,7 @@ extends Node
 ## It also puts a "Tend the fire" spot on every kindled brazier (fire_spot.gd), lays the six
 ## charms in the world (charm_pickup.gd), and spends ash for the Kindling menu (ui/growth.gd).
 
+const TickPhase := preload("res://core/util/tick_phase.gd")
 const DB := preload("res://core/life/progression/upgrade_db.gd")
 const PathsDB := preload("res://core/life/progression/paths_db.gd")
 const HearthDB := preload("res://core/life/progression/hearth_db.gd")
@@ -78,7 +79,7 @@ func _process(delta: float) -> void:
 	# until a player is held, look every frame: a half-second wait left a reloaded hotbar unranked
 	if _scan > 0.0 and _player != null and is_instance_valid(_player):
 		return
-	_scan = 0.5
+	_scan = TickPhase.next(_scan, 0.5) if _player != null else TickPhase.first(self, 0.5)
 	var p := get_tree().get_first_node_in_group(Groups.PLAYER) as Player
 	if p != _player and p != null and p.skills() != null and not p.skills().slots.is_empty():
 		_player = p
@@ -547,7 +548,7 @@ func _place_spots() -> void:
 			if is_instance_valid(_spots[id]):
 				(_spots[id] as Node).queue_free()
 			_spots.erase(id)
-	for n in get_tree().get_nodes_in_group(Groups.INTERACTABLE):
+	for n in get_tree().get_nodes_in_group(Groups.BRAZIER):     # (every Brazier joins it: the interactables were ~1000 nodes)
 		if n is Brazier and not _spots.has(n.get_instance_id()):
 			var s := FireSpot.new()
 			s.name = "FireSpot_" + String(n.name)

@@ -27,6 +27,10 @@ const QUIET := Color(Med.BONE, 0.95)
 const COST := Color("#C04DFF")
 const Icons := preload("res://core/life/progression/icons.gd")
 const DB := preload("res://core/life/progression/upgrade_db.gd")
+const HudBake := preload("res://ui/hud_bake.gd")
+## A slot's still picture as baked (ui/hud_bake.gd): its box in the slot's own units, round the socket, the cost, the key
+## plate and the name under it (a long name runs past the socket).
+const SLOT_BOX := Rect2(-44.0, -8.0, SLOT + 88.0, SLOT + 15.0 + NAME_ROW + 26.0)
 
 var _book: SkillBook
 var _font: Font
@@ -54,10 +58,17 @@ func _ready() -> void:
 	_gem_layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_gem_layer.draw.connect(_draw_gem_layer)
 	add_child(_gem_layer)
+	# the forged plate under the slots: drawn once into a texture (its rivets, finials and bevels were ~30 draw calls)
+	_plate = HudBake.new()
+	_plate.name = "Plate"
+	_plate.art = _plate_art
+	_plate.show_behind_parent = true
+	add_child(_plate)
 
 
 var _gem_layer: Control
 var _live: Control             ## the moving parts over the bar (_draw_live)
+var _plate: HudBake            ## the forged plate, baked (_strip)
 
 
 func _process(delta: float) -> void:
@@ -119,18 +130,23 @@ func _process(delta: float) -> void:
 		if _slot_ci.size() != _vis.size() or _slot_ci.any(func(c: Control) -> bool: return not _vis.has(int(c.get_meta(&"slot")))):
 			_sync_slot_items()
 		queue_redraw()
-	var fading := _t > NAME_FADE - 2.1 and _t < NAME_FADE + 0.1
-	var refresh := _static_idle <= 0.0
-	if refresh:
-		_static_idle = 0.5
+	# a slot is baked again when what it shows changes (the names' fade in steps of 1 %), and as a catch-all every half
+	# second one slot at a time, each on its own frame: all of them together were a burst of bake passes on one frame
+	# twice a second, and the fade baked every slot every frame
+	var refresh_vi := -1
+	if _static_idle <= 0.0 and not _slot_ci.is_empty():
+		_static_idle = 0.5 / float(_slot_ci.size())
+		_refresh_vi = (_refresh_vi + 1) % _slot_ci.size()
+		refresh_vi = _refresh_vi
+	var name_a := snappedf(_name_a(), 0.01)
 	for vi in _slot_ci.size():
 		var c := _slot_ci[vi]
 		var i := int(c.get_meta(&"slot"))
-		c.position = _slot_origin(vi, i)
-		var ss := "%s|%s|%s" % [sig, _book.key_label(i), _book.cooldown_left(i) <= 0.0]
-		if fading or refresh or ss != String(c.get_meta(&"sig", "")):
+		c.position = _slot_origin(vi, i) + SLOT_BOX.position
+		var ss := "%s|%s|%s|%s" % [sig, _book.key_label(i), _book.cooldown_left(i) <= 0.0, name_a]
+		if vi == refresh_vi or ss != String(c.get_meta(&"sig", "")):
 			c.set_meta(&"sig", ss)
-			c.queue_redraw()
+			(c as HudBake).rebake()
 	if (String(DB.get_mod("core", "")) != "" or _gem_drawn) and FramePace.due(_gem_at, 1):
 		_gem_at = now
 		_gem_layer.queue_redraw()
@@ -143,7 +159,13 @@ var _live_at := 0                ## msec of the live layer's last redraw
 var _gem_at := 0
 var _idle := 0.0
 var _static_idle := 0.0
+var _refresh_vi := -1            ## the slot the catch-all refresh looked at last
 var _shown_sig := ""
+
+
+## How bright the names under the slots are (bright after a new loadout, settling quieter over two seconds).
+func _name_a() -> float:
+	return lerpf(NAME_REST, 1.0, clampf((NAME_FADE - _t) / 2.0, 0.0, 1.0))
 
 
 ## The bar in two layers. This one is the forged bar itself -- plate, sockets, bevels, rivets, the spell pictures,
@@ -153,20 +175,31 @@ var _shown_sig := ""
 ## layer above it (_draw_live), which redraws every frame while something moves.
 ## (Rebuilding the whole bar each frame cost ~1.5 ms of script a frame in every fight.)
 func _draw() -> void:
-	if is_instance_valid(_book):
-		_strip()
+	if not is_instance_valid(_book) or _vis.is_empty():
+		_plate.visible = false
+		return
+	var pr := _plate_rect().grow(24.0)               # the finials and the shadow reach past the plate
+	_plate.visible = true
+	_plate.position = pr.position
+	_plate.size = pr.size
+	_plate.refresh(_vis.size())
+
+
+func _plate_art(ci: CanvasItem) -> void:
+	ci.draw_set_transform(-_plate.position)
+	_strip(ci)
 
 
 ## One slot's still picture -- socket, bevel, the spell's picture (dimmed while it cools), key plate, cost and
 ## name -- on its own canvas item, in its own frame: a refusal's shake moves the item, it does not redraw it.
-func _draw_slot(ci: Control) -> void:
-	if not is_instance_valid(_book) or not ci.has_meta(&"slot"):
+func _draw_slot(ci: CanvasItem, i: int) -> void:
+	ci.draw_set_transform(-SLOT_BOX.position)          # (the baked box starts before the socket)
+	if not is_instance_valid(_book):
 		return
-	var i := int(ci.get_meta(&"slot"))
 	if i >= _book.slots.size() or _book.slots[i] == null:
 		return
 	var s := _book.slots[i]
-	var name_a := lerpf(NAME_REST, 1.0, clampf((NAME_FADE - _t) / 2.0, 0.0, 1.0))
+	var name_a := snappedf(_name_a(), 0.01)          # (the step the slot is baked again at)
 	var name_pt := _name_pt()
 	var o := Vector2.ZERO
 	var r := Rect2(o, Vector2(SLOT, SLOT))
@@ -205,11 +238,13 @@ func _sync_slot_items() -> void:
 		c.queue_free()
 	_slot_ci.clear()
 	for vi in _vis.size():
-		var c := Control.new()
+		# a slot's still picture changes only when its spell, key or readiness does: baked (sockets, bevels and rivets
+		# were ~25 draw calls a slot)
+		var c := HudBake.new()
 		c.name = "Slot%d" % vi
-		c.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		c.set_meta(&"slot", _vis[vi])
-		c.draw.connect(_draw_slot.bind(c))
+		c.art = _draw_slot.bind(_vis[vi])
+		c.size = SLOT_BOX.size
 		add_child(c)
 		move_child(c, _live.get_index())          # under the live layer and the gem
 		_slot_ci.append(c)
@@ -346,28 +381,34 @@ func span() -> float:
 
 ## One forged backing plate behind the row: bronze bevel, a finial at each end, a rivet in every gap, and a
 ## recessed trough under the sockets that holds the spell names.
-func _strip() -> void:
+func _plate_rect() -> Rect2:
+	var n := _vis.size()
+	var w := n * SLOT + maxf(0.0, n - 1.0) * GAP
+	return Rect2(-STRIP_PAD, -PLATE_TOP, w + STRIP_PAD * 2.0, SLOT + PLATE_TOP + NAME_ROW + 24.0)
+
+
+func _strip(ci: CanvasItem) -> void:
 	if _vis.is_empty():
 		return
 	var n := _vis.size()
 	var w := n * SLOT + maxf(0.0, n - 1.0) * GAP
-	var pr := Rect2(-STRIP_PAD, -PLATE_TOP, w + STRIP_PAD * 2.0, SLOT + PLATE_TOP + NAME_ROW + 24.0)
-	Forge.plate(self, pr, 1.0)
+	var pr := _plate_rect()
+	Forge.plate(ci, pr, 1.0)
 	var trough := Rect2(0.0, SLOT + 15.0, w, NAME_ROW)
-	Forge.trough(self, trough)
+	Forge.trough(ci, trough)
 	for k in n + 1:
 		var x := (SLOT + GAP) * float(k) - GAP * 0.5
 		if k == 0:
 			x = -STRIP_PAD * 0.5
 		elif k == n:
 			x = w + STRIP_PAD * 0.5
-		_rivet(self, Vector2(x, -PLATE_TOP * 0.5 + 0.5), 1.8)
+		_rivet(ci, Vector2(x, -PLATE_TOP * 0.5 + 0.5), 1.8)
 		if k > 0 and k < n:
 			var dx := trough.position.x + x
-			draw_line(Vector2(dx, trough.position.y + 5.0), Vector2(dx, trough.end.y - 5.0), Color(Med.BRONZE, 0.28), 1.0)
+			ci.draw_line(Vector2(dx, trough.position.y + 5.0), Vector2(dx, trough.end.y - 5.0), Color(Med.BRONZE, 0.28), 1.0)
 	var ym := pr.position.y + pr.size.y * 0.5
-	Forge.finial(self, Vector2(pr.position.x - 1.0, ym), -1.0, 15.0)
-	Forge.finial(self, Vector2(pr.end.x + 1.0, ym), 1.0, 15.0)
+	Forge.finial(ci, Vector2(pr.position.x - 1.0, ym), -1.0, 15.0)
+	Forge.finial(ci, Vector2(pr.end.x + 1.0, ym), 1.0, 15.0)
 
 
 ## A bevelled rim over a socket: lit top and left edges, shadowed bottom and right, and a rivet in each corner.

@@ -29,10 +29,12 @@ const MAP_LIT := Color(1.0, 0.62, 0.3)
 const MAP_COLD := Color(0.5, 0.48, 0.52)
 ## Emissive caps: lit coals peak at 1.6 (were 4.0), so they stay gold-orange under AgX, not a white blob
 const StaffSfx := preload("res://core/vfx/staff_sfx.gd")
+const TickPhase := preload("res://core/util/tick_phase.gd")
 const COAL_GLOW := 0.85
 
 
 func _ready() -> void:
+	_far_t = TickPhase.first(self, 0.5)       # the Realm's fires look at the camera on frames of their own
 	DressedProps.dress_brazier(self)
 	add_to_group(Groups.INTERACTABLE)
 	add_to_group(Groups.BRAZIER)

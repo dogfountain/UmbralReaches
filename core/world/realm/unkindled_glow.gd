@@ -5,6 +5,7 @@ extends Node3D
 ## readable at 40 m+ by contrast (dim: under the glow threshold, no bloom), and no light of its own.
 ## Hidden once the fire is kindled (the parent Brazier's `lit`), polled twice a second.
 
+const TickPhase := preload("res://core/util/tick_phase.gd")
 const HEIGHT := 1.05            ## above the brazier's origin (the bowl's rim)
 
 var _t := 0.0
@@ -15,6 +16,7 @@ static var _mesh: QuadMesh
 
 
 func _ready() -> void:
+	_poll = TickPhase.first(self, 0.5)
 	physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF   # its glow is scaled every rendered frame
 	name = "UnkindledGlow"
 	if _mesh == null:

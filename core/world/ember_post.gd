@@ -7,6 +7,7 @@ extends Interactable
 ## while the Realm settles the land, then stops processing. Load by path (no class_name).
 
 const FireRoad := preload("res://core/world/fire_road.gd")
+const TickPhase := preload("res://core/util/tick_phase.gd")
 const OFFSET := Vector3(-2.3, 0.0, 0.4)  ## brazier-local: to its side, off the respawn spot (+z)
 ## r34 layout: fires whose side is somebody's road. Hearthward's fire (the spawn Sanctuary) has the
 ## villagers' walking nodes on all four sides (village_cast.gd brazier_w/e/n/s, 2.3 m out): the post at
@@ -78,7 +79,7 @@ func _process(delta: float) -> void:
 	if _seat_t <= 0.0 and _seats < 30:
 		if _seats > 0 and _realm_building():
 			return
-		_seat_t = 2.0
+		_seat_t = 2.0 + (TickPhase.first(self, 2.0) if _seats == 0 else 0.0)   # (the 36 posts' re-seats on frames of their own)
 		_seats += 1
 		_seat()
 

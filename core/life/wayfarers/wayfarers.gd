@@ -16,6 +16,7 @@ extends Node3D
 ## babble) when she comes close, and step round her.
 ## Load by path: const Wayfarers := preload("res://core/life/wayfarers/wayfarers.gd")
 
+const TickPhase := preload("res://core/util/tick_phase.gd")
 const RoadGraph := preload("res://core/life/wayfarers/road_graph.gd")
 const DB := preload("res://core/life/wayfarers/wayfarer_db.gd")
 const Reaches := preload("res://core/life/wildlife/life_reaches.gd")
@@ -81,6 +82,7 @@ static func build(root: Node) -> void:
 
 
 func _build(root: Node, v: Node) -> void:
+	_t4 = TickPhase.first(self, 0.25)
 	village = v
 	director = root.get_node_or_null("Wildlife")
 	_rng.seed = 91001
@@ -423,11 +425,11 @@ func _frame(dt: float) -> void:
 					_leave(p)
 	_t10 -= dt
 	if _t10 <= 0.0:
-		_t10 = 0.1
+		_t10 = TickPhase.next(_t10, 0.1)
 		_lamps_step()
 	_t4 -= dt
 	if _t4 <= 0.0:
-		_t4 = 0.25
+		_t4 = TickPhase.next(_t4, 0.25)
 		for p: Dictionary in parties:
 			_lod(p)
 			if bool(p.near):

@@ -4,20 +4,19 @@ extends Node3D
 ##             variants.gd) through EnemySpawner's kind/dress hooks; camps gain a mixed member
 ##   rest      killed roaming camps stay dead until you rest at a lit fire (stand in it a few
 ##             seconds, kindle one, or come back from being hollowed): then they refill
-##   tide      every few minutes spent away from fires the Gloom tide rises: the sky darkens (an
-##             overlay, not the grade), tide-born hunting packs come for you in waves; a lit fire
-##             breaks it (or it recedes after a while)
+##   tide      every few minutes spent away from fires the Gloom tide rises: the sky darkens (an overlay, not
+##             the grade), tide-born hunting packs come for you in waves; a lit fire breaks it (or it recedes)
 ##   ambushes  marked stretches of the roads: walk one and the hollowed rise from the verge ahead
 ##             and beside you (they take a moment to rise: you see them first)
-##   elites    five named hollowed with bounties (elites.gd), notes on stakes and a board at the
-##             Crossing's foot; paid once
-##   Deeper Night  after the Ascended Warden: the bell at the summit and the Crossing's foot
-##             begins NG+ (bosses and seals reset, two tiers deeper, Umbral elites, cold tint)
+##   elites    five named hollowed with bounties (elites.gd), notes on stakes and a board at the Crossing's
+##             foot; paid once. Deeper Night: after the Ascended Warden the bell at the summit and the
+##             Crossing's foot begins NG+ (bosses and seals reset, two tiers deeper, Umbral elites, cold tint)
 ## Fair: nothing of ours rises in a safe place (the haven, the tavern, the Holds, the towns: SpawnRules.SAFE),
 ## a building, light, water, on a way, a lip or a slope, or inside a rock (spot_ok); at most CAP enemies near
 ## the player for anything this adds; every attack keeps its telegraph. Cheap: one 4 Hz tick.
 ## State: Travel.system_state("encounters") = {ng, slain, looted, trophies, tides, ambushes}.
 
+const TickPhase := preload("res://core/util/tick_phase.gd")
 const Tiers := preload("res://core/life/encounters/tiers.gd")
 const Variants := preload("res://core/life/encounters/variants.gd")
 const Elites := preload("res://core/life/encounters/elites.gd")
@@ -99,6 +98,7 @@ var _cap: CapsuleShape3D
 
 func _ready() -> void:
 	name = "Encounters"
+	_acc = TickPhase.first(self, TICK)     # its 4 Hz step on frames of its own (tick_phase.gd)
 	Synth.prewarm()   # combat sounds built behind the load screen, not on the first hit
 	# the root leaves the tree only when the app closes (after every scene node's _exit_tree):
 	# drop the combat sound caches then, not on a scene change (they would be rebuilt)
@@ -256,9 +256,8 @@ func step(dt: float) -> void:
 	_rest_tick(dt, pos, LightGrid.is_fire(pos))      # r30: only a fire rests or breaks a tide, not a ward
 	_tide_tick(dt, pos, lit)
 	_ambush_tick(dt, pos, lit)
-	if guardians:
-		guardians.tick(pos)
-	_elite_tick(pos)
+	var may_build := guardians == null or not guardians.tick(pos)     # one guardian or elite built a tick at most
+	_elite_tick(pos, may_build)
 	_prune(pos)
 	if _motes:
 		_motes.global_position = pos + Vector3.UP * 2.0
@@ -557,7 +556,7 @@ func slain(id: String) -> bool:
 	return (state.slain as Dictionary).has(id)
 
 
-func _elite_tick(pos: Vector3) -> void:
+func _elite_tick(pos: Vector3, may_build := true) -> void:
 	var near: Enemy = null
 	var near_d := 18.0
 	for id: String in haunts:
@@ -570,8 +569,9 @@ func _elite_tick(pos: Vector3) -> void:
 			elite_nodes.erase(id)
 		var d := pos.distance_to(at)
 		if e == null:
-			if not slain(id) and d < ELITE_NEAR and not LightGrid.is_lit(at) and not _busy_fight():
+			if may_build and not slain(id) and d < ELITE_NEAR and not LightGrid.is_lit(at) and not _busy_fight():
 				spawn_elite(id)
+				may_build = false
 			continue
 		var de := pos.distance_to(e.global_position)
 		if d > ELITE_FAR and de > ELITE_FAR:

@@ -9,6 +9,7 @@ extends Node
 ## A builder registers a zone with `AcousticZones.register(aabb, room, label)` (label = one of the names above, else the room's); a zone with no bed of its
 ## own gets its room's. Polled twice a second; one player pair; nothing runs while the wanderer is outdoors. No class_name.
 
+const TickPhase := preload("res://core/util/tick_phase.gd")
 const Kit := preload("res://core/audio/synth_kit.gd")
 const GenCache := preload("res://core/world/realm/gen_cache.gd")
 const AcousticZones := preload("res://core/audio/acoustic_zones.gd")
@@ -33,6 +34,7 @@ var _gain := 0.0
 
 
 func _ready() -> void:
+	_t = TickPhase.first(self, 0.5)
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	if _task < 0:
 		_task = WorkerThreadPool.add_task(_work, false, "interior_beds")
@@ -147,7 +149,7 @@ func _process(dt: float) -> void:
 	_t -= dt
 	var want := current
 	if _t <= 0.0:
-		_t = 0.5
+		_t = TickPhase.next(_t, 0.5)
 		var pl := get_tree().get_first_node_in_group(Groups.PLAYER) as Node3D
 		want = AcousticZones.label_at(pl.global_position) if pl != null else ""
 		if want != "" and not BEDS.has(want):

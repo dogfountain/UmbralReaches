@@ -9,6 +9,7 @@ extends Node
 ##   a brazier's pool) so that the one lit thing in the black is the wanderer, and fades back with the moon.
 ## Posing only; walking, fighting, riding and any open menu cancel it at once.
 
+const TickPhase := preload("res://core/util/tick_phase.gd")
 const Reg := preload("res://core/world/night_life/night_registry.gd")
 const NightFx := preload("res://core/world/night_life/night_fx.gd")
 
@@ -27,6 +28,7 @@ var _dark := 0.0                      ## eased 0..1: nothing lit near him
 
 
 func _ready() -> void:
+	_ctx_t = TickPhase.first(self, 0.5)
 	_next_warm = 3.0
 	_next_moth = 9.0
 
@@ -105,7 +107,7 @@ func _context(delta: float) -> void:
 	_ctx_t -= delta
 	var eclipse := clampf((Reg.gain_mul - 1.0) / 0.55, 0.0, 1.0)
 	if _ctx_t <= 0.0:
-		_ctx_t = 0.5
+		_ctx_t = TickPhase.next(_ctx_t, 0.5)
 		var pp := _player.global_position
 		var fire := _near_fire() != Vector3.INF
 		c["fire"] = 1.0 if fire else 0.0

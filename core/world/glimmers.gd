@@ -139,6 +139,7 @@ func _scatter_buds() -> void:
 			_omni(p + Vector3(0.0, 0.85, 0.0), col, 1.35, 5.5)
 	mm.custom_aabb = box.grow(3.0)
 	var mmi := MultiMeshInstance3D.new()
+	mmi.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF   # never moves (umbral-donts: Static MultiMeshes)
 	mmi.name = "GlowBuds"
 	mmi.multimesh = mm
 	var mat := ShaderMaterial.new()

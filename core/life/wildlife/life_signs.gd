@@ -13,6 +13,7 @@ extends Node3D
 ## The Gloom tide puts the lights and eyes out and stills the howls; a hollowed thing near a pair of eyes or a field
 ## of lights puts those out (checked twice a second, only for what is near the camera).
 
+const TickPhase := preload("res://core/util/tick_phase.gd")
 const LifeKit := preload("res://core/life/wildlife/life_kit.gd")
 const LifePlace := preload("res://core/life/wildlife/life_place.gd")
 const Birds := preload("res://core/life/wildlife/life_birds.gd")
@@ -82,6 +83,7 @@ var _tide := false
 
 
 func setup(dir: Node3D, root: Node, space: PhysicsDirectSpaceState3D, add: Callable) -> void:
+	_t = TickPhase.first(self, 0.5)
 	name = "LifeSigns"
 	var t0 := Time.get_ticks_msec()
 	director = dir
@@ -379,6 +381,7 @@ func _light_field(c: Vector2, kind: String) -> void:
 		mm.set_instance_custom_data(k, Color(_rng.randf_range(1.5, 4.5), _rng.randf_range(0.05, 0.14), _rng.randf_range(1.3, 2.6) if kind != "wood" else _rng.randf_range(1.2, 3.2), _rng.randf_range(0.0, TAU)))
 	mm.custom_aabb = AABB(Vector3(-spread - 6, -3, -spread - 6), Vector3(spread * 2 + 12, 8, spread * 2 + 12))
 	var mmi := MultiMeshInstance3D.new()
+	mmi.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF   # never moves (umbral-donts: Static MultiMeshes)
 	mmi.name = "Lights_" + kind
 	mmi.multimesh = mm
 	mmi.material_override = _light_material(kind)
@@ -434,6 +437,7 @@ func _eyes() -> void:
 				mm.set_instance_custom_data(j, Color(_rng.randf(), _rng.randf_range(7.0, 16.0), 1.0 if _rng.randf() < 0.25 else 0.0, _rng.randf_range(0.3, 1.2)))
 			mm.custom_aabb = AABB(Vector3(-5, -1, -5), Vector3(10, 3, 10))
 			var mmi := MultiMeshInstance3D.new()
+			mmi.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF   # never moves (umbral-donts: Static MultiMeshes)
 			mmi.name = "Eyes"
 			mmi.multimesh = mm
 			mmi.material_override = _eye_mat
@@ -453,7 +457,7 @@ func _eyes() -> void:
 func _process(dt: float) -> void:
 	_t -= dt
 	if _t <= 0.0:
-		_t = 0.5
+		_t = TickPhase.next(_t, 0.5)
 		_danger()
 	_howl_step(dt)
 

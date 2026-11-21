@@ -93,6 +93,7 @@ static func _multi(host: Node3D, out: Array[Node], mat: Material, at: Vector3) -
 	mm.instance_count = 1
 	mm.set_instance_transform(0, Transform3D(Basis.IDENTITY, at))
 	var mi := MultiMeshInstance3D.new()
+	mi.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF   # never moves (umbral-donts: Static MultiMeshes)
 	mi.multimesh = mm
 	mi.material_override = mat
 	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF

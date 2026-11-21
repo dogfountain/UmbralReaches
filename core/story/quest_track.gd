@@ -15,6 +15,7 @@ extends Node
 ## last seen), a pickup the step wants, the person to speak to, the seal, the boss's arena, the region its foes are in.
 ## Load by path: const QuestTrack := preload("res://core/story/quest_track.gd")
 
+const TickPhase := preload("res://core/util/tick_phase.gd")
 const Book := preload("res://core/story/quest_book.gd")
 const Chains := preload("res://core/story/quest_chains.gd")
 const Guide := preload("res://core/story/guide.gd")
@@ -40,6 +41,7 @@ var _key := ""
 
 
 func _ready() -> void:
+	_poll = TickPhase.first(self, 0.25)
 	name = "QuestTrack"
 	add_to_group("quest_track")
 	_story = get_parent()
@@ -65,7 +67,7 @@ func _process(delta: float) -> void:
 		_find_people()
 	_poll -= delta
 	if _poll <= 0.0:
-		_poll = 0.25
+		_poll = TickPhase.next(_poll, 0.25)
 		refresh()
 
 

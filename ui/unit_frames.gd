@@ -31,6 +31,7 @@ extends Control
 ## Typed where the target is always one script; the wanderer, foes and Breath stay dynamic (test stand-ins).
 ## Added by ui/hud.gd. Hidden while paused and under the loading screen.
 
+const TickPhase := preload("res://core/util/tick_phase.gd")
 const Afflict := preload("res://core/skills/afflict.gd")
 const Tiers := preload("res://core/life/encounters/tiers.gd")
 const Danger := preload("res://core/life/encounters/danger.gd")
@@ -45,6 +46,12 @@ const Med := preload("res://ui/medieval_style.gd")
 const HudPrefs := preload("res://ui/hud_prefs.gd")
 const Forge := preload("res://ui/hud_forge.gd")
 const GloomMeter := preload("res://ui/gloom_meter.gd")
+const HudBake := preload("res://ui/hud_bake.gd")
+## The wanderer's own layers (plate and portrait, bars, auras, the IN COMBAT tag) are baked (ui/hud_bake.gd): drawn into a
+## texture when they change and shown as one draw call each (they were ~100 of the HUD's draw calls a frame). Their box
+## is the frame's corner, from the screen's top left past the plate and the buff row.
+const BAKED := ["player", "bars", "auras", "combat"]
+const BAKE_BOX := Vector2(480.0, 270.0)
 
 const LANTERN := Color("#FFB347")
 const EMBER := Color("#FF6A2A")
@@ -123,6 +130,7 @@ var _b_alpha := 0.0
 
 
 func _ready() -> void:
+	_scan = TickPhase.first(self, 0.25)
 	name = "UnitFrames"
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -130,10 +138,17 @@ func _ready() -> void:
 	_body = UIType.body()
 	HudPrefs.ensure()
 	for nm: String in LAYERS:
-		var c := Control.new()
+		var c: Control
+		if nm in BAKED:
+			var hb := HudBake.new()
+			hb.art = _draw_layer.bind(nm)
+			hb.size = BAKE_BOX
+			c = hb
+		else:
+			c = Control.new()
+			c.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			c.draw.connect(_draw_layer.bind(c, nm))
 		c.name = nm.capitalize()
-		c.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		c.draw.connect(_draw_layer.bind(c, nm))
 		add_child(c)
 		_layers[nm] = c
 	Events.boss_engaged.connect(_on_boss_engaged)
@@ -167,7 +182,7 @@ func _process(delta: float) -> void:
 	_tick_trail(delta)
 	_scan -= delta
 	if _scan <= 0.0:
-		_scan = 0.25
+		_scan = TickPhase.next(_scan, 0.25)
 		_rescan()
 	for b: Dictionary in _buffs:
 		if float(b.get("left", -1.0)) > 0.0:
@@ -224,7 +239,11 @@ func _mark(nm: String, sig: Array, moving: bool) -> void:
 		return
 	_ldraw[nm] = Time.get_ticks_msec()
 	_lsig[nm] = sig
-	(_layers[nm] as Control).queue_redraw()
+	var l: Control = _layers[nm]
+	if l is HudBake:
+		(l as HudBake).rebake()
+	else:
+		l.queue_redraw()
 
 
 ## Is any layer's frame due? (When none is, what they would show is not even worked out.)
@@ -805,7 +824,7 @@ func _buff_row_y() -> float:
 
 # --- drawing ---------------------------------------------------------------------------------------
 
-func _draw_layer(c: Control, nm: String) -> void:
+func _draw_layer(c: CanvasItem, nm: String) -> void:
 	if _player == null or _font == null:
 		return
 	_ci = c

@@ -54,6 +54,8 @@ func _process(delta: float) -> void:
 	for i in POOL_N:
 		var l := _lights[i]
 		var r := _row[i]
+		if r == -1 and l.light_energy == 0.0:
+			continue                                    # free and dark: nothing to set (most of the ten at detail 0-1)
 		var goal := 0.0
 		if r >= 0 and on:
 			var k := int(Reg.kind[r])
@@ -62,7 +64,8 @@ func _process(delta: float) -> void:
 		l.visible = l.light_energy > 0.02
 		if r >= 0 and l.visible:
 			var p: Vector3 = Reg.pos[r]
-			l.global_position = p
+			if not l.global_position.is_equal_approx(p):
+				l.global_position = p
 
 
 ## The nearest rows without a light of their own take the lights; a light keeps its row while that row stays in range.

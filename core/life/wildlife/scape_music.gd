@@ -12,6 +12,7 @@ extends Node
 ## it; its level is the Music slider, or the Ambience slider until Settings has one).
 ## Load by path (no class_name).
 
+const TickPhase := preload("res://core/util/tick_phase.gd")
 const ScapeSynth := preload("res://core/life/wildlife/scape_synth.gd")
 const StaffSfx := preload("res://core/vfx/staff_sfx.gd")
 
@@ -61,6 +62,7 @@ var cues := 0                     ## tests
 
 
 func _ready() -> void:
+	_t = TickPhase.first(self, 0.5)
 	_rng.seed = 2207
 	_pad_rest = _player(ScapeSynth.stream("pad_rest"), "PadRest")
 	_pad_dark = _player(ScapeSynth.stream("pad_dark"), "PadDark")
@@ -104,7 +106,7 @@ func _player(s: AudioStream, nm: String) -> AudioStreamPlayer:
 func _process(dt: float) -> void:
 	_t -= dt
 	if _t <= 0.0:
-		_t = 0.5
+		_t = TickPhase.next(_t, 0.5)
 		_sense()
 	var danger := 1.0 if state == "danger" else 0.0
 	intensity = move_toward(intensity, danger, dt / (2.0 if danger > intensity else 6.0))

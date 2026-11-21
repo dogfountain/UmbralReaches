@@ -19,6 +19,7 @@ extends Node
 ## Built by realm_pois.gd's build (after the flora); group "realm_discovery" (the Journal's own
 ## region naming stands down while this node exists). Load by path (no class_name).
 
+const TickPhase := preload("res://core/util/tick_phase.gd")
 const LoreDB := preload("res://core/world/realm/lore_db.gd")
 const CodexStore := preload("res://core/world/realm/lore/codex_store.gd")
 const BannerScript := preload("res://core/world/realm/discovery_banner.gd")
@@ -52,6 +53,7 @@ var _hold: Array[Dictionary] = []        ## banners waiting for the text directo
 
 
 func _ready() -> void:
+	_t = TickPhase.first(self, TICK)
 	add_to_group(GROUP)
 	process_mode = Node.PROCESS_MODE_PAUSABLE
 	CodexStore.ensure()
@@ -66,7 +68,7 @@ func _process(delta: float) -> void:
 	_t -= delta
 	if _t > 0.0 or _clock < ARM_AT:
 		return
-	_t = TICK
+	_t = TickPhase.next(_t, TICK)
 	if get_tree().get_first_node_in_group("fire_flight") != null:
 		return                                  # the Ember Road names the place on landing
 	var p := get_tree().get_first_node_in_group(Groups.PLAYER) as Node3D

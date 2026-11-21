@@ -1,7 +1,6 @@
 extends Interactable
-## One of Hearthward's people (village system; no class_name). A VillagerRig driven by a routine
-## from village_cast.gd: the village clock picks the routine for the phase of the night (dusk,
-## work, midnight, late), and the routine is a loop of steps:
+## One of Hearthward's people (village system; no class_name). A VillagerRig driven by a routine from village_cast.gd:
+## the village clock picks the routine for the phase of the night (dusk, work, midnight, late); a loop of steps:
 ##   {"go": node}                          walk there (VillageNav path: on floors, round buildings)
 ##   {"act": a, "at": node, "face": xz|"@anchor", "t": [min, max], "seat"?: h, "if"?: cond}
 ##   {"hide": node|"@home", "t": [min, max]}  walk there and go indoors for a while
@@ -450,7 +449,7 @@ func _process(delta: float) -> void:
 		var cam := get_viewport().get_camera_3d()
 		if cam != null and cam.global_position.distance_squared_to(global_position) > 3025.0:
 			_far_acc += delta
-			if (Engine.get_process_frames() + get_instance_id()) % 4 != 0:
+			if (Engine.get_process_frames() + get_instance_id()) % (16 if cam.global_position.distance_squared_to(global_position) > 22500.0 else 4) != 0:
 				return
 			delta = _far_acc
 		_far_acc = 0.0
@@ -494,10 +493,11 @@ func _after_step(dt: float) -> void:
 	if lamp_light and rig.glow != null:
 		lamp_light.global_position = (rig.glow as Node3D).global_position + Vector3.UP * 0.05
 		lamp_light.light_energy = 0.8 + 0.08 * sin(_t * 9.0) + 0.05 * sin(_t * 23.0)
-	if hidden:
-		return
 	# pose at a rate for the distance (npc_life.gd): every frame close by, 30/20/12 Hz further, 2 Hz off screen, frozen far off
 	var cam := get_viewport().get_camera_3d()
+	# past 150 m nothing of him is drawn (mesh ~103 m, lamp glow ~138 m with FadeGuard): every 16th frame above, no pose
+	if hidden or (cam != null and cam.global_position.distance_squared_to(global_position) > 22500.0):
+		return
 	var iv := Life.interval_keg(cam, global_position, false, state == "walk")
 	_pose_acc += dt
 	var active := iv >= 0.0
@@ -1071,9 +1071,8 @@ func _legs_walk(k: float, amt: float) -> float:
 	return drop
 
 
-## Arms that are not posed by an act: swing with the stride, or carry the tool the way it is
-## carried (the lamplighter's pole and lantern, a staff planted as you walk, the spade on the
-## shoulder, the candle cupped at the chest).
+## Arms that are not posed by an act: swing with the stride, or carry the tool the way it is carried (the
+## lamplighter's pole and lantern, a staff planted as you walk, the spade on the shoulder, the candle cupped at the chest).
 ## art pass: no two people stand alike. Arm hang (swing offset, how far off the flank, forearm bend,
 ## left and right not mirrored) and a lean of the chest, fixed per villager from its id.
 func _stance() -> Dictionary:

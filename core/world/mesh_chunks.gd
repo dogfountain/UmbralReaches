@@ -7,6 +7,11 @@ extends RefCounted
 ## site clearance, audits) still works; run this last, once nothing edits the mesh any more.
 
 const CELL := 24.0
+## A sparse mesh (a few small things far apart: the way lanterns' stone and iron, one per 24 m cell, 137 draws from
+## anywhere on the roads) is cut in larger cells, doubling to CELL_MAX until a chunk averages SPARSE_TRIS triangles:
+## frustum culling only coarsens there (it was a draw call per lantern), and nothing has a range to keep.
+const CELL_MAX := 96.0
+const SPARSE_TRIS := 600
 const GenCache := preload("res://core/world/realm/gen_cache.gd")
 const SELF := "res://core/world/mesh_chunks.gd"
 
@@ -72,6 +77,9 @@ static func split(mi: MeshInstance3D, lods := true) -> int:
 			return meshes.size()
 	var cells := {}                       # Vector2i -> {surface: [indices]}
 	var surf_arrays: Array = []
+	var idx_of: Array[PackedInt32Array] = []
+	var centres: Array[PackedVector2Array] = []   # each triangle's centre (world xz), by surface
+	var ntri := 0
 	for s in mi.mesh.get_surface_count():
 		var a := mi.mesh.surface_get_arrays(s)
 		surf_arrays.append(a)
@@ -81,9 +89,20 @@ static func split(mi: MeshInstance3D, lods := true) -> int:
 			idx.resize(verts.size())
 			for i in verts.size():
 				idx[i] = i
-		for t in range(0, idx.size(), 3):
+		var cs := PackedVector2Array()
+		cs.resize(idx.size() / 3)
+		for t in range(0, idx.size() - 2, 3):
 			var c := xf * ((verts[idx[t]] + verts[idx[t + 1]] + verts[idx[t + 2]]) / 3.0)
-			var key := Vector2i(floori(c.x / CELL), floori(c.z / CELL))
+			cs[t / 3] = Vector2(c.x, c.z)
+		idx_of.append(idx)
+		centres.append(cs)
+		ntri += cs.size()
+	var cell := _cell_for(centres, ntri)
+	for s in idx_of.size():
+		var idx := idx_of[s]
+		var cs := centres[s]
+		for t in range(0, idx.size() - 2, 3):
+			var key := Vector2i(floori(cs[t / 3].x / cell), floori(cs[t / 3].y / cell))
 			if not cells.has(key):
 				cells[key] = {}
 			var per: Dictionary = cells[key]
@@ -118,7 +137,7 @@ static func split(mi: MeshInstance3D, lods := true) -> int:
 			for k in tri.size():
 				new_idx[k] = remap[tri[k]]
 			arrays[Mesh.ARRAY_INDEX] = new_idx
-			im.add_surface(Mesh.PRIMITIVE_TRIANGLES, arrays, [], {}, mi.mesh.surface_get_material(s))
+			im.add_surface(Mesh.PRIMITIVE_TRIANGLES, arrays, [], {}, mi.mesh.surface_get_material(s), "", _flags(mi, arrays))
 		if lods:
 			im.generate_lods(25.0, 60.0, [])
 		var cm: ArrayMesh = im.get_mesh()
@@ -132,6 +151,29 @@ static func split(mi: MeshInstance3D, lods := true) -> int:
 	return made
 
 
+## CELL, doubled while the mesh is sparse (fewer than SPARSE_TRIS triangles a chunk on average), up to CELL_MAX.
+static func _cell_for(centres: Array[PackedVector2Array], ntri: int) -> float:
+	var cell := CELL
+	while cell < CELL_MAX:
+		var keys := {}
+		for cs in centres:
+			for c in cs:
+				keys[Vector2i(floori(c.x / cell), floori(c.y / cell))] = true
+		if keys.is_empty() or float(ntri) / float(keys.size()) >= float(SPARSE_TRIS):
+			break
+		cell *= 2.0
+	return cell
+
+
+## Meta keep_format (a vertex format): the chunks are made in that format's attribute compression, so they draw with the
+## pipelines its pieces compiled (the summit's joined moss rocks: SurfaceTool's own output is uncompressed).
+static func _flags(mi: MeshInstance3D, arrays: Array) -> int:
+	if not mi.has_meta(&"keep_format"):
+		return 0
+	var comp := (int(mi.get_meta(&"keep_format")) & Mesh.ARRAY_FLAG_COMPRESS_ATTRIBUTES) != 0
+	return Mesh.ARRAY_FLAG_COMPRESS_ATTRIBUTES if comp and (arrays[Mesh.ARRAY_NORMAL] != null) == (arrays[Mesh.ARRAY_TANGENT] != null) else 0
+
+
 static func _add_chunk(mi: MeshInstance3D, xf: Transform3D, key: Vector2i, mesh: Mesh) -> void:
 	var chunk := MeshInstance3D.new()
 	chunk.name = "%s_chunk_%d_%d" % [mi.name, key.x, key.y]
@@ -139,6 +181,7 @@ static func _add_chunk(mi: MeshInstance3D, xf: Transform3D, key: Vector2i, mesh:
 	chunk.material_override = mi.material_override
 	chunk.cast_shadow = mi.cast_shadow
 	chunk.gi_mode = mi.gi_mode
+	chunk.lod_bias = mi.lod_bias
 	chunk.layers = mi.layers
 	chunk.visibility_range_end = mi.visibility_range_end
 	chunk.visibility_range_end_margin = mi.visibility_range_end_margin
@@ -155,7 +198,7 @@ static func _content_key(mi: MeshInstance3D, lods: bool) -> String:
 	for sidx in mi.mesh.get_surface_count():
 		var a := mi.mesh.surface_get_arrays(sidx)
 		h = hash([h, hash(a[Mesh.ARRAY_VERTEX]), hash(a[Mesh.ARRAY_INDEX]) if a[Mesh.ARRAY_INDEX] != null else 0])
-	return "chunks|%s|%d|%s" % [mi.name, h, lods]
+	return "chunks|%s|%d|%s|%d" % [mi.name, h, lods, int(mi.get_meta(&"keep_format", 0))]
 
 
 static func _stride(ch: int, src: Array) -> int:
@@ -189,6 +232,26 @@ static func _pick(data: Variant, order: PackedInt32Array, stride: int) -> Varian
 ## split_multimesh() re-buckets the instances into `cell` cells, each its own node at the cell
 ## centre with the original's look and ranges, and hides the original (kept for anything that reads
 ## it). Needs a renderer: headless MultiMesh buffers read back empty. Returns the chunks made.
+const MM_CELL_MAX := 48.0
+const SPARSE_INST := 6.0
+
+
+## The instances by cell: Vector3i -> PackedInt32Array of instance indices. cell_y > 0 also splits by height (an
+## underground area's bones and candles, surface to pit: a cell that sits wholly below the ground is then culled by
+## the terrain occluder).
+static func _mm_cells(buf: PackedFloat32Array, stride: int, count: int, cell: float, cell_y: float) -> Dictionary:
+	var cells := {}
+	for i in count:
+		var o := i * stride
+		var key := Vector3i(floori(buf[o + 3] / cell), floori(buf[o + 7] / cell_y) if cell_y > 0.0 else 0, floori(buf[o + 11] / cell))
+		if not cells.has(key):
+			cells[key] = PackedInt32Array()
+		var l: PackedInt32Array = cells[key]
+		l.append(i)
+		cells[key] = l
+	return cells
+
+
 static func split_multimesh(mmi: MultiMeshInstance3D, cell := CELL, cell_y := 0.0) -> int:
 	if mmi == null or mmi.multimesh == null or mmi.has_meta("chunked") or DisplayServer.get_name() == "headless":
 		return 0
@@ -203,17 +266,14 @@ static func split_multimesh(mmi: MultiMeshInstance3D, cell := CELL, cell_y := 0.
 	if buf.size() < count * stride:
 		return 0
 	mmi.set_meta("chunked", true)
-	var cells := {}                       # Vector3i -> PackedInt32Array of instance indices
-	for i in count:
-		var o := i * stride
-		# cell_y > 0 also splits by height (an underground area's bones and candles, surface to pit: a cell that sits
-		# wholly below the ground is then culled by the terrain occluder)
-		var key := Vector3i(floori(buf[o + 3] / cell), floori(buf[o + 7] / cell_y) if cell_y > 0.0 else 0, floori(buf[o + 11] / cell))
-		if not cells.has(key):
-			cells[key] = PackedInt32Array()
-		var l: PackedInt32Array = cells[key]
-		l.append(i)
-		cells[key] = l
+	var cells := _mm_cells(buf, stride, count, cell, cell_y)
+	# a sparse scatter that never fades (no range to keep per cell: the rift's scorch and its rocks, one or two a 24 m
+	# cell, a hundred draws from Lastlight's road) is bucketed in larger cells, up to MM_CELL_MAX: its LOD is picked per
+	# cell, so the cap stays modest
+	var ranged := mmi.visibility_range_end > 0.0 or mmi.visibility_range_begin > 0.0
+	while not ranged and cell_y <= 0.0 and cell < MM_CELL_MAX and cells.size() > 1 and float(count) / float(cells.size()) < SPARSE_INST:
+		cell *= 2.0
+		cells = _mm_cells(buf, stride, count, cell, cell_y)
 	if cells.size() < 2:
 		mmi.remove_meta("chunked")
 		return 0

@@ -8,6 +8,7 @@ extends VBoxContainer
 ## needs no wiring and shows nothing in a night without a story. [L] opens the ledger, where Track picks
 ## the one task followed (core/story/quest_track.gd: its block is the one shown, behind its painted pin).
 
+const TickPhase := preload("res://core/util/tick_phase.gd")
 const LANTERN := Color("#FFB347")
 const QUIET := Color(0.8, 0.82, 0.92, 0.88)
 const TITLE := Color(1.0, 0.78, 0.46, 0.92)
@@ -25,6 +26,7 @@ var _blocks: Array[Control] = []
 
 
 func _ready() -> void:
+	_poll = TickPhase.first(self, 0.5)
 	name = "Objectives"
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
@@ -42,7 +44,7 @@ func _process(delta: float) -> void:
 	_poll -= delta
 	if _poll > 0.0:
 		return
-	_poll = 0.5
+	_poll = TickPhase.next(_poll, 0.5)
 	var story := get_tree().get_first_node_in_group("story")
 	var lines: Array = story.call("objectives") if story and story.has_method("objectives") else []
 	show_lines(lines)

@@ -77,6 +77,7 @@ func setup(p: Dictionary, frog_spots: Array[Vector3], seed_v: int) -> void:
 			mm.set_instance_custom_data(i, Color(rng.randf_range(0.7, 1.3), rng.randf_range(0.0, 5.0), rng.randf_range(0.12, 0.2), 1.0))
 	mm.custom_aabb = AABB(lo - Vector3(3, 0.5, 3), hi - lo + Vector3(6, 1, 6))
 	rings = MultiMeshInstance3D.new()
+	rings.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF   # never moves (umbral-donts: Static MultiMeshes)
 	rings.name = "Rings"
 	rings.multimesh = mm
 	ring_mat = (LifeKit.material("ripple").duplicate() as ShaderMaterial)

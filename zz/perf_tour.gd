@@ -9,7 +9,7 @@ extends Node
 ##           per leg and in total: fps, 1% low, p99, worst frame, stddev, frames over 20/33 ms.
 ## Options:
 ##   --points-only / --path-only     one phase
-##   --only=a,b                      only these points
+##   --only=a,b                      only these points; --seconds=N: stand N s at each (default 4)
 ##   --preset=0|1|2                  quality preset (default 1 Balanced); --fov=90 (default 90, Luke's)
 ##   --attrib[=point]                at the point (default the worst two), switch each render feature off
 ##                                   and on in paired windows and print what it costs (Metal reports no
@@ -22,6 +22,8 @@ extends Node
 ##                                   display and the GPU clocks down: frame time then says little)
 ##   --shader=res://a.gdshader=/abs/b.gdshader   run with b's code in a (memory only, for A/B)
 ##   --census                        per view, what each top-level node / flora species adds (exact counts)
+##                                   --census-split=A,B: these top-level nodes counted child by child
+##   --casters                       per view, the shadow casters within 40 m by size, and the heaviest
 ##   --pan=40                        points (and attrib) swing the view +-10 deg at up to 40 deg/s, like a
 ##                                   player looking about: motion blur and streaming work as in play
 ##   --luke                          Luke's pacing and window: vsync on, 144 fps cap, 1920x1080
@@ -34,6 +36,7 @@ extends Node
 ##   --probe[-split=A,B]             (with --hitches) a frame whose scripts run over 8 ms names the subtrees that took
 ##                                   the time: every processing node's priority is renumbered by subtree (order kept
 ##                                   exactly: old priority first, then tree order) and a stamp runs between subtrees
+##                                   --probe-ms=N: name the subtrees of every frame whose scripts run over N ms (default 8)
 ##   --loading                       run the real loading screen (build + shader warm-up) first
 ##   --early                         start measuring the moment the Realm is built (no 6 s settle):
 ##                                   shows what a player meets right after the load
@@ -41,6 +44,7 @@ extends Node
 ## per frame (stamped first/last in line), "render-cpu" = the renderer's CPU side, "rest(gpu)" =
 ## frame - scripts - render-cpu: on Metal (no GPU timings) that is the GPU wait plus engine overhead.
 const SECONDS := 4.0
+var _stand := SECONDS                 ## --seconds=N: stand this long at each view (a native profiler's sample)
 const SETTLE := 1.2
 var points := []
 ## Realm views (y = NAN: stand on the ground there). The first eight are the r19 set (compare runs).
@@ -136,6 +140,7 @@ var t0_ms := 0
 var _first: Node
 var _proc_us := 0
 var _phys_us := 0
+var _phys_us_shown := 0                ## this frame's physics share of _proc_us (the probe)
 var _phys_begin := 0
 
 var blame := false
@@ -187,6 +192,8 @@ func _ready() -> void:
 			fov = float(a.trim_prefix("--fov="))
 		elif a.begins_with("--stress="):
 			stress = float(a.trim_prefix("--stress="))
+		elif a.begins_with("--seconds="):
+			_stand = float(a.trim_prefix("--seconds="))
 		elif a.begins_with("--pan="):
 			pan = float(a.trim_prefix("--pan="))
 		elif a.begins_with("--hitches"):
@@ -273,6 +280,8 @@ static func _make_stamp() -> GDScript:
 func _physics_process(_d: float) -> void:
 	if _phys_begin > 0:
 		_phys_us += Time.get_ticks_usec() - _phys_begin
+		_probe_tp_span = Vector2i(_phys_begin, Time.get_ticks_usec())     # (the probe: this tick's ends)
+		_probe_ticks += 1
 
 
 ## A conversation or an offer that opens by itself where the tour stands (a found start by the towns) pauses the night,
@@ -374,23 +383,27 @@ func _cal_step() -> bool:
 	return false
 
 
+## (20 Nov, the fps pass: these legs were still in the rift's old home frame after it moved to Endgame.O, so the run
+## stood at the spindle pressing on a wall for 35 legs of 14 s each: eight minutes of the path's frames)
 func _spindle_route() -> void:
 	var spin := Vector2(-8.3, -50.0)
 	for k in range(1, 25):
 		var th := -TAU * float(k) / 24.0
 		var q := spin + Vector2(cos(th), sin(th)) * 6.5
-		route.append([Vector3(q.x, 0, q.y), "spindle"])
-	route.append_array([[Vector3(-1.8, 0, -56), "flights"], [Vector3(-1.8, 0, -61.5), "flights"],
-		[Vector3(0, 0, -66.5), "ward landing"], [Vector3(0, 0, -71.4), "summit stairs"],
-		[Vector3(0, 0, -77.5), "summit stairs"], [Vector3(-2.8, 0, -79.5), "summit"], [Vector3(-3.6, 0, -83.5), "summit"],
-		[Vector3(-2.6, 0, -87.0), "summit"], [Vector3(0, 0, -89.0), "summit"], [Vector3(0, 0, -92.0), "dais"],
-		[Vector3(0, 0, -103.9), "dais"]])
+		route.append([Vector3(q.x, 0, q.y) + Endgame.O, "spindle"])
+	for e: Array in [[Vector3(-1.8, 0, -56), "flights"], [Vector3(-1.8, 0, -61.5), "flights"],
+			[Vector3(0, 0, -66.5), "ward landing"], [Vector3(0, 0, -71.4), "summit stairs"],
+			[Vector3(0, 0, -77.5), "summit stairs"], [Vector3(-2.8, 0, -79.5), "summit"], [Vector3(-3.6, 0, -83.5), "summit"],
+			[Vector3(-2.6, 0, -87.0), "summit"], [Vector3(0, 0, -89.0), "summit"], [Vector3(0, 0, -92.0), "dais"],
+			[Vector3(0, 0, -103.9), "dais"]]:
+		route.append([(e[0] as Vector3) + Endgame.O, e[1]])
 
 
 func _process(d: float) -> void:
 	t += d
 	var script_us := Time.get_ticks_usec() - _proc_begin if _proc_begin > 0 else 0
 	_proc_us = script_us + _phys_us
+	_phys_us_shown = _phys_us
 	_phys_us = 0
 	if p == null:
 		p = get_tree().get_first_node_in_group(Groups.PLAYER) as Player
@@ -453,6 +466,10 @@ func _process(d: float) -> void:
 	_hitch_log(d)
 	_probe_report()
 	if t < (0.0 if "--early" in OS.get_cmdline_user_args() else 6.0):   # streaming, lava, first shader compiles
+		return
+	# and the post-build pass (the static merge: the loading screen waits for it, so a player never plays during it; it
+	# ran into the first views once it took longer than the settle)
+	if not main.has_meta("post_done") and not "--early" in OS.get_cmdline_user_args() and t < 40.0:
 		return
 	_mute_scripts()
 	_quiet_enemies()
@@ -599,7 +616,10 @@ var _probe_on := false
 var _probe_units: Array[String] = []
 var _probe_t := PackedInt64Array()           ## idle pass: stamp time by unit
 var _probe_tp_last := PackedInt64Array()     ## physics pass: each unit's stamp in the last tick
+var _probe_tp_span := Vector2i.ZERO          ## the last tick's first and last stamp (the tour's own)
+var _probe_ticks := 0                        ## physics ticks since the last idle frame
 var _probe_left := 120                       ## reports at most this many frames
+var _probe_us := 8000                        ## a frame whose scripts run over this is reported (--probe-ms=N)
 
 const _PROBE_SRC := """extends Node
 var tour: Node
@@ -618,8 +638,16 @@ func _probe_setup() -> void:
 	var units: Array[Node] = []
 	var split: PackedStringArray = []                 # --probe-split=A,B: these subtrees by child, however small
 	for a in OS.get_cmdline_user_args():
+		if a.begins_with("--probe-ms="):              # a lower bar names the units of the smaller bursts (2 Hz ticks)
+			_probe_us = int(float(a.trim_prefix("--probe-ms=")) * 1000.0)
+			_probe_left = 600
 		if a.begins_with("--probe-split="):
 			split = a.trim_prefix("--probe-split=").split(",")
+	# the autoloads and Main's own node are units too (a burst outside Main's children was reported as nobody's); Main's
+	# children come after and take their subtrees back
+	for c in get_tree().root.get_children():
+		if c != self and not String(c.name).begins_with("Perf"):
+			units.append(c)
 	for c in main.get_children():
 		if c.get_child_count() <= PROBE_SPLIT and not (String(c.name) in split):
 			units.append(c)
@@ -637,7 +665,9 @@ func _probe_setup() -> void:
 	holder.name = "PerfProbes"
 	holder.process_mode = Node.PROCESS_MODE_ALWAYS
 	get_tree().root.add_child(holder)
-	var renumbered := 0
+	# each node is renumbered once, by the last (the deepest) unit that holds it: a subtree that is also split into units
+	# was renumbered twice, which moved it past every stamp (its time showed as nobody's)
+	var unit_of := {}                                 # node id -> [node, unit]
 	for k in units.size():
 		var u := units[k]
 		_probe_units.append(String(main.get_path_to(u)))
@@ -645,13 +675,18 @@ func _probe_setup() -> void:
 		if not ((u.get_child_count() > PROBE_SPLIT or String(u.name) in split) and u.get_parent() == main):
 			nodes.append_array(u.find_children("*", "", true, false))
 		for n in nodes:
-			var p := n.process_priority
-			var pp := n.process_physics_priority
-			if absi(p) < PROBE_STRIDE / 2:
-				n.process_priority = p * PROBE_STRIDE + 2 * k + 1
-			if absi(pp) < PROBE_STRIDE / 2:
-				n.process_physics_priority = pp * PROBE_STRIDE + 2 * k + 1
-			renumbered += 1
+			unit_of[n.get_instance_id()] = [n, k]
+	for id: int in unit_of:
+		var n := unit_of[id][0] as Node
+		var k := int(unit_of[id][1])
+		var p := n.process_priority
+		var pp := n.process_physics_priority
+		if absi(p) < PROBE_STRIDE / 2:
+			n.process_priority = p * PROBE_STRIDE + 2 * k + 1
+		if absi(pp) < PROBE_STRIDE / 2:
+			n.process_physics_priority = pp * PROBE_STRIDE + 2 * k + 1
+	var renumbered := unit_of.size()
+	for k in units.size():
 		var st := Node.new()
 		st.set_script(script)
 		st.set("tour", self)
@@ -678,28 +713,59 @@ func _probe_report() -> void:
 	if not _probe_on:
 		_probe_setup()
 		return
-	if _proc_us > 8000 and _probe_left > 0:
+	if _proc_us > _probe_us and _probe_left > 0:
 		_probe_left -= 1
 		var gaps: Array = []
+		var last := _probe_t.size() - 1
 		if _probe_t[0] > 0 and _proc_begin > 0:
 			gaps.append([_probe_t[0] - _proc_begin, 0])      # unit 0, and every node spawned since the setup (priority 0)
 		for k in range(1, _probe_t.size()):
 			if _probe_t[k] > 0 and _probe_t[k - 1] > 0:
 				gaps.append([_probe_t[k] - _probe_t[k - 1], k])
+		if _probe_t[last] > 0:
+			gaps.append([Time.get_ticks_usec() - _probe_t[last], -1])         # after the last unit: a node with a priority past the bands
 		var pg: Array = []
+		if _probe_tp_last[0] > 0 and _probe_tp_span.x > 0 and _probe_tp_last[0] >= _probe_tp_span.x:
+			pg.append([_probe_tp_last[0] - _probe_tp_span.x, 0])          # unit 0 and the nodes spawned since (as above)
 		for k in range(1, _probe_tp_last.size()):
 			if _probe_tp_last[k] > 0 and _probe_tp_last[k - 1] > 0 and _probe_tp_last[k] >= _probe_tp_last[k - 1]:
 				pg.append([_probe_tp_last[k] - _probe_tp_last[k - 1], k])
+		if _probe_tp_last[_probe_tp_last.size() - 1] > 0 and _probe_tp_span.y >= _probe_tp_last[_probe_tp_last.size() - 1]:
+			pg.append([_probe_tp_span.y - _probe_tp_last[_probe_tp_last.size() - 1], -1])
 		gaps.sort_custom(func(a: Array, b: Array) -> bool: return a[0] > b[0])
 		pg.sort_custom(func(a: Array, b: Array) -> bool: return a[0] > b[0])
 		var txt := PackedStringArray()
 		for g: Array in gaps.slice(0, 4):
-			txt.append("%s %.1f" % [_probe_units[g[1]], g[0] / 1000.0])
+			txt.append("%s %.1f" % [_probe_units[g[1]] if int(g[1]) >= 0 else "(after the last unit)", g[0] / 1000.0])
 		var ptxt := PackedStringArray()
 		for g: Array in pg.slice(0, 3):
-			ptxt.append("%s %.1f" % [_probe_units[g[1]], g[0] / 1000.0])
-		print("PROBE t %.2f scripts %.1f ms | idle: %s | last tick: %s" % [t, _proc_us / 1000.0, ", ".join(txt), ", ".join(ptxt)])
+			ptxt.append("%s %.1f" % [_probe_units[g[1]] if int(g[1]) >= 0 else "(after the last unit)", g[0] / 1000.0])
+		print("PROBE t %.2f scripts %.1f ms (idle %.1f, physics %.1f in %d ticks) | idle: %s | last tick: %s" % [t, _proc_us / 1000.0,
+			(_proc_us - _phys_us_shown) / 1000.0, _phys_us_shown / 1000.0, _probe_ticks, ", ".join(txt), ", ".join(ptxt)])
+		if not gaps.is_empty() and int((gaps[0] as Array)[1]) == -1:
+			_probe_tail()
 	_probe_t.fill(0)
+	_probe_ticks = 0
+
+
+## The tail is the nodes processed after the last unit's stamp: a priority past the bands (a positive one, or one set since
+## the setup). Name the ones processing now (a scan of the tree: only on such a report).
+func _probe_tail() -> void:
+	var top := 2 * _probe_units.size() + 2
+	var by := {}                                      # script (or class) -> [count, a path]
+	for n in get_tree().root.find_children("*", "", true, false):
+		if n == self or String(n.name).begins_with("Perf") or not (n.is_processing() or n.is_processing_internal()):
+			continue
+		if n.process_priority > top and n.process_priority < (1 << 30):
+			var scr := n.get_script() as Script
+			var k := "%s %d" % [scr.resource_path.get_file() if scr else n.get_class(), n.process_priority / PROBE_STRIDE]
+			if not by.has(k):
+				by[k] = [0, str(n.get_path())]
+			by[k][0] += 1
+	var out := PackedStringArray()
+	for k: String in by:
+		out.append("%s x%d (%s)" % [k, int(by[k][0]), String(by[k][1])])
+	print("PROBE tail: %s" % ", ".join(out))
 
 
 # --- static views ----------------------------------------------------------------------------------
@@ -717,9 +783,14 @@ func _point_step(d: float) -> void:
 			_proc_us / 1000.0, _prev_proc_us / 1000.0, RenderingServer.viewport_get_measured_render_time_cpu(vp_rid) + RenderingServer.get_frame_setup_time_cpu(),
 			Performance.get_monitor(Performance.TIME_PHYSICS_PROCESS) * 1000.0])
 	_prev_proc_us = _proc_us
-	if float(acc.time) >= SECONDS:
+	if float(acc.time) >= _stand:
 		var r := _report("PERF %-14s" % points[i][0])
 		summary.append([points[i][0]] + r)
+		if "--casters" in OS.get_cmdline_user_args():
+			_casters_report()
+		for a in OS.get_cmdline_user_args():
+			if a.begins_with("--why-under="):
+				_why_under(a.trim_prefix("--why-under=").split(","))
 		if census:
 			phase = "census"
 			_census_begin()
@@ -783,6 +854,7 @@ func _sample(d: float) -> void:
 	acc.objs = int(acc.get("objs", 0)) + int(Performance.get_monitor(Performance.RENDER_TOTAL_OBJECTS_IN_FRAME))
 	acc.sh_draws = int(acc.get("sh_draws", 0)) + RenderingServer.viewport_get_render_info(vp_rid, RenderingServer.VIEWPORT_RENDER_INFO_TYPE_SHADOW, RenderingServer.VIEWPORT_RENDER_INFO_DRAW_CALLS_IN_FRAME)
 	acc.sh_prims = int(acc.get("sh_prims", 0)) + RenderingServer.viewport_get_render_info(vp_rid, RenderingServer.VIEWPORT_RENDER_INFO_TYPE_SHADOW, RenderingServer.VIEWPORT_RENDER_INFO_PRIMITIVES_IN_FRAME)
+	acc.cv_draws = int(acc.get("cv_draws", 0)) + RenderingServer.viewport_get_render_info(vp_rid, RenderingServer.VIEWPORT_RENDER_INFO_TYPE_CANVAS, RenderingServer.VIEWPORT_RENDER_INFO_DRAW_CALLS_IN_FRAME)
 	acc.proc = float(acc.get("proc", 0.0)) + float(_proc_us) / 1e6
 	acc.phys = float(acc.get("phys", 0.0)) + Performance.get_monitor(Performance.TIME_PHYSICS_PROCESS)
 	if _blur == null:
@@ -832,10 +904,11 @@ func _report(label: String) -> Array:
 	var proc := float(acc.proc) / n * 1000.0
 	var phys := float(acc.phys) / n * 1000.0
 	var cpu := float(acc.cpu) / n
-	print("%s fps %6.1f  1%%low %6.1f  p99 %5.1f  worst %5.1f ms  sd %4.2f  >33ms %d  | scripts %5.2f physics(max/s) %5.2f render-cpu %5.2f rest(gpu) %5.2f ms | draws %4d (max %4d, shadow %d) objs %5d prims %7d (max %7d, shadow %d) | blur %d%%" % [
+	print("%s fps %6.1f  1%%low %6.1f  p99 %5.1f  worst %5.1f ms  sd %4.2f  >33ms %d  | scripts %5.2f physics(max/s) %5.2f render-cpu %5.2f rest(gpu) %5.2f ms | draws %4d (max %4d, shadow %d) objs %5d prims %7d (max %7d, shadow %d) | blur %d%% | canvas draws %d" % [
 		label, st[0], st[1], st[2], st[3], st[4], st[6], proc, phys, cpu, maxf(0.0, frame_ms - proc - cpu),
 		int(float(acc.draws) / n), int(acc.max_draws), int(float(acc.get("sh_draws", 0)) / n), int(float(acc.objs) / n),
-		int(float(acc.prims) / n), int(acc.max_prims), int(float(acc.get("sh_prims", 0)) / n), roundi(100.0 * float(acc.get("blur", 0)) / n)])
+		int(float(acc.prims) / n), int(acc.max_prims), int(float(acc.get("sh_prims", 0)) / n), roundi(100.0 * float(acc.get("blur", 0)) / n),
+		int(float(acc.get("cv_draws", 0)) / n)])
 	return [st[0], st[1], st[3], int(float(acc.draws) / n), int(float(acc.prims) / n), int(acc.max_draws), int(acc.max_prims), st[6]]
 
 
@@ -1168,6 +1241,111 @@ func _attrib_step(d: float) -> void:
 		_attrib_next_point()
 
 
+# --- casters (--casters): the shadow casters near the view by size, and the heaviest ones ---------
+
+const _MeshMerge := preload("res://core/util/mesh_merge.gd")
+
+
+## --why-under=A/B,C: under each of these nodes (paths from Main), what draws in view and why each plain mesh is not
+## merged (MeshMerge._why): MultiMeshes, ranged / unranged meshes, and the reasons, counted.
+func _why_under(paths: PackedStringArray) -> void:
+	var cam := get_viewport().get_camera_3d()
+	for path in paths:
+		var root := main.get_node_or_null(NodePath(path))
+		if root == null:
+			continue
+		var why := {}
+		var n_mm := 0
+		var n_mi := 0
+		var near := 0
+		for g in root.find_children("*", "GeometryInstance3D", true, false):
+			var gi := g as GeometryInstance3D
+			if not gi.is_visible_in_tree():
+				continue
+			if gi is MultiMeshInstance3D:
+				n_mm += 1
+				continue
+			if not (gi is MeshInstance3D):
+				continue
+			var mi := gi as MeshInstance3D
+			if mi.mesh == null:
+				continue
+			var ab: AABB = mi.global_transform * mi.mesh.get_aabb()
+			var d := ab.get_center().distance_to(cam.global_position)
+			var shown := mi.visibility_range_end <= 0.0 or d < mi.visibility_range_end + mi.visibility_range_end_margin
+			if not shown or d < mi.visibility_range_begin:
+				continue
+			n_mi += 1
+			near += 1 if d < 60.0 else 0
+			var w := _MeshMerge._why(mi)
+			if w == "ok":
+				w = "ok (merged? %s, range %.0f, parent %s)" % [mi.has_meta(&"merged"), mi.visibility_range_end, mi.get_parent().get_class() if mi.get_parent().get_script() == null else String((mi.get_parent().get_script() as Script).resource_path).get_file()]
+			why[w] = int(why.get(w, 0)) + 1
+		var keys := why.keys()
+		keys.sort_custom(func(x: Variant, y: Variant) -> bool: return int(why[x]) > int(why[y]))
+		var parts := PackedStringArray()
+		for k: Variant in keys.slice(0, 10):
+			parts.append("%s x%d" % [k, why[k]])
+		print("WHY %s %s: %d meshes in range (%d within 60 m), %d multimeshes | %s" % [points[i][0], path, n_mi, near, n_mm, "; ".join(parts)])
+
+
+static func _mesh_tris(m: Mesh) -> int:
+	var am := m as ArrayMesh
+	if am == null:
+		return 12                                    # a primitive box or sphere: a handful
+	var t := 0
+	for si in am.get_surface_count():
+		var n := am.surface_get_array_index_len(si)
+		t += (n if n > 0 else am.surface_get_array_len(si)) / 3
+	return t
+
+
+## Every mesh within 40 m of the camera (the moon's shadow reach; the fire's is less) that casts, by the size of its
+## world box: count and triangles a class, and the twenty heaviest with their paths (a MultiMesh counts its instances).
+func _casters_report() -> void:
+	var cam := get_viewport().get_camera_3d()
+	var bounds := [0.3, 0.6, 1.2, 2.5, 1e9]
+	var cls: Array = []
+	for b in bounds:
+		cls.append([0, 0])
+	var heavy: Array = []
+	for g in main.find_children("*", "GeometryInstance3D", true, false):
+		var gi := g as GeometryInstance3D
+		if gi.cast_shadow == GeometryInstance3D.SHADOW_CASTING_SETTING_OFF or not gi.is_visible_in_tree():
+			continue
+		var tris := 0
+		var big := 0.0
+		var at := gi.global_position
+		if gi is MeshInstance3D and (gi as MeshInstance3D).mesh != null:
+			var m := (gi as MeshInstance3D).mesh
+			var ab: AABB = gi.global_transform * m.get_aabb()
+			at = ab.get_center()
+			big = maxf(ab.size.x, maxf(ab.size.y, ab.size.z))
+			tris = _mesh_tris(m)
+		elif gi is MultiMeshInstance3D and (gi as MultiMeshInstance3D).multimesh != null and (gi as MultiMeshInstance3D).multimesh.mesh != null:
+			var mm := (gi as MultiMeshInstance3D).multimesh
+			var ab2 := mm.mesh.get_aabb()
+			big = maxf(ab2.size.x, maxf(ab2.size.y, ab2.size.z))
+			var per := _mesh_tris(mm.mesh)
+			var cnt := mm.visible_instance_count if mm.visible_instance_count >= 0 else mm.instance_count
+			tris = per * cnt
+			at = (gi.global_transform * gi.get_aabb()).get_center()
+		else:
+			continue
+		if at.distance_to(cam.global_position) > 40.0:
+			continue
+		for k in bounds.size():
+			if big < bounds[k]:
+				cls[k][0] += 1
+				cls[k][1] += tris
+				break
+		heavy.append([tris, big, str(main.get_path_to(gi)).substr(0, 70)])
+	heavy.sort_custom(func(a: Array, b: Array) -> bool: return int(a[0]) > int(b[0]))
+	print("CASTERS %s by size (count, tris): <0.3 m %s, <0.6 m %s, <1.2 m %s, <2.5 m %s, larger %s" % [points[i][0], cls[0], cls[1], cls[2], cls[3], cls[4]])
+	for h: Array in heavy.slice(0, 20):
+		print("CASTERS   %7d tris  %5.2f m  %s" % [h[0], h[1], h[2]])
+
+
 # --- census: what each part of the world adds to this view (draws and primitives are exact) ------
 
 var c_groups: Array = []             # [label, Array of nodes]
@@ -1175,6 +1353,21 @@ var c_k := 0
 var c_wait := 0
 var c_base := Vector4i.ZERO
 var c_rows: Array = []
+var c_base_cv := 0                   # canvas draws in the census's base frame
+
+
+func _canvas_draws() -> int:
+	return RenderingServer.viewport_get_render_info(vp_rid, RenderingServer.VIEWPORT_RENDER_INFO_TYPE_CANVAS, RenderingServer.VIEWPORT_RENDER_INFO_DRAW_CALLS_IN_FRAME)
+
+
+## A census group's nodes shown or hidden (3D nodes, and the HUD's canvas items).
+static func _c_show(n: Variant, on: bool) -> void:
+	if not is_instance_valid(n):
+		return                                       # (freed since the census listed it: a HUD row rebuilt, a merged mesh)
+	if n is Node3D:
+		(n as Node3D).visible = on
+	elif n is CanvasItem:
+		(n as CanvasItem).visible = on
 
 
 func _counts() -> Vector4i:
@@ -1186,15 +1379,39 @@ func _counts() -> Vector4i:
 		RenderingServer.viewport_get_render_info(vp_rid, sh, RenderingServer.VIEWPORT_RENDER_INFO_PRIMITIVES_IN_FRAME))
 
 
+## A canvas layer's parts as census groups: plain containers (no script, with children) are opened, anything else is a row.
+func _c_ui(n: Node, label: String) -> void:
+	for cc in n.get_children():
+		if not (cc is CanvasItem) or not (cc as CanvasItem).visible:
+			continue
+		var nm := label + "/" + String(cc.name)
+		if cc.get_script() == null and cc.get_child_count() > 0:
+			_c_ui(cc, nm)
+		else:
+			c_groups.append([nm, [cc]])
+
+
 func _census_begin() -> void:
 	c_groups.clear()
 	var flora := main.get_node_or_null("RealmFlora")
+	var split: PackedStringArray = []                 # --census-split=A,B: these top-level nodes by child
+	for a in OS.get_cmdline_user_args():
+		if a.begins_with("--census-split="):
+			split = a.trim_prefix("--census-split=").split(",")
 	for c in main.get_children():
 		if c is Node3D and (c as Node3D).visible and c != flora and not c is Player:
-			c_groups.append([String(c.name), [c]])
+			if String(c.name) in split:
+				for cc in c.get_children():
+					if cc is Node3D and (cc as Node3D).visible:
+						c_groups.append([String(c.name) + "/" + String(cc.name), [cc]])
+			else:
+				c_groups.append([String(c.name), [c]])
 	var player := main.get_node_or_null("Player")
 	if player:
 		c_groups.append(["Player", [player]])
+	for cl in main.find_children("*", "CanvasLayer", true, false):          # the HUD's canvas items, by part
+		if (cl as CanvasLayer).visible:
+			_c_ui(cl, "ui " + String(cl.name))
 	if flora:
 		var by := {}
 		for mmi in flora.find_children("Flora_*", "MultiMeshInstance3D", true, false):
@@ -1219,20 +1436,21 @@ func _census_step() -> void:
 		return
 	if c_k == -1:
 		c_base = _counts()
+		c_base_cv = _canvas_draws()
 	else:
 		var now := _counts()
 		var dlt := c_base - now
-		c_rows.append([c_groups[c_k][0], dlt])
+		c_rows.append([c_groups[c_k][0], dlt, c_base_cv - _canvas_draws()])
 		for n in c_groups[c_k][1]:
-			(n as Node3D).visible = true
+			_c_show(n, true)
 	c_k += 1
 	if c_k >= c_groups.size():
 		c_rows.sort_custom(func(a: Array, b: Array) -> bool: return (a[1] as Vector4i).y + (a[1] as Vector4i).w > (b[1] as Vector4i).y + (b[1] as Vector4i).w)
-		print("CENSUS %s total draws %d prims %d (shadow draws %d prims %d)" % [points[i][0], c_base.x, c_base.y, c_base.z, c_base.w])
+		print("CENSUS %s total draws %d prims %d (shadow draws %d prims %d) canvas draws %d" % [points[i][0], c_base.x, c_base.y, c_base.z, c_base.w, c_base_cv])
 		for r: Array in c_rows:
 			var v: Vector4i = r[1]
-			if v.x != 0 or v.y != 0 or v.z != 0 or v.w != 0:
-				print("CENSUS   %-30s draws %4d prims %8d | shadow draws %4d prims %8d" % [r[0], v.x, v.y, v.z, v.w])
+			if v.x != 0 or v.y != 0 or v.z != 0 or v.w != 0 or int(r[2]) != 0:
+				print("CENSUS   %-30s draws %4d prims %8d | shadow draws %4d prims %8d | canvas %4d" % [r[0], v.x, v.y, v.z, v.w, int(r[2])])
 		var cam := get_viewport().get_camera_3d()
 		var rows: Array = []
 		for l in main.find_children("*", "Light3D", true, false):
@@ -1256,7 +1474,7 @@ func _census_step() -> void:
 		_next_point()
 		return
 	for n in c_groups[c_k][1]:
-		(n as Node3D).visible = false
+		_c_show(n, false)
 	c_wait = 4
 
 

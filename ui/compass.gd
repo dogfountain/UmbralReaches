@@ -8,6 +8,7 @@ extends Control
 ## Added by ui/hud.gd (one line). Reads the tree twice a second, draws every frame; no signals needed.
 ## Hidden while the tree is paused (menus, dialogue) and under the loading screen.
 
+const TickPhase := preload("res://core/util/tick_phase.gd")
 const LANTERN := Color("#FFB347")
 const EMBER := Color("#FF6A2A")
 const INK := Color(0.9, 0.84, 0.7)
@@ -17,6 +18,8 @@ const HEIGHT := 46.0
 const STRIP_Y := 4.0                     ## the strip's top in the control
 const STRIP_H := 38.0
 const Forge := preload("res://ui/hud_forge.gd")
+const HudBake := preload("res://ui/hud_bake.gd")
+const STRIP_BOX := Rect2(-8.0, STRIP_Y - 8.0, WIDTH + 16.0, STRIP_H + 16.0)   ## the strip's baked box (its outline and shadow)
 const QuestTrack := preload("res://core/story/quest_track.gd")
 const Feed := preload("res://ui/compass_feed.gd")
 const HudPrefs := preload("res://ui/hud_prefs.gd")
@@ -32,6 +35,7 @@ var _dirty := true
 
 
 func _ready() -> void:
+	_scan = TickPhase.first(self, 0.5)
 	name = "Compass"
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	set_anchors_preset(Control.PRESET_CENTER_TOP)
@@ -40,6 +44,19 @@ func _ready() -> void:
 	offset_top = 18.0
 	offset_bottom = 18.0 + STRIP_Y + STRIP_H + 36.0
 	_font = load("res://ui/fonts/Cinzel.ttf")
+	# the forged strip itself never changes (only its fade): baked, one draw call instead of ten
+	_strip = HudBake.new()
+	_strip.name = "Strip"
+	_strip.art = func(ci: CanvasItem) -> void:
+		ci.draw_set_transform(-STRIP_BOX.position)
+		Forge.strip(ci, Rect2(0.0, STRIP_Y, WIDTH, STRIP_H), 1.0, 24.0)
+	_strip.show_behind_parent = true
+	_strip.position = STRIP_BOX.position
+	_strip.size = STRIP_BOX.size
+	add_child(_strip)
+
+
+var _strip: HudBake
 
 
 func _process(delta: float) -> void:
@@ -48,7 +65,7 @@ func _process(delta: float) -> void:
 	_alpha = move_toward(_alpha, 0.0 if hidden else 1.0, delta * 4.0)
 	_scan -= delta
 	if _scan <= 0.0:
-		_scan = 0.5
+		_scan = TickPhase.next(_scan, 0.5)
 		_rescan()
 		_dirty = true
 	# redraw when the picture moves: the heading turned, the eye moved (the distance numbers), the marks
@@ -86,6 +103,7 @@ func _rank(kind: String) -> int:
 
 
 func _draw() -> void:
+	_strip.self_modulate.a = _alpha                  # (its fade: the baked strip is drawn whole, at the strip's alpha)
 	if _alpha <= 0.001:
 		return
 	var cam := get_viewport().get_camera_3d()
@@ -96,7 +114,7 @@ func _draw() -> void:
 	var cx := WIDTH * 0.5
 	var sr := Rect2(0.0, STRIP_Y, WIDTH, STRIP_H)
 	var band_y := sr.position.y + sr.size.y * 0.5
-	Forge.strip(self, sr, _alpha, 24.0)
+	_strip.refresh(0)
 	# ticks along the foot of the strip and the four winds
 	var winds := {0: "N", 90: "E", 180: "S", 270: "W"}
 	for deg in range(0, 360, 15):

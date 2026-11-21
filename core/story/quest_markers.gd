@@ -12,6 +12,7 @@ extends Node3D
 ## the targets refreshed twice a second; a mark only bobs (one tween each).
 ## Load by path: const QuestMarkers := preload("res://core/story/quest_markers.gd")
 
+const TickPhase := preload("res://core/util/tick_phase.gd")
 const Book := preload("res://core/story/quest_book.gd")
 const Chains := preload("res://core/story/quest_chains.gd")
 const Giver := preload("res://core/story/quest_giver.gd")
@@ -36,6 +37,7 @@ var _font: Font
 
 
 func _ready() -> void:
+	_scan = TickPhase.first(self, 0.5)
 	name = "QuestMarkers"
 	add_to_group("quest_markers")
 	_font = load("res://ui/fonts/Cinzel.ttf")
@@ -47,12 +49,12 @@ func _process(delta: float) -> void:
 	_scan -= delta
 	_poll -= delta
 	if _scan <= 0.0:
-		_scan = 3.0
+		_scan = TickPhase.next(_scan, 3.0)
 		_find_givers()
 		_poll = 0.0
 	if _poll > 0.0:
 		return
-	_poll = 0.5
+	_poll = TickPhase.next(_poll, 0.5)
 	refresh()
 
 

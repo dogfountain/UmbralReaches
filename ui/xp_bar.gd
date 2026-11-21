@@ -10,6 +10,7 @@ extends Control
 ##   player (or Travel) properties: xp + (xp_next | xp_max | xp_to_next), level
 ## Added by ui/hud.gd. Hidden while paused and under the loading screen.
 
+const TickPhase := preload("res://core/util/tick_phase.gd")
 const LANTERN := Color("#FFB347")
 const INK := Color(0.93, 0.88, 0.8)
 const BAR_H := 9.0             ## the line itself, at the 1920x1080 canvas
@@ -39,6 +40,7 @@ const FramePace := preload("res://core/util/frame_pace.gd")
 
 
 func _ready() -> void:
+	_scan = TickPhase.first(self, 0.5)
 	name = "XpBar"
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
@@ -52,7 +54,7 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	_scan -= delta
 	if _scan <= 0.0:
-		_scan = 0.5
+		_scan = TickPhase.next(_scan, 0.5)
 		var fresh := _read()
 		if fresh != _info:
 			_dirty = true                # level, rested stretch or a cap changed

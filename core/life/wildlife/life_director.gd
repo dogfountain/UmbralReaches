@@ -9,6 +9,7 @@ extends Node3D
 ## Read-only for other systems: this node is "Wildlife" under the zone root, meta "weather" holds the
 ## Weather node (state {mist, rain, wind, thunder}, front, `thundered` signal).
 
+const TickPhase := preload("res://core/util/tick_phase.gd")
 const LifeKit := preload("res://core/life/wildlife/life_kit.gd")
 const LifePlace := preload("res://core/life/wildlife/life_place.gd")
 const Birds := preload("res://core/life/wildlife/life_birds.gd")
@@ -87,6 +88,7 @@ var _kindle_t := 0.0
 
 
 func setup(r: Node) -> void:
+	_enemy_t = TickPhase.first(self, 0.5)
 	var t_setup := Time.get_ticks_msec()
 	root = r
 	name = "Wildlife"
@@ -761,7 +763,7 @@ func _process(dt: float) -> void:
 	_last_player = pp
 	_enemy_t -= dt
 	if _enemy_t <= 0.0:
-		_enemy_t = 0.5
+		_enemy_t = TickPhase.next(_enemy_t, 0.5)
 		_enemies.clear()
 		for e in get_tree().get_nodes_in_group(Groups.ENEMY):
 			var n3 := e as Node3D
@@ -863,7 +865,7 @@ func _process(dt: float) -> void:
 	if not _kindle_wait.is_empty():
 		_kindle_t -= dt
 		if _kindle_t <= 0.0:
-			_kindle_t = 0.5
+			_kindle_t = TickPhase.next(_kindle_t, 0.5)
 			_kindle_check()
 	var us := float(Time.get_ticks_usec() - t0)
 	_perf_acc += us
@@ -896,11 +898,21 @@ func _scan_groups(cp: Vector3) -> void:
 	_scan_t = 0.2
 	_scan_cp = cp
 	_act.clear()
+	var first_shows := 0
 	for k in groups.size():
 		var g: Node3D = groups[k]
 		if not is_instance_valid(g):
 			continue
 		var on: bool = _gc[k].distance_to(cp) < _gr[k]
+		# a group's first show walks it for its fade (_fade_group): after a camera jump (the load, a respawn, the Ember
+		# Road) every group in reach did it in one frame (read as the 20 ms wildlife frames of hitch_warm.md). A few a
+		# scan, the rest on the next frames: walked into they are still FADE_PAD past their fade; after a jump the whole
+		# view is new for a frame or two anyway
+		if on and not g.has_meta(&"fade_set"):
+			first_shows += 1
+			if first_shows > FIRST_SHOWS:
+				on = false
+				_scan_t = 0.0
 		if on != g.visible:
 			g.visible = on
 			if not on:
@@ -917,6 +929,7 @@ func _scan_groups(cp: Vector3) -> void:
 ## so the switch happens unseen. The fade guard is told these ranges are final (range_k).
 const FADE_PAD := 30.0
 const FADE_BAND := 10.0
+const FIRST_SHOWS := 4                   ## groups shown for the first time in one scan (each is walked for its fade)
 static func _fade_group(g: Node3D, active_r: float) -> void:
 	g.set_meta(&"fade_set", true)
 	var end := maxf(12.0, active_r - 5.0)

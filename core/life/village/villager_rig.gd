@@ -13,13 +13,13 @@ extends "res://core/npc/dwarf_rig.gd"
 ##   mesh carried with its hand (`glow`, `update_glow()`), the only second draw a villager can have.
 ## Tools are built in the fist along the hand's `ax` axis through grip point `grip[side]`; pose them
 ## with `hold(side, G, D, U)`: the grip goes to G (model space), the tool axis to D, the fingers
-## to U. One skinned surface with LODs, cached through GenCache by its options.
-## Model space: front -Z, origin on the ground, built at 1/SCALE and shown at SCALE (the AO grid
-## of DwarfMesh stops at 1.55 m).
+## to U. One skinned surface with LODs, cached through GenCache by its options; its shadow is cast from one of its LODs
+## (villager_shadow.gd). Model space: front -Z, origin on the ground, built at 1/SCALE, shown at SCALE (DwarfMesh's AO to 1.55 m).
 
 const VMesh := preload("res://core/life/village/villager_mesh.gd")
 const Extra := preload("res://core/life/village/villager_tools_extra.gd")   ## broom, bucket, sack, fiddle, bow, torch
 const SELF_V := "res://core/life/village/villager_rig.gd"
+const VShadow := preload("res://core/life/village/villager_shadow.gd")
 const SCALE := 1.1                 ## adults are built 1.53 m tall and shown at 1.68 m
 
 const KEYS := ["seed", "sex", "age", "garment", "apron", "hood", "hat", "hair", "beard", "r", "l", "satchel", "shawl", "pale", "barefoot", "girth", "cloth", "cloth2", "hair_c", "skin", "leather"]
@@ -73,7 +73,7 @@ func _build(opts: Dictionary) -> void:
 	mesh_instance.visibility_range_end = 60.0
 	mesh_instance.visibility_range_end_margin = 8.0
 	mesh_instance.extra_cull_margin = 1.2 if String(opts.get("r", "")) == "pole" else 0.6
-	mesh_instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+	VShadow.attach(skeleton, mesh_instance, key, mesh)      # the body's shadow from a lower LOD of it (a ShadowProxy)
 	_glow_part()
 
 

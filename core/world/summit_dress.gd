@@ -10,6 +10,7 @@ const MOSS_NOR := "res://art/textures/import/rock_moss_nor.jpg"
 const Check := preload("res://core/debug/check.gd")
 const GenCache := preload("res://core/world/realm/gen_cache.gd")
 const Wayfinding := preload("res://core/world/realm/realm_wayfinding.gd")
+const MeshChunksS := preload("res://core/world/mesh_chunks.gd")
 
 ## Existing summit disc ~r=5.4 at z=-73.5. Seat cathedral behind it so the
 ## climb stays clear; approach stairs face +Z onto that disc.
@@ -78,6 +79,9 @@ static func dress(root: Node) -> void:
 	tp = Time.get_ticks_usec()
 	_solidify_from_meshes(holder, platform)
 	Realm.prof_add("summit: collision", tp)
+	tp = Time.get_ticks_usec()
+	_join_rocks(platform)
+	Realm.prof_add("summit: rocks joined", tp)
 	tp = Time.get_ticks_usec()
 
 	# The monument: a carved stone mage on a rune pedestal, facing the stair (+Z).
@@ -413,6 +417,47 @@ static func _solidify_from_meshes(holder: Node3D, platform: Node) -> void:
 		cs.transform = inv * mi.global_transform
 		body.add_child(cs)
 	print("SUMMIT_DRESS collision from meshes: monument+rails trimesh, %d rock hulls" % rocks)
+
+
+## The platform's moss rocks (8-10k triangles each, every one its own draw call with its own LODs: 27-39 draw calls
+## wherever the summit is in sight, from the east Marches and Lastlight's road) joined by material and cut into cells
+## with LODs of their own (MeshChunks.split, cached by content), in the rocks' own compressed vertex format so they draw
+## with the pipelines the rocks compiled (a new format compiles them again at first sight: a 130 ms frame). After the
+## collision, which reads each rock.
+static func _join_rocks(model: Node3D) -> void:
+	var by := {}                                     # material -> [MeshInstance3D]
+	for node in model.find_children("MossRock*", "MeshInstance3D", true, false):
+		var mi := node as MeshInstance3D
+		if mi.mesh == null or mi.material_override == null or not mi.visible:
+			continue
+		if not by.has(mi.material_override):
+			by[mi.material_override] = []
+		(by[mi.material_override] as Array).append(mi)
+	var inv := model.global_transform.affine_inverse()
+	var k := 0
+	for mat: Material in by:
+		var list: Array = by[mat]
+		if list.size() < 2:
+			continue
+		var first := list[0] as MeshInstance3D
+		var st := SurfaceTool.new()
+		for mi: MeshInstance3D in list:
+			for si in mi.mesh.get_surface_count():
+				st.append_from(mi.mesh, si, inv * mi.global_transform)
+		var out := MeshInstance3D.new()
+		out.name = "MossRocks%d" % k
+		out.mesh = st.commit()
+		out.material_override = mat
+		out.cast_shadow = first.cast_shadow
+		out.lod_bias = first.lod_bias
+		out.ignore_occlusion_culling = first.ignore_occlusion_culling
+		out.extra_cull_margin = first.extra_cull_margin
+		out.set_meta(&"keep_format", first.mesh.surface_get_format(0))
+		model.add_child(out)
+		for mi: MeshInstance3D in list:
+			mi.visible = false
+		MeshChunksS.split(out)                       # cells with LODs of their own, in the rocks' vertex format (keep_format)
+		k += 1
 
 
 static func _moss_material() -> StandardMaterial3D:
