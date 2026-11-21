@@ -176,6 +176,17 @@ class Col:
         M = Matrix.Translation(bl(c)) @ Matrix.Rotation(yaw_of(d), 4, 'Z') @ Matrix.Rotation(pitch, 4, 'X') @ Matrix.Diagonal((size[0], size[2], size[1], 1.0))
         bmesh.ops.create_cube(self.bm, size=1.0, matrix=M)
 
+    def slab(self, a, b, width, thick=0.35):
+        """A thin sloped slab whose top surface runs a -> b (game points on its centreline), `width` across: a ramp as a solid (a convex box:
+        the physics engine holds a box better than two thin triangles)."""
+        va, vb = bl(a), bl(b)
+        x = (vb - va).normalized()
+        y = x.cross(Vector((0, 0, 1))).normalized()
+        z = y.cross(x).normalized()
+        L = (vb - va).length
+        M = Matrix.Translation((va + vb) * 0.5 - z * (thick * 0.5)) @ Matrix(((x.x, y.x, z.x, 0), (x.y, y.y, z.y, 0), (x.z, y.z, z.z, 0), (0, 0, 0, 1))) @ Matrix.Diagonal((L, width, thick, 1.0))
+        bmesh.ops.create_cube(self.bm, size=1.0, matrix=M)
+
     def quad(self, p0, p1, p2, p3):
         vs = [self.bm.verts.new(bl(p)) for p in (p0, p1, p2, p3)]
         try:

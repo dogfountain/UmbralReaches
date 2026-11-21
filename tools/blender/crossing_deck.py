@@ -99,13 +99,8 @@ def deck(P, C, rnd, o, d, prof, under, width=W_DECK, rail=(True, True), posts=Tr
                 ya = pc["y0"] + prof.riser * 0.5 - prof.riser * 0.5        # first tread's top is y0 + riser; the ramp meets y0 at the flight's foot
                 p0 = (u0 - tr * 0.5, pc["y0"] + prof.riser * 0.0)
                 p1 = (u0 + (pc["n"] - 0.5) * tr, pc["y1"])
-                for half in (-1, 1):
-                    q = [at(o, d, p0[0], p0[1], half * hw), at(o, d, p0[0], p0[1], 0.0), at(o, d, p1[0], p1[1], 0.0), at(o, d, p1[0], p1[1], half * hw)]
-                    C.quad(*q)
-                    # level from the last half tread on to the flight's end (the next piece's floor takes over there)
-                    q2 = [at(o, d, p1[0], p1[1], half * hw), at(o, d, p1[0], p1[1], 0.0), at(o, d, u1 + 0.05, p1[1], 0.0), at(o, d, u1 + 0.05, p1[1], half * hw)]
-                    C.quad(*q2)
-                # what is under the ramp (the pier-less flight) is closed by the stair body: a slab so the ramp never floats
+                C.slab(at(o, d, p0[0], p0[1], 0.0), at(o, d, p1[0], p1[1], 0.0), width)
+                C.slab(at(o, d, p1[0], p1[1], 0.0), at(o, d, u1 + 0.05, p1[1], 0.0), width)          # level from the last half tread to the flight's end
     # parapets and posts
     if rail[0] or rail[1]:
         _rails(P, C, rnd, o, d, prof, hw, rail, posts, lamps, lamp_pts, collide)

@@ -108,7 +108,8 @@ def _ramp(C, S, ri, ro, th_first, da, cnt, y_start, y_end, R):
         tb = th_first - sb / R
         ya = _yat(sa, arc, tread, y_start, y_end)
         yb = _yat(sb, arc, tread, y_start, y_end)
-        C.quad(polar(S, ri, ta, ya), polar(S, ro, ta, ya), polar(S, ro, tb, yb), polar(S, ri, tb, yb))
+        rm = (ri + ro) * 0.5
+        C.slab(polar(S, rm, ta, ya), polar(S, rm, tb, yb), ro - ri + 0.3)
 
 
 def _yat(s, arc, tread, y0, y1):
@@ -122,4 +123,5 @@ def _flat(C, S, ri, ro, ta, tb, y):
     for k in range(n):
         a0 = ta + (tb - ta) * k / n
         a1 = ta + (tb - ta) * (k + 1) / n
-        C.quad(polar(S, ri, a0, y), polar(S, ro, a0, y), polar(S, ro, a1, y), polar(S, ri, a1, y))
+        rm = (ri + ro) * 0.5
+        C.slab(polar(S, rm, a0, y), polar(S, rm, a1, y), ro - ri + 0.3)

@@ -67,6 +67,16 @@ Landing by landing (what you see, what a pilgrim does):
 7. **Spindle Gate roof (21.2):** the top landing; two fires; the bridge and the ward landing a flight away over the lava.
 8. **Ward landing (25.2):** the summit's stairs ahead, the whole crossing behind and below.
 
+## 2b. The lava pit (Luke, later the same day: "the lava pit is small and just doesn't make sense")
+
+Today's pit: a 40 m trench (walls at |x| 20-25 at y 0..4, the lava sheet 92 x 130 m already under it), the flow a strip between organ-pipe banks. Planned with the Crossing:
+
+- **Bigger:** `rift/pit.gd` draws the walls back between the Spindle and the ward landing (z -50 .. -86): RealmLand samples the baked wall profile up to 8 m nearer the middle, so the lava lies in a bowl up to 16 m wider (about 56 m rim to rim), the helix and the Gate standing out in open flow. The kept ends do not move: nothing south of z -48 (the starwater pool, the Watchers, the terraces, the forecourt, the rim road) and nothing north of z -84 (the summit's pillars, the ward).
+- **A source and a flow:** the three falls on the west wall (z -60, -82, -104: LavaWorks finds each lip on the real rock, so they follow the drawn-back wall) and the east falls feed the bowl; the west flows (rift/scorch.gd) run down the berm into it. The bowl is the widest where the falls land (z -60 .. -82) and narrows to the channel south (the cooling river) and north under the summit.
+- **A crust edge cooling to basalt, glowing cracks:** the bank mask samples the real rock at the lava line, so the new banks get the crust shelf and contact rim for free; the basalt cliffs, organ pipes, crust islands and fissures (rift/features.gd) are placed by rays on the new ground.
+- **Kept:** the lava's light (the Glow lights, the underglow), the kill volume and burn handling (the 92 x 130 m sheet already covers the widened bowl), the bank mask, LightGrid, sound.
+- **The Crossing spans it:** the route's lava stretch (the helix's piers, the Gate, the bridge's pier P2, the ward landing's foot) now stands in a pit that is visibly wide.
+
 ## 3. What is kept (and read by the rest of the game)
 
 The forecourt's footprint and `CROSSING_FOOT`; the ward landing's footprint and `SUMMIT_WARD` (top 25.2); T3 at (-1.8, -40), r 3.5, deck 5.6 with the parapet opened at -35 deg for the Pilgrims' Stair (`rift/tower_stair.gd`, the chapel and the quay, untouched); the Spindle (basalt stack, collision cylinder, centre (-8.3, -50), r 4.1) and its site; the pier feet reaching the lava line (the bank mask); the `rift_*` sites and flights and the three `rift_crossing*` lanes in `WorldLanes`; the walk-test points (updated: `zz/realm_rift_walk.gd`, `zz/threshold_walk_test.gd --full`, `zz/perf_tour.gd`, the loading screen's cameras, the minimap's deck line); the seal guards' camps (moved from T2 to the Spindle's west landing and the ward landing).
@@ -76,9 +86,9 @@ The forecourt's footprint and `CROSSING_FOOT`; the ward landing's footprint and 
 - [x] critique shots (`shots_before/`, 25 views) and the chasm probe (walls |x| 20..33 at y 0..12)
 - [x] plan (this file)
 - [x] Blender kit: lib (masonry, arches, ring blocks), deck (profiles, stepped parapets, arcades), towers, spindle, sections
-- [ ] sections: forecourt, causeway, T3, L4, helix, gate, bridge, ward landing (render review of each)
-- [ ] `crossing.gd`: place the GLB, materials, collision layers, fires, sites, lanes, the Spindle stack
-- [ ] dependants: enemy camps, minimap line, loading-screen cameras, walk tests, perf tour
-- [ ] walk it with the Player (rim -> ward, T3 -> chapel)
-- [ ] re-shoot (`shots_after/`) and look at every shot
-- [ ] parse check, lint
+- [x] sections: forecourt, causeway (4 bays, the last one arching over the Pilgrims' Stair's ring), T3, flight north, helix, Spindle Gate, two-bay bridge, ward landing (render review of each; `tools/blender/crossing_kit.py`)
+- [x] `crossing.gd`: place the GLB, materials, collision layers, fires, sites, lanes, the Spindle stack, the lava's underglow
+- [x] dependants: enemy camps (T2 -> the Pilgrims' Gate), minimap line, walk tests (`zz/realm_rift_walk.gd`, `threshold_walk_test --full`), perf tour
+- [x] walk it with the Player: `realm_rift_walk` rim -> summit dais (44 legs ok) and `--stair` T3 -> Pilgrims' Stair -> quay -> chapel door (35 legs ok)
+- [x] re-shoot once (`shots_after/`, 27 views) and looked at
+- [x] parse check, lint (`tools/lint.sh` clean)

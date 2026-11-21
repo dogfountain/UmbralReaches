@@ -104,11 +104,16 @@ def tower3(objs, Pi, Pe):
     a_s = math.atan2(G0[1] - T3[1], G0[0] - T3[0])           # towards the causeway (south)
     a_n = -math.pi * 0.5
     a_e = math.radians(-35.0)                                  # the Pilgrims' Stair (rift/tower_stair.gd: A0)
-    drum(P, C, rnd, T3, T3_R, T3_TOP, LAVA - 0.8, [a_s, a_n, a_e], [0.72, 0.72, 0.36])
+    drum(P, C, rnd, T3, T3_R, T3_TOP, LAVA - 0.8, [a_s, a_n, a_e], [0.72, 0.72, 0.62])
     # the Pilgrims' arch over the stair's head: a freestanding pointed gate with a violet lantern, so the way down to the light reads
     ca = (T3[0] + math.cos(a_e) * 2.9, T3_TOP, T3[1] + math.sin(a_e) * 2.9)
     tang = (-math.sin(a_e), math.cos(a_e))
     pointed_gate(P, rnd, ca, tang, 2.0, 2.3, 1.7, 0.9)
+    # the sill: a stone landing from the drum's edge to the Pilgrims' Stair's first step (r 3.2 .. 4.35), so the way down is walkable whatever the stair's own bridging slab does
+    cs = (T3[0] + math.cos(a_e) * 3.775, T3_TOP - 0.25, T3[1] + math.sin(a_e) * 3.775)
+    rad = (math.cos(a_e), math.sin(a_e))
+    blk(P, "slate", cs, (1.15, 0.5, 2.4), rad, rnd, bevel=0.03)
+    C.box(cs, (1.15, 0.5, 2.4), rad)
     lay_lantern(P, Pi, ca, tang, 2.3 + 1.7 + 0.55 - 1.15)
     # the two fire posts at the north way on, and a lit one at the causeway's mouth
     fires = []
@@ -397,7 +402,8 @@ def forecourt(objs, Pi, Pe):
     # the landing carried on towards the rim, and the three steps down to the rim path
     o2 = (0.0, 0.0, z1 + 2.4)
     deck(P, C, rnd, (0.0, 0.0, z1 + 0.0), (0.0, 1.0), Prof(FORE_Y, [("flat", 2.4)]), -1.6, width=wd, rail=(True, True))
-    deck(P, C, rnd, (0.0, 0.0, z1 + 2.4), (0.0, 1.0), Prof(FORE_Y - 0.7, [("steps", 3, 0.6)], riser=0.7 / 3.0), -1.4, width=6.0, rail=(True, True))
+    deck(P, C, rnd, (0.0, 0.0, z1 + 4.2), (0.0, -1.0), Prof(FORE_Y - 0.45, [("steps", 3, 0.6)], riser=0.15), -1.4, width=6.0, rail=(True, True))
+    C.box((0.0, -1.4, z1 + 3.4), (6.0, 3.1, 2.4), (1.0, 0.0))      # solid under the approach: the rim dips behind the flight's foot and no one walks in under it
     # the gate over the first flight: a pointed arch between two jamb piers, a lamp post at each
     top = pointed_gate(P, rnd, (0.0, FORE_Y, z0 + 0.7), (1.0, 0.0), 4.4, 3.3, 3.3, 1.2, pier=1.1)
     # the stretches of north wall either side of the gate
@@ -417,7 +423,7 @@ def forecourt(objs, Pi, Pe):
         fires.append(lamp_with_fire(P, Pi, Pe, rnd, (sx, FORE_Y, z0 + 1.8), (1.0, 0.0), h=1.9, big=True))
     LAYOUT["fires"] += [{"p": list(f), "lit": i == 0, "big": True, "tag": "forecourt"} for i, f in enumerate(fires)]
     LAYOUT["sites"].append({"name": "rift_forecourt", "rect": [x0 - 0.4, z0 - 0.4, wd + 0.8, (z1 - z0) + 2.4 + 1.8 + 0.8], "y": FORE_Y, "hard": True})
-    LAYOUT["flights"].append({"name": "rift_crossing_approach", "a": [0.0, FORE_Y - 0.7, z1 + 4.2], "b": [0.0, FORE_Y, z1 + 2.4], "hw": 3.2})
+    LAYOUT["flights"].append({"name": "rift_crossing_approach", "a": [0.0, FORE_Y - 0.45, z1 + 4.2], "b": [0.0, FORE_Y, z1 + 2.4], "hw": 3.2})
     LAYOUT["lanes"]["rift_crossing"] = [[0.0, z1], [0.0, z0], list(T3)]
     emit(objs, P, C, "Forecourt")
 
@@ -453,6 +459,17 @@ def build():
         if not ONLY:
             with open(os.path.join(MODELS, "crossing_layout.json"), "w") as f:
                 json.dump(LAYOUT, f, indent=1)
+    if "--ray" in ARGS:
+        dg = bpy.context.evaluated_depsgraph_get()
+        for z in [-19.0 - 0.5 * i for i in range(0, 20)]:
+            hits = []
+            for ob in objs:
+                if ob.name.endswith("-colonly"):
+                    inv = ob.matrix_world.inverted()
+                    ok, loc, n, idx = ob.ray_cast(inv @ Vector((-0.7, -z, 10.0)), Vector((0, 0, -1)))
+                    if ok:
+                        hits.append("%s %.2f" % (ob.name[:6], loc.z))
+            print("RAY z %.1f -> %s" % (z, hits))
     if PREVIEW_DIR:
         W.PREVIEW = PREVIEW_DIR
         os.makedirs(PREVIEW_DIR, exist_ok=True)
