@@ -198,7 +198,7 @@ func _dump(f: Vector3, rad: float) -> void:
 					hid = String(q.get_path())
 					break
 				q = q.get_parent()
-			print("OSSDUMP %s pos %s d %.1f end %.1f margin %.1f begin %.1f fade %d layers %d vis_in_tree %s hidden_by '%s' n %d custom_aabb %s aabb %s cull_margin %.1f" % [g.get_path(), g.global_position.snapped(Vector3.ONE * 0.1), g.global_position.distance_to(f), g.visibility_range_end, g.visibility_range_end_margin, g.visibility_range_begin, g.visibility_range_fade_mode, g.layers, g.is_visible_in_tree(), hid, g.multimesh.instance_count, g.custom_aabb, bb.snapped(Vector3.ONE * 0.1), g.extra_cull_margin])
+			print("OSSDUMP %s pos %s d %.1f end %.1f margin %.1f begin %.1f fade %d layers %d vis_in_tree %s hidden_by '%s' n %d custom_aabb %s aabb %s cull_margin %.1f" % [g.get_path(), g.global_position.snapped(Vector3.ONE * 0.1), g.global_position.distance_to(f), g.visibility_range_end, g.visibility_range_end_margin, g.visibility_range_begin, g.visibility_range_fade_mode, g.layers, g.is_visible_in_tree(), hid, g.multimesh.instance_count, g.custom_aabb, str(AABB(bb.position.snapped(Vector3.ONE * 0.1), bb.size.snapped(Vector3.ONE * 0.1))), g.extra_cull_margin])
 	print("OSSDUMP %d prop batches within %.0f m" % [n_mm, rad])
 	for n: Node in main.find_children("*", "GeometryInstance3D", true, false):
 		var gi := n as GeometryInstance3D
