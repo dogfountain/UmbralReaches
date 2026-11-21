@@ -212,7 +212,7 @@ func _abbey() -> void:
 	for z: float in [-45.0, -62.0, -80.0, -100.0, -108.0]:
 		a.append(Vector3(40.4, 0, z))
 	ok("along the downs_track in front of the church (no snag, no wall on the road)", await _walk_pts("track", _ow(a)))
-	a = [Vector3(52.0, 0, -112.0), Vector3(62.0, 0, -102.0), Vector3(68.0, 0, -82.0), Vector3(62.0, 0, -62.0), Vector3(60.0, 0, -30.0), Vector3(52.0, 0, -24.0)]
+	a = [Vector3(52.0, 0, -100.0), Vector3(58.5, 0, -97.0), Vector3(58.5, 0, -60.0), Vector3(58.5, 0, -30.0), Vector3(52.0, 0, -24.0)]
 	ok("round the gable, the back and the tower's foot", await _walk_pts("round", _ow(a)))
 	# the church is a shell: a ray through the tower's base meets the wall, not the open air
 	var sp := (main as Node3D).get_world_3d().direct_space_state
