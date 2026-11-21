@@ -79,9 +79,15 @@ func _run(host: Node3D, camps: Array) -> void:
 			done += 1
 		if (done + _skipped) % 5 == 4:
 			await tree.process_frame
+			if not is_instance_valid(root):
+				return                              # the night was freed (a rebuild, a test's teardown) while this waited
+	if not is_instance_valid(root):
+		return
 	for key: Vector2i in _kits:
 		var k: WK = _kits[key]
 		k.commit(0.0)
+		if not is_instance_valid(k.host):
+			continue
 		for ch in k.host.get_children():
 			var gi := ch as GeometryInstance3D
 			if gi == null:

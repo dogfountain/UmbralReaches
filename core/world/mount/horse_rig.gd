@@ -29,7 +29,7 @@ const TEX_ALIAS := {"weir_cob": "garron"}
 var skel: Skeleton3D
 var mesh_inst: MeshInstance3D
 var last_dy := 0.0                     ## the back's drop this frame (m)
-var seat_dy := 0.0                     ## the same, drawn through a stiff spring: what the rider sits
+var seat_dy := 0.0                     ## what the rider sits (the back as drawn)
 var walk_s := 2.4
 var trot_s := 6.0
 var gallop_s := 10.0
@@ -68,12 +68,8 @@ var _lan := Vector2.ZERO               ## lantern angle (x fore-aft, z side) and
 var _lan_v := Vector2.ZERO
 var _prev_dy := 0.0
 var _extra_env := 0.0
-var _dy_s := 0.0                       ## the back height as drawn, its speed, and whether it has begun
-var _dy_v := 0.0
-var _dy_init := false
 var _drop_env := 0.0                   ## the back drop, held between the legs reach peaks
 const DROP_RELEASE := 0.35             ## m/s: how fast the held drop lets the back rise
-const DY_RATE := 45.0                  ## /s: the stiffness of the spring the back height is drawn through
 var _seed := 0.0
 var _legs := {}                        ## leg -> {up, low, fet, hip, knee, fet_p, toe, l1, l2, sign}
 
@@ -388,29 +384,12 @@ func pose(ph: float, speed: float, graze: float, dt: float, accel := Vector2.ZER
 		_pose_bone("root", 0.0, 0.0, Vector3(0, last_dy, 0))
 		for l: String in hips:
 			hips[l] = (hips[l] as Vector3) - Vector3(0, extra, 0)
-	# the back's height as the rider sits it: the raw sum fell ten centimetres in 30 ms at a gallop (the legs' reach peaks
-	# four times a stride), so the seat reads it through a stiff critically damped spring. The legs keep the raw height:
-	# a damped hip left the planted hooves short and they slid (horse_slide_test, 21 Nov)
-	seat_dy = _damp_dy(last_dy, dt)
+	seat_dy = last_dy                 # the seat sits the back as drawn: a damped seat sank 12 cm under the saddle and a clamped one stuttered (ride_sync_test)
 	for i in 4:
 		var l: String = LEGS[i]
 		if not _legs.has(l):
 			continue
 		_leg(_legs[l], tgt[l], float(swing[l]), k, l.begins_with("f"), hips[l])
-
-
-func _damp_dy(want: float, dt: float) -> float:
-	if not _dy_init or dt <= 0.0005:
-		_dy_s = want
-		_dy_v = 0.0
-		_dy_init = dt > 0.0005 or _dy_init
-		return want
-	var e := exp(-DY_RATE * dt)
-	var x := _dy_s - want
-	var j := _dy_v + DY_RATE * x
-	_dy_v = (_dy_v - DY_RATE * j * dt) * e
-	_dy_s = want + (x + j * dt) * e
-	return _dy_s
 
 
 ## Two-bone solve in the sagittal plane (y up, z fore-aft) to put the fetlock on `target`.

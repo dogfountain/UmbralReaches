@@ -10,8 +10,8 @@ const PAIRS: Array = [
 	["road to the Thornwarden arena", Vector2(0, 33), Vector2(-86, -24)],
 	["road to the Ossuary gallery seal pin", Vector2(0, 33), Vector2(-16.0, 174.0)],
 	["road to the Bone Abbot", Vector2(0, 33), Vector2(6.0, 168.0)],
-	["road to the gallery door (over the bone bridge)", Vector2(0, 33), Vector3(-21.5, 1.0, 173.0)],
-	["road to the pit floor (down the gallery stair)", Vector2(0, 33), Vector3(12.0, -3.2, 167.0)],
+	["road to the gallery door (over the stone bridge)", Vector2(0, 33), Vector3(-21.5, 1.0, 173.0)],
+	["road to the pit floor (down the gallery stair)", Vector2(0, 33), Vector3(8.0, -3.2, 167.0)],     # beside the charnel mound (its heap stands on the old point)
 	["gallery door to the Sanctuary", Vector3(-21.5, 1.0, 173.0), Vector2(0, 33)],
 	["road to the Counting Door", Vector2(0, 33), Vector2(10.0, 179.0)],
 	["road to the west Gloom Surge pin", Vector2(0, 33), Vector2(-190, 66)],

@@ -737,6 +737,8 @@ func _merge_models() -> void:
 
 
 func commit(range_end := 0.0) -> int:
+	if not is_instance_valid(host):
+		return 0                                # its night was freed before this kit's frame came (camp dress spreads its kits)
 	if _key != "" and not _loaded:
 		_save()
 	_merge_models()

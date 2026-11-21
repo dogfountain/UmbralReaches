@@ -209,7 +209,7 @@ func _tide() -> void:
 	check("tide: rises away from fires", bool(d.get("tide_on")))
 	check("tide: banner", String(d.get("hud").call("banner_text")) == "THE GLOOM TIDE RISES")
 	d.call("step", 0.3)
-	await _frames(2)
+	await _frames(10)                        # a pack rises one foe a frame (the camps perf pass)
 	var hunters: Array = d.get("hunters")
 	check("tide: a hunting pack came", hunters.size() >= 2, str(hunters.size()))
 	var fair := true
@@ -393,7 +393,10 @@ func _elites() -> void:
 	l.global_position = _ground(46, 44) + Vector3.UP * 0.1
 	var before := get_tree().get_nodes_in_group(Groups.ENEMY).size()
 	l.take_hit(float(l.max_hp) * 0.6, p)
-	await _frames(2)
+	for i in 90:                             # a call for help raises one foe a frame, and only on a frame with room (Staging.claim)
+		await _frames(1)
+		if get_tree().get_nodes_in_group(Groups.ENEMY).filter(func(m: Node) -> bool: return m.get_meta(&"summoned_by", "") == "elite_lisle").size() >= 2:
+			break
 	# r34 merge: count his own crawlers (the doubled world's camps and rares come and go meanwhile)
 	var called := 0
 	for m0 in get_tree().get_nodes_in_group(Groups.ENEMY):

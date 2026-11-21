@@ -237,11 +237,11 @@ const SLOTS := {
 		{"kind": "camp", "at": Vector2(178, 196), "note": "the west pans"},
 		{"kind": "camp", "at": Vector2(246, 118), "note": "the east pans"}],
 	"downs": [
-		{"kind": "poi", "at": Vector2(0, 196), "note": "a shepherds' hut and fold"},
+		{"kind": "poi", "at": Vector2(8, 224), "note": "a shepherds' hut and fold (21 Nov: south of the Charnel Abbey, which took its old ground)"},
 		{"kind": "camp", "at": Vector2(-120, 214), "note": "the west downs"},
 		{"kind": "camp", "at": Vector2(126, 214), "note": "the east downs"}],
 	"oak": [
-		{"kind": "fire", "at": Vector2(-44, 196.4), "note": "beside downs_track, in the oak's shade"},
+		{"kind": "fire", "at": Vector2(-52, 196.4), "note": "beside downs_track, in the oak's shade (21 Nov: west of the abbey)"},
 		{"kind": "poi", "at": Vector2(-70, 206), "note": "the Grandmother Oak"}],
 	"well": [
 		{"kind": "fire", "at": Vector2(44, 196.4), "note": "beside downs_track, east of the hut"},

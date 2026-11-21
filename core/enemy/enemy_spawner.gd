@@ -28,7 +28,7 @@ const REALM_CAMPS: Array[Dictionary] = [
 	# guardians of the summit ward (it also needs the Thornwarden and the Bone Abbot): they hold the
 	# Crossing itself, the Cinder Isle in the middle of the causeway (parapeted) and its head in front of the ward
 	# (r32: the first pack stood 12-16 m east of the Crossing's foot, off the way, beside a roaming pack; r39: the Cinder Way)
-	{"at": Vector3(10.6, -9.0, -37.8) + Endgame.O, "kinds": ["husk", "wretch"], "probe": 6.0, "r": 1.4, "strict": true, "seal": "summit"},
+	{"at": Vector3(10.1, -9.0, -37.4) + Endgame.O, "kinds": ["husk", "wretch"], "probe": 6.0, "r": 0.6, "strict": true, "seal": "summit"},
 	{"at": Vector3(0.0, 28.0, -66.5) + Endgame.O, "kinds": ["spitter", "wretch"], "probe": 18.0, "r": 1.4, "strict": true, "seal": "summit"},
 	# roaming packs (they come back)
 	# r28 war bands: a guard (Bulwark) before a caster (Chanter), flankers on the sides

@@ -19,7 +19,7 @@ const CodexStore := preload("res://core/world/realm/lore/codex_store.gd")
 const Land := preload("res://core/world/realm/realm_land.gd")
 const Footing := preload("res://core/world/footing.gd")
 
-const MIN_PLACES := 180
+const MIN_PLACES := 175      # (21 Nov: the abbey, the rift's new banks and the camps' dressing take ground: 178 planned)
 const MIN_PER_REACH := 5
 const NAMED_SHARE := 0.85
 

@@ -95,7 +95,7 @@ static func reserve(root: Node) -> void:
 	var door_out := Vector2(sin(float(Data.OAK_DOOR.a)), cos(float(Data.OAK_DOOR.a)))
 	WorldLanes.register_lane("oak_door_way", [OAK_C + door_out * 22.0, OAK_C + door_out * 5.0], 2.6)
 	# --- the shepherds' hut and fold: the fold's round first (a terrace), the hut beside it
-	var fold_pref := Vector2(12.0, 207.0)
+	var fold_pref := Vector2(8.0, 224.0)       # south of the Charnel Abbey, on flat downs (21 Nov: its old ground, 12,207, is the abbey's)
 	# the Charnel Abbey stands on the pit's south bank (oss_abbey.gd): the fold and the hut keep off its ground
 	var abbey: Array[Rect2] = []
 	for ab: Dictionary in preload("res://world/areas/ossuary/oss_abbey.gd").site_rects():
@@ -106,7 +106,7 @@ static func reserve(root: Node) -> void:
 		fq = fold_pref
 	var fy := _ground_med(space, fq)
 	spots["r37s_fold"] = {"at": Vector3(fq.x, fy, fq.y), "yaw": 0.0, "rect": Rect2(fq - Vector2(9, 9), Vector2(18, 18))}
-	var hut_pref := fq + Vector2(-14.0, -2.0)
+	var hut_pref := fq + Vector2(14.0, -2.0)     # the hut on the fold's east side, away from the abbey
 	var hq := LK.search_spot(space, hut_pref, 26.0, Vector2(5.5, 5.0), 1.5, 1.6, [], 2.0, func(q: Vector2) -> bool: return off_abbey.call(q, Vector2(5.5, 5.0)))
 	if hq == Vector2.INF:
 		hq = hut_pref

@@ -685,6 +685,7 @@ func _lamps() -> void:
 		mm.set_instance_custom_data(i, Color(0, 0, 0, 0))
 	mm.custom_aabb = AABB(Vector3(-400, -60, -200), Vector3(800, 160, 640))
 	lamps = MultiMeshInstance3D.new()
+	lamps.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF      # a live pool rewritten each frame (interp_audit)
 	lamps.name = "WayLamps"
 	lamps.set_meta(&"live_pool", true)          # its slots are its own (rewritten by the wayfarers): the scatter cull leaves a live pool
 	lamps.multimesh = mm
@@ -692,7 +693,6 @@ func _lamps() -> void:
 	mat.shader = LAMP_SH
 	lamps.material_override = mat
 	lamps.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	lamps.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF
 	lamps.add_to_group(Groups.CULL_SKIP)
 	lamps.set_meta("chunked", true)
 	add_child(lamps)

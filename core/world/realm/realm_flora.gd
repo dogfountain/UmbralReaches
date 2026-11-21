@@ -301,8 +301,7 @@ static func _keepout(root: Node) -> void:
 			_seg_field(_pd, a, b, w, BAND)
 	for l: Array in Zones.lanes() + Zones.town_walks(): _seg_field(_pd, l[0], l[1], Zones.LANE_W, BAND)         # the squares' walk lanes stay bare
 	# keep-outs
-	# sites by their bounding rect, as WorldLanes.intrudes and zz/audit judge them (a round terrace
-	# or a diagonal flight claims its whole box)
+	# sites by their bounding rect, as WorldLanes.intrudes and zz/audit judge them (a round terrace or a diagonal flight claims its whole box)
 	# (r34: the raid floors by their circle -- their 60 m boxes emptied the hill round them; the
 	# older round sites keep their box, so the wood elsewhere grows exactly as it did)
 	for st: Dictionary in WorldLanes.sites:
@@ -735,6 +734,7 @@ static func _place_trees(space: PhysicsDirectSpaceState3D, rng_main: RandomNumbe
 			if _hangs(space, id, basis, at, gy) > 0.6:
 				continue                                  # even at its own size its roots stand out over a bank: no tree here
 			pos.y = maxf(_foot_y(space, id, basis, at, gy), WATER_Y + 0.02 if Tables.wet(at.x, at.y) else -INF)      # after every draw and test: the layout is the one it was
+			if bool(d.tall) and RealmLayout.RAIDS.any(func(r: Dictionary) -> bool: return RealmLayout.raid_d(r, at) < float(r.r) + 1.0): continue   # off a raid floor's rim (its soft edge let one onto the summit deck); its draws are spent
 			_add(items, id, Transform3D(basis, pos), tint)
 			if bool(d.tall):
 				trees.append([pos, id, float(d.r) * s, float(d.h) * hs])

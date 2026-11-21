@@ -238,6 +238,8 @@ func _map_banks_run() -> void:
 	q.collision_mask = Layers.WORLD
 	for j in h:
 		if await _yield_if_spent():          # a few ms a frame: the map is not urgent, play is
+			if not is_inside_tree():
+				return                        # the night was freed while the map waited a frame
 			space = get_world_3d().direct_space_state
 		for i in w:
 			var x := _origin.x + (float(i) + 0.5) * CELL

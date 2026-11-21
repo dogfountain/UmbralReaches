@@ -158,7 +158,7 @@ const RARES := {
 		"route": [Vector2(-12, 360), Vector2(12, 362), Vector2(44, 356), Vector2(64, 346), Vector2(24, 350)],
 		"line": "Spill lies down in the dry channel it guarded. Nothing runs in it now."},
 	"charcoal_burner": {"title": "The Last Charcoal-Burner", "kind": "cinder", "hp": 36, "scale": 1.5,
-		"spots": [Vector2(246, 384), Vector2(238, 384), Vector2(254, 378)], "ash": 46, "loot": [["relic_fragment", 3]],
+		"spots": [Vector2(246, 384), Vector2(238, 384), Vector2(254, 378), Vector2(232, 372), Vector2(226, 388), Vector2(258, 366)], "ash": 46, "loot": [["relic_fragment", 3]],
 		"line": "The Last Charcoal-Burner banks his fire for good. The stack smokes on without him."},
 	"cracked_tollman": {"title": "The Cracked Tollman", "kind": "tollman", "hp": 40, "scale": 1.5,
 		"spots": [Vector2(362, 118), Vector2(338, 119), Vector2(344, 116)], "ash": 50,      # round the crater's south rim (its bowl is the bell's) "loot": [["relic_fragment", 3]],
