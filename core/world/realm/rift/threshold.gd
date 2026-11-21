@@ -16,7 +16,8 @@ const ROCKS := "res://art/models/rift_rocks.glb"
 const LAVA := -15.5
 ## The Watchers' feet: the plinths' tops (LAVA + PLINTH_TOP) carry them. West at the molten pool's edge, east in the crust; the Cinder
 ## Way passes between (rift_from_scratch.md in the docs' round-39 folder).
-const WATCHERS := [Vector3(-2.5, LAVA, -42.5), Vector3(16.0, LAVA, -24.0)]
+const WATCHERS := [Vector3(-2.5, LAVA, -42.5), Vector3(15.0, LAVA, -23.5)]
+const TURN := [0.22, -0.1]             ## each one's turn off facing the village (the east one less: its plinth's corner keeps off the wall)
 const PLINTH_TOP := 1.3                ## rift_rocks.py: the plinth's flat top over the lava
 const WATCHER_R := 7.4                 ## the plinth's reach
 
@@ -89,7 +90,7 @@ func _watchers(host: Node3D) -> void:
 				body.add_child(cs)
 			host.add_child(body)
 			body.global_transform = mi.global_transform
-		var m := Kit.place(host, "wonders/watchers_%s.glb" % ("west" if west else "east"), Transform3D(Basis(Vector3.UP, PI + (0.22 if west else -0.22)), w + Vector3.UP * PLINTH_TOP))
+		var m := Kit.place(host, "wonders/watchers_%s.glb" % ("west" if west else "east"), Transform3D(Basis(Vector3.UP, PI + float(TURN[0 if west else 1])), w + Vector3.UP * PLINTH_TOP))
 		if m == null:
 			continue
 		m.name = "Watcher" + tag
@@ -279,7 +280,8 @@ func _clear(xf: Transform3D, size: Vector3, grow := 0.3, ground_ok := false) -> 
 	return true
 
 
-## Each Watcher's own convex hulls against the world: nothing may touch them but their basalt plinth.
+## Each Watcher's own convex hulls against the world: nothing may touch them but their basalt plinth (and the plinth's tiers may sit in
+## the rock round it: the ground, the crag's foot).
 func _audit_watchers(host: Node3D) -> void:
 	for w in host.get_children():
 		if not (w is Node3D) or w is Light3D or not String(w.name).begins_with("Watcher") or String(w.name).begins_with("WatcherPlinth"):
@@ -289,6 +291,7 @@ func _audit_watchers(host: Node3D) -> void:
 		for b in m.find_children("*", "CollisionObject3D", true, false):
 			own[b] = true
 		for b in m.find_children("*", "StaticBody3D", true, false):
+			var tier := String(b.name).begins_with("Pillar_tier")
 			for cs in b.get_children():
 				if not (cs is CollisionShape3D) or (cs as CollisionShape3D).shape == null:
 					continue
@@ -300,6 +303,8 @@ func _audit_watchers(host: Node3D) -> void:
 				for hit: Dictionary in space.intersect_shape(q, 24):
 					var c := hit.get("collider") as Node
 					if c == null or own.has(c) or String(c.name).begins_with("WatcherPlinth"):
+						continue
+					if tier and (String(c.name).begins_with("Terrain") or String(c.name).ends_with("Rock") or String(c.name) == "RiftRockBody"):
 						continue
 					touched[String(c.name)] = true
 				if not touched.is_empty():

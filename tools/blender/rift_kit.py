@@ -110,13 +110,14 @@ def flight_build(M, F, sides=(1, -1), rock=None, rock_out=(1.0, 1.0), wall=()):
             M.block("stone", (c[0], (top + bot) * 0.5, c[2]), (s1 - s - 0.06, top - bot, PW), yaw, shade=RND.uniform(0.74, 0.92))
             M.col_box((c[0], top - 0.5, c[2]), (s1 - s, 1.0, PW), yaw)
             s = s1 + RND.uniform(0.0, 0.03)
-    # collision: the ramp through the tread middles, and flats
-    pts = [(0.0, F.a[1] + F.r)]
+    # collision: one ramp through the tread middles, from half a tread before the first riser at the landing's height to half a tread
+    # onto the top landing, flat across the mid landings: no lip anywhere (nothing waits on the step-up)
+    pts = [(-TREAD * 0.5, F.a[1])]
     for s0, s1, y in F.treads:
         pts.append(((s0 + s1) * 0.5, y))
     for s0, s1, y in F.flats:
-        pts += [(s0 - TREAD * 0.5 + 0.001, y), (s1, y)]
-    pts.append((F.run, F.top))
+        pts += [(s0 + TREAD * 0.5, y), (max(s1 - TREAD * 0.5, s0 + TREAD * 0.5 + 0.06), y)]
+    pts.append((F.run + TREAD * 0.5, F.top))
     pts.sort()
     # keep the profile monotonic and simple: a segment per run of treads, flats as their own
     prof = [pts[0]]
@@ -263,6 +264,8 @@ T3 = Flight("rift_t3", (T2.high()[0], T2.top, T_Z[2]), (-1.0, 0.0), [15, 15], [3
 S3 = (T3.high()[0] - 5.0, -57.6, T3.high()[0], -65.4)
 T4 = Flight("rift_t4", (T3.high()[0], T3.top, T_Z[3]), (1.0, 0.0), [23], [], 7.6)
 WARD = (-4.0, -62.0, 4.0, -71.15)
+## Kept clear of the crag's rough foot: the west Watcher's plinth (rift/threshold.gd WATCHERS) and the Pilgrims' Chapel (rift/chapel.gd).
+WATCHERS_AVOID = [(-2.5, -42.5, 6.8), (-17.0, -38.0, 4.5)]
 WARD_Y = 25.2
 
 
@@ -288,11 +291,13 @@ def sec_descent(objs):
     paving(M, x0, z1, x1, z0, LIP_Y)
     wall_run(M, (x0, z1 - PW * 0.5), (x1 + PW * 0.5, z1 - PW * 0.5), LIP_Y)                       # north: the view
     wall_run(M, (x1 + PW * 0.5, z1 - PW * 0.5), (x1 + PW * 0.5, z0 + 0.6), LIP_Y)
-    for k in range(3):                                                                              # down to the road at z -3 (y -0.4)
-        yk = LIP_Y - (k + 1) * 0.333
-        M.block("ashlar", (-0.5, yk - 0.3, z0 + 0.34 + k * 0.62), (5.0, 0.6 + 0.333, 0.66), 0.0, bevel=0.05)
-        M.col_box((-0.5, yk - 0.2, z0 + 0.34 + k * 0.62), (5.0, 0.4, 0.62), 0.0)
-    rock.append((((x0 + x1) * 0.5, (LIP_Y - 0.35 + BED) * 0.5, (z1 - PW - 0.6 + z0 + 0.2) * 0.5), ((x1 - x0) * 0.5 + 1.2, (LIP_Y - 0.35 - BED) * 0.5, (z0 + 0.2 - z1 + PW + 0.6) * 0.5), 0.0))
+    for k in range(2):                                                                              # down to the rim road's end (y 0.0 at z -1.5)
+        yk = LIP_Y - (k + 1) * 0.2
+        M.block("ashlar", (-0.5, yk - 0.4, z0 + 0.43 + k * 0.86), (5.0, 0.8, 0.9), 0.0, bevel=0.05)
+    M.col_box((-0.5, 0.1, z0 + 0.86), (2.66, 0.4, 5.0), 90.0, pitch=13.1)                            # one ramp under them (rising north): no lip
+
+    M.keeps.append(((-3.8, -1.2, z0 - 0.4), (2.8, LIP_Y + 3.2, z0 + 2.4)))                          # the steps and the road's end: no rock grows over them
+    rock.append((((x0 + x1) * 0.5, (LIP_Y - 0.35 + BED) * 0.5, (z1 - PW - 0.6 + z0 - 0.2) * 0.5), ((x1 - x0) * 0.5 + 1.2, (LIP_Y - 0.35 - BED) * 0.5, (z0 - 0.2 - z1 + PW + 0.6) * 0.5), 0.0))
     fire(M, "lip_w", (x0 + 1.0, LIP_Y, z1 + 1.0), tag="the Lip")
     fire(M, "lip_e", (x1 - 1.0, LIP_Y, z1 + 1.0), lit=False, tag="the Lip")
     site("rift_lip", (x0, z0, x1, z1), LIP_Y)
@@ -328,7 +333,7 @@ def sec_descent(objs):
     LAYOUT["points"]["foot"] = [round((fx0 + fx1) * 0.5, 2), FOOT_Y, round((fz0 + fz1) * 0.5, 2)]
     # the chapel branch: a low causeway north-west along the wall's foot to the chapel's forecourt (its threshold at -11.97)
     br = [((-6.4, fz1 + 0.2)), (-9.0, -31.6), (-11.4, -34.4)]
-    _causeway(M, rock, br, FOOT_Y, FOOT_Y + 0.2, sides=(1, -1), name="branch")
+    _causeway(M, rock, br, FOOT_Y, -12.0, sides=(1, -1), name="branch")                             # rising to the chapel's forecourt
     LAYOUT["lanes"]["rift_crossing_chapel"] = [[round(p[0], 2), round(p[1], 2)] for p in [((fx0 + fx1) * 0.5, (fz0 + fz1) * 0.5)] + br + [(-13.1, -36.85)]]
     fire(M, "branch", (-12.6, FOOT_Y + 0.2, -33.0), lit=False, tag="the chapel's lamp")
     # the ledge: the rock under it all, fused, roughened away from the walks
@@ -445,15 +450,17 @@ def _hits_keep(c, h, keeps, pad=0.6):
     return False
 
 
-def massing(rock, keeps, seed, n, x, z, top, w=(1.2, 3.2), lean=8.0):
+def massing(rock, keeps, seed, n, x, z, top, w=(1.2, 3.2), lean=8.0, avoid=()):
     """`n` rough blocks scattered over x (x0, x1), z (z0, z1) with tops in `top` (lo, hi): the buttresses, ribs, spalls and spires that
-    break a big face into rock. A block that would reach a walk is lowered under it or dropped."""
+    break a big face into rock. A block that would reach a walk is lowered under it or dropped; none within `avoid` [(x, z, r)]."""
     rnd = random.Random(seed)
     put = 0
     for i in range(n * 3):
         if put >= n:
             break
         cx, cz = rnd.uniform(*x), rnd.uniform(*z)
+        if any(math.hypot(cx - ax, cz - az) < ar + 3.2 for ax, az, ar in avoid):
+            continue
         t = rnd.uniform(*top)
         hx, hz = rnd.uniform(*w), rnd.uniform(*w)
         for k in range(4):
@@ -574,7 +581,8 @@ def sec_crag(objs):
     LAYOUT["lanes"]["rift_crossing_top"] = [[T4.high()[0], T_Z[3]], [0.0, -64.0], [0.0, -71.0]]
     # the lavafall's cleft in the east face, between S2 and the landing: the source pours from it into the channel
     LAYOUT["sources"].append({"top": [11.2, 16.0, -67.2], "out": [1.0, 0.0, 0.0]})
-    n = massing(rock, M.keeps, 501, 14, (-24.0, 9.0), (-43.5, -48.4), (L + 0.8, L + 5.0), w=(1.4, 3.0))          # the foot in the pool
+    n = massing(rock, M.keeps, 501, 14, (-24.0, 9.0), (-44.5, -48.4), (L + 0.8, L + 5.0), w=(1.4, 2.6),
+                avoid=WATCHERS_AVOID)                                                                       # the foot in the pool
     n += massing(rock, M.keeps, 502, 12, (10.0, 13.0), (-46.0, -74.0), (0.0, 21.0), w=(1.5, 3.4))                # the east face's buttresses
     n += massing(rock, M.keeps, 503, 10, (-27.0, -5.5), (-66.8, -72.5), (26.5, 31.5), w=(1.0, 2.4), lean=5.0)   # the crest's broken spires
     n += massing(rock, M.keeps, 504, 8, (-30.0, -25.0), (-46.0, -72.0), (2.0, 22.0), w=(1.5, 3.0))              # the west shoulder

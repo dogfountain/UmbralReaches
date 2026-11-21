@@ -122,7 +122,7 @@ func _commit(host: Node3D) -> void:
 ## Space for a piece of footprint radius `r` at p (rift coordinates): off the Cinder Way, the Watchers, the paths, the Ossuary's old
 ## wall, and clear of anything already built there (a box query: the way's rock, another piece; the ground is allowed).
 func _free(p: Vector2, r: float, top_y: float) -> bool:
-	if _blocked(p, top_y, r):
+	if _blocked(p, top_y, minf(r, 1.2)):
 		return false
 	var sh := BoxShape3D.new()
 	sh.size = Vector3(r * 1.6, maxf(top_y - LAVA + 1.0, 1.0), r * 1.6)
@@ -237,7 +237,7 @@ func _blocked(p: Vector2, top_y: float, pad := 1.5) -> bool:
 	if RealmLayout.path_dist(Endgame.w2(p)) < 1.2:
 		return true                                  # (built at home, it stands Endgame.O east: the ways are where it will stand)
 	var oss := AABB(Endgame.l(RealmLayout.OSSUARY_OLD.position), RealmLayout.OSSUARY_OLD.size)         # (the Ossuary left this wall; the old site stays a bare cliff)
-	if p.x > oss.position.x - 0.5 and p.x < oss.end.x and p.y > oss.position.z and p.y < oss.end.z and top_y > oss.position.y - 1.0:
+	if p.x > maxf(oss.position.x - 0.5, 18.0) and p.x < oss.end.x and p.y > oss.position.z and p.y < oss.end.z and top_y > oss.position.y - 1.0:
 		return true
 	return false
 

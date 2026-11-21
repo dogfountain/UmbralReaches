@@ -123,7 +123,7 @@ func _physics_process(delta: float) -> void:
 		leg_t = 0.0
 		return
 	if leg_t > 16.0:
-		print("STUCK leg %d %s goal=%s at %s" % [leg, route[leg][1], goal - Endgame.O, p.global_position - Endgame.O])
+		print("STUCK leg %d %s goal=%s at %s (floor %s, wall %s %s)" % [leg, route[leg][1], goal - Endgame.O, p.global_position - Endgame.O, p.is_on_floor(), p.is_on_wall(), p.get_wall_normal().snapped(Vector3.ONE * 0.01) if p.is_on_wall() else Vector3.ZERO])
 		get_tree().quit()
 		return
 	p.debug_drive(Vector3(d.x, 0, d.y).normalized(), false)
