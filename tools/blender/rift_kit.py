@@ -588,18 +588,108 @@ def sec_crag(objs):
                                              [T2.a[0], T_Z[1]], [T2.high()[0], T_Z[1]], [S2[2] - 2.2, T_Z[1]], [S2[2] - 2.2, T_Z[2]], [T3.a[0], T_Z[2]],
                                              [T3.high()[0], T_Z[2]], [S3[0] + 2.0, T_Z[2]], [S3[0] + 2.0, T_Z[3]], [T4.a[0], T_Z[3]], [T4.high()[0], T_Z[3]]]
     LAYOUT["lanes"]["rift_crossing_top"] = [[T4.high()[0], T_Z[3]], [0.0, -64.0], [0.0, -71.0]]
-    # the lavafall's cleft in the east face, between S2 and the landing: the source pours from it into the channel
-    LAYOUT["sources"].append({"top": [11.2, 16.0, -67.2], "out": [1.0, 0.0, 0.0]})
+    # the lavafall's cleft at the crag's south-east corner stays open (sec_fall builds it): no rough rock in it or at its foot
+    M.keeps.append(((FALL_X - 3.4, L - 1.0, -64.5), (FALL_X + 3.4, 21.0, -46.6)))
     n = massing(rock, M.keeps, 501, 14, (-24.0, 9.0), (-44.5, -48.4), (L + 0.8, L + 5.0), w=(1.4, 2.6),
-                avoid=WATCHERS_AVOID)                                                                       # the foot in the pool
-    n += massing(rock, M.keeps, 502, 12, (10.0, 13.0), (-46.0, -74.0), (0.0, 21.0), w=(1.5, 3.4))                # the east face's buttresses
+                avoid=WATCHERS_AVOID + [(FALL_X, -48.5, 3.0)])                                              # the foot in the pool
+    n += massing(rock, M.keeps, 502, 12, (10.0, 13.0), (-46.0, -74.0), (0.0, 21.0), w=(1.5, 3.4),
+                 avoid=[(FALL_X, -51.0, 4.5), (FALL_X, -57.0, 4.5), (FALL_X, -62.0, 3.5)])                   # the east face's buttresses
     n += massing(rock, M.keeps, 503, 10, (-27.0, -5.5), (-66.8, -72.5), (26.5, 31.5), w=(1.0, 2.4), lean=5.0)   # the crest's broken spires
     n += massing(rock, M.keeps, 504, 8, (-30.0, -25.0), (-46.0, -72.0), (2.0, 22.0), w=(1.5, 3.0))              # the west shoulder
     print("CRAG massing blocks", n)
+    CRAG_KEEPS[:] = M.keeps[:-1]
     ob = R.rock_mass("Crag", rock, voxel=0.5, keep=M.keeps, seed=31, tris=34000, disp=0.75)
     objs += R.rock_finish(ob, "CragRock", "basalt", col_ratio=0.25)
     objs += M.finish("Crag")
     objs.append(M.col_finish("Crag"))
+
+
+# ============================================================================================ the lavafall
+FALL_X = 13.0
+CRAG_KEEPS = []           # the crag's walk volumes (sec_crag), so the cleft's rock keeps off S2 and the climb's foot too
+## The source: lava wells up in a basin on the crag's south-east shoulder, runs a short channel to the lip and pours down a chute cut in
+## the corner, between two cheeks of basalt, into the pool by the climb's foot. Game points, the vent first; FALL_LIP is the lip's index.
+FALL = [(FALL_X, 19.35, -63.4), (FALL_X, 19.25, -60.9), (FALL_X, 18.5, -60.15), (FALL_X, 10.0, -57.5), (FALL_X, 0.0, -54.1),
+        (FALL_X, -10.0, -50.5), (FALL_X, -15.95, -48.2)]
+FALL_LIP = 1
+
+
+def _fall_frame(i):
+    """Along (down the fall) and the outward normal (south and up) at path point i, game vectors."""
+    from mathutils import Vector
+    a = Vector(FALL[max(i - 1, 0)])
+    b = Vector(FALL[min(i + 1, len(FALL) - 1)])
+    d = (b - a).normalized()
+    n = Vector((0.0, d.z, -d.y))
+    if n.y < 0.0 and n.z < 0.0:
+        n = -n
+    return d, n.normalized()
+
+
+def sec_fall(objs):
+    """The cleft: a chute of basalt cut down the corner with a cheek either side and a basin at the top, in the "ash" rock that glows in its
+    cracks along the fall; and the falling sheet itself (`Fall__fall`, UV x across, UV y metres from the vent: LavaWorks' fall shader)."""
+    import bmesh
+    from mathutils import Vector
+    rock = []
+    lines = []
+    for i in range(FALL_LIP, len(FALL) - 1):
+        a, b = Vector(FALL[i]), Vector(FALL[i + 1])
+        ln = (b - a).length
+        d = (b - a).normalized()
+        n = Vector((0.0, -d.z, d.y)) if d.y < 0.0 else Vector((0.0, d.z, -d.y))
+        if n.z < 0.0:
+            n = -n
+        pitch = math.degrees(math.atan2(a.y - b.y, abs(a.z - b.z)))          # raised at its north (upper) end
+        mid = (a + b) * 0.5
+        floor = mid - n * (2.0 + 0.14)                                          # the chute's bed, 0.14 m behind the sheet
+        rock.append(((floor.x, floor.y, floor.z), (ln * 0.5 + 0.6, 2.0, 1.9), 90.0, pitch, 0.0))
+        for side in (-1.0, 1.0):                                                # the cheeks, standing 2.2 m proud of the bed
+            ch = mid + Vector((side * 2.55, 0.0, 0.0)) - n * 0.6
+            rock.append(((ch.x, ch.y, ch.z), (ln * 0.5 + 0.8, 2.8, 0.75), 90.0, pitch, 0.0))
+        lines.append(((a.x, a.y, a.z), (b.x, b.y, b.z), 3.2))
+    v0, v1 = Vector(FALL[0]), Vector(FALL[FALL_LIP])
+    rock.append(((FALL_X, v1.y - 1.4, (v0.z + v1.z) * 0.5), (2.3, 1.25, 2.0), 0.0))                 # the basin under the channel
+    rock.append(((FALL_X, (v1.y + 4.5 + BED) * 0.5, v0.z - 2.2), (2.8, (v1.y + 4.5 - BED) * 0.5, 1.6), 0.0))   # the rock behind the vent
+    for side in (-1.0, 1.0):
+        rock.append(((FALL_X + side * 2.55, v1.y + 0.6, (v0.z + v1.z) * 0.5), (0.75, 1.4, 2.2), 0.0))
+    lines.append(((v0.x, v0.y, v0.z), (v1.x, v1.y, v1.z), 2.6))
+    keep = CRAG_KEEPS + [((FALL_X - 1.6, L - 1.0, -64.0), (FALL_X + 1.6, 21.0, -47.0))]      # the sheet's channel, S2, the foot: the rock only sinks back
+    ob = R.rock_mass("Cleft", rock, voxel=0.3, keep=keep, seed=41, tris=5000, disp=0.45)
+    objs += R.rock_finish(ob, "Cleft", "ash", col_ratio=0.3, ember_lines=lines)
+    # the sheet: rows every half metre down the path, 1.6 m wide at the vent, 2.6 at the lip, 3.0 at the foot
+    pts = []
+    for i in range(len(FALL) - 1):
+        a, b = Vector(FALL[i]), Vector(FALL[i + 1])
+        k = max(1, int((b - a).length / 0.5))
+        for j in range(k):
+            pts.append((a + (b - a) * (j / k), i + j / k))
+    pts.append((Vector(FALL[-1]), float(len(FALL) - 1)))
+    bm = bmesh.new()
+    uv = bm.loops.layers.uv.new("UVMap")
+    m = 0.0
+    rows = []
+    lip_m = 0.0
+    for idx, (p, f) in enumerate(pts):
+        if idx > 0:
+            m += (p - pts[idx - 1][0]).length
+        if f <= FALL_LIP + 1e-6:
+            lip_m = m
+        w = 1.6 + (2.6 - 1.6) * min(f / FALL_LIP, 1.0) if f <= FALL_LIP else 2.6 + 0.4 * (f - FALL_LIP) / (len(FALL) - 1 - FALL_LIP)
+        rows.append((bm.verts.new(bl((p.x - w * 0.5, p.y, p.z))), bm.verts.new(bl((p.x + w * 0.5, p.y, p.z))), m))
+    for (a0, a1, ma), (b0, b1, mb) in zip(rows, rows[1:]):
+        f = bm.faces.new((a0, a1, b1, b0))
+        for l, (u, vv) in zip(f.loops, ((0.0, ma), (1.0, ma), (1.0, mb), (0.0, mb))):
+            l[uv].uv = (u, vv)
+    me = bpy.data.meshes.new("Fall__fall")
+    bm.to_mesh(me)
+    bm.free()
+    me.materials.append(R.make_mat("fall"))
+    fo = bpy.data.objects.new("Fall__fall", me)
+    bpy.context.scene.collection.objects.link(fo)
+    objs.append(fo)
+    LAYOUT["lavafall"] = {"vent": list(FALL[0]), "lip": list(FALL[FALL_LIP]), "foot": list(FALL[-1]), "lip_m": round(lip_m, 3), "total_m": round(m, 3)}
+    print("FALL sheet %.1f m (lip at %.1f m), %d rows" % (m, lip_m, len(rows)))
 
 
 # ============================================================================================ main
@@ -610,6 +700,7 @@ def build():
     sec_descent(objs)
     sec_way(objs)
     sec_crag(objs)
+    sec_fall(objs)
     LAYOUT["points"]["crossing_foot"] = [0.0, LIP_Y, -8.0]
     LAYOUT["points"]["summit_ward"] = [0.0, WARD_Y, -70.9]
     R.export_clean(objs, OUT, "rift_way")
@@ -622,7 +713,9 @@ def build():
              ((30, 4, -36), (-8, 4, -58), 30),                    # the crag from the east, low
              ((-4, -11, -38), (-6, 4, -56), 32),                  # the climb from the pool
              ((-4, 3, -30), (-16, -6, -14), 32),                  # the descent from the plain
-             ((14, 30, -46), (-8, 18, -64), 32)]                  # the top of the climb
+             ((14, 30, -46), (-8, 18, -64), 32),                  # the top of the climb
+             ((26, 4, -34), (13, 2, -56), 30),                    # the lavafall's cleft from the south-east
+             ((0, 2.5, -2), (12, 4, -56), 45)]                    # the cleft from the Lip
     R.review(vis, "rift_way", [(tuple(bl(p)), tuple(bl(t)), lens) for p, t, lens in views])
 
 

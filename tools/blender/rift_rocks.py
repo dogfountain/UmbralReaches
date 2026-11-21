@@ -82,6 +82,29 @@ def build():
         a = k / 7.0 * math.tau + rnd.uniform(-0.2, 0.2)
         b.append(((math.cos(a) * 6.2, L + (0.7 - 3.5) * 0.5, math.sin(a) * 6.2), (2.6, (0.7 + 3.5) * 0.5, 2.0), math.degrees(a) + rnd.uniform(-20, 20), 0, rnd.uniform(-6, 6)))
     variant(objs, "Plinth", b, 50, "ash", tris=2400, flat=[((-6.2, L + 1.0, -6.2), (6.2, L + 1.6, 6.2))])
+    # the dressing the banks and islands are crowded with (set densely by features.gd, no collision):
+    # boulders: chunky, half sunk (tops 0.5 .. 1.6 m over the lava)
+    for i, (r, top) in enumerate([(0.9, 0.8), (1.4, 1.2), (2.0, 1.6), (1.1, 0.5), (1.7, 0.9)]):
+        b = [((0, L + (top - 1.4) * 0.5, 0), (r, (top + 1.4) * 0.5, r * rnd.uniform(0.7, 0.95)), rnd.uniform(0, 90), rnd.uniform(-12, 12), rnd.uniform(-12, 12))]
+        for k in range(2):
+            a = rnd.uniform(0, math.tau)
+            t = top * rnd.uniform(0.4, 0.75)
+            b.append(((math.cos(a) * r * 0.7, L + (t - 1.4) * 0.5, math.sin(a) * r * 0.7), (r * 0.55, (t + 1.4) * 0.5, r * 0.5), rnd.uniform(0, 90), rnd.uniform(-15, 15), rnd.uniform(-15, 15)))
+        variant(objs, "Boulder%d" % i, b, 60 + i, "basalt" if i % 2 == 0 else "ash", voxel=0.14, disp=0.22, tris=420)
+    # cooled spatter: flat lumpy heaps where the lava threw itself on the bank (tops 0.25 .. 0.6)
+    for i, (rx, rz) in enumerate([(1.6, 1.1), (2.4, 1.5), (1.2, 0.9)]):
+        b = []
+        for k in range(6):
+            a = rnd.uniform(0, math.tau)
+            d = rnd.uniform(0.0, 0.7)
+            t = rnd.uniform(0.25, 0.6)
+            b.append(((math.cos(a) * rx * d, L + (t - 0.8) * 0.5, math.sin(a) * rz * d), (rx * rnd.uniform(0.3, 0.55), (t + 0.8) * 0.5, rz * rnd.uniform(0.3, 0.55)), rnd.uniform(0, 90), rnd.uniform(-8, 8), rnd.uniform(-8, 8)))
+        variant(objs, "Spatter%d" % i, b, 70 + i, "ash", voxel=0.12, disp=0.16, tris=380)
+    # crust slabs: broken plates of cooled crust heaved up on edge (0.35 m thick, tipped 15 .. 35 degrees)
+    for i, (lx, lz, tilt) in enumerate([(3.0, 2.0, 18.0), (2.2, 1.6, 32.0), (3.6, 2.4, 24.0)]):
+        b = [((0, L + 0.1, 0), (lx * 0.5, 0.18, lz * 0.5), rnd.uniform(0, 90), tilt, rnd.uniform(-8, 8)),
+             ((lx * 0.45, L - 0.05, lz * 0.2), (lx * 0.25, 0.16, lz * 0.3), rnd.uniform(0, 90), tilt * 0.4, rnd.uniform(-10, 10))]
+        variant(objs, "Slab%d" % i, b, 80 + i, "ash", voxel=0.1, disp=0.08, tris=320)
     R.export_clean(objs, OUT, "rift_rocks")
     vis = [o for o in objs if not o.name.endswith("-colonly")]
     # review: lay them out in a row

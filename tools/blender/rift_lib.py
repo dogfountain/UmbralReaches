@@ -168,6 +168,15 @@ def rock_mass(name, blocks, voxel=0.45, cuts=(), disp=0.55, freq=0.16, facet=9.0
     return ob
 
 
+EMBER_LINES = {}          # object name -> [(a, b, r)]: game segments the rock glows along (a lavafall's cheeks), kept for the re-colour
+
+
+def _seg_d(p, a, b):
+    ab = b - a
+    t = max(0.0, min(1.0, (p - a).dot(ab) / max(ab.length_squared, 1e-6)))
+    return (p - (a + ab * t)).length
+
+
 def rock_colour(ob, ember_top=LAVA + 2.6, ember=True, seed=3):
     """RockKit vertex colour (see the module notes) on a rock object, per face corner."""
     me = ob.data
@@ -186,6 +195,7 @@ def rock_colour(ob, ember_top=LAVA + 2.6, ember=True, seed=3):
         cav[v.index] = s / len(v.link_edges)          # > 0: neighbours stand above the vertex (a crevice)
     lay = bm.loops.layers.color.get("Col") or bm.loops.layers.color.new("Col")
     prv = bm.loops.layers.color.get("Prev") or bm.loops.layers.color.new("Prev")
+    lines = [(Vector(a), Vector(b), r) for a, b, r in EMBER_LINES.get(ob.name, ())]
     off = Vector((seed * 2.1, seed * 5.3, 0.0))
     for f in bm.faces:
         for l in f.loops:
@@ -198,6 +208,9 @@ def rock_colour(ob, ember_top=LAVA + 2.6, ember=True, seed=3):
             em = 0.0
             if ember:
                 em = 1.0 - smoothstep(LAVA + 0.2, ember_top, y)
+                gp = Vector((v.co.x, v.co.z, -v.co.y))
+                for la, lb, lr in lines:
+                    em = max(em, 1.0 - smoothstep(lr * 0.35, lr, _seg_d(gp, la, lb)))
                 em *= 0.55 + 0.45 * smoothstep(-0.2, 0.3, fbm(v.co * 0.35 + off, 2))
             st = 1.0 - 0.16 * smoothstep(0.55, 0.95, fbm(Vector((0.0, 0.0, y * 1.3)) + off, 1) * 0.5 + 0.5)
             l[lay] = (a, 1.0, 1.0 - em, st)
@@ -237,11 +250,13 @@ def review(objs, label, views, size=(1280, 720)):
             show("Col", o.data)
 
 
-def rock_finish(ob, name, style="basalt", col_ratio=0.25, ember=True):
+def rock_finish(ob, name, style="basalt", col_ratio=0.25, ember=True, ember_lines=()):
     """Name the rock `<name>__<style>`, give it its material and colour, and a decimated `<name>-colonly` copy for collision.
     Returns [visual, collision]."""
     ob.name = "%s__%s" % (name, style)
     ob.data.name = ob.name
+    if ember_lines:
+        EMBER_LINES[ob.name] = list(ember_lines)
     ob.data.materials.clear()
     ob.data.materials.append(make_mat(style))
     rock_colour(ob, ember=ember)
