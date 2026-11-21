@@ -11,7 +11,7 @@ const Book := preload("res://core/story/quest_book.gd")
 const SecKit := preload("res://core/life/secrets/kit.gd")
 const R37E := preload("res://core/world/realm/realm_pois_east_marches.gd")
 
-const BELL := Vector2(242.0, 13.5)               ## the Shut-Out Bell at the Spire's foot (quest_chains_bells.gd)
+const BELL := Vector2(239.5, 26.0)               ## the Shut-Out Bell at the foot of the Spire's stair (quest_chains_bells.gd; it stood on the stair head before 21 Nov)
 
 var _bell: Node3D
 var _shut: Enemy

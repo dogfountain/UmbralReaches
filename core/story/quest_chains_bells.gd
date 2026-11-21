@@ -13,7 +13,7 @@ const QUESTS := {
 		"offer": true, "avail": "qd:spire_coal,q:founders_peal",
 		"text": "Seven is what the Order let her hang. She cast an eighth for the country they shut out, the Marches past the Lines, where nobody was to be called home. It stands at the Spire's foot, and the Spire's lamp was how the road found it. The lamp is lit. The man the Order left to keep that bell quiet is still keeping it. Nine winters. Go and ask him how.",
 		"steps": [
-			{"kind": "slay", "of": 1, "rares": ["lamp_shutter"], "at": Vector2(242.0, 13.5), "label": "The Shutter",
+			{"kind": "slay", "of": 1, "rares": ["lamp_shutter"], "at": Vector2(239.5, 26.0), "label": "The Shutter",
 				"text": "Put down the Shutter, who keeps the bell at the Spire's foot"},
 			{"kind": "find", "text": "Answer for the Shut-Out Bell at the Spire's foot"},
 			{"kind": "turnin", "who": "ardel", "text": "Tell Ardel what you did with the bell"},
@@ -125,7 +125,7 @@ const QUESTS := {
 
 ## The bell pickups (each opens the bell's conversation, dialogue_db.gd: ring it here, or carry the tongue).
 const PICKUPS := {
-	"bell_spire": {"quest": "bell_spire", "step": 1, "near": Vector2(242.0, 13.5), "kind": "bell", "name": "the Shut-Out Bell", "verb": "Stand at", "conv": "bell_spire",
+	"bell_spire": {"quest": "bell_spire", "step": 1, "near": Vector2(239.5, 26.0), "kind": "bell", "name": "the Shut-Out Bell", "verb": "Stand at", "conv": "bell_spire",
 		"say": "A bell hung low on a black oak post at the Spire's foot, where a lamp-trimmer could ring it from the door. The tongue was wrapped in lamp-wick and sealed with wax, so no one would ring it by accident. The wax is broken. Round the shoulder, in a small hand: FOR WHOEVER IS OUTSIDE."},
 	"bell_holds": {"quest": "bell_holds", "step": 1, "near": Vector2(-169.0, 20.0), "kind": "bell", "name": "the Kin Bell", "verb": "Stand at", "conv": "bell_holds",
 		"say": "A small bronze bell hung in the oak's fork on a rope of plaited bark. The Rooted carved their knot into the wood above it, to say they hadn't asked for it and would keep it anyway."},

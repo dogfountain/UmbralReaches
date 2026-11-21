@@ -82,7 +82,8 @@ func _eighth() -> void:
 	ok(String(qd.avail).contains("qd:spire_coal"), "it waits for the Spire's lamp to be lit (Ardel's coal)")
 	ok(String(qd.giver) == "ardel" and Chains.GIVER_NAMES.has("ardel"), "Ardel at Saltmarket gives it: the story goes through a Marches fire")
 	var at: Vector2 = (qd.steps[0] as Dictionary).at
-	ok(at.distance_to(RealmLayout.SPIRE_C) < 12.0, "the keeper stands at the Spire (%.1f m from it)" % at.distance_to(RealmLayout.SPIRE_C))
+	# (21 Nov: the bluff's only way up is now the stair down the south spur; he and the bell keep its foot, ~20 m out)
+	ok(at.distance_to(RealmLayout.SPIRE_C) < 24.0, "the keeper stands at the Spire (%.1f m from it)" % at.distance_to(RealmLayout.SPIRE_C))
 	ok(String(RealmLayout.region_at(at.x, at.y).get("id", "")) == "stillwater", "in Stillwater")
 	ok(String(LootDB.RARE_OWN.get("lamp_shutter", "")) == "shutter_hasp" and GearDB.NAMED.has("shutter_hasp"), "the keeper has its own piece")
 	var main_steps: Array = Chains.QUESTS["founders_peal"].steps
