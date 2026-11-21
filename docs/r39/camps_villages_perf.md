@@ -145,7 +145,7 @@ was carried 5 m on, ~100 in each run).
 - **The builds on approach are gone**: the guardians, escorts, elites and rares were built in the frame the wanderer came
   within 55, 72 or 95 m (the orchard nest's +170 and +53 nodes, the elite haunts); now they stand asleep from the load and only
   wake. The founders' pits pass (the Bell-Founder and his cinder casters): 165 -> 30 frames over 16 ms, fps 95 -> 112.
-  Staging built 59-60 a run, ~1,200 more nodes asleep (55,030 -> 58,978 at the end of the camps run), none in any foe scan.
+  Staging built 59-60 a run, ~3,950 more nodes asleep (55,030 -> 58,978 at the end of the camps run), none in any foe scan.
 - **The biggest cost left is the deferred flush**: one frame of 35-70 ms of the flush (the canvas redraws, the Containers'
   layout passes, every posed skeleton's update and every call_deferred, between the last _process and the draw), in both
   runs, two frames apart, wherever the run fought or ran past interactables and new ground (the warband by the
