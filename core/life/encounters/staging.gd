@@ -49,6 +49,8 @@ static func claim(n: Node) -> bool:
 	var f := Engine.get_process_frames()
 	if f - _built_at < GAP or n.get_process_delta_time() * 1000.0 > ROOM_MS:
 		return false
+	if n.get_tree().get_first_node_in_group(&"loading_screen") != null:
+		return false                         # nothing built under the cover (the load is as before)
 	_built_at = f
 	return true
 

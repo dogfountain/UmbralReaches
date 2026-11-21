@@ -568,7 +568,10 @@ func _process(delta: float) -> void:
 	if n == 0:
 		return
 	var player := _player()
-	var share := mini(n, ceili(float(n) * minf(delta, 0.1) / PASS))
+	# under the loading cover the pass is whole and nothing waits (as the tick was): the ~340 pawns planted awake sleep
+	# at once there, not one a frame through the cover's first seconds (each awake pawn's AI and pose ran every frame)
+	var covered := get_tree().get_first_node_in_group(&"loading_screen") != null
+	var share := n if covered else mini(n, ceili(float(n) * minf(delta, 0.1) / PASS))
 	var switched := false                                  # a pawn woken or put to sleep this frame
 	var shown := 0                                         # pawns shown or hidden (cheaper: SHOWS a frame)
 	for _j in share:
@@ -598,7 +601,7 @@ func _process(delta: float) -> void:
 			var far := d2 > HIDE_R * HIDE_R
 			var show := not far and not enemy.visible
 			var flip := show or (far and enemy.visible)
-			if (awake and switched) or (flip and shown >= SHOWS):
+			if not covered and ((awake and switched) or (flip and shown >= SHOWS)):
 				break                                   # this slot is the next frame's first
 			if awake or show:
 				enemy.sleep()
@@ -607,7 +610,7 @@ func _process(delta: float) -> void:
 			switched = switched or awake
 			shown += 1 if flip else 0
 		elif not awake or not enemy.visible:
-			if switched:
+			if switched and not covered:
 				break                                   # one wake a frame: this slot is the next frame's first
 			enemy.wake()
 			switched = true
