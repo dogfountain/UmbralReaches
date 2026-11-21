@@ -20,6 +20,9 @@ Crossing (`core/world/realm/rift/crossing.gd`): the only walkable way from the r
 
 ## The job
 
+Luke, after: "it needs a complete redesign". Not a touch-up: the current layout goes wherever it does not serve one clear climb.
+
+
 **Rebuild it so a player understands it at a glance and it reads as one designed place.**
 - **A single legible route:** from the rim, the player can see where they are going: the summit and the next landing. The way on is always readable.
   - No ramps that loop back on themselves without a reason.
