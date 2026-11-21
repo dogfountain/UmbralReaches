@@ -32,6 +32,7 @@ const SpawnRules := preload("res://core/life/encounters/spawn_rules.gd")
 const RealmLand := preload("res://core/world/realm/realm_land.gd")
 const AmbushSites := preload("res://core/life/encounters/ambush_sites.gd")
 const Staging := preload("res://core/life/encounters/staging.gd")
+const AmbushPrep := preload("res://core/life/encounters/ambush_prep.gd")
 
 const TICK := 0.25
 const CAP := 12                    ## most enemies near the player that tides/ambushes/elites add to
@@ -83,6 +84,7 @@ var _rest_at := Vector3.INF
 
 var ambushes: Array[Dictionary] = []
 var ambushers: Array = []
+var _sprung: Dictionary = {}       ## the ambush being sprung: its risers built ahead (ambush_prep.gd)
 var _ambush_gap := 30.0
 
 var haunts: Dictionary = {}        ## elite id -> Vector3 (on the ground)
@@ -452,6 +454,7 @@ func _ambush_tick(dt: float, pos: Vector3, lit: bool) -> void:
 	_ambush_gap = maxf(0.0, _ambush_gap - dt)
 	for s: Dictionary in ambushes:
 		s.cd = maxf(0.0, float(s.cd) - dt)
+	AmbushPrep.step(ambushes, pos, self, int(state.get("ambushes", 0)), _make)     # the nearest site's risers, built ahead
 	if tide_on or lit or _ambush_gap > 0.0 or _busy_fight():
 		return
 	# a horse's gallop covers the trigger ring in a breath: the ring reaches as far as the headlight
@@ -468,6 +471,7 @@ func _ambush_tick(dt: float, pos: Vector3, lit: bool) -> void:
 
 
 func trigger_ambush(s: Dictionary) -> int:
+	_sprung = s
 	s.cd = AMBUSH_CD
 	_ambush_gap = AMBUSH_GAP
 	var pos := _player.global_position if _player else (s.at as Vector3)
@@ -507,7 +511,12 @@ func trigger_ambush(s: Dictionary) -> int:
 
 ## One of an ambush: it rises asleep (a breath to see it), wakes 0.9 s later.
 func _rise(kind: String, spot: Vector3, tier: int, look: String) -> Enemy:
-	var e := _make(kind, spot, tier, look)
+	var e := AmbushPrep.next(_sprung)               # built ahead at the site (ambush_prep.gd), else built now
+	if e != null:
+		AmbushPrep.place(e, spot)
+		SpellFx.rift_in(spot)
+	else:
+		e = _make(kind, spot, tier, look)
 	if e == null:
 		return null
 	e.set_meta(&"enc_ambush", true)
@@ -939,7 +948,7 @@ func _search(c: Vector2, reach: float, ignore_light := false) -> Vector3:
 	return Vector3.INF
 
 
-func _make(kind: String, at: Vector3, tier: int, variant: String) -> Enemy:
+func _make(kind: String, at: Vector3, tier: int, variant: String, fx := true) -> Enemy:
 	var e := Tiers.script_for(kind).new() as Enemy
 	if e == null:
 		return null
@@ -953,7 +962,7 @@ func _make(kind: String, at: Vector3, tier: int, variant: String) -> Enemy:
 		Variants.dress(e, variant)
 	e.global_position = at + Vector3.UP * 0.05
 	e.home = at
-	SpellFx.rift_in(at)
+	if fx: SpellFx.rift_in(at)
 	return e
 
 
