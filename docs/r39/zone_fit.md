@@ -75,3 +75,15 @@ A 0.4 m box swept along every built flight's centreline: no lamp or post stands 
 - Grandmother Oak stair: treads missing at the limb doors (65-68, 100-103, 135-138, 160-162, a 0.4-0.6 m riser each, found by `oakscan`); collision ramps added
   (`OAK_STAIR_GAPS`). The real Player climbs from the floor (a lip at the first tread needs a jump) to y 29.5 (tread 65) and stops at the first gap; the whole
   170-tread ascent is NOT verified.
+
+## Fourth round (lead review)
+
+- Cave 3 and every other descent: the real Player walks every hall and cave stair to its bottom (cave 3 to y -14.4 of -16.8). The "respawn at the spawn point" was the
+  player's own stuck rescue (`Vitals._stuck_tick`) putting a walker that kept pushing at the first room's wall back on the last safe ground (the cave's threshold, or
+  Hearthward when that was the last safe ground): not a fall and not a hole. The caves are back on the soft cut (the hard edge stays for the halls only).
+- Grandmother Oak stair: the "missing treads" were the limb-door landings' flat collision plates standing 0.3-0.6 m over the treads before them. The plates now follow the
+  flight's slope (`r37_south_oak.py`, re-exported), the invisible ramps are gone. Full ascent with the real Player: floor to the crown (y 51.1), 92 waypoints, 0 stuck;
+  and the same stair top to door, 0 stuck.
+- Witch's Cellar flank (and every other open stair of the halls and caves): a stone kerb (`DungeonKit.kerb`) runs along both sides beyond the cut's edge, 1.9 m high,
+  so nobody steps onto the flank. Shots `kerb1`, `kerb2`, `hall_pit2`, `cave1`.
+- Yards keep 6 m off every building site (`settlement_yards.gd`); the tithe barn's door scan no longer lists a yard prop.
