@@ -25,6 +25,11 @@ var strips := {}
 var pl_ids: PackedStringArray = []
 var fx_only := false              ## no ground spots: only the sky effects (--probe/--rank are ignored)
 var probe_out := ""             ## --probe=file.tsv: measure the whole Realm first (zz/ground_probe.gd), then shoot
+var look_mode := ""               ## --look=camps,towns,posts,outposts (or all): the camps and settlements, six views each, five under a review light rig + one normal night view
+var look_ids: PackedStringArray = []   ## --look-ids=3,7,12 (numbers from looks.txt) or --look-names=a,b (name substrings)
+var look_names: PackedStringArray = []
+var rig: Node3D                    ## the review light rig: a bright fill, in this tool only, never in the game
+var strips_look := {}
 
 
 func _ready() -> void:
@@ -51,6 +56,14 @@ func _ready() -> void:
 				pl_from = int(pc[0])
 				pl_count = int(pc[1])
 			settle = 30
+		elif a.begins_with("--look="):
+			look_mode = a.get_slice("=", 1)
+			fx_views = false
+			settle = 36
+		elif a.begins_with("--look-ids="):
+			look_ids = a.get_slice("=", 1).split(",")
+		elif a.begins_with("--look-names="):
+			look_names = a.get_slice("=", 1).split(",")
 		elif a.begins_with("--place-ids="):
 			pl_ids = a.get_slice("=", 1).split(",")
 		elif a == "--keep-spots":
@@ -113,6 +126,8 @@ func _process(_d: float) -> void:
 			_add_fx_views()
 		if places_mode:
 			_add_place_views()
+		if look_mode != "":
+			_add_look_views()
 		for n in get_tree().get_nodes_in_group(Groups.ENEMY):
 			(n as Node).queue_free()
 		for c in get_tree().root.find_children("*", "CanvasLayer", true, false):
@@ -131,10 +146,13 @@ func _process(_d: float) -> void:
 		var s: Dictionary = spots[i]
 		var path := out.path_join(("%s_%s.png" % [String(s["file"]), tag]) if s.has("file") else "spot_%03d_%s.png" % [first + i, tag])
 		var img := get_viewport().get_texture().get_image()
-		if s.has("place"):
+		if s.has("place") or s.has("look"):
 			path = path.replace(".png", ".jpg")
 			img.save_jpg(path, 0.88)
-			_strip(s, img)
+			if s.has("look"):
+				_strip_look(s, img)
+			else:
+				_strip(s, img)
 		else:
 			img.save_png(path)
 		var lum := 0.0
@@ -194,6 +212,8 @@ func _setup() -> bool:
 		cam3.make_current()
 	cam3.global_position = Vector3(cam.x, eye, cam.y)
 	cam3.look_at(Vector3(at.x, tgt, at.y), Vector3.UP)
+	if s.has("rig"):
+		_rig(bool(s.rig), Vector3(cam.x, eye, cam.y))
 	wait = settle
 	return true
 
@@ -377,3 +397,150 @@ func _strip(s: Dictionary, img: Image) -> void:
 			sheet.blit_rect((strips[pi] as Array)[i2] as Image, Rect2i(0, 0, 640, 400), Vector2i(640 * i2, 0))
 		sheet.save_jpg(out.path_join("strip_%03d.jpg" % pi), 0.85)
 		strips.erase(pi)
+
+
+## The review rig: a shadowless sun and a fill lamp on the camera, so the night's shapes can be judged. Only ever in this tool.
+func _rig(on: bool, at: Vector3) -> void:
+	if rig == null:
+		rig = Node3D.new()
+		var sun := DirectionalLight3D.new()
+		sun.light_energy = 1.1
+		sun.light_color = Color(0.85, 0.9, 1.0)
+		sun.shadow_enabled = false
+		sun.rotation_degrees = Vector3(-52.0, 35.0, 0.0)
+		rig.add_child(sun)
+		var fill := OmniLight3D.new()
+		fill.name = "Fill"
+		fill.light_energy = 2.2
+		fill.omni_range = 28.0
+		fill.shadow_enabled = false
+		rig.add_child(fill)
+		get_tree().root.add_child(rig)
+	rig.visible = on
+	(rig.get_node("Fill") as Node3D).global_position = at + Vector3(0.0, 1.0, 0.0)
+
+
+## Camps (every REALM_CAMPS entry and the Reaches', merged within 14 m), settlements, the watch posts and the outposts.
+func _look_list() -> Array:
+	var raw: Array = []
+	var kinds := look_mode.split(",") if look_mode != "all" else PackedStringArray(["camps", "towns", "posts", "outposts"])
+	if "towns" in kinds:
+		for t: Array in [["Hearthward square", Vector2(10, 30), 36.0], ["Hearthward east (Almonry)", Vector2(34, 38), 22.0], ["Hearthward Keg", Vector2(19, 10), 18.0],
+				["Reedholm", Vector2(-314, 285), 46.0], ["Fallowmere", Vector2(-150, 305), 46.0], ["Fallowmere barn and farm", Vector2(-176, 300), 24.0],
+				["Lastlight", Vector2(324, 58), 44.0], ["Weirford", Vector2(-196, 70), 36.0], ["Weirford inn and smithy", Vector2(-178, 64), 20.0],
+				["Saltmarket", Vector2(212, 100), 34.0], ["Rooted Holds", Vector2(-165, 18), 28.0]]:
+			raw.append([t[0], t[1], t[2], "town"])
+	if "camps" in kinds:
+		var all: Array = EnemySpawner.REALM_CAMPS
+		for c: Dictionary in all:
+			var at: Vector3 = c.at
+			raw.append(["camp %d,%d (%s)" % [roundi(at.x), roundi(at.z), String(c.get("name", c.get("seal", ",".join(PackedStringArray(c.kinds).slice(0, 2)))))], Vector2(at.x, at.z), 12.0, "camp"])
+	if "posts" in kinds:
+		var wp: Dictionary = preload("res://core/world/watch/watch_posts.gd").POSTS
+		for id: String in wp:
+			var at2: Vector2 = (wp[id] as Dictionary).at
+			raw.append(["watch " + id, at2, 10.0, "post"])
+	if "outposts" in kinds:
+		for v in get_tree().get_nodes_in_group("villager"):
+			var vil: Variant = v.get("village")
+			if vil != null:
+				var oa: Dictionary = vil.get("outpost_at")
+				for id: String in oa:
+					var g := oa[id] as Vector3
+					raw.append(["outpost " + id, Vector2(g.x, g.z), 9.0, "outpost"])
+				break
+	var out: Array = []
+	for e: Array in raw:
+		var c2: Vector2 = e[1]
+		if Rect2(-150.0, 60.0, 260.0, 210.0).has_point(c2) or not RealmLayout.BOUNDS.grow(-12.0).has_point(c2):
+			continue
+		var rid := String(RealmLayout.region_at(c2.x, c2.y).get("id", ""))
+		if rid in ["rift", "summit"]:
+			continue
+		var dup := false
+		if e[3] == "camp":
+			for o: Array in out:
+				if o[3] == "camp" and (o[1] as Vector2).distance_to(c2) < 14.0:
+					dup = true
+					break
+		if not dup:
+			out.append([e[0], c2, e[2], e[3]])
+	return out
+
+
+## No camera in a wall or a bush of geometry: nothing within 1.4 m round the eye, nothing in the first 3 m of the line to the target, and the target itself seen.
+func _cam_clear(eye: Vector3, tgt: Vector3) -> bool:
+	var space := (main as Node3D).get_world_3d().direct_space_state
+	for k in 8:
+		var d := Vector3(cos(TAU * float(k) / 8.0), 0.0, sin(TAU * float(k) / 8.0))
+		if not space.intersect_ray(PhysicsRayQueryParameters3D.create(eye, eye + d * 1.4, 0xFFFFF)).is_empty():
+			return false
+	var dir := (tgt - eye).normalized()
+	if not space.intersect_ray(PhysicsRayQueryParameters3D.create(eye, eye + dir * minf(3.0, eye.distance_to(tgt)), 0xFFFFF)).is_empty():
+		return false
+	return _sees(eye, tgt)
+
+
+func _look_cam(c: Vector2, gy: float, yaw: float, dist: float, up: float, tgt_y: float) -> Vector2:
+	var dir0 := (Vector2(0.0, 33.0) - c).normalized() if (Vector2(0.0, 33.0) - c).length() > 30.0 else Vector2(0.0, 1.0)
+	for t2 in 18:
+		var cand := c + dir0.rotated(yaw + float((t2 + 1) / 2) * TAU / 18.0 * (1.0 if t2 % 2 == 1 else -1.0)) * (dist + 0.6 * float(t2 / 6))
+		var cg := _ground(cand.x, cand.y)
+		if _cam_ok(cand) and not is_nan(cg) and absf(cg - gy) < 7.0 and _cam_clear(Vector3(cand.x, cg + up, cand.y), Vector3(c.x, gy + tgt_y, c.y)):
+			return cand
+	return Vector2(NAN, NAN)
+
+
+func _add_look_views() -> void:
+	var places := _look_list()
+	var lines := PackedStringArray()
+	var idx := 0
+	var added := 0
+	for pl: Array in places:
+		var c: Vector2 = pl[1]
+		var gy := _ground(c.x, c.y)
+		lines.append("%03d\t%s\t%.0f\t%.0f\t%s\t%s" % [idx, pl[0], c.x, c.y, pl[3], RealmLayout.region_at(c.x, c.y).get("id", "")])
+		var want := look_ids.is_empty() and look_names.is_empty()
+		if str(idx) in look_ids:
+			want = true
+		for nm in look_names:
+			if nm != "" and String(pl[0]).containsn(nm):
+				want = true
+		if is_nan(gy) or not want:
+			idx += 1
+			continue
+		var rad := clampf(float(pl[2]), 6.0, 46.0)
+		# 0 approach at 1.7 m, 1 and 2 three-quarter from both sides, 3 inside the centre, 4 high, 5 the same as 1 under the normal night
+		var specs := [[rad + 12.0, 0.0, 1.7, 1.4, true], [rad * 0.7 + 7.0, deg_to_rad(55.0), 1.7, 1.2, true], [rad * 0.7 + 7.0, deg_to_rad(-55.0), 1.7, 1.2, true],
+			[maxf(4.0, rad * 0.35), deg_to_rad(150.0), 1.8, 1.2, true], [rad + 14.0, deg_to_rad(-35.0), 16.0, 0.0, true], [rad * 0.7 + 7.0, deg_to_rad(55.0), 1.7, 1.2, false]]
+		for k in 6:
+			var sp: Array = specs[k]
+			var cam := _look_cam(c, gy, float(sp[1]), float(sp[0]), float(sp[2]), float(sp[3]))
+			if is_nan(cam.x) and k != 4:
+				cam = _look_cam(c, gy, float(sp[1]) + 0.5, float(sp[0]) * 1.3, float(sp[2]) + 0.4, float(sp[3]))
+			if is_nan(cam.x):
+				continue
+			spots.append({"x": c.x, "z": c.y, "cam_x": cam.x, "cam_z": cam.y, "eye_up": float(sp[2]), "look_y": float(sp[3]), "why": "look", "kind": String(pl[0]),
+				"look": idx, "view": k, "rig": bool(sp[4]), "file": "lk_%03d_%d" % [idx, k]})
+			added += 1
+		idx += 1
+	FileAccess.open(out.path_join("looks.txt"), FileAccess.WRITE).store_string("\n".join(lines))
+	print("LOOKS %d places, %d views" % [places.size(), added])
+
+
+func _strip_look(s: Dictionary, img: Image) -> void:
+	var li := int(s.look)
+	if not strips_look.has(li):
+		strips_look[li] = {}
+	var small := img.duplicate() as Image
+	small.resize(640, 400, Image.INTERPOLATE_BILINEAR)
+	(strips_look[li] as Dictionary)[int(s.view)] = small
+	var nxt := i + 1
+	var last := nxt >= spots.size() or not (spots[nxt] as Dictionary).has("look") or int((spots[nxt] as Dictionary).look) != li
+	if last:
+		var d: Dictionary = strips_look[li]
+		var sheet := Image.create(640 * 3, 400 * 2, false, Image.FORMAT_RGB8)
+		for v in d:
+			sheet.blit_rect(d[v] as Image, Rect2i(0, 0, 640, 400), Vector2i(640 * (int(v) % 3), 400 * (int(v) / 3)))
+		sheet.save_jpg(out.path_join("strip_%03d_%s.jpg" % [li, tag]), 0.85)
+		strips_look.erase(li)
