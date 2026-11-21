@@ -62,26 +62,19 @@ func _ready() -> void:
 	_steps = [
 		["baseline", func() -> void: pass],
 		["again (nothing changed)", func() -> void: pass],
-		# out of view first, then in view: is a state the frame's visible lights' or the scene's?
-		["soft light (size 0.3, no shadow) out of view", func() -> void: _omni_plain(0.3, Vector3(0, 2, 40))],
-		["it moves into view", func() -> void: (_extra[0] as Node3D).position = Vector3(0, 2.5, 1.5)],
+		# shadowed lights first, before any light with a size: do they make the touched materials' colour pass new too?
+		["omni, dual paraboloid shadow, size 0", func() -> void: _omni(OmniLight3D.SHADOW_DUAL_PARABOLOID, 0.0)],
 		["removed", _clear],
-		["projector spot out of view", func() -> void: _spot(false, tex, 0.0, Vector3(0, 2, 40))],
-		["it moves into view", func() -> void: (_extra[0] as Node3D).position = Vector3(0, 3, 3); (_extra[0] as Node3D).look_at(Vector3.ZERO)],
+		["omni, cube shadow, size 0", func() -> void: _omni(OmniLight3D.SHADOW_CUBE, 0.0)],
 		["removed", _clear],
-		["soft and projector together", func() -> void: _omni_plain(0.3, Vector3(0, 2.5, 1.5)); _spot(false, tex, 0.0)],
+		["spot, shadow, size 0", func() -> void: _spot(true, null, 0.0)],
 		["removed", _clear],
-		# is it the lights touching each box, or the frame? a soft light far from every box but in view
-		["soft light in view, touching nothing (range 0.5, 3 m up)", func() -> void: _omni_plain(0.3, Vector3(0, 4.5, 0), 0.5)],
+		["soft light (size 0.3, no shadow)", func() -> void: _omni_plain(0.3, Vector3(0, 2.5, 1.5))],
 		["removed", _clear],
-		["moon shadow off (dir soft off)", func() -> void: _moon.shadow_enabled = false],
-		["soft light with the moon's shadow off", func() -> void: _omni_plain(0.3, Vector3(0, 2.5, 1.5))],
-		["removed, moon shadow on", func() -> void: _clear(); _moon.shadow_enabled = true],
-		["omni dual paraboloid shadow", func() -> void: _omni(OmniLight3D.SHADOW_DUAL_PARABOLOID, 0.0)],
+		["projector spot, no shadow", func() -> void: _spot(false, tex, 0.0)],
 		["removed", _clear],
 		["instance transparency 0.5 on every box", func() -> void: _alpha(0.5)],
 		["transparency back to 0", func() -> void: _alpha(0.0)],
-		["box 1 fade-self, camera in its fade band", _fade_band],
 		["end", func() -> void: pass],
 	]
 	_last = PsoWatch._counts()

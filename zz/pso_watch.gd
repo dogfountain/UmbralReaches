@@ -374,6 +374,7 @@ func _state() -> String:
 
 
 func _print_fresh() -> void:
+	_print_lantern()
 	var n := 0
 	for e: Array in _fresh:
 		if n >= 10:
@@ -384,3 +385,28 @@ func _print_fresh() -> void:
 	if _fresh.is_empty():
 		print("PSO?   nothing new in view (a state change, a pass, or a canvas item)")
 	_fresh.clear()
+
+
+## What the wanderer's lantern touches (a light with a size: every material it touches is drawn in the soft state): the
+## geometry within 5 m of the wanderer, by key, once per key a compile frame names.
+var _lantern_seen := {}
+
+
+func _print_lantern() -> void:
+	var p := get_tree().get_first_node_in_group(Groups.PLAYER) as Node3D
+	var cam := get_viewport().get_camera_3d()
+	if p == null or cam == null:
+		return
+	var ids := RenderingServer.instances_cull_aabb(AABB(p.global_position - Vector3.ONE * 5.0, Vector3.ONE * 10.0), cam.get_world_3d().scenario)
+	var n := 0
+	for id in ids:
+		var g := instance_from_id(id) as GeometryInstance3D
+		if g == null or not g.is_visible_in_tree():
+			continue
+		for e: Array in _keys(g):
+			if _lantern_seen.has(e[0]):
+				continue
+			_lantern_seen[e[0]] = true
+			if n < 8:
+				print("PSO?   by the lantern: %s%s" % [e[1], " (skinned)" if g is MeshInstance3D and (g as MeshInstance3D).get_skin_reference() != null else ""])
+			n += 1
