@@ -67,8 +67,13 @@ var _lan := Vector2.ZERO               ## lantern angle (x fore-aft, z side) and
 var _lan_v := Vector2.ZERO
 var _prev_dy := 0.0
 var _extra_env := 0.0
+var _dy_s := 0.0                       ## the back height as drawn, its speed, and whether it has begun
+var _dy_v := 0.0
+var _dy_init := false
 var _drop_env := 0.0                   ## the back drop, held between the legs reach peaks
 const DROP_RELEASE := 0.35             ## m/s: how fast the held drop lets the back rise
+const DY_RATE := 45.0                  ## /s: the stiffness of the spring the back height is drawn through
+const DROP_ATTACK := 4.0               ## m/s: and how fast it may fall to a deeper reach (the hips never drop in one frame)
 var _seed := 0.0
 var _legs := {}                        ## leg -> {up, low, fet, hip, knee, fet_p, toe, l1, l2, sign}
 
@@ -271,7 +276,7 @@ func pose(ph: float, speed: float, graze: float, dt: float, accel := Vector2.ZER
 	var drop := clampf(need, 0.0, 0.38) if moving else 0.0
 	# the reach each leg needs peaks four times a stride; the back follows its envelope (it falls to the
 	# deepest reach at once, rises back slowly) so it does not shudder at four times the stride rate
-	_drop_env = maxf(drop, _drop_env - DROP_RELEASE * maxf(dt, 0.0)) if moving else 0.0
+	_drop_env = _env(_drop_env, drop if moving else 0.0, dt)
 	drop = _drop_env
 	# --- gait weights and the stride's own timing
 	var ww := 1.0 - smoothstep(walk_s, walk_s + (trot_s - walk_s) * 0.55, speed)
@@ -376,18 +381,42 @@ func pose(ph: float, speed: float, graze: float, dt: float, accel := Vector2.ZER
 		extra = maxf(extra, ((tgt[l] as Vector3) - (hips[l] as Vector3)).length() - (float(L.l1) + float(L.l2)) * 0.985)
 	# the hip joints ride the pitching, rolling spine: solve from where they are now, and sink the back a little
 	# further if a hoof would be left short of its place on the ground
-	_extra_env = maxf(minf(extra, 0.4), _extra_env - DROP_RELEASE * maxf(dt, 0.0)) if moving else 0.0
-	if _extra_env > 0.0 and moving:
-		extra = _extra_env
-		last_dy -= extra
+	_extra_env = _env(_extra_env, minf(extra, 0.4) if moving else 0.0, dt)
+	# the back's height as drawn (the rider rides it too): the sum of the gait's bounce, the reach drop and the extra sink,
+	# through a stiff critically damped spring. The legs' reach peaks four times a stride and the raw sum fell ten centimetres
+	# in 30 ms at a gallop (a shudder the rider's own spring then had to disagree with); this takes the edge off, a few
+	# millimetres of hoof short at the peaks, and the rider can sit the same back the barrel is on.
+	var dy0 := last_dy
+	last_dy = _damp_dy(dy0 - (_extra_env if moving else 0.0), dt)
+	if absf(last_dy - dy0) > 0.00005:
 		_pose_bone("root", 0.0, 0.0, Vector3(0, last_dy, 0))
 		for l: String in hips:
-			hips[l] = (hips[l] as Vector3) - Vector3(0, extra, 0)
+			hips[l] = (hips[l] as Vector3) + Vector3(0, last_dy - dy0, 0)
 	for i in 4:
 		var l: String = LEGS[i]
 		if not _legs.has(l):
 			continue
 		_leg(_legs[l], tgt[l], float(swing[l]), k, l.begins_with("f"), hips[l])
+
+
+func _damp_dy(want: float, dt: float) -> float:
+	if not _dy_init or dt <= 0.0005:
+		_dy_s = want
+		_dy_v = 0.0
+		_dy_init = dt > 0.0005 or _dy_init
+		return want
+	var e := exp(-DY_RATE * dt)
+	var x := _dy_s - want
+	var j := _dy_v + DY_RATE * x
+	_dy_v = (_dy_v - DY_RATE * j * dt) * e
+	_dy_s = want + (x + j * dt) * e
+	return _dy_s
+
+
+## An envelope that falls to a deeper `want` at DROP_ATTACK and rises back at DROP_RELEASE.
+static func _env(cur: float, want: float, dt: float) -> float:
+	var d := maxf(dt, 0.0)
+	return minf(cur + DROP_ATTACK * d, want) if want > cur else maxf(want, cur - DROP_RELEASE * d)
 
 
 ## Two-bone solve in the sagittal plane (y up, z fore-aft) to put the fetlock on `target`.

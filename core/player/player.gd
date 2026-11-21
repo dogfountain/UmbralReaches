@@ -317,7 +317,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	elif event.is_action_pressed("interact"):
 		if riding != null and (_interact_target == null or _interact_target == riding):
-			mount.get_down()                               # on horseback [interact] gets down, whatever the sensor found
+			mount.get_down(true)                           # on horseback [interact] gets down, whatever the sensor found
 		elif not (_interact_target == null and _grapple != null and _grapple.try_fire()):
 			interaction._try_interact()                    # r31: nothing to use here: the Tether line bites a marked anchor
 	elif event.is_action_pressed("lock_on"):
@@ -372,7 +372,7 @@ func _process(delta: float) -> void:
 	var cam_off := _cam_off_prev.lerp(_cam_off, fr)
 	cam_off.y += lerpf(_cam_air_prev, _cam_air, fr)
 	cam_off += _look_ahead_prev.lerp(_look_ahead, fr)
-	_rig.global_position = body_xf.origin + Vector3(0.0, _rig_height - _cam_drop, 0.0) + cam_off + _tp_offset
+	_rig.global_position = mount.camera_origin(body_xf.origin, delta) + Vector3(0.0, _rig_height - _cam_drop, 0.0) + cam_off + _tp_offset
 	_rig.global_rotation = Vector3(0.0, _yaw, 0.0)
 	camera_ctl._cam_frame(delta)
 	_pitch_node.rotation.x = _pitch - _land_dip * 0.12 + _shake
