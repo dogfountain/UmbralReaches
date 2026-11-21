@@ -922,6 +922,7 @@ func commit(parent: Node3D, body_name := "Body") -> int:
 				shifted.append(Transform3D(t.basis, t.origin - cen))
 			var mm := multimesh(mesh, shifted, m, false, n.begins_with("Skulls") or n.begins_with("Bones"))
 			mm.position = cen
+			WorldLanes.own(mm)                     # placed on purpose: cull_scatter (end of the Realm's build) emptied every batch standing in the pit's or the landing's site: no skull, candle or bone ever drew there
 			mm.name = "%s_%d_%d" % [n, key.x, key.y]
 			mm.visibility_range_end = far
 			mm.visibility_range_end_margin = far * 0.12

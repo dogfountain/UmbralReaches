@@ -251,5 +251,6 @@ static func _multimesh(host: Node3D, nm: String, mesh: Mesh, xfs: Array) -> int:
 	mmi.multimesh = mm
 	mmi.custom_aabb = box.grow(2.0)
 	mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF          # (the moon's cascades never see the abbey: it is lit by its windows)
+	WorldLanes.own(mmi)
 	host.add_child(mmi)
 	return m.get_surface_count()
