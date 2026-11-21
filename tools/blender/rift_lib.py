@@ -6,7 +6,8 @@
            shader (core/world/realm/rock_kit.gdshader): r cavity / contact shade, g 1 (no moss: the rift burned), b 1 - ember
            (the lowest metres over the lava glow in the "ash" style), a strata (a darker line under each ledge).
   MASONRY  chunky dressed blocks (bevelled, a little off true) for steps, parapets, kerbs and fire plinths, in the WestKit sets
-           Hearthward and the reaches are built of ("stone", "ashlar"): vertex colour is plain weathering, soot low and near
+           Hearthward and the West Marches are built of ("stone" for the rough parapets, "hewn" for the dressed steps and flags, as the
+           beacons and the modelled masonry use it): vertex colour is plain weathering, soot low and near
            the lava, pale ash on the tops; no moss, no tint.
 
 Frame as everywhere: Blender (x, y, z) = the rift's game coordinates (x, -z, y) (chasm on x 0, z south; 1 BU = 1 m).

@@ -3,7 +3,7 @@ Plan and reasons: docs/r39/rift_from_scratch.md. Placed by core/world/realm/rift
 
   tools/blender/run.sh rift_kit.py -- [--preview DIR]
 
-  art/models/rift_way.glb          one mesh per section and set (`<Section>__stone|ashlar|iron|ember|basalt|ash`) and a `<Section>-colonly`
+  art/models/rift_way.glb          one mesh per section and set (`<Section>__stone|hewn|iron|ember|basalt|ash`) and a `<Section>-colonly`
                                    body each, in the rift's own game coordinates (chasm on x 0, z south; the game places it at the origin)
   art/models/rift_way_layout.json  what the game reads: lanes, flights, sites, fires, the lavafall sources, named points
 
@@ -95,7 +95,7 @@ def flight_build(M, F, sides=(1, -1), rock=None, rock_out=(1.0, 1.0), wall=()):
     yaw = F.yaw()
     M.keeps += _keeps([F])
     for s0, s1, y in F.treads:
-        _across(M, F, s0 - 0.04, s1 + 0.04, y, y - 0.9, "ashlar")
+        _across(M, F, s0 - 0.04, s1 + 0.04, y, y - 0.9, "hewn")
     for s0, s1, y in F.flats:
         _flags(M, F, s0, s1, y)
     # parapets: blocks along the edge, each topped at the highest walk it guards
@@ -119,11 +119,19 @@ def flight_build(M, F, sides=(1, -1), rock=None, rock_out=(1.0, 1.0), wall=()):
         pts += [(s0 + TREAD * 0.5, y), (max(s1 - TREAD * 0.5, s0 + TREAD * 0.5 + 0.06), y)]
     pts.append((F.run + TREAD * 0.5, F.top))
     pts.sort()
-    # keep the profile monotonic and simple: a segment per run of treads, flats as their own
+    # keep the profile monotonic and simple: one slab per straight run (the tread middles of a group lie on one line), flats as their own:
+    # every joint inside a run was an edge the capsule could catch on, and it went down the flights off the floor
     prof = [pts[0]]
     for p in pts[1:]:
         if p[0] - prof[-1][0] > 0.05:
             prof.append(p)
+    k = 1
+    while k < len(prof) - 1:
+        (s0, y0), (s1, y1), (s2, y2) = prof[k - 1], prof[k], prof[k + 1]
+        if abs((y1 - y0) / (s1 - s0) - (y2 - y1) / (s2 - s1)) < 0.01:
+            prof.pop(k)
+        else:
+            k += 1
     for (sa, ya), (sb, yb) in zip(prof, prof[1:]):
         ln = sb - sa
         if ln < 0.05:
@@ -172,12 +180,12 @@ def _flags(M, F, s0, s1, y):
     s = s0
     while s < s1 - 0.05:
         ln = min(RND.uniform(0.9, 1.4), s1 - s)
-        _across(M, F, s, s + ln, y, y - 0.35, "ashlar")
+        _across(M, F, s, s + ln, y, y - 0.35, "hewn")
         s += ln
 
 
 # ============================================================================================ flats (landings, decks, the Lip)
-def paving(M, x0, z0, x1, z1, y, key="ashlar", depth=0.35):
+def paving(M, x0, z0, x1, z1, y, key="hewn", depth=0.35):
     """Flagstones over a rectangle, top at y."""
     z = z0
     while z < z1 - 0.05:
@@ -293,7 +301,7 @@ def sec_descent(objs):
     wall_run(M, (x1 + PW * 0.5, z1 - PW * 0.5), (x1 + PW * 0.5, z0 + 0.6), LIP_Y)
     for k in range(2):                                                                              # down to the rim road's end (y 0.0 at z -1.5)
         yk = LIP_Y - (k + 1) * 0.2
-        M.block("ashlar", (-0.5, yk - 0.4, z0 + 0.43 + k * 0.86), (5.0, 0.8, 0.9), 0.0, bevel=0.05)
+        M.block("hewn", (-0.5, yk - 0.4, z0 + 0.43 + k * 0.86), (5.0, 0.8, 0.9), 0.0, bevel=0.05)
     M.col_box((-0.5, 0.1, z0 + 0.86), (2.66, 0.4, 5.0), 90.0, pitch=13.1)                            # one ramp under them (rising north): no lip
 
     M.keeps.append(((-3.8, -1.2, z0 - 0.4), (2.8, LIP_Y + 3.2, z0 + 2.4)))                          # the steps and the road's end: no rock grows over them
@@ -380,7 +388,7 @@ def _causeway(M, rock, pts, y0, y1, sides=(1, -1), name="", rock_too=True):
         while s < ln - 0.05:
             sl = min(RND.uniform(0.9, 1.4), ln - s)
             yy = ya + (yb - ya) * (s + sl * 0.5) / ln
-            _across(M, F, s - 0.02, s + sl + 0.02, yy, yy - 0.4, "ashlar")
+            _across(M, F, s - 0.02, s + sl + 0.02, yy, yy - 0.4, "hewn")
             s += sl
         for side in sides:
             pa, pb = F.pt(0.0, side * (HW + PW * 0.5)), F.pt(ln, side * (HW + PW * 0.5))
@@ -426,7 +434,7 @@ def bridge(M, a, b, y, name):
         if top - under > 0.1:
             c = F.pt(s + sl * 0.5, 0.0, (top + under) * 0.5)
             M.block("stone", c, (sl - 0.03, top - under, w - 0.1), yaw, shade=RND.uniform(0.74, 0.9))
-        _across(M, F, s - 0.02, s + sl + 0.02, y, y - 0.4, "ashlar")
+        _across(M, F, s - 0.02, s + sl + 0.02, y, y - 0.4, "hewn")
         s += sl
     for side in (1, -1):
         pa, pb = F.pt(-0.3, side * (HW + PW * 0.5)), F.pt(ln + 0.3, side * (HW + PW * 0.5))

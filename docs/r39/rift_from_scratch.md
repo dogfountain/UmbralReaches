@@ -72,7 +72,8 @@ move north with the heat (none over the south rim). Heat shimmer over the pool a
 
 | Part | Material | Where else it is used |
 |---|---|---|
-| Steps, parapets, the Lip's paving, the landing decks, bridges | `WestKit.mat("stone")`, `WestKit.mat("ashlar")` untinted, no emission (r37 sets) | Hearthward's gate and cottages (`village_gate.glb`, `cottage_*.glb`: `__stone`), the West Marches landmarks |
+| Parapets, bridges' arches, fire plinths | `WestKit.mat("stone")` untinted, no emission (the r37 set) | Hearthward's gate, market cross and cottages (`village_gate.glb`, `cottage_*.glb`: `__stone`), the West Marches landmarks |
+| Steps, the Lip's and the landings' flags, the causeway decks | `WestKit.mat("hewn")` untinted (the r37 dressed grain for modelled single stones) | the beacons, the modelled masonry of the ruined landmarks (`masonry_lib.py`) |
 | Basalt: the Descent's ledge, the Ward Crag, islands, shores, plinths | `RockKit.material("basalt")`, `("ash")` where the foot meets the lava | the rift's rim (`rift_rim.gd`), the Realm's cliffs and boulders |
 | Fire baskets | the iron set `WestKit.mat("iron")` | every West Marches lamp and brazier |
 
@@ -91,7 +92,14 @@ Side-by-side (`after/m*`): the Cinder Way's stone next to Hearthward's gate and 
 - [x] lava: one element (`lava.gdshader` cooling gradient and the swirl fix, `lava_works.gd` cooling, glow lights, boils, `lava.gd`), heat haze moved
 - [x] dependants: camps, bats, minimap, world map, trail lanes, discovery, perf tour, walk probes and the threshold walk test's points; `rift/pit.gd` cuts the rim back from the first landing
 - [x] texts: quest, secret, lore, region (section 5)
-- [ ] walk with the Player: rim to ward, the chapel branch, lava death and respawn
+- [x] walk with the Player (`zz/realm_rift_walk.gd`, the real Player's debug drive, `--realm-modules=land,rift`):
+  - rim to the dais: Lastlight's postern, the rim road, the Lip, D1-D3, the Foot, the causeway, both bridges, the Cinder Isle, T1-T4 and
+    the switchback landings, the ward landing, the summit's stairs, the Warden's dais: 45 legs, no burns
+  - `--stair`: the Lip, the Descent, the Foot, the branch along the wall, the chapel's forecourt, the door, the kneeling stone (floor -11.97)
+  - `--lava`: over the causeway to the Cinder Isle and off its open north-east edge into the pool: burned once and given back on the isle
+    (on the floor, y -12.42), as everywhere
+  - first pass fixes: a 0.33 m lip at every flight's foot and at the Lip's steps (the collision is now one ramp through the tread middles,
+    no step-up needed), the branch met the chapel's walled forecourt corner (it now arrives on its east side, where the old quay did)
 - [ ] re-shoot once (`after/`) and look at every shot; material side-by-side
 - [ ] parse check, `tools/lint.sh`
 

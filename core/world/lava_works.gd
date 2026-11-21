@@ -127,6 +127,15 @@ func _cooling(cool: Vector2) -> void:
 		if g:
 			g.global_position = at[i][0]
 			g.light_energy *= float(at[i][1])
+	# the chasm's haze (Zone/Fog/ChasmHaze, made by the zone) was a violet mist for the starwater: now the lava's own smoke, ash-grey and
+	# lit dull red from below, a little thinner so the low way reads through it
+	var haze := root.get_node_or_null("Zone/Fog/ChasmHaze") as FogVolume
+	if haze != null and haze.material is FogMaterial:
+		var fm := (haze.material as FogMaterial).duplicate() as FogMaterial
+		fm.albedo = Color(0.14, 0.11, 0.1)
+		fm.emission = Color(0.09, 0.03, 0.012)
+		fm.density = 0.045
+		haze.material = fm
 
 
 ## Falls at the given [z, side] stations: at each, walk out from the river centre towards that

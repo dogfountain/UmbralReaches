@@ -7,7 +7,8 @@ extends RefCounted
 ##   Stair, four traverses cut into the Ward Crag's south face with switchback landings -> the Ward Landing (25.2).
 ## Modelled in Blender: tools/blender/rift_kit.py (+ rift_lib.py) -> art/models/rift_way.glb (one mesh per section and set, a `-colonly`
 ## body each, in the rift's own coordinates) and art/models/rift_way_layout.json (lanes, flights, sites, fires, the lavafall's source).
-## Materials are the Realm's own: the masonry in WestKit's "stone" and "ashlar" (Hearthward's gate and cottages), the basalt in RockKit's
+## Materials are the Realm's own: the masonry in WestKit's "stone" (Hearthward's gate and cottages) and "hewn" (the modelled masonry and
+## the beacons' dressed stone), the basalt in RockKit's
 ## "basalt" and "ash" (the rift's rim, the Realm's cliffs), untinted. Walk surfaces: risers 0.33 m, 3.6 m between parapets.
 
 const HW := 1.8                 ## half the clear walk (3.6 m between parapets)
@@ -88,9 +89,10 @@ func _place(host: Node3D) -> void:
 		var nm := String(mi.name)
 		if nm.contains("-colonly") or mi.mesh == null:
 			continue
-		if nm.contains("__basalt") or nm.contains("__ash"):
-			mi.material_override = RockKitS.material("ash" if nm.contains("__ash") else "basalt")
-		elif nm.contains("__ember"):
+		var set_name := nm.get_slice("__", 1).get_slice(".", 0) if nm.contains("__") else ""
+		if set_name == "basalt" or set_name == "ash":           # (exactly: "__ashlar" once matched "__ash" and the flags wore the ember rock)
+			mi.material_override = RockKitS.material(set_name)
+		elif set_name == "ember":
 			mi.material_override = coal_mat()
 			mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 			continue
