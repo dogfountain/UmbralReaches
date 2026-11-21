@@ -32,11 +32,24 @@ placed by `world/areas/ossuary/oss_abbey.gd` (local coordinates, built once the 
 * The tally bay (bay 6, over the Counting Door).
 * Distance read: static MultiMesh per module (about 40 draws), CULL_SKIP (a landmark never ends), shadows off, no new light node.
 
+## The bridge (Luke, 21 Nov: "terrible, complete redesign or removal")
+
+**Replaced, not patched.** The bone bridge (fused vertebral plates, rib rails, a rib forest under it) is gone. The Pilgrims' Bridge is
+four pointed stone arches in the abbey's masonry (`OssBridgeSpan` in `oss_abbey.py`, stretched to the end spans), a 4 m paved deck
+between 1.1 m parapets with copings, the Order's piers (same kit as the tiers) from the pool's bed to the arches' springing, a newel
+and a lamp at every pier, and one skull in each arch's crown: bone as ornament, not structure. **Why a bridge and not a stair or a
+walk:** the Landing sits at the tiers' own height (12.6) and the gate hall is 21 m across the pit; a bridge keeps the view of the
+whole descent that the approach needs (the abbey over the hall, the tiers below), a stair down and up the bank would have thrown it
+away, and the deck keeps its axis (z -34, x -4 .. 18) and height, so `realm_walks`' crypt route, `nav_reach_test`'s door target, the
+`oss_landing` site and the walk points all hold. The Lower Count's own "bone bridge" (the puzzle span to the Weighing Floor in
+`oss_deep.gd`) is a different thing and stays. Texts that named the bone bridge now say "the bridge" / "the stone bridge" (the guide,
+the shop, the dialogue, the roll-reading quest, Agathe's, LORE.md).
+
 ## The route spine (local y; world y = local - 7.4)
 
 ```
 Pilgrims' Landing (12.6)  the lane ends; the gate arch; the steps up from the lane
- | the bone bridge (12.6, 21 m over the pool): the whole descent opens below and ahead; the abbey's tower stands over the hall
+ | the Pilgrims' Bridge (12.6, 21 m of arches over the pool): the whole descent opens below and ahead; the abbey's tower stands over the hall
 GATE HALL (12.6)  porter's hall: the brazier, the first candles. Its north door is the way on; the stair head is lit.
  | north stair (down 4.2)
 NICHE GALLERY (8.4)  the first ossuary: two aisles of skull niches; its west arcade looks down on the pit court and the mound;
