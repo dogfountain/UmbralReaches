@@ -106,13 +106,13 @@ static func reserve(root: Node) -> void:
 			if r.intersects(rc):
 				return false
 		return true
-	var fq := LK.search_spot(space, fold_pref, 14.0, Vector2(9.0, 9.0), 1.5, 2.4, [], 2.0, func(q: Vector2) -> bool: return off_abbey.call(q, Vector2(9.0, 9.0)))
+	var fq := LK.search_spot(space, fold_pref, 24.0, Vector2(9.0, 9.0), 1.5, 2.4, [], 2.0, func(q: Vector2) -> bool: return off_abbey.call(q, Vector2(9.0, 9.0)))
 	if fq == Vector2.INF:
 		fq = fold_pref
 	var fy := _ground_med(space, fq)
 	spots["r37s_fold"] = {"at": Vector3(fq.x, fy, fq.y), "yaw": 0.0, "rect": Rect2(fq - Vector2(9, 9), Vector2(18, 18))}
 	var hut_pref := fq + Vector2(-14.0, -2.0)
-	var hq := LK.search_spot(space, hut_pref, 12.0, Vector2(5.5, 5.0), 1.5, 1.6, [], 2.0, func(q: Vector2) -> bool: return off_abbey.call(q, Vector2(5.5, 5.0)))
+	var hq := LK.search_spot(space, hut_pref, 26.0, Vector2(5.5, 5.0), 1.5, 1.6, [], 2.0, func(q: Vector2) -> bool: return off_abbey.call(q, Vector2(5.5, 5.0)))
 	if hq == Vector2.INF:
 		hq = hut_pref
 	var rect := Rect2(hq - Vector2(5.5, 5.0), Vector2(11.0, 10.0))
