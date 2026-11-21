@@ -28,6 +28,8 @@ var _slow_compile := 0
 var _frames := 0
 var _worst_compile := 0.0
 var _lines := 0
+var _lifted := false
+var _saw_cover := false
 var _by_where := {}                       ## where -> [compiles, slow compile frames, worst ms]
 # --psolog
 var _node_seen := {}                      ## instance object id -> kind (0 geometry keyed, 1 omni, 2 spot, 3 other)
@@ -94,6 +96,12 @@ func _process(d: float) -> void:
 	var ms := d * 1000.0
 	if suspects:
 		_scan(any > 0)
+	if not _lifted:
+		var cover := get_tree().get_first_node_in_group(&"loading_screen") != null
+		_saw_cover = _saw_cover or cover
+		if _saw_cover and not cover:
+			_lifted = true                           # the cover is gone: what compiles from here is play's (the settle too)
+			print("PSOWATCH cover lifted: canvas/mesh/surface/draw/spec %s" % totals_text(now))
 	if not live:
 		return
 	_frames += 1
