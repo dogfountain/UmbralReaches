@@ -43,7 +43,7 @@ const QUESTS := {
 		"outcome": {"": "Sixty-one marks and a line: STOOD, AT THE THIRD BELL, AND WENT HOME. Jory's mark was not among them. \"I cut on,\" he said. \"They put down their picks and I took the foreman's and cut the step. Nobody dismissed us. I did it alone.\" He set his mark at the foot of the roll, last. \"Late,\" he said. \"Still counts.\""}},
 	"landing_staves": {"name": "A Staff for Each", "giver": "agathe", "zone": "necropolis", "offer": true,
 		"where": "Sister Agathe, at the gate of the Waiting Field",
-		"text": "Agathe has told herself for nine winters that the pilgrims who left their staves at the Pilgrims' Landing were turned back at the bone bridge, and went home. The staves are still leaning there. She wants them carried up to the head of the ranks, and set in the ground, and counted. She cannot make the walk down the lane.",
+		"text": "Agathe has told herself for nine winters that the pilgrims who left their staves at the Pilgrims' Landing were turned back at the bridge, and went home. The staves are still leaning there. She wants them carried up to the head of the ranks, and set in the ground, and counted. She cannot make the walk down the lane.",
 		"steps": [
 			{"kind": "gather", "of": 3, "text": "Gather the pilgrims' staves from the south track, the lane's turn, and the Landing's rail ({n}/{of})"},
 			{"kind": "slay", "of": 4, "region": "necropolis", "label": "Risen at the Landing", "at": Vector2(-40.0, 140.0),

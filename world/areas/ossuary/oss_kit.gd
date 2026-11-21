@@ -23,8 +23,8 @@ const FIXED_LANES := [
 	["oss_bridge", [Vector3(-9.0, 12.6, -34), Vector3(19.6, 12.6, -34), Vector3(20.2, 12.6, -36.6), Vector3(23, 12.6, -36.6), Vector3(23, 12.6, -39.5)], 0.8],
 	["oss_stair1", [Vector3(23, 12.6, -39.5), Vector3(23, 8.4, -49.5), Vector3(23, 8.4, -52.5)], 1.0],
 	["oss_gallery", [Vector3(23, 8.4, -52.5), Vector3(20, 8.4, -58), Vector3(20, 8.4, -65.5), Vector3(21, 8.4, -67.5)], 0.8],
-	["oss_stair2", [Vector3(21, 8.4, -68.5), Vector3(21, 4.2, -78), Vector3(20.5, 4.2, -80), Vector3(17.5, 4.2, -84)], 0.9],
-	["oss_chapel", [Vector3(17.5, 4.2, -84), Vector3(16, 4.2, -95.5), Vector3(16, 4.2, -104)], 0.8],
+	["oss_stair2", [Vector3(21, 8.4, -68.5), Vector3(21, 4.2, -78), Vector3(21, 4.2, -81.5)], 0.9],
+	["oss_chapel", [Vector3(21, 4.2, -81.5), Vector3(22, 4.2, -88), Vector3(19, 4.2, -95), Vector3(16, 4.2, -97.5), Vector3(16, 4.2, -104)], 0.8],      # (round the charnel mound, which stands in the court's middle)
 ]
 var keep_lanes := true                  ## reject floor clutter on FIXED_LANES
 ## Test the Ossuary's own walkways (FIXED_LANES are its bridge, gate hall, gallery, pit stair and chapel):
@@ -66,7 +66,7 @@ static func mat(key: String) -> Material:
 		return _mats[key]
 	var m := StandardMaterial3D.new()
 	match key:
-		"stone":      _tri(m, "oss_ashlar", 0.32, Color(0.92, 0.9, 0.88))
+		"stone":      _blender_stone(m, 0.312)             # the abbey's own ashlar (oss_abbey.py's maps): one stone family from the tower to the tiers
 		"plaster":    _daub(m, 0.16, Color(0.84, 0.82, 0.78))        # lime daub, cracked and stained (oss_plaster's bare-brick holes read as leopard print on every facade)
 		"brick":      _tri(m, "oss_brick", 0.5, Color(0.95, 0.92, 0.9))
 		"ruin":       _tri(m, "oss_ruin", 0.4, Color(1.12, 1.1, 1.07))
@@ -77,7 +77,7 @@ static func mat(key: String) -> Material:
 		"slate":      _tri(m, "oss_slate", 0.45, Color(0.9, 0.9, 0.95))
 		# the world pass masonry scale tiers: a colossal work's courses are 2-3 times a house's, so its blocks read as the size they are
 		# (the world-triplanar texture scale is per metre: half the scale, twice the stone)
-		"stone_big":  _tri(m, "oss_ashlar", 0.14, Color(0.9, 0.9, 0.92))
+		"stone_big":  _blender_stone(m, 0.156)
 		"ruin_big":   _tri(m, "oss_ruin", 0.17, Color(1.08, 1.06, 1.04))
 		"brick_big":  _tri(m, "oss_brick", 0.22, Color(0.95, 0.92, 0.9))
 		"wood_big":   _tri(m, "tavern_wood", 0.24, Color(0.52, 0.47, 0.42))
@@ -121,6 +121,23 @@ static func mat(key: String) -> Material:
 			return sm
 	_mats[key] = m
 	return m
+
+
+## The Order's ashlar as the Blender kit bakes it (art/models/oss_abbey_Oss_Ashlar_*), world-triplanar like _tri: the tiers, the
+## bridge's piers and the Landing arch match the abbey's masonry (the old brown ashlar read salmon under candle light).
+static func _blender_stone(m: StandardMaterial3D, scale: float) -> void:
+	var base := "res://art/models/oss_abbey_Oss_Ashlar_"
+	m.albedo_texture = load(base + "albedo.png")
+	m.albedo_color = Color(0.78, 0.85, 0.95)         # cool: warm candle light on pale stone read salmon
+	m.normal_enabled = true
+	m.normal_texture = load(base + "normal.png")
+	m.roughness = 0.86
+	m.uv1_triplanar = true
+	m.uv1_world_triplanar = true
+	m.uv1_triplanar_sharpness = 4.0
+	m.uv1_scale = Vector3.ONE * scale
+	m.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
+	m.vertex_color_use_as_albedo = true
 
 
 ## The lime-daub plaster (art/textures r37_daub_*: albedo, normal and an ORM map), world-triplanar like _tri.
@@ -687,7 +704,8 @@ func append_mesh(key: String, mesh: ArrayMesh, xf: Transform3D) -> void:
 		var st := SurfaceTool.new()
 		st.begin(Mesh.PRIMITIVE_TRIANGLES)
 		_st[key] = st
-	(_st[key] as SurfaceTool).append_from(mesh, 0, xf)
+	for sf in mesh.get_surface_count():
+		(_st[key] as SurfaceTool).append_from(mesh, sf, xf)
 
 
 # --- prop meshes ----------------------------------------------------------------------------
@@ -892,7 +910,19 @@ func commit(parent: Node3D, body_name := "Body") -> int:
 				cells[key] = []
 			(cells[key] as Array).append(t)
 		for key: Vector2i in cells:
-			var mm := multimesh(mesh, cells[key], m, false, n.begins_with("Skulls") or n.begins_with("Bones"))
+			# a visibility range is measured to the node's ORIGIN: a cell's batch stands at its own centre, not at the area's origin
+			# (every skull, candle and bone more than 34/55 m from the Ossuary's origin was out of range: the pit court's mound and its
+			# candle ring, the far half of the gallery, the chapel)
+			var cen := Vector3.ZERO
+			for t: Transform3D in cells[key]:
+				cen += t.origin
+			cen /= float((cells[key] as Array).size())
+			var shifted: Array = []
+			for t: Transform3D in cells[key]:
+				shifted.append(Transform3D(t.basis, t.origin - cen))
+			var mm := multimesh(mesh, shifted, m, false, n.begins_with("Skulls") or n.begins_with("Bones"))
+			mm.position = cen
+			WorldLanes.own(mm)                     # placed on purpose: cull_scatter (end of the Realm's build) emptied every batch standing in the pit's or the landing's site: no skull, candle or bone ever drew there
 			mm.name = "%s_%d_%d" % [n, key.x, key.y]
 			mm.visibility_range_end = far
 			mm.visibility_range_end_margin = far * 0.12

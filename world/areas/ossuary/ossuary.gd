@@ -11,7 +11,7 @@ extends Area
 ## the field's rising south). Only what meets the world converts (OssFrame.w, OssWorld).
 ##
 ##   the Pilgrims' Landing (OssFrame.LANDING; world (-40, 147.5): the lane from south_track ends here)
-##     └ the bone bridge (21 m over the pool) ─ GATE HALL (y 12.6, brazier, bell tower)
+##     └ the Pilgrims' Bridge (21 m of stone arches over the pool) ─ GATE HALL (y 12.6, brazier, bell tower)
 ##         └ north stair ─ NICHE GALLERY (y 8.4, two aisles, skull niches; the bone portcullis)
 ##             └ north stair ─ CHARNEL PIT (y 4.2, round, cantilevered)
 ##                 └ CHAPEL (y 4.2): the sexton's slab ─ THE LOWER COUNT (oss_deep.gd): cells under
@@ -32,8 +32,9 @@ const PLINTH_A := 2.05          ## spitter plinths, off the entry (1.0 rad), lif
 const PLINTH_B := 5.55
 const OssDeep := preload("res://world/areas/ossuary/oss_deep.gd")
 const OssHall := preload("res://world/areas/ossuary/oss_hall.gd")   ## r34 crypt
+const OssAbbey := preload("res://world/areas/ossuary/oss_abbey.gd")   ## the church on the south bank (the skyline)
 const COUNT_DOOR_X := 29.2                      ## r34 crypt: the Counting Door's face (the stair shaft's west wall)
-const BRIDGE_X0 := -4.0                         ## the bone bridge: from the landing (x -4) to the gate hall's west wall (x 18)
+const BRIDGE_X0 := -4.0                         ## the Pilgrims' Bridge: from the landing (x -4) to the gate hall's west wall (x 18)
 
 var _rng := RandomNumberGenerator.new()
 var _draws := 0
@@ -98,6 +99,7 @@ func build() -> void:
 		await deep.call("build", self)
 	if Realm.module_on("bosses"):
 		_count_cut()                            # the Counting Door's walled cut (waits for the Realm's ground)
+		_abbey()                                # the Charnel Abbey on the south bank (waits for the same)
 	# the benchmark stands (world coordinates)
 	perf_points = [
 		{"name": "ossuary_bridge", "at": OssFrame.w(Vector3(-2.0, HALL_Y + 0.1, -34.0)), "yaw": OssFrame.wyaw(-PI * 0.5)},
@@ -119,19 +121,16 @@ func _physics_process(_d: float) -> void:
 
 # --- pieces ---------------------------------------------------------------------------------
 
-## A masonry pier from the lava up to `top`, with a stepped plinth and a corbel cap.
+## A masonry pier from the pool's bed up to `top`: the Order's pier (oss_abbey.py: a stepped footing, a battered shaft in
+## 4 m lengths, a corbel capital) under every floor, so the tiers read as carried on one structure. Collision is the old
+## three blocks (footing, shaft, cap).
 func _pier(k: OssKit, x: float, z: float, top: float, w := 1.6) -> void:
 	var mid_y := lerpf(LAVA_Y, top, 0.45)
 	var wl := w * 1.3
-	k.block("stone", Vector3(x - wl * 0.5, LAVA_Y, z - wl * 0.5), Vector3(x + wl * 0.5, mid_y, z + wl * 0.5))
-	k.block("stone", Vector3(x - w * 0.5, mid_y, z - w * 0.5), Vector3(x + w * 0.5, top - 0.6, z + w * 0.5))
-	# set-off where the pier narrows, string courses every ~4 m, corbel cap
-	k.box("stone", Vector3(x, mid_y + 0.1, z), Vector3(wl + 0.1, 0.35, wl + 0.1), Basis.IDENTITY, true, 0.8)
-	var y := mid_y + 4.0
-	while y < top - 2.0:
-		k.box("stone", Vector3(x, y, z), Vector3(w + 0.22, 0.22, w + 0.22), Basis.IDENTITY, false, 0.78)
-		y += 4.0
-	k.block("stone", Vector3(x - w * 0.7, top - 0.9, z - w * 0.7), Vector3(x + w * 0.7, top - 0.4, z + w * 0.7), true, 0.85)
+	k.collider(Vector3(x, (LAVA_Y + mid_y) * 0.5, z), Vector3(wl, mid_y - LAVA_Y, wl))
+	k.collider(Vector3(x, (mid_y + top - 0.6) * 0.5, z), Vector3(w, top - 0.6 - mid_y, w))
+	k.collider(Vector3(x, top - 0.65, z), Vector3(w * 1.4, 0.5, w * 1.4))
+	OssAbbey.pier(k, Vector3(x, LAVA_Y, z), top, w)
 
 
 ## Relieving arches between piers along a substructure face (x = const), under a floor at `fy`.
@@ -218,7 +217,7 @@ func _gable_roof(k: OssKit, lo: Vector3, hi: Vector3, eave: float, ridge: float,
 		# gable ends
 		for xe: float in [x0 + over, x1 - over]:
 			var n := Vector3.LEFT if xe < (x0 + x1) * 0.5 else Vector3.RIGHT
-			k.quad("plaster", Vector3(xe, eave, z0 + over), Vector3(xe, eave, z1 - over), Vector3(xe, ridge - 0.2, zm), Vector3(xe, ridge - 0.2, zm), n)
+			k.quad("stone", Vector3(xe, eave, z0 + over), Vector3(xe, eave, z1 - over), Vector3(xe, ridge - 0.2, zm), Vector3(xe, ridge - 0.2, zm), n)
 	else:
 		var xm := (x0 + x1) * 0.5
 		for side: float in [-1.0, 1.0]:
@@ -230,7 +229,7 @@ func _gable_roof(k: OssKit, lo: Vector3, hi: Vector3, eave: float, ridge: float,
 			k.quad("slate", Vector3(xe, eave - th, z0), Vector3(xe, eave - th, z1), Vector3(xm, ridge - th, z1), Vector3(xm, ridge - th, z0), -out)
 		for ze: float in [z0 + over, z1 - over]:
 			var n := Vector3.FORWARD if ze < (z0 + z1) * 0.5 else Vector3.BACK
-			k.quad("plaster", Vector3(x0 + over, eave, ze), Vector3(x1 - over, eave, ze), Vector3(xm, ridge - 0.2, ze), Vector3(xm, ridge - 0.2, ze), n)
+			k.quad("stone", Vector3(x0 + over, eave, ze), Vector3(x1 - over, eave, ze), Vector3(xm, ridge - 0.2, ze), Vector3(xm, ridge - 0.2, ze), n)
 
 
 func _stair_down(k: OssKit, lo: Vector3, hi: Vector3) -> void:
@@ -264,10 +263,10 @@ func _stair_down(k: OssKit, lo: Vector3, hi: Vector3) -> void:
 		var b := hi + side * (s * 1.85) + Vector3.UP * 1.45
 		k.box("iron", b + side * (s * 0.3) + Vector3.UP * 0.35, Vector3(0.05, 0.05, 0.6), Basis(side, Vector3.UP, dir), false)
 		k.box("iron", b + Vector3.UP * 0.1, Vector3(0.05, 0.6, 0.05), Basis.IDENTITY, false)
-		k.box("glow", b + side * (s * 0.3) + Vector3.UP * 0.1 + dir * 0.25, Vector3(0.18, 0.26, 0.18), Basis.IDENTITY, false, 0.6)
+		k.lantern(b + side * (s * 0.3) + Vector3.UP * 0.05 + dir * 0.25, Vector3(0.26, 0.4, 0.26))
 
 
-# --- bridge -------------------------------------------------------------------------------
+# --- the Lower Count's bone bridge plates and ribs (oss_deep.gd builds its span from them) ---------
 
 static var _plate: ArrayMesh
 static var _ribs: Array[ArrayMesh] = []
@@ -299,56 +298,39 @@ static func _rib_mesh(side: int) -> ArrayMesh:
 	return _ribs[0 if side < 0 else 1]
 
 
-## The great rib that once carried the missing span: rises from the lava, snapped off.
-static func _great_rib_mesh(top: float) -> ArrayMesh:
-	if _great_rib == null:
-		var cm := CreatureMesh.new(320)
-		var pts := PackedVector3Array()
-		var rad := PackedFloat32Array()
-		for i in 8:
-			var t := float(i) / 7.0
-			pts.append(Vector3(sin(t * 2.2) * 1.2, t * top, 0.0))
-			rad.append(lerpf(0.5, 0.22, t))
-		cm.tube(pts, rad, 9, Color.WHITE, 0.4, 0.08)
-		cm.blob(pts[7], Vector3(0.26, 0.18, 0.26), Basis.IDENTITY, Color(0.8, 0.75, 0.68), 0.3, 0.35, 0.0, 4, 7)   # splintered end
-		_great_rib = cm.commit()
-	return _great_rib
+# --- the Pilgrims' Bridge -----------------------------------------------------------------
 
-
+## The Pilgrims' Bridge (it replaced the bone bridge, Luke 21 Nov): four spans of pointed arches in the abbey's masonry from the
+## Landing to the gate hall's west door, a 4 m deck between stone parapets, the Order's piers meeting the pool's bed, a skull in
+## each arch's crown and a lamp on a newel at every pier. Modelled in Blender (oss_abbey.py OssBridgeSpan); the walk is the
+## same flat slab at the same height on the same axis as before (z -34, x -4 .. 18), so every route over it holds.
 func _bridge(k: OssKit) -> void:
 	var z := -34.0
 	var y := HALL_Y
-	# the bone bridge: from the Pilgrims' Landing (the quarry's lip) over the pool to the gate hall's west door
 	var x0 := BRIDGE_X0
 	var x1 := 18.0
 	var mid := (x0 + x1) * 0.5
-	# walking surface: one flat invisible slab under the plate crowns, plus low rail walls
-	k._ramp_faces(Vector3(mid, y - 0.25, z), Vector3(x1 - x0, 0.5, 3.0), Basis.IDENTITY)
+	k._ramp_faces(Vector3(mid, y - 0.25, z), Vector3(x1 - x0, 0.5, 3.2), Basis.IDENTITY)
 	for s: float in [-1.0, 1.0]:
-		k._ramp_faces(Vector3(mid, y + 0.55, z + s * 1.42), Vector3(x1 - x0, 1.1, 0.14), Basis.IDENTITY)
-	var n := int((x1 - x0) / 0.6)
-	for i in n:
-		var x := x0 + (float(i) + 0.5) * (x1 - x0) / float(n)
-		var tilt := Basis(Vector3.UP, _rng.randf_range(-0.04, 0.04))
-		k.append_mesh("bone_cm", _plate_mesh(), Transform3D(tilt, Vector3(x, y, z)))
-		for side: int in [-1, 1]:
-			var sc := _rng.randf_range(0.92, 1.12)
-			k.append_mesh("bone_cm", _rib_mesh(side), Transform3D(Basis(Vector3.RIGHT, _rng.randf_range(-0.05, 0.05)).scaled(Vector3(1, sc, 1)), Vector3(x, y, z + float(side) * 1.38)))
-			if i % 2 == 0:
-				k.skull(Vector3(x, y + 1.2 * sc + 0.01, z + float(side) * 1.33), float(side) * -PI * 0.5 + PI * 0.5 + _rng.randf_range(-0.3, 0.3), 0.95, 1)
-	# candles along the deck edges, inside the rails
-	for x: float in [x0 + 2.0, mid, x1 - 1.0]:
+		k._ramp_faces(Vector3(mid, y + 0.55, z + s * 1.7), Vector3(x1 - x0, 1.1, 0.3), Basis.IDENTITY)
+	var span := OssAbbey.part("OssBridgeSpan")
+	var piers: Array[float] = [0.5, 7.0, 13.5]
+	var edges: Array[float] = [x0, 0.5, 7.0, 13.5, x1]
+	var depth: float = OssAbbey.Data.BRIDGE.d
+	if span != null:
+		for i in 4:
+			var sx := (edges[i + 1] - edges[i]) / float(OssAbbey.Data.BRIDGE.l)
+			k.append_mesh("stone", span, Transform3D(Basis.from_scale(Vector3(sx, 1.0, 1.0)), Vector3((edges[i] + edges[i + 1]) * 0.5, y, z)))
+	for x: float in piers:
+		_pier(k, x, z, y - depth, 2.4)
 		for s: float in [-1.0, 1.0]:
-			k.candle_cluster(Vector3(x, y, z + s * 1.12), 4, 0.14, _rng)
-	# the great ribs that carried the span once, under it: they rise from the pool's bed, well below the deck
-	for s: float in [-1.0, 1.0]:
-		k.append_mesh("bone_cm", _great_rib_mesh(y - 6.0 - LAVA_Y), Transform3D(Basis(Vector3.UP, PI if s < 0.0 else 0.0), Vector3(10.5 - s * 1.6, LAVA_Y, z + s * 1.2)))
-	# three masonry piers carry it (a viaduct over the pool: the same stone as the tiers)
-	for x: float in [2.0, 8.5, 15.5]:
-		_pier(k, x, z, y - 0.75, 1.8)
+			k.box("stone", Vector3(x, y + 0.9, z + s * 2.15), Vector3(0.6, 1.8, 0.6), Basis.IDENTITY, true, 0.9)       # the newel
+			k.box("stone", Vector3(x, y + 1.85, z + s * 2.15), Vector3(0.8, 0.14, 0.8), Basis.IDENTITY, false, 0.95)
+			k.lantern(Vector3(x, y + 2.2, z + s * 2.15), Vector3(0.3, 0.46, 0.3))
+			k.candle_cluster(Vector3(x + 1.6, y + 1.27, z + s * 1.45), 3, 0.12, _rng)
 
 
-## The Pilgrims' Landing: the bone bridge's head on the quarry's lip, where the lane from south_track ends.
+## The Pilgrims' Landing: the bridge's head on the quarry's lip, where the lane from south_track ends.
 ## A paved apron and a gate of two stone pylons (a pointed arch of the Ossuary's stone, a skull over the
 ## keystone, candles), the first thing the lane shows: the way down is through it, over the bridge.
 func _landing(k: OssKit) -> void:
@@ -372,6 +354,9 @@ func _landing(k: OssKit) -> void:
 	for i in 7:
 		k.skull(Vector3(-6.15, y + 5.1, z - 1.2 + 0.4 * float(i)), -PI * 0.5 + _rng.randf_range(-0.12, 0.12), 1.0, 1)
 	k.candle_cluster(Vector3(-9.5, y, z), 12, 0.7, _rng)
+	# a lamp hung from the gate arch's crown: the first light of the descent, seen from the lane
+	k.box("iron", Vector3(-5.6, y + 5.5, z), Vector3(0.03, 1.5, 0.03), Basis.IDENTITY, false)
+	k.lantern(Vector3(-5.6, y + 4.4, z), Vector3(0.38, 0.56, 0.38))
 
 
 # --- gate hall ------------------------------------------------------------------------------
@@ -391,15 +376,15 @@ func _gate_hall(k: OssKit) -> void:
 	k.block("stone", Vector3(x0 - 0.3, y - 1.4, z0 - 0.3), Vector3(x1, y - 0.6, z1 + 0.3), true, 0.8)
 	# walls (outer faces): west faces the stair, so it carries the door and two tall lancets
 	var at_y := Vector3(0, y, 0)
-	_wall(k, "plaster", Vector3(x0, y, z1), Vector3(x0, y, z0), h, t, [
+	_wall(k, "stone", Vector3(x0, y, z1), Vector3(x0, y, z0), h, t, [
 		{"at": 4.0, "w": 2.0, "spring": 3.0, "sill": 1.6, "k": 1.1, "glow": true},
 		{"at": 10.0, "w": 3.0, "spring": 3.2},
 	])
-	_wall(k, "plaster", Vector3(x0, y, z0), Vector3(x1, y, z0), h, t, [
+	_wall(k, "stone", Vector3(x0, y, z0), Vector3(x1, y, z0), h, t, [
 		{"at": 5.0, "w": 3.0, "spring": 3.2},
 		{"at": 9.5, "w": 1.6, "spring": 3.4, "sill": 1.8, "k": 1.1, "glow": true},
 	])
-	_wall(k, "plaster", Vector3(x1, y, z1), Vector3(x0, y, z1), h, t, [
+	_wall(k, "stone", Vector3(x1, y, z1), Vector3(x0, y, z1), h, t, [
 		{"at": 3.5, "w": 1.8, "spring": 3.0, "sill": 1.6, "k": 1.1, "glow": true},
 		{"at": 8.5, "w": 1.8, "spring": 3.0, "sill": 1.6, "k": 1.1, "glow": true},
 	])
@@ -453,6 +438,9 @@ func _gate_hall(k: OssKit) -> void:
 	k.candle_cluster(Vector3(24.0, y, -25.3), 16, 0.8, _rng)
 	for zz: float in [-36.6, -25.4]:
 		k.candle_cluster(Vector3(28.8, y, zz), 9, 0.4, _rng)
+	# the way on: the north door (x 23) is the hall's one exit and carries the Order's lanterns
+	_way_lantern(k, Vector3(21.1, y + 3.6, z0 + 0.4), Vector3(0, 0, 1))
+	_way_lantern(k, Vector3(24.9, y + 3.6, z0 + 0.4), Vector3(0, 0, 1))
 
 
 # --- niche gallery --------------------------------------------------------------------------
@@ -490,8 +478,13 @@ func _gallery(k: OssKit) -> void:
 		high.append({"at": 1.1 + 1.95 * float(i), "w": 1.0, "spring": 1.2, "sill": 0.35, "niche": true, "k": 0.7})
 	_wall(k, "plaster", Vector3(x1, y + 3.4, z0), Vector3(x1, y + 3.4, z1), h - 3.4, t, high, Vector3.RIGHT)
 	# ends: south door from the stair, north door to the next stair
-	_wall(k, "plaster", Vector3(x0, y, z1), Vector3(x1, y, z1), h, t, [{"at": 5.5, "w": 3.0, "spring": 2.9}])
-	_wall(k, "plaster", Vector3(x0, y, z0), Vector3(x1, y, z0), h, t, [{"at": 3.5, "w": 3.0, "spring": 2.9}])
+	_wall(k, "stone", Vector3(x0, y, z1), Vector3(x1, y, z1), h, t, [{"at": 5.5, "w": 3.0, "spring": 2.9}])
+	_wall(k, "stone", Vector3(x0, y, z0), Vector3(x1, y, z0), h, t, [{"at": 3.5, "w": 3.0, "spring": 2.9}])
+	# the stair heads at both doors carry the way lanterns (the south door's pair lights the stair foot, the north door's the gallery)
+	_way_lantern(k, Vector3(21.1, y + 3.2, z1 + 0.35), Vector3(0, 0, 1))
+	_way_lantern(k, Vector3(24.9, y + 3.2, z1 + 0.35), Vector3(0, 0, 1))
+	_way_lantern(k, Vector3(19.2, y + 3.2, z0 + 0.35), Vector3(0, 0, 1))
+	_way_lantern(k, Vector3(22.8, y + 3.2, z0 + 0.35), Vector3(0, 0, 1))
 	# spine: piers down the middle with arches between, splitting two aisles
 	var xm := 22.25
 	for i in 5:
@@ -627,21 +620,24 @@ func _pit(k: OssKit) -> void:
 		var p := c + Vector3(cos(a), 0, sin(a)) * 7.8
 		k.block("stone", p + Vector3(-1.0, 0, -1.0), p + Vector3(1.0, 1.6, 1.0))
 		k.candle_cluster(p + Vector3(0, 1.6, 0), 6, 0.6, _rng)
-	# charnel mound: tiers of skulls facing outward, a long-bone crown, candles all round
-	for tier in 5:
-		var r := 1.15 - 0.22 * float(tier)
-		var cnt := maxi(3, int(TAU * r / 0.21))
-		for i in cnt:
-			var a := TAU * float(i) / float(cnt) + float(tier) * 0.3
-			k.skull(c + Vector3(cos(a) * r, 0.02 + 0.17 * float(tier), sin(a) * r), -a - PI * 0.5 + PI, 1.05, tier % 2, -0.15)
-	for i in 10:
-		var a := TAU * float(i) / 10.0
-		k.bone(c + Vector3(cos(a) * 0.14, 0.95, sin(a) * 0.14), Basis(Vector3.UP, -a) * Basis(Vector3.RIGHT, -1.2), 0, false)
-	for i in 14:
-		var a := TAU * float(i) / 14.0 + 0.1
-		k.candle_cluster(c + Vector3(cos(a), 0, sin(a)) * 1.75, _rng.randi_range(3, 6), 0.2, _rng)
+	# the charnel mound (the court's heart; it was a 2 m heap on a 22 m floor): a stepped drum of skulls 5 m across and 2 m
+	# high on a core of rock, a crown of upright long bones, a ring of candles. Solid: the court is walked round it.
+	OssAbbey.mound(self, k, c, _rng)           # Blender: oss_abbey.py OssMound*
+	k.collider(c + Vector3(0, 0.95, 0), Vector3(4.7, 1.9, 4.7))
+	k.collider(c + Vector3(0, 0.95, 0), Vector3(4.7, 1.9, 4.7), Basis(Vector3.UP, PI * 0.25))
+	for i in 16:
+		var a := TAU * float(i) / 16.0 + 0.1
+		k.candle_cluster(c + Vector3(cos(a), 0, sin(a)) * 3.3, _rng.randi_range(3, 6), 0.22, _rng)
 	# (the stair now lands on the widened pit floor itself: no separate landing slab)
 	_pier(k, 21.0, -79.0, PIT_Y - 0.6, 2.0)
+
+
+## The Order's way lantern: a caged lamp on an iron arm from the wall (`wall` the arm's root, `out` the way it reaches). Every
+## door on the descent carries a pair, so from any tier the next door is the lit thing in view.
+func _way_lantern(k: OssKit, wall: Vector3, out: Vector3) -> void:
+	k.box("iron", wall + out * 0.3, Vector3(0.05, 0.05, 0.6) if absf(out.z) > 0.5 else Vector3(0.6, 0.05, 0.05), Basis.IDENTITY, false)
+	k.box("iron", wall + out * 0.58 + Vector3.DOWN * 0.18, Vector3(0.025, 0.34, 0.025), Basis.IDENTITY, false)
+	k.lantern(wall + out * 0.58 + Vector3.DOWN * 0.58, Vector3(0.3, 0.46, 0.3))
 
 
 func _ang_to(p: Vector3) -> float:
@@ -667,8 +663,10 @@ func _chapel(k: OssKit) -> void:
 	k.block("floor", Vector3(hole.position.x, y - 0.6, hole.end.y), Vector3(hole.end.x, y, z1))
 	for p: Vector2 in [Vector2(x0, z0), Vector2(x1, z0), Vector2(x0, z1), Vector2(x1, z1)]:
 		_pier(k, p.x, p.y, y - 0.6, 2.0)
-	_wall(k, "plaster", Vector3(x0, y, z1), Vector3(x1, y, z1), h, t, [{"at": 4.0, "w": 2.4, "spring": 2.8}])
-	_wall(k, "plaster", Vector3(x1, y, z0), Vector3(x0, y, z0), h, t, [{"at": 4.0, "w": 1.4, "spring": 3.2, "sill": 1.8, "k": 1.2, "glow": true}])
+	_wall(k, "stone", Vector3(x0, y, z1), Vector3(x1, y, z1), h, t, [{"at": 4.0, "w": 2.4, "spring": 2.8}])
+	_way_lantern(k, Vector3(14.5, y + 3.2, z1 - 0.35), Vector3(0, 0, -1))
+	_way_lantern(k, Vector3(17.5, y + 3.2, z1 - 0.35), Vector3(0, 0, -1))
+	_wall(k, "stone", Vector3(x1, y, z0), Vector3(x0, y, z0), h, t, [{"at": 4.0, "w": 1.4, "spring": 3.2, "sill": 1.8, "k": 1.2, "glow": true}])
 	var side_n: Array = []
 	for i in 3:
 		side_n.append({"at": 1.6 + 2.4 * float(i), "w": 1.0, "spring": 1.6, "sill": 0.9, "niche": true, "k": 0.7})
@@ -829,7 +827,7 @@ func _counting_door(k: OssKit) -> void:
 		k.pinnacle("stone", Vector3(fx - 0.7, PIT_Y + 6.0, bz), 0.7, 0.9, 1.9)
 		var b := Vector3(fx - 0.55, PIT_Y + 2.4, dz + s * 1.45)
 		k.box("iron", b + Vector3(-0.25, 0.0, 0.0), Vector3(0.5, 0.05, 0.05), Basis.IDENTITY, false)
-		k.box("glow", b + Vector3(-0.5, -0.12, 0.0), Vector3(0.2, 0.28, 0.2), Basis.IDENTITY, false, 0.6)
+		k.lantern(b + Vector3(-0.5, -0.12, 0.0), Vector3(0.26, 0.38, 0.26))
 		k.candle_cluster(Vector3(fx - 1.2, PIT_Y, dz + s * 1.0), 5, 0.2, _rng)
 	k.pinnacle("slate", Vector3(fx - 0.25, top, dz), 1.2, 0.3, 2.6)
 	# a tally over the door: four strokes and the fifth across, over and over (the Abbot's count)
@@ -972,6 +970,19 @@ func _count_skirt(host: Node3D, space: PhysicsDirectSpaceState3D, wb: AABB, z0: 
 	if ran > 0.0 or hi.x + 0.6 > COUNT_DOOR_X + 5.0:
 		k.commit(host, "CountSkirtBody")
 	return ran
+
+
+## The Charnel Abbey (oss_abbey.gd) once the Realm's ground is in.
+func _abbey() -> void:
+	var root := _zone_root()
+	var t0 := Time.get_ticks_msec()
+	while is_inside_tree() and root and not root.has_meta("realm_done") and Time.get_ticks_msec() - t0 < 180000:
+		await get_tree().process_frame
+	if not is_inside_tree():
+		return
+	await get_tree().physics_frame
+	if is_inside_tree():
+		OssAbbey.build(self)
 
 
 ## r34 crypt: take the terrain triangles whose centres lie in `r` out of Zone/Terrain and its body.

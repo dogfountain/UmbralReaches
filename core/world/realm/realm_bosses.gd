@@ -34,7 +34,7 @@ const R34_FIRES := {
 	"MereFire": [Vector2(103.0, 98.0), Vector2(98.0, 96.0)],            # the mere's north bank, by mere_causeway
 	"CrossingFire": [Vector2(-5.0, -2.0) + Endgame.O2, Vector2(0.0, -2.0) + Endgame.O2],   # the Crossing's foot, by rift_rim (the far north-east: Endgame)
 	# --- south marches ---
-	"OakFire": [Vector2(-44.0, 196.4), Vector2(-52.0, 199.0)],          # beside downs_track (4 m south of its bend: at z 192 the track ran through the fire), in the Grandmother Oak's shade (the door looks this way)
+	"OakFire": [Vector2(-52.0, 199.0), Vector2(-58.0, 199.0)],          # beside downs_track (4 m south of its bend: at z 192 the track ran through the fire), in the Grandmother Oak's shade (the door looks this way); off the Charnel Abbey's tower (-44 was its foot)
 	"WellFire": [Vector2(44.0, 196.4), Vector2(52.0, 199.0)],           # beside downs_track (4 m south of its bend), on the way to the Well's rim and the descent gate
 	# --- west marches ---
 	"WeirfordFire": [Vector2(-196.0, 74.0), Vector2(-199.0, 77.0)],     # the town square, east of the bridge
@@ -191,3 +191,5 @@ static func _ossuary_sites() -> void:
 	var y := RealmLayout.OSSUARY_GATE.y
 	WorldLanes.register_site("oss_pit", pit, y, y)
 	WorldLanes.register_site("oss_landing", OssFrame.wrect(Rect2(-17.5, -40.0, 14.5, 12.0)), y, y)      # with the steps up from the lane
+	for ab: Dictionary in preload("res://world/areas/ossuary/oss_abbey.gd").site_rects():        # the abbey on the south bank: its ground is cut to it, nothing else is placed there
+		WorldLanes.register_site(String(ab.name), ab.rect, float(ab.floor_y), float(ab.cut_y))

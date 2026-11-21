@@ -774,4 +774,5 @@ def main():
         L.preview(os.path.join(PREVIEW, "niche.png"), objs, look_at=(0, 1.4, 0), dist=5.5, views=((165, 0.1),), res=(1000, 800), lens=35)
 
 
-main()
+if __name__ == "__main__":
+    main()

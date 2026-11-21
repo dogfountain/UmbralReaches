@@ -94,7 +94,7 @@ const _CONV := {
 				["boss:thornwarden,boss:bone_abbot,!qd:founders_peal", "A bell answered. Good. Tell Brannoc the door will hear it; he's been waiting to be told. Then the ward on the Crossing will take you."],
 				["boss:thornwarden,boss:bone_abbot,!seal:summit", "Across the Crossing. There's a ward at the landing with guards that don't sleep. Clear them and it'll let heart and crown through. It was cut to let nobody else."],
 				["boss:thornwarden,boss:bone_abbot", "Up. Whatever's at the top is halfway into the sky and stuck there. Make it let go of the door."],
-				["boss:thornwarden", "The crown, then. South on the Waiting Field's road, past the tomb, to the bone bridge, and over it into the gallery. Mind the bones that stand up."],
+				["boss:thornwarden", "The crown, then. South on the Waiting Field's road, past the tomb, to the bridge, and over it into the gallery. Mind the bones that stand up."],
 				["boss:bone_abbot", "The heart, then. West road, past the glade, up the hill to the Ring. The thorn seal first."],
 				["seal:henge", "Into the Ring. Cut out the heart. Don't let it sing to you."],
 				["seal:oss_gallery", "Down to the charnel floor. The Abbot's on his mound. When he falls, something rises; bring it out."],
@@ -346,7 +346,7 @@ const _CONV := {
 			"oss": {"say_if": [
 				["boss:bone_abbot", "Nobody's counting down there now. You saw to that. I don't go. Neither should you."],
 				["seal:oss_gallery", "You've been. Then you've seen him counting. Finish it."],
-				["", "South, down the Waiting Field's road and along the brow, past the tomb. A bone bridge crosses the quarry to the gate hall; the gallery beyond it is sealed, and the dead in it want counting."],
+				["", "South, down the Waiting Field's road and along the brow, past the tomb. A stone bridge crosses the quarry to the gate hall; the gallery beyond it is sealed, and the dead in it want counting."],
 			], "next": "hub"},
 			"after": {"say": "The Abbot's down? Then nobody's counting them anymore. Good. Let them lose count. Let Father lose count.", "do": "flag:harrow_after", "next": "hub"},
 		},

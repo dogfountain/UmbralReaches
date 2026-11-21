@@ -480,9 +480,9 @@ const _QUESTS := {
 		"outcome": {"": "Agathe unpicked every knot, and named nobody. Some things you only undo."}},
 	"abbot_names": {"name": "Called by Name", "giver": "agathe", "where": "Sister Agathe, at the gate of the Waiting Field", "zone": "necropolis",
 		"offer": true, "avail": "qd:abbot_cords", "raid": "bone_abbot",
-		"text": "Take the roll down to the Ossuary's bone bridge, under the Waiting Field, and read it, all of it, into the dark. If the Abbot still counts, he goes to his count and finds it short, and a counter who comes up short begins to doubt. If he doesn't, the dead will have been read to, which is what a name is for.",
+		"text": "Take the roll down to the Ossuary's bridge, under the Waiting Field, and read it, all of it, into the dark. If the Abbot still counts, he goes to his count and finds it short, and a counter who comes up short begins to doubt. If he doesn't, the dead will have been read to, which is what a name is for.",
 		"steps": [
-			{"kind": "visit", "at": Vector2(-40.0, 146.0), "r": 10.0, "label": "The Ossuary's bone bridge", "text": "Read the pilgrims' roll aloud at the Ossuary's bone bridge"},
+			{"kind": "visit", "at": Vector2(-40.0, 146.0), "r": 10.0, "label": "The Ossuary's bridge", "text": "Read the pilgrims' roll aloud at the Ossuary's bridge"},
 			{"kind": "turnin", "who": "agathe", "text": "Tell Sister Agathe the names were read"},
 		],
 		"reward": {"ash": 25},

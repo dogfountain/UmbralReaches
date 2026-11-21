@@ -25,7 +25,7 @@ const WHERE := {
 	"doors": "The thorn seal west, up the Thornwood's hill, or the gallery seal south, down the Waiting Field's road.",
 	"thorn_seal": "West, past the glade, up the hill in the Thornwood.",
 	"thornwarden": "The Ring, on the Thornwood's hill.",
-	"oss_seal": "South, down the Waiting Field's road, past the tomb, over the bone bridge.",
+	"oss_seal": "South, down the Waiting Field's road, past the tomb, over the bridge.",
 	"bone_abbot": "The Abbot's hall, at the bottom of the Ossuary.",
 	"peal": "Brannoc drinks at the Kindled Keg.",
 }
@@ -58,7 +58,7 @@ const BARKS := {
 	],
 	"oss_seal": [
 		"The gallery's under the Waiting Field. Follow the coffin stones down the Lych Way.",
-		"South, down the Waiting Field's road. The bone bridge, then the gate.",
+		"South, down the Waiting Field's road. The bridge, then the gate.",
 	],
 	"bone_abbot": [
 		"The Abbot's at the bottom of the pit, counting. Don't answer him.",
@@ -77,7 +77,7 @@ const ANSWER := {
 	"doors": "Two doors. The thorn seal west, up the Thornwood's hill, or the gallery seal south, down the Waiting Field's road. Either. Both, in the end.",
 	"thorn_seal": "West, past the Glimmer Glade, up the hill in the Thornwood. The seal is in the hedge's mouth.",
 	"thornwarden": "The Ring on the western hill. The Thornwarden's in it, and the heart's in him.",
-	"oss_seal": "South, down the Waiting Field's road and along the brow, past the tomb. A bone bridge crosses the quarry to the gate.",
+	"oss_seal": "South, down the Waiting Field's road and along the brow, past the tomb. A stone bridge crosses the quarry to the gate.",
 	"bone_abbot": "The bottom of the Ossuary. The Abbot's hall. Take his crown and don't let him count you.",
 	"peal": "Back to the Keg. Brannoc knows what the door wants now.",
 }

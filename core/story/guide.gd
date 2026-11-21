@@ -258,7 +258,7 @@ func _seal_pos(sid: String) -> Vector3:
 	return _oss_way_in()
 
 
-## The Ossuary is a pit: from outside it the mark is its way in (the Pilgrims' Landing, where the bone bridge starts),
+## The Ossuary is a pit: from outside it the mark is its way in (the Pilgrims' Landing, where the stone bridge starts),
 ## not a seal or a hall under the ground.
 func _outside_ossuary() -> bool:
 	var p := _player()

@@ -7,7 +7,7 @@ extends RefCounted
 ##                      Count, then a hollow way walled with niches of skulls and grave candles (z 96..124)
 ##   the lych gate      on oss_lane past south_track, its bell in the gable (it tolls when anyone passes under)
 ##   the Bearers' Yard  the Lantern of the Dead on a stepped base over its terrace, the bearers' table at its foot,
-##                      heaps of the uncounted; the Pilgrims' Landing and the bone bridge beyond
+##                      heaps of the uncounted; the Pilgrims' Landing and the stone bridge beyond
 ##   the Sorting Ground on the pit's west rim: slabs, bones heaped by kind, the sorters' slate
 ## The Lantern burns cold (the Abbot's count-light: its own flame, a cold light, a beacon on the compass and the
 ## horizon) until the Bone Abbot falls; then it goes dark. Hero meshes: tools/blender/oss_ground.py
@@ -23,6 +23,7 @@ const Data := preload("res://core/world/realm/oss_ground_data.gd")
 const SKit := preload("res://core/life/secrets/kit.gd")
 const GLB := "res://art/models/oss_ground.glb"
 const Beacon := preload("res://core/world/realm/landmark_beacon.gd")
+const Abbey := preload("res://world/areas/ossuary/oss_abbey.gd")
 
 const LANTERN_C := Vector2(-53.0, 142.5)        ## the Lantern of the Dead (RealmLayout.SLOTS "ossuary")
 const SORT_C := Vector2(-72.0, 161.0)           ## the sorting ground on the pit's west rim (its flattest ground)
@@ -52,6 +53,12 @@ static func reserve(root: Node) -> void:
 	if off():
 		return
 	var space := (root as Node3D).get_world_3d().direct_space_state
+	# the Charnel Abbey stands on the pit's south bank (oss_abbey.gd): the trees keep off it, from the tower to the gable
+	var fp := Abbey.footprint(0.0)
+	var az := fp.position.y
+	while az <= fp.end.y + 4.0:
+		Flora.tree_clear.append([OssFrame.w2(Vector2(fp.position.x + fp.size.x * 0.5, az)), 11.0])
+		az += 8.0
 	# the Lantern: a level round terrace at the slope's middle (cut and filled), trees kept off the yard
 	var ly := _ground_med(space, LANTERN_C, 2.4)
 	WorldLanes.register_terrace("poi_oss_lantern", LANTERN_C, 3.2 * LS + 0.5, ly)
