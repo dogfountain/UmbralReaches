@@ -38,6 +38,8 @@ extends Node
 ##                                   exactly: old priority first, then tree order) and a stamp runs between subtrees
 ##                                   --probe-ms=N: name the subtrees of every frame whose scripts run over N ms (default 8)
 ##   --loading                       run the real loading screen (build + shader warm-up) first
+##   --moments / --psolog / --clean-quit   play moments (zz/perf_moments.gd); name each in-play compile (zz/pso_watch.gd);
+##                                   quit like a player at the end (the engine saves its pipeline cache), not a kill
 ##   --early                         start measuring the moment the Realm is built (no 6 s settle):
 ##                                   shows what a player meets right after the load
 ## Frame time is the real frame delta (vsync off). "scripts" = every _process and _physics_process
@@ -1539,6 +1541,9 @@ func _finish() -> void:
 		Performance.get_monitor(Performance.OBJECT_NODE_COUNT),
 		Performance.get_monitor(Performance.MEMORY_STATIC) / 1048576.0,
 		Performance.get_monitor(Performance.RENDER_VIDEO_MEM_USED) / 1048576.0])
+	if "--clean-quit" in OS.get_cmdline_user_args():
+		get_tree().quit()                    # a player's quit: the engine writes its pipeline cache on the way out
+		return
 	OS.kill(OS.get_process_id())
 
 

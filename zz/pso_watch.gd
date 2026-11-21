@@ -32,6 +32,7 @@ var _by_where := {}                       ## where -> [compiles, slow compile fr
 # --psolog
 var _node_seen := {}                      ## instance object id -> kind (0 geometry keyed, 1 omni, 2 spot, 3 other)
 var _key_seen := {}
+var _fading := {}                         ## id -> [node, keys] of fade-self nodes (their blended draws while fading)
 var _fresh: Array = []                    ## [frame, key, what] seen for the first time in the last two frames
 var _dir_n := 0
 var _dir_t := 0.0
@@ -62,6 +63,23 @@ func go_live() -> void:
 	live = true
 	_at_live = _counts()
 	print("PSOWATCH live: canvas/mesh/surface/draw/spec %s%s" % [totals_text(_at_live), " (suspects on)" if suspects else ""])
+	if suspects:
+		_census()
+
+
+## Every geometry node in the tree and its pipeline keys: how many distinct ones the world holds, by node class.
+func _census() -> void:
+	var t0 := Time.get_ticks_msec()
+	var keys := {}
+	var by := {}
+	var n := 0
+	for o in get_tree().root.find_children("*", "GeometryInstance3D", true, false):
+		n += 1
+		for e: Array in _keys(o as GeometryInstance3D):
+			if not keys.has(e[0]):
+				keys[e[0]] = true
+				by[o.get_class()] = int(by.get(o.get_class(), 0)) + 1
+	print("PSOKEYS %d geometry nodes, %d distinct keys %s (%d ms)" % [n, keys.size(), str(by), Time.get_ticks_msec() - t0])
 
 
 func _process(d: float) -> void:
@@ -139,6 +157,8 @@ func _scan(compiled: bool) -> void:
 	for id in ids:
 		if not _node_seen.has(id):
 			_look(id, cam, f, "")
+		elif _fading.has(id):
+			_fade_band(id, cam, f)
 	for id in near:
 		if not _node_seen.has(id):
 			_look(id, cam, f, " near")
@@ -169,10 +189,34 @@ func _look(id: int, cam: Camera3D, f: int, tag: String) -> void:
 	if not _drawn(g, cam):
 		return                                       # not drawn yet (hidden, out of its range): looked at again later
 	_node_seen[id] = 0
-	for e: Array in _keys(g):
+	var ks := _keys(g)
+	if g.visibility_range_fade_mode == GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF and (g.visibility_range_end > 0.0 or g.visibility_range_begin > 0.0):
+		_fading[id] = [g, ks]                        # drawn in the alpha pass while it crosses its fade band
+	for e: Array in ks:
 		if not _key_seen.has(e[0]):
 			_key_seen[e[0]] = true
 			_fresh.append([f, e[0], String(e[1]) + tag])
+
+
+## A fade-self node inside its fade band is drawn blended: its keys again, "|fade".
+func _fade_band(id: int, cam: Camera3D, f: int) -> void:
+	var e: Array = _fading[id]
+	if not is_instance_valid(e[0]):
+		_fading.erase(id)
+		return
+	var g := e[0] as GeometryInstance3D
+	if not g.is_visible_in_tree():
+		return
+	var dist := cam.global_position.distance_to(g.global_position)
+	var inb := (g.visibility_range_end > 0.0 and absf(dist - g.visibility_range_end) < g.visibility_range_end_margin) \
+		or (g.visibility_range_begin > 0.0 and absf(dist - g.visibility_range_begin) < g.visibility_range_begin_margin)
+	if not inb:
+		return
+	for k: Array in e[1]:
+		var fk := String(k[0]) + "|fade"
+		if not _key_seen.has(fk):
+			_key_seen[fk] = true
+			_fresh.append([f, fk, "fading " + String(k[1])])
 
 
 static func _drawn(g: GeometryInstance3D, cam: Camera3D) -> bool:
