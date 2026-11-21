@@ -21,19 +21,19 @@ const HeatHaze := preload("res://core/world/realm/rift/heat_haze.gd")
 const Scorch := preload("res://core/world/realm/rift/scorch.gd")
 
 ## The lava's cooling (lava.gdshader): a molten lake north of HOT_Z (from the Foot on, round the isles, under the crag and the summit),
-## crusted black with thin seams south of COOL_Z (the village end, about the rift's first quarter).
-const HOT_Z := -30.0
-const COOL_Z := -16.0
+## crusted black with thin seams south of COOL_Z (the village end, under the Lip: the crust had covered the lake's whole south third).
+const HOT_Z := -22.0
+const COOL_Z := -13.0
 
 ## Falls poured from the rim walls: [z, side (-1 west wall, +1 east wall)]. LavaWorks finds each lip on the real rock along that z. The
 ## two off the east wall by the summit are the rift's source; the west ones pour behind the Ward Crag.
 const FALLS := [[-70.0, 1.0], [-82.0, -1.0], [-88.0, 1.0], [-104.0, -1.0]]
 ## Where the lava wells up boiling out of the lake's floor (rift coordinates, on the lava): a churn and spits, no new light. The lavafall's
 ## foot (from the way's layout) churns too.
-const BOILS := [Vector3(18.0, -15.5, -78.0), Vector3(22.5, -15.5, -58.0), Vector3(-12.0, -15.5, -45.0)]
-## The lava's four glow lights (made by the zone, unshadowed): at the lavafall's foot, in the cleft before the falling sheet, over the
-## lava north of the crag and over the lake under the causeway. [rift point, strength] (LavaWorks)
-const GLOWS := [[Vector3(17.0, -10.5, -45.8), 1.15], [Vector3(17.5, 5.0, -52.5), 0.55], [Vector3(12.0, -12.0, -80.0), 1.0], [Vector3(-2.0, -12.0, -36.0), 0.8]]
+const BOILS := [Vector3(18.0, -15.5, -78.0), Vector3(26.0, -15.5, -58.0), Vector3(-12.0, -15.5, -45.0), Vector3(25.0, -15.5, -30.0)]
+## The lava's four glow lights (made by the zone, unshadowed): at the lavafall's splash pool, in the cleft before the falling sheet, and
+## over the lake's east and west halves either side of the causeway. [rift point, strength] (LavaWorks)
+const GLOWS := [[Vector3(18.0, -10.0, -44.6), 1.5], [Vector3(18.0, 5.0, -52.0), 0.6], [Vector3(22.0, -11.5, -30.0), 1.0], [Vector3(-2.0, -12.0, -36.0), 0.8]]
 
 
 static func build(root: Node) -> void:
