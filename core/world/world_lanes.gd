@@ -291,6 +291,7 @@ static func cull_scatter(root: Node, margin := 0.35) -> int:
 			continue
 		var out := PackedFloat32Array()
 		var kept := 0
+		var first_cut := -1
 		for i in n:
 			var p2 := pos[i]
 			var cx := clampi(int(floorf((p2.x - g0.x) / cell)), 0, gw - 1)
@@ -299,9 +300,16 @@ static func cull_scatter(root: Node, margin := 0.35) -> int:
 			if cand == null or not _hits(cand as Array, segs, p2, reach[i]):
 				out.append_array(buf.slice(i * stride, i * stride + stride))
 				kept += 1
+			elif first_cut < 0:
+				first_cut = i
 		if kept == n:
 			continue
 		removed += n - kept
+		var cp := String(root.get_path_to(mmi))
+		if not cp.contains("RealmFlora/") and not cp.begins_with("Wildlife"):
+			# what a site's own batch lost (a batch it placed itself must be marked own()): one line per batch, the first site that took an instance
+			var st0 := site_at(pos[first_cut], 1.0)
+			print("CULL_SCATTER %d of %d from %s (site %s)" % [n - kept, n, cp, String(st0.get("name", "a lane"))])
 		mm.instance_count = 0
 		mm.instance_count = kept
 		if kept > 0:
