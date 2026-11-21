@@ -20,7 +20,7 @@ const WATCHERS := [Vector3(-2.0, LAVA, -43.2), Vector3(15.0, LAVA, -23.5)]
 const TURN := [0.22, -0.1]             ## each one's turn off facing the village (the east one less: its plinth's corner keeps off the wall)
 const PLINTH_TOP := 1.3                ## rift_rocks.py: the plinth's flat top over the lava
 const SEAT := 0.18                     ## the pillar's foot sunk this far into the basalt: no daylight under a tread where the top is rough
-const WATCHER_R := 7.4                 ## the plinth's reach
+const WATCHER_R := 6.2                 ## the plinth's reach
 
 var k: OssKit
 var space: PhysicsDirectSpaceState3D
@@ -100,7 +100,7 @@ func _watchers(host: Node3D) -> void:
 			continue
 		m.name = "Watcher" + tag
 		# the plinth's footprint is a site: the flora and the dress keep off it
-		WorldLanes.register_site("watcher_%s" % tag.to_lower(), Rect2(w.x - 6.6, w.z - 6.6, 13.2, 13.2), w.y + PLINTH_TOP)
+		WorldLanes.register_site("watcher_%s" % tag.to_lower(), Rect2(w.x - 5.2, w.z - 5.2, 10.4, 10.4), w.y + PLINTH_TOP)
 		_dress_watcher(m)
 		var core := m.find_child("Pillar_core*", true, false) as MeshInstance3D
 		var oc := Vector3(0.0, 27.0, 0.0)

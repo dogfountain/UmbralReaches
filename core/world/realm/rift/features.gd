@@ -173,7 +173,7 @@ const ISLE_GAP := 15.0
 
 func _lava_rock() -> void:
 	var n := {"Plate": 0, "Isle": 0, "Stack": 0}
-	var want := [["Plate", 3, 6, Rect2(-17.0, -26.0, 36.0, 14.0)], ["Isle", 3, 6, Rect2(-20.0, -100.0, 46.0, 70.0)],
+	var want := [["Plate", 3, 3, Rect2(-17.0, -26.0, 36.0, 14.0)], ["Isle", 3, 4, Rect2(-20.0, -100.0, 46.0, 70.0)],
 			["Stack", 3, 3, Rect2(11.0, -106.0, 13.0, 34.0)]]
 	for w: Array in want:
 		var kind: String = w[0]
@@ -214,7 +214,7 @@ func _open_lava(p: Vector2, r: float, top_y: float) -> bool:
 	if CHAPEL.grow(1.0).has_point(p):
 		return false
 	for w: Vector3 in watchers:
-		if p.distance_to(Vector2(w.x, w.z)) < 8.0 + r:
+		if p.distance_to(Vector2(w.x, w.z)) < 6.8 + r:
 			return false
 	var oss := AABB(Endgame.l(RealmLayout.OSSUARY_OLD.position), RealmLayout.OSSUARY_OLD.size)
 	if p.x > 18.0 and p.y > oss.position.z and p.y < oss.end.z and top_y > oss.position.y - 1.0:
@@ -255,7 +255,7 @@ func _dress(host: Node3D) -> void:
 		if CHAPEL.has_point(p):
 			return
 		for w: Vector3 in watchers:
-			if p.distance_to(Vector2(w.x, w.z)) < 5.6:
+			if p.distance_to(Vector2(w.x, w.z)) < 4.6:
 				return                                   # (on the plinth's top: the pillar stands there)
 		var b := Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3(s, s * rng.randf_range(0.8, 1.15), s))
 		(xfs[key] as Array).append(Transform3D(b, Vector3(p.x, LAVA - rng.randf_range(0.05, 0.35) * s, p.y)))
@@ -273,7 +273,7 @@ func _dress(host: Node3D) -> void:
 	for q: Vector3 in _ringed:
 		rings.append([Vector2(q.x, q.y), q.z * 0.85])
 	for w: Vector3 in watchers:
-		rings.append([Vector2(w.x, w.z), 7.4])
+		rings.append([Vector2(w.x, w.z), 6.2])
 	for c: Array in [[Vector2(4.0, -28.6), 4.4], [Vector2(9.6, -37.2), 5.6], [Vector2(-6.5, -24.3), 5.2]]:
 		rings.append(c)
 	for c: Array in rings:
@@ -283,9 +283,10 @@ func _dress(host: Node3D) -> void:
 		for i in m:
 			var a := TAU * (float(i) + rng.randf_range(-0.3, 0.3)) / float(m)
 			put.call(ctr + Vector2(cos(a), sin(a)) * (rr + rng.randf_range(-0.5, 0.5)), pick.call(0.15), rng.randf_range(0.6, 1.2))
-	var x := -23.0                                # the crag's foot, along the pool's north side
-	while x < 11.0:
-		put.call(Vector2(x, rng.randf_range(-46.6, -48.4)), pick.call(0.05), rng.randf_range(0.8, 1.6))
+	var x := -23.0                                # the crag's foot, along the pool's north side (the west body stands 2.4 m further back)
+	while x < 15.0:
+		var zf := -50.7 if x < -5.0 else -48.3
+		put.call(Vector2(x, rng.randf_range(zf + 0.2, zf + 1.9)), pick.call(0.05), rng.randf_range(0.8, 1.6))
 		x += rng.randf_range(1.4, 2.6)
 	# heaved crust slabs and spatter over the crusted south
 	for i in 34:
@@ -476,7 +477,7 @@ func _vents(host: Node3D) -> void:
 	for i in vents.size():
 		if i % 2 == 0:
 			spots.append(vents[i])
-	for p: Vector2 in [Vector2(14.0, -50.0), Vector2(18.0, -66.0), Vector2(16.0, -82.0), Vector2(-12.0, -44.0)]:
+	for p: Vector2 in [Vector2(19.0, -46.0), Vector2(22.5, -66.0), Vector2(16.0, -82.0), Vector2(-12.0, -44.0)]:
 		spots.append(Vector3(p.x, LAVA + 0.1, p.y))
 	for p in spots:
 		var smoke := Vfx.emitter(Color(0.16, 0.13, 0.13, 0.35), {"count": 14, "life": 7.0, "speed": Vector2(0.6, 1.3), "size": 2.4, "gravity": 0.25, "radius": 0.5, "spread": 12.0, "additive": false, "turbulence": true, "damping": 0.2, "grow": 0.5})

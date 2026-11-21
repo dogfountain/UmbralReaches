@@ -242,8 +242,9 @@ func _map_banks_run() -> void:
 		for i in w:
 			var x := _origin.x + (float(i) + 0.5) * CELL
 			var z := _origin.y + (float(j) + 0.5) * CELL
-			q.from = Vector3(x, _y + 1.2, z)
-			q.to = Vector3(x, _y - 0.02, z)      # rock at or above the surface: the real shoreline
+			q.from = Vector3(x, _y + 6.0, z)
+			q.to = Vector3(x, _y - 0.02, z)      # rock at or above the surface: the real shoreline (from 6 m up: a ray that
+			                                     # starts inside a thick rock's trimesh crosses no face and found no bank)
 			solid[j * w + i] = 1 if not space.intersect_ray(q).is_empty() else 0
 	if solid == _last_solid:
 		# the re-map for streamed pieces (the Ossuary's piers) usually finds the same shore

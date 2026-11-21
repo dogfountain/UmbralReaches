@@ -7,7 +7,7 @@ extends RefCounted
 ## From scratch (21 Nov; rift_from_scratch.md in the docs' round-39 folder): one element, lava, born in the north (the falls off the east wall under the
 ## summit), molten down the east channel and in the pool under the Ward Crag, crusting over towards the village end.
 ##   rift/crossing.gd   the Cinder Way, modelled (tools/blender/rift_kit.py): the Lip, the Descent, the Foot, the causeway and its
-##                      bridges, the Cinder Isle, the Ward Stair up the crag, the ward landing
+##                      bridges, the Cinder Isle, the Ward Stair wound up inside the crag, the ward landing
 ##   rift/threshold.gd  the Watchers on their basalt plinths, the Pilgrims' Chapel at the Foot
 ##   rift/features.gd   the modelled basalt (shores, crust plates, islands, stacks); the rim's ash, fissures and vents
 ##   lava_works.gd      the lava itself: surface, its cooling, bank mask, embers, falls (told where by this module)
@@ -30,10 +30,10 @@ const COOL_Z := -16.0
 const FALLS := [[-70.0, 1.0], [-82.0, -1.0], [-88.0, 1.0], [-104.0, -1.0]]
 ## Where the lava wells up boiling out of the lake's floor (rift coordinates, on the lava): a churn and spits, no new light. The lavafall's
 ## foot (from the way's layout) churns too.
-const BOILS := [Vector3(18.0, -15.5, -78.0), Vector3(17.0, -15.5, -60.0), Vector3(-12.0, -15.5, -45.0)]
-## The lava's four glow lights (made by the zone, unshadowed): at the lavafall's foot, on the crag's face beside the fall, down the channel
-## and over the lake under the causeway. [rift point, strength] (LavaWorks)
-const GLOWS := [[Vector3(14.5, -10.5, -47.5), 1.15], [Vector3(16.0, 5.0, -54.0), 0.55], [Vector3(17.0, -12.0, -76.0), 1.0], [Vector3(-2.0, -12.0, -36.0), 0.8]]
+const BOILS := [Vector3(18.0, -15.5, -78.0), Vector3(22.5, -15.5, -58.0), Vector3(-12.0, -15.5, -45.0)]
+## The lava's four glow lights (made by the zone, unshadowed): at the lavafall's foot, in the cleft before the falling sheet, over the
+## lava north of the crag and over the lake under the causeway. [rift point, strength] (LavaWorks)
+const GLOWS := [[Vector3(17.0, -10.5, -45.8), 1.15], [Vector3(17.5, 5.0, -52.5), 0.55], [Vector3(12.0, -12.0, -80.0), 1.0], [Vector3(-2.0, -12.0, -36.0), 0.8]]
 
 
 static func build(root: Node) -> void:

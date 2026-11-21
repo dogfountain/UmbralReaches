@@ -4,7 +4,8 @@ extends RefCounted
 ## (RealmLayout.SUMMIT_WARD), low over the lava and then one climb. The plan is rift_from_scratch.md in the docs' round-39 folder:
 ##   the Lip (the rim terrace, 0.6) -> the Descent, three flights on a basalt ledge against the south-west corner -> the Foot (-12.4; the
 ##   chapel branch leaves it) -> the causeway on basalt islands across the cooling crust, two low bridges, the Cinder Isle -> the Ward
-##   Stair, four traverses cut into the Ward Crag's south face with switchback landings -> the Ward Landing (25.2).
+##   Stair, wound up inside the Ward Crag (a door in its south face, a round shaft, 114 steps two and a half turns round an open well,
+##   three windows out through the face) -> the Ward Landing on the crag's top (25.2).
 ## Modelled in Blender: tools/blender/rift_kit.py (+ rift_lib.py) -> art/models/rift_way.glb (one mesh per section and set, a `-colonly`
 ## body each, in the rift's own coordinates) and art/models/rift_way_layout.json (lanes, flights, sites, fires, the lavafall's source).
 ## Materials are the Realm's own: the masonry in WestKit's "stone" (Hearthward's gate and cottages) and "hewn" (the modelled masonry and
@@ -24,7 +25,7 @@ var lane_chapel: Array[Vector2] = []                 ## the branch from the Foot
 var legs: Array[String] = []                         ## printed summary
 var fires: Array = []                                ## [{p, lit, big, tag}]
 var sources: Array = []                              ## [[top, out]] the lavafalls out of the crag (rift coordinates)
-var points := {}                                     ## named spots (rift coordinates): lip, foot, camp, s1..s3, ward
+var points := {}                                     ## named spots (rift coordinates): lip, foot, camp, f, door, well, ward
 var layout: Dictionary = {}
 var node: Node3D
 
