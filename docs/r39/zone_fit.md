@@ -87,3 +87,5 @@ A 0.4 m box swept along every built flight's centreline: no lamp or post stands 
 - Witch's Cellar flank (and every other open stair of the halls and caves): a stone kerb (`DungeonKit.kerb`) runs along both sides beyond the cut's edge, 1.9 m high,
   so nobody steps onto the flank. Shots `kerb1`, `kerb2`, `hall_pit2`, `cave1`.
 - Yards keep 6 m off every building site (`settlement_yards.gd`); the tithe barn's door scan no longer lists a yard prop.
+
+- Kerb rebuilt as a dry-stone wall (`DungeonKit.kerb`: ruin masonry, 1.9 m lengths of two lower blocks, three staggered upper blocks and a cap slab, per-length ground and yaw). Shots `kerb1`, `kerb2`, `hall_pit2`, `kerb3`; oak landings `oak1` to `oak4` (shots_final5).
