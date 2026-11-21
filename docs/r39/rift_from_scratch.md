@@ -26,18 +26,20 @@ spreads over the rift's floor towards the village, cooling as it goes: by the so
   game coords (chasm on x 0, z south; heights in [ ])                         N
                                                                               ^
   x:       -24      -18        -10        -3    4     10     16      24
- z -71 .....................+---------+   WARD LANDING x -4..4 [25.2] (fixed), fires + beacon
-                            |  T4 --->|   (the summit's own stairs go on north)
- z -64   S3 [17.6] <-------T3---------+------+ S2 [7.6]    east channel x 10..28: molten, flowing south
-         |                                   |              falls off the east wall (z -70, -88), a boil (z -78)
- z -55   S1 [-2.4] -------T2---------------->+
-         |   THE WARD CRAG (modelled basalt)  |
- z -51   +<-------T1------------------------ F [-12.4] fire          a boil at the pool's edge (12, -46.5)
-                (W) Watcher   molten pool      \  B2 (low arch over the fire channel)
+ z -71 ...crest spires...+------------------------------+  WARD LANDING x -4..9.6 [25.2] (fixed), beacon; the summit's
+                         |  seal (0,-70.9)              |  own stairs go on north
+ z -64.6                 +----------- .-exit-. ---------+  vent basin [19.4] behind -> the LAVAFALL down the cleft (x 17.5)
+                                    /  WELL-  \                       ||
+         THE WARD CRAG             |  shaft r 6.55:    |              ||   east strip of lava
+         (modelled basalt)         |  the WARD STAIR,  |              ||
+                                   |  2.5 turns round  |              ||
+ z -51                              \  an open well   /               ||
+ z -48.3 ---------- south face: (W1) .. [DOOR] .. (W2), (W3) high ----||-- the fall's foot, a boil
+                (W) Watcher    molten lake       F [-12.4] two fires
  z -37      chapel                        CINDER ISLE [-12.4]  camp, fire
              ^ branch                    / B1
- z -28       |               isle I1 ===/                (E) Watcher, on its plinth in the crust (16, -24)
- z -24   L2 [-8.7] --D3--> FOOT [-12.4] ==C1==/            crust plain, cooling: the seams thin out southward
+ z -28       |               isle I1 ===/                (E) Watcher, on its plinth in the crust (15, -23.5)
+ z -24   L2 [-8.7] --D3--> FOOT [-12.4] ==C1==/            crust plain: the seams thin out southward
            |  D2
  z -8    L1 [-4.1] <---D1--- THE LIP [0.6] = CROSSING_FOOT, two fires; the rim road arrives from the south
 ```
@@ -50,9 +52,10 @@ spreads over the rift's floor towards the village, cooling as it goes: by the so
 - **The Foot** (-12.4): a shelf at the west wall's foot. The **chapel branch** leaves it north along the wall to the Pilgrims' Chapel.
 - **The Cinder Way** (-12.6 to -12.3, 2.9-3.2 m over the lava): a stone causeway on natural basalt islands across the crust plain, two
   low bridges (one segmental arch each) over glowing channels, the **Cinder Isle** in the middle (a rest, a fire, the seal guards' camp).
-- **The Ward Stair** (-12.4 to 25.2): four long traverses cut into the Ward Crag's south face (30, 30, 30, 23 steps), switchback landings
-  at the ends (S1 west, S2 east over the channel, S3 west), a fire at each: a Z of fires on a dark cliff, read from the rim.
-- **The Ward Landing** (25.2, fixed): on the crag's north-east shoulder; the summit's own stairs start at its north edge.
+- **The Ward Stair** (-12.4 to 25.2; round 2b, section 8): wound up inside the Ward Crag. A door in the crag's south face over F, a round
+  shaft cut down through the rock (13 m across), 114 steps two and a half turns round its wall about an open well, a fire at the well's
+  foot, three windows out through the face with a fire in each. Outside, nothing climbs: a door, three lit windows, the well-head.
+- **The Ward Landing** (25.2, fixed): on the crag's top beside the well-head; the summit's own stairs start at its north edge.
 
 Metrics: risers 0.33 m (<= STEP_MAX 0.45), treads 0.68 m (26 deg flights; no ramps), 3.6 m clear between parapets, parapets wherever a
 side drops. Landings are level. The walk is never more than 3.2 m over the lava until the climb, and the climb is cut into rock.
@@ -114,6 +117,8 @@ flags (hewn) at the Lip, Hearthward's market cross, the henge's stones, Lastligh
   - two lava-level cameras stood inside the Cinder Isle and behind a stack (`v20`, `v21`): moved for the check below
 - [x] verification of those fixes (`after2/`, 11 views) and the walk again
 - [x] parse check (`tools/parse_all.gd`: 0 bad), `tools/lint.sh` clean
+- [x] round 2 and 2b (sections 6 and 8): the lake, the lavafall, the dressing, the plinths, the loading view and the toast; the Ward
+  Stair inside the crag; built, then walked and re-shot once (`after5/`)
 
 ## 6. Round 2 (Luke, on the shots: "send it back"; the route stays)
 
@@ -123,11 +128,58 @@ flags (hewn) at the Lip, Hearthward's market cross, the henge's stones, Lastligh
 | The lavafall out of a cleft in the Ward Crag, reading from the rim as the source | `rift_kit.py` sec_fall: a basin at a vent on the crag's south-east shoulder, a channel to the lip, a chute cut down the corner between two basalt cheeks (the "ash" rock, glowing in its cracks along the fall), the falling sheet (40 m, LavaWorks' fall shader: crawl in the channel, a rush with crust rafts past the lip). Vent embers and smoke; a boil and splash at its foot; two of the lava's glow lights moved onto the fall's foot and the crag face beside it (no new light) |
 | No loose white cubes; dense modelled dressing | the Watchers' model rubble (plain boxes) dropped; `rift_rocks.py` boulders, cooled spatter, heaved crust slabs; `features.gd` crowds the walls' feet every metre or two and rings every island, the Watchers' plinths, the way's isles, the Foot and the crag's foot (MultiMesh a variant, no collision); shores every 5-8 m |
 | The Watchers' plinths meet the basalt | the pillars sit 0.18 m into the basalt table (no daylight under a tread) |
-| The loading view by the Spindle; the pool's toast | the view stands on the Ward Stair's second turn, beside the lavafall; "The dark water gives you back." |
+| The loading view by the Spindle; the pool's toast | the view stands at the Ward Stair's door, the lavafall beside it (round 2b); "The dark water gives you back." |
+
+## 8. Round 2b: the Ward Stair inside the crag (Luke: "why are there stairs going back and forth so high")
+
+The four traverses stacked up the crag's south face (30 + 30 + 30 + 23 steps, three switchbacks) are gone. Of the three ways offered:
+
+- **(a) climbing gradually along the rift.** The end is fixed 37.6 m over the Foot and the way from the Foot to the crag is about 55 m
+  long. To spread the height over it the causeway would leave the Foot already rising 1 in 1.5 and stand 15-25 m over the lake by the
+  Cinder Isle: round 1's "make the platforms lower" undone, and the bridges would be viaducts on piers again (the Crossing he rejected).
+- **(b) one grand straight stair.** 114 risers at 0.68 m treads is a 77 m run (about 90 m with landings): longer than the crag is deep.
+  It would start back at the Foot and fly over the lake on arches, a 37 m ladder seen side-on from the rim: the very mass he objected to.
+- **(c) chosen: the stair inside the crag.** From outside nothing climbs: the crag shows a door at the foot of its south face, three lit
+  windows and the well-head on its top. Inside, a round shaft 13 m across, cut down through the rock, with the stair wound two and a half
+  turns round its wall about an open well: 114 risers of 0.33 m, treads 0.66 m at the walk's middle, 3.1 m clear, a parapet on the well
+  side, the first turn's treads standing on solid masonry down to the floor. A fire at the well's foot (seen from the well-head 37 m
+  down), a lit fire in each window. The windows look out over the lake at 1, 4 and 18 m. It keeps the way low over the lava, the end
+  height and the rest of the route as they were, and turns the climb into the set piece.
+
+What changed with it: the lavafall's cleft moved east (x 13 to 17.5) so the shaft's wall stays whole, with the two glow lights and a
+boil; the climb's foot F is now a forecourt before the door (B2 lands on it); the ward landing widened east to the well-head (x -4..9.6),
+the stair's top flat opening onto it through a gap in the well-head's parapet; the crag's skyline broken with teeth and knuckles.
+Systems: the stair's collision is one helical ramp through the tread middles (no lip anywhere), a body per turn so the trail's ray
+seats every turn; its lane goes round the helix and the landing's lane starts more than 5 m from every turn (no route jumps a turn);
+the quest pins that stood on the traverses moved onto F, the Foot and the landing (section 5); bats over the well-head.
+
+**The lake, looked at again.** From the air the lake read as dull ground with lava in patches. It was not the shader: drawn flat green,
+the lava sheet showed only in those patches, so rock stood over the rest. The Watchers' plinths were basalt tables 18 m across, the
+roughened feet of the Descent's ledge and the causeway's isles bulged 2-3 m out at the waterline, and the crag's foot stood in the pool
+as sixteen blocks. Now: the plinths are just wide enough for the pillars' own 7 m bases (`rift_rocks.py`), every rock mass keeps within
+0.45 m of its blocks at the lava (`rift_kit.py` `_waterline`), the crag's foot is nine blocks close in, two islands and three crust
+rafts instead of six and six. The lava's bank map (the crust shelf and the bright contact line along the rock) cast its rays from 1.2 m
+over the surface, inside every thick rock, and found almost no bank: they start 6 m up now (`lava_works.gd`).
+
+**Walk and shots (built first, then tested once).** `zz/realm_rift_walk.gd` with the real Player:
+- rim to the dais: the Lip, the Descent, the causeway, F, in at the door, 60 legs round the shaft to the top flat (no drop of more
+  than a metre on the stair), the ward landing, the summit's stairs, the Warden's dais: 90 legs, no burns
+- `--stair`: the branch to the chapel door and the kneeling stone (floor -11.97); `--lava`: off the Cinder Isle's open edge, burned once
+  and given back on the isle
+- re-shot once (`after5/`, 32 views: the 26 with the climb's six replaced by the door, the well's foot, a window, high on the stair,
+  the landing back and up; the three of the fall and the lake; three of the crag from the lake, the well-head, mid-stair). From the rim
+  and the lake the crag shows the door, the lit windows and the lavafall, no stairs; the window looks out past its fire to the west
+  Watcher; the well reads as a spiral to the sky from its foot.
 
 ## 7. What is left
 
-(after the round-2 walk and shots)
+- **The lake from the air.** Close and middle views read molten round the Watchers, the isles and the causeway (`f29`, `v19`), but from
+  high up (`a15`, `a17`) the stretch between the Foot and the crag is still more rock and bank than lava: the chasm's floor under the
+  lava is only about 32 m wide there (x -14..18), and the Way, the two plinths and the crag's foot take a good part of it. Next: widen
+  the floor south of z -50 (`rift/pit.gd` draws the walls back only from z -51 north), on the east side first (no structures there).
+- `c31_well_down` frames the top flat, not the well (the camera sits over the well's north edge): the well from above shows in the
+  Blender review (`bl/way10/rift_way_6`) and from below in `l10`.
+- Not run: the test suite (the lead runs it after merging).
 
 ## 5. Texts changed
 
@@ -141,3 +193,7 @@ flags (hewn) at the Lip, Hearthward's market cross, the henge's stones, Lastligh
 | `lore_db.gd` the Ashen Rift | "only its threshold holds starwater. The Crossing is what is left." | "By the threshold it has cooled to a black crust; under the summit it still runs. The Crossing is what the pilgrims cut after: a stair down, a road over the crust, a stair up the crag." |
 | `realm_layout.gd` region "rift" | "starwater at its threshold" | "crusted black at its threshold" |
 | `realm_discovery.gd` The Crossing | "what the Stair left standing" | "the cinder way to the ward" (its area follows the new route) |
+| `quest_chains_regions3.gd` The Watch on the Rim, marks 2 and 3 (round 2b) | "The stair up the crag... on the first step, going up"; "The first turn of the stair... the fire coming down the channel under the crag" | "The door into the crag, and the stair wound up inside it... on the threshold, going in" (on F); "The well-head on the crag's top... the fire pouring out of the crag's side into the lake. The wind comes up the well..." (on the ward landing) |
+| same, Lamps for the Last Mile (round 2b) | the shoes "at the foot of the crag's stair", the candle "in a niche", the slate "nailed to the rock" up the first traverse | on F before the door: "at the crag's door", "in a gap of the parapet", "nailed to the rock beside the door"; the cold lamp on F |
+| `quest_chains_story.gd` The Third Edict (round 2b) | the scribe's desk, the edict stones and the vigil on the traverses ("the scribe's desk at the Crossing's foot") | on the ward landing: "the scribe's desk at the stair's head"; the wax tablet mark on the bridge to F |
+| `quest_chains_wanderer.gd` The Last Ringer, `story_texts.gd`, `village_cast_wanderer.gd` (round 2b) | the last bell's stone and Iorweth's spot on the second switchback | on the Foot ("the Crossing's foot, where there is a stone with a name on it"): unchanged words |
