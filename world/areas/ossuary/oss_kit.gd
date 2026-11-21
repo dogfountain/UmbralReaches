@@ -23,8 +23,8 @@ const FIXED_LANES := [
 	["oss_bridge", [Vector3(-9.0, 12.6, -34), Vector3(19.6, 12.6, -34), Vector3(20.2, 12.6, -36.6), Vector3(23, 12.6, -36.6), Vector3(23, 12.6, -39.5)], 0.8],
 	["oss_stair1", [Vector3(23, 12.6, -39.5), Vector3(23, 8.4, -49.5), Vector3(23, 8.4, -52.5)], 1.0],
 	["oss_gallery", [Vector3(23, 8.4, -52.5), Vector3(20, 8.4, -58), Vector3(20, 8.4, -65.5), Vector3(21, 8.4, -67.5)], 0.8],
-	["oss_stair2", [Vector3(21, 8.4, -68.5), Vector3(21, 4.2, -78), Vector3(20.5, 4.2, -80), Vector3(17.5, 4.2, -84)], 0.9],
-	["oss_chapel", [Vector3(17.5, 4.2, -84), Vector3(16, 4.2, -95.5), Vector3(16, 4.2, -104)], 0.8],
+	["oss_stair2", [Vector3(21, 8.4, -68.5), Vector3(21, 4.2, -78), Vector3(21, 4.2, -81.5)], 0.9],
+	["oss_chapel", [Vector3(21, 4.2, -81.5), Vector3(22, 4.2, -88), Vector3(19, 4.2, -95), Vector3(16, 4.2, -97.5), Vector3(16, 4.2, -104)], 0.8],      # (round the charnel mound, which stands in the court's middle)
 ]
 var keep_lanes := true                  ## reject floor clutter on FIXED_LANES
 ## Test the Ossuary's own walkways (FIXED_LANES are its bridge, gate hall, gallery, pit stair and chapel):

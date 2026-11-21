@@ -180,7 +180,7 @@ func _descent() -> void:
 		pts.append(Vector3(v[0], 0, v[1]))
 	ok("down the pit stair onto the charnel pit", await _walk_pts("pit", _ow(pts), Ossuary.PIT_Y, 0.9))
 	pts = []
-	for v: Array in [[16.0, -92.0], [16.0, -97.5], [14.5, -100.5], [14.5, -104.0], [16.0, -98.0], [17.0, -92.0], [21.0, -86.0]]:
+	for v: Array in [[22.0, -88.0], [19.0, -95.0], [16.0, -97.5], [14.5, -100.5], [14.5, -104.0], [16.0, -98.0], [19.0, -95.0], [22.0, -86.0]]:
 		pts.append(Vector3(v[0], 0, v[1]))
 	ok("the chapel and back", await _walk_pts("chapel", _ow(pts), Ossuary.PIT_Y, 0.9))
 	var lanes := [(Hall.LANE_A.x + Hall.LANE_A.y) * 0.5, (Hall.LANE_B.x + Hall.LANE_B.y) * 0.5]
