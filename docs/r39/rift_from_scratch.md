@@ -171,12 +171,35 @@ over the surface, inside every thick rock, and found almost no bank: they start 
   and the lake the crag shows the door, the lit windows and the lavafall, no stairs; the window looks out past its fire to the west
   Watcher; the well reads as a spiral to the sky from its foot.
 
+## 9. Round 2c: a wider pit, a heavier fall (lead: "from the air the lava is a small patch round one Watcher")
+
+- **The floor widened.** `rift/pit.gd` draws the east wall back 11 to 15 m (lobed) from the crust plain's north end (z -12..-22) all the
+  way to the summit's approach, joining the bowl that already opened north of z -51. The lake's east shore moves from about x 19 to
+  about x 31 (the kept core reaches x +30): the floor under the lava from ~32 m to ~45 m across, molten wall to wall round the isles and
+  the causeway. The west wall stays: the Descent's ledge, the Foot, the branch and the chapel are built into it. Nothing within 9 m of
+  the centreline moves (the Lip, the rim road); the old Ossuary's site on the east wall is bare rock (RealmLayout.OSSUARY_OLD); the
+  summit and the ward are north of the bowl's closing. The bed is the old chasm's floor (-18 to -21), under the lava everywhere.
+- **What follows the new bowl.** The lava sheet (92 m) and its kill volume already reach x +46; the bank map, the shores, the walls'
+  dressing and the falls read the ground; the islands' area and the crust rafts' reach east into the new lake; the heat shimmer covers
+  it; a glow light and a boil over the east lake; the rim's spatter and the east fissures stand on the moved lip (`rift_rim.gd`,
+  `features.gd`), and the scorch's burn follows it (`scorch.gd`). The Cinder Isle's camp and the rim camps are where they were.
+- **The lavafall.** A 3 m sheet at the vent, 4.6 m at the lip, 5.6 m at the foot (it was 1.6 to 3 m), in a cleft as wide; a splash
+  pool at its foot: a low broken rim of spatter round where it lands, glowing along its lip, open to the lake; droplets thrown up and
+  falling back, a hot veil and fumes over it (`crossing.gd`), the boil and the brightest glow light there.
+- **The crust.** Crusted black only under the Lip now (COOL_Z -13), molten from the Foot north (HOT_Z -22): the crust had covered the
+  lake's whole south third, and in the new east bowl it read as a red plain.
+- **Walk and shots.** Built first (the way in Blender, the import, the parse check), then walked once: rim to the dais 90 legs, no
+  burns; the chapel branch to the kneeling stone; off the Cinder Isle into the lava, burned once and given back. Shot once (`after6/`);
+  the cooling constants were then moved (no change to anything walked) and the views shot again (`after7/`). From the air (`a15`, `a17`)
+  the lake now runs molten from the causeway to the east wall (x 9..30) and round the west Watcher, the crag standing in it with the
+  lavafall pouring broad down its south-east corner (`f27`, `f28`, `r01`, `r03`); the dark left in `a17` is the west side's built rock
+  (the Descent's ledge, the Foot, the branch, the chapel) and the east bowl's slope above the shore.
+
 ## 7. What is left
 
-- **The lake from the air.** Close and middle views read molten round the Watchers, the isles and the causeway (`f29`, `v19`), but from
-  high up (`a15`, `a17`) the stretch between the Foot and the crag is still more rock and bank than lava: the chasm's floor under the
-  lava is only about 32 m wide there (x -14..18), and the Way, the two plinths and the crag's foot take a good part of it. Next: widen
-  the floor south of z -50 (`rift/pit.gd` draws the walls back only from z -51 north), on the east side first (no structures there).
+- **The lake's west half** between the Foot and the west Watcher is still mostly the Descent's and the branch's rock (by design: the west
+  wall carries the ledge, the Foot and the chapel). If more lava is wanted there, the branch could run on a narrower base.
+- The east bowl's new wall is a long even slope in the kept core's blend band (x 30..45): reads as a red bank from low on the Way.
 - `c31_well_down` frames the top flat, not the well (the camera sits over the well's north edge): the well from above shows in the
   Blender review (`bl/way10/rift_way_6`) and from below in `l10`.
 - Not run: the test suite (the lead runs it after merging).
