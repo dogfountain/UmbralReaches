@@ -3,13 +3,13 @@
 importer="scene"
 importer_version=1
 type="PackedScene"
-uid="uid://kx8ll2sbx2e6"
-path="res://.godot/imported/crossing.glb-39023b9d88ac42d68d6fce221bd2315c.scn"
+uid="uid://olucdgcxfc1p"
+path="res://.godot/imported/rift_way.glb-00b62a75e1873065e4f13d32984fbe74.scn"
 
 [deps]
 
-source_file="res://art/models/crossing.glb"
-dest_files=["res://.godot/imported/crossing.glb-39023b9d88ac42d68d6fce221bd2315c.scn"]
+source_file="res://art/models/rift_way.glb"
+dest_files=["res://.godot/imported/rift_way.glb-00b62a75e1873065e4f13d32984fbe74.scn"]
 
 [params]
 

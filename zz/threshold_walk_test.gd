@@ -1,11 +1,11 @@
 extends Node
-## THE WALK TO THE PILGRIMS' CHAPEL, driven by the real Player (its test drive: 0.3 m capsule, gravity, step-up): from the
-## third tower's deck (with `-- --full`: from the Hearthward rim over the crossing) down the Pilgrims' Stair (rift/tower_stair.gd) and the quay,
-## through the doorway to the kneeling stone. Waypoints are xz only (the Player keeps to the floor). Every waypoint
-## must be reached within the time, the player's height at the end must be the chapel floor's, and the log shows the
-## height at each. Never writes the save (Travel._busy).
+## THE WALK TO THE PILGRIMS' CHAPEL, driven by the real Player (its test drive: 0.3 m capsule, gravity, step-up): from the Cinder Way's
+## Foot (with `-- --full`: from the rim, the Lip and down the Descent) along the branch by the west wall (the layout's
+## rift_crossing_chapel lane, rift/crossing.gd), through the doorway to the kneeling stone. Waypoints are xz only (the Player keeps to
+## the floor). Every waypoint must be reached within the time, the player's height at the end must be the chapel floor's, and the log
+## shows the height at each. Never writes the save (Travel._busy).
 ## Ends: THRESHOLD WALK TEST PASS / FAIL (and prints "WALK reached <name> at <pos>")
-const TowerStair := preload("res://core/world/realm/rift/tower_stair.gd")
+const Crossing := preload("res://core/world/realm/rift/crossing.gd")
 const Chapel := preload("res://core/world/realm/rift/chapel.gd")
 
 var main: Node
@@ -42,23 +42,19 @@ func _process(delta: float) -> void:
 			print("THRESHOLD WALK TEST FAIL (no player)")
 			get_tree().quit(1)
 			return
-		# the runner's 300 s holds the part below the third tower; `-- --full` walks the whole way from the rim (about 4 min)
+		# the runner's 300 s holds the branch from the Foot; `-- --full` walks the whole way from the rim
 		var full := "--full" in OS.get_cmdline_user_args()
 		var pts: Array = []
 		if full:
-			pts = [["rim", Vector2(0, -4) + Endgame.O2], ["forecourt", Vector2(0, -9) + Endgame.O2], ["forecourt_top", Vector2(0, -13.5) + Endgame.O2], ["bay1", Vector2(-0.3, -20) + Endgame.O2]]
-			pts.append(["bay2", Vector2(-0.8, -27) + Endgame.O2])
-			pts.append(["bay3", Vector2(-1.3, -33) + Endgame.O2])
-		pts.append(["t3", Vector2(-1.8, -40) + Endgame.O2])
-		var sp := Vector2(-1.8, -40.0) + Endgame.O2
-		pts.append(["t3_east", sp + Vector2(cos(deg_to_rad(-35.0)), sin(deg_to_rad(-35.0))) * 3.0])
-		for i in range(0, TowerStair.N + 1, 2):
-			var p := TowerStair.at(i)
-			pts.append(["stair_%d" % i, Vector2(p.x, p.z) + Endgame.O2])
-		pts.append(["foot", Vector2(-7.6, -40.0) + Endgame.O2])
-		pts.append(["quay", Vector2(-10.5, -40.0) + Endgame.O2])
-		pts.append(["forecourt", Vector2(-13.1, -40.0) + Endgame.O2])
-		pts.append(["forecourt_door", Vector2(-13.1, -36.85) + Endgame.O2])
+			var way := Crossing.lane_pts("rift_crossing")
+			var foot := Crossing.point("foot")
+			for i in way.size():
+				pts.append(["way_%d" % i, way[i] + Endgame.O2])
+				if way[i].distance_to(Vector2(foot.x, foot.z)) < 4.0:
+					break
+		var br := Crossing.lane_pts("rift_crossing_chapel")
+		for i in br.size():
+			pts.append(["branch_%d" % i, br[i] + Endgame.O2])
 		pts.append(["door", Vector2(-14.9, -36.85) + Endgame.O2])
 		pts.append(["stone", Vector2(-18.4, -36.85) + Endgame.O2])
 		var markers: Array[Marker3D] = []
@@ -71,7 +67,8 @@ func _process(delta: float) -> void:
 			markers.append(m)
 			names.append(e[0])
 		var space := (main as Node3D).get_world_3d().direct_space_state
-		var from := (Vector3(0.0, 12.0, -3.0) if full else Vector3(-1.8, 12.0, -40.0)) + Endgame.O      # (the endgame stands in the far north-east)
+		var foot3 := Crossing.point("foot")
+		var from := (Vector3(0.0, 12.0, -3.0) if full else Vector3(foot3.x, foot3.y + 6.0, foot3.z)) + Endgame.O      # (the endgame stands in the far north-east)
 		var hit := space.intersect_ray(PhysicsRayQueryParameters3D.create(from, from + Vector3(0.0, -40.0, 0.0), Layers.WORLD))
 		player.teleport((hit.position as Vector3) + Vector3.UP * 0.3 if not hit.is_empty() else from - Vector3(0.0, 10.0, 0.0))
 		player._debug_drive = true            # the Player's own test drive (real step-up, gravity, capsule); autopilot skips step-up

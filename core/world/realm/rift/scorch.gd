@@ -7,7 +7,7 @@ extends RefCounted
 ## tongues down the east berm towards the Realm's east edge. Fire and spatter burned the ground round it, and the ash fell
 ## downwind (east-south-east, the foliage shader's wind) in pale drifts. The burn is deepest at the lip and fades out
 ## through charred snags, rust-leaved dying trees and grey grass into the living land; it thins to almost nothing by the
-## Pilgrims' Threshold, where the lava cools into starwater (and Lastlight's fields stay green).
+## Pilgrims' Threshold, where the lava has cooled to a black crust (and Lastlight's fields stay green).
 ##
 ## One 1 m grid over RECT, built once (lazily, on the first single-threaded call) from authored flows,
 ## the lip and noise. Readers:
@@ -21,12 +21,13 @@ extends RefCounted
 ## the endgame stands (the chasm's centreline is x O.x).
 
 const O := Endgame.O2
+const Pit := preload("res://core/world/realm/rift/pit.gd")
 const RECT := Rect2(236.0, -156.0, 134.0, 164.0)       ## x 236..370, z -156..8 (the Anchorholds' cells keep out of it)
 const NX := 135
 const NZ := 165
 const LIP := Rect2(Vector2(-24.0, -121.0) + O, Vector2(48.0, 109.0))   ## the chasm's lip (O.x +-24, z -121..-12)
 const WIND := Vector2(0.8, 0.6)                          ## ash carries this way (realm_foliage.gdshader's wind)
-const MOUTH_Z := Vector2(-36.0, -6.0)                    ## the starwater mouth: the burn dies back over these z
+const MOUTH_Z := Vector2(-36.0, -6.0)                    ## the crusted south mouth: the burn dies back over these z
 const RING := 30.0                                       ## metres of dying wood and dry turf round the burn
 const HERMIT := Vector2(-36.0, -50.0) + O                ## the Ash-Hermit's Perch's rim spot (a secret): no snags on it
 
@@ -291,10 +292,11 @@ static func _noise() -> void:
 	_n_drift.fractal_octaves = 3
 
 
-## Distance outside the lip (negative inside), its edge broken by a slow, wide warp (lobes, not a halo).
+## Distance outside the lip (negative inside), its edge broken by a slow, wide warp (lobes, not a halo). The east lip stands back where
+## the pit's east wall does (rift/pit.gd).
 static func _lip_d(p: Vector2) -> float:
 	var q := p + Vector2(_n_lo.get_noise_2d(p.x, p.y + 40.0), _n_lo.get_noise_2d(p.x + 70.0, p.y)) * 11.0
-	var dx := maxf(LIP.position.x - q.x, q.x - LIP.end.x)
+	var dx := maxf(LIP.position.x - q.x, q.x - LIP.end.x - _east_back(p))
 	var dz := maxf(LIP.position.y - q.y, q.y - LIP.end.y)
 	if dx <= 0.0 and dz <= 0.0:
 		return maxf(dx, dz)
@@ -303,7 +305,12 @@ static func _lip_d(p: Vector2) -> float:
 
 ## The true lip distance (no warp): inside the chasm everything is burned.
 static func _in_lip(p: Vector2) -> bool:
-	return LIP.has_point(p)
+	return LIP.has_point(p) or (p.x > LIP.end.x and p.x < LIP.end.x + _east_back(p) and p.y > LIP.position.y and p.y < LIP.end.y)
+
+
+## How far the east lip stands back from LIP at p (the pit's east wall: rift/pit.gd), read at the lip's own line.
+static func _east_back(p: Vector2) -> float:
+	return maxf(Pit.shift(LIP.end.x + 4.0, p.y), 0.0)
 
 
 ## How far downwind of the lip p lies (0 upwind or across, 1 straight downwind).
@@ -326,7 +333,7 @@ static func _burn_at(p: Vector2) -> float:
 	# tongues: the burn reached out further along a few bearings from the rift's middle (a scar, not a halo)
 	var ang := (p - (Vector2(0.0, -66.0) + O)).angle()
 	r += 24.0 * pow(maxf(_n_lo.get_noise_1d(ang * 38.0 + 400.0), 0.0) * 2.2, 1.6)
-	# the starwater mouth: the burn dies back towards Hearthward
+	# the crusted south mouth: the burn dies back towards Lastlight
 	var mouth := smoothstep(MOUTH_Z.x, MOUTH_Z.y, p.y)
 	r *= lerpf(1.0, 0.3, mouth)
 	var dd := d - _n_mid.get_noise_2d(p.x, p.y) * 10.0

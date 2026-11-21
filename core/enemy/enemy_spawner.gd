@@ -24,10 +24,10 @@ const REALM_CAMPS: Array[Dictionary] = [
 	{"at": Vector3(-26.0, 60.0, -9.0), "kinds": ["spitter", "wretch"], "probe": 0.0, "seal": "henge"},       # the stair's foot, east of the flight, off the walk
 	{"at": Vector3(-35.0, 60.0, -15.0), "kinds": ["leaper", "crawler"], "probe": 0.0, "seal": "henge"},      # at the raid floor's rim south of the stair's head, 13 m+ from HengeFire on its landing
 	# guardians of the summit ward (it also needs the Thornwarden and the Bone Abbot): they hold the
-	# Crossing itself, its junction tower (the Pilgrims' Gate, parapeted) and its head in front of the ward
-	# (r32: the first pack stood 12-16 m east of the Crossing's foot, off the way, beside a roaming pack)
-	{"at": Vector3(-1.8, 9.0, -41.0) + Endgame.O, "kinds": ["husk", "wretch"], "probe": 18.0, "r": 1.4, "strict": true, "seal": "summit"},
-	{"at": Vector3(0.0, 28.0, -68.0) + Endgame.O, "kinds": ["spitter", "wretch"], "probe": 18.0, "r": 1.4, "strict": true, "seal": "summit"},
+	# Crossing itself, the Cinder Isle in the middle of the causeway (parapeted) and its head in front of the ward
+	# (r32: the first pack stood 12-16 m east of the Crossing's foot, off the way, beside a roaming pack; r39: the Cinder Way)
+	{"at": Vector3(10.6, -9.0, -37.8) + Endgame.O, "kinds": ["husk", "wretch"], "probe": 6.0, "r": 1.4, "strict": true, "seal": "summit"},
+	{"at": Vector3(0.0, 28.0, -66.5) + Endgame.O, "kinds": ["spitter", "wretch"], "probe": 18.0, "r": 1.4, "strict": true, "seal": "summit"},
 	# roaming packs (they come back)
 	# r28 war bands: a guard (Bulwark) before a caster (Chanter), flankers on the sides
 	# r31: a Tollman rides with it (kill it before it rings, or the Thornwood comes) and a Gaunt darts

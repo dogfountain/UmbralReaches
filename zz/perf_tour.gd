@@ -46,6 +46,7 @@ extends Node
 ## per frame (stamped first/last in line), "render-cpu" = the renderer's CPU side, "rest(gpu)" =
 ## frame - scripts - render-cpu: on Metal (no GPU timings) that is the GPU wait plus engine overhead.
 const SECONDS := 4.0
+const RiftCrossing := preload("res://core/world/realm/rift/crossing.gd")
 var _stand := SECONDS                 ## --seconds=N: stand this long at each view (a native profiler's sample)
 const SETTLE := 1.2
 var points := []
@@ -68,8 +69,8 @@ var realm_points := [
 	# r22 additions: the heavy vistas
 	["r_spawn_north", Vector3(0.0, NAN, 40.0), 0.0],                 # village to the rift and the Crowns
 	["r_tavern_in", Vector3(11.4, -0.6, 27.0), -0.9],
-	["r_rim", Vector3(0.0, 0.8, -10.0) + Endgame.O, 0.0],           # the Crossing from its forecourt (the far north-east: Endgame)
-	["r_spindle", Vector3(-8.3, 18.0, -43.5) + Endgame.O, 0.3],                 # on the viaduct by the Spindle
+	["r_rim", Vector3(0.0, 2.3, -7.0) + Endgame.O, 0.0],            # the Crossing from the Lip (the far north-east: Endgame)
+	["r_crag", Vector3(6.0, 27.0, -65.2) + Endgame.O, PI],                  # at the well-head on the Ward Crag, looking down the stair's shaft to the rim
 	["r_summit", Vector3(0.0, 27.9, -92.0) + Endgame.O, 0.0],
 	["r_summit_back", Vector3(0.0, 28.2, -96.0) + Endgame.O, PI],               # the whole Realm from the dais
 	["r_henge", Vector3(-62.0, 8.0, -12.0), 0.9],
@@ -116,9 +117,7 @@ var route := [
 	[Vector3(54, 0, -59.5), "fen fire"],
 	# the Crossing (the far north-east, from Lastlight's north postern: Endgame)
 	[Vector3(0, 0, 22) + Endgame.O, "@rim"],
-	[Vector3(0, 0, 4) + Endgame.O, "rift_rim"], [Vector3(0, 0, -10.5) + Endgame.O, "forecourt"], [Vector3(0, 0, -15.5) + Endgame.O, "rim steps"],
-	[Vector3(-0.3, 0, -20) + Endgame.O, "causeway"], [Vector3(-1.0, 0, -29) + Endgame.O, "causeway"], [Vector3(-1.8, 0, -40) + Endgame.O, "pilgrims gate"],
-	[Vector3(-1.8, 0, -49.5) + Endgame.O, "spindle flight"],
+	[Vector3(0, 0, 4) + Endgame.O, "rift_rim"],     # (the Cinder Way's lanes follow: _spindle_route)
 ]
 var p: Player
 var main: Node
@@ -390,17 +389,14 @@ func _cal_step() -> bool:
 	return false
 
 
-## (20 Nov, the fps pass: these legs were still in the rift's old home frame after it moved to Endgame.O, so the run
-## stood at the spindle pressing on a wall for 35 legs of 14 s each: eight minutes of the path's frames)
+## (20 Nov, the fps pass: these legs were still in the rift's old home frame after it moved to Endgame.O, so the run stood pressing on a
+## wall for 35 legs of 14 s each; r39: the Cinder Way's own lanes, from its layout) The Lip, the Descent, the causeway, the Ward Stair, the
+## ward landing, the summit.
 func _spindle_route() -> void:
-	var spin := Vector2(-8.3, -50.0)
-	for k in range(1, 25):
-		var th := -TAU * float(k) / 24.0
-		var q := spin + Vector2(cos(th), sin(th)) * 6.5
-		route.append([Vector3(q.x, 0, q.y) + Endgame.O, "spindle"])
-	for e: Array in [[Vector3(-1.4, 0, -56), "bridge"], [Vector3(-1.4, 0, -61.5), "bridge"],
-			[Vector3(0, 0, -66.5), "ward landing"], [Vector3(0, 0, -71.4), "summit stairs"],
-			[Vector3(0, 0, -77.5), "summit stairs"], [Vector3(-2.8, 0, -79.5), "summit"], [Vector3(-3.6, 0, -83.5), "summit"],
+	for key: String in ["rift_crossing", "rift_crossing_turn", "rift_crossing_top"]:
+		for q: Vector2 in RiftCrossing.lane_pts(key):
+			route.append([Vector3(q.x, 0, q.y) + Endgame.O, key.trim_prefix("rift_")])
+	for e: Array in [[Vector3(0, 0, -77.5), "summit stairs"], [Vector3(-2.8, 0, -79.5), "summit"], [Vector3(-3.6, 0, -83.5), "summit"],
 			[Vector3(-2.6, 0, -87.0), "summit"], [Vector3(0, 0, -89.0), "summit"], [Vector3(0, 0, -92.0), "dais"],
 			[Vector3(0, 0, -103.9), "dais"]]:
 		route.append([(e[0] as Vector3) + Endgame.O, e[1]])

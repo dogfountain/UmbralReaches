@@ -12,7 +12,7 @@ extends RefCounted
 ##   site_company.gd  (r28) the Ninth Company's offering: shows once its three letters are read
 ##   site_doubled_realm.gd      (r34) the Cutters' Nook (climb-only), the Ninth Rank (lamp order), Corvin's
 ##                    Sluice (lever raises a sunk walk) in the new ground
-##   site_threshold.gd the Pilgrims' Chapel: under the west starfall, down the stair round the crossing's third tower
+##   site_threshold.gd the Pilgrims' Chapel: at the foot of the pilgrims' stair, cut into the west wall (the Cinder Way's branch)
 ##   (r28) the Lower Count under the Ossuary lives in world/areas/ossuary/oss_deep.gd and registers
 ##         its places here when it is built; beam.gd is its caught light
 ##   reactivity.gd    after each boss: brambles wither + moonlight (Thornwarden), the fen clears and
@@ -31,7 +31,7 @@ const SiteBreath := preload("res://core/life/secrets/site_breath.gd")
 const SiteCompany := preload("res://core/life/secrets/site_company.gd")
 const SiteWest := preload("res://core/life/secrets/site_west_marches.gd")      # --- west marches --- the Sorrow's hidden walk
 const SiteDoubled := preload("res://core/life/secrets/site_doubled_realm.gd")      # r34 places: the new ground's secrets
-const SiteThreshold := preload("res://core/life/secrets/site_threshold.gd")   # the Pilgrims' Chapel under the starfall
+const SiteThreshold := preload("res://core/life/secrets/site_threshold.gd")   # the Pilgrims' Chapel at the stair's foot
 const SiteUpwardFalls := preload("res://core/life/secrets/site_upward_falls.gd")   # the Upward Falls' crest (a wonder)
 const SiteStarCrater := preload("res://core/life/secrets/site_star_crater.gd")   # the Fallen Star's platform (a wonder)
 const SiteSkyChain := preload("res://core/life/secrets/site_sky_chain.gd")   # the Wardens' Tally at the Sky Chain's bitter end (a wonder)

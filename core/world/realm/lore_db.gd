@@ -512,7 +512,7 @@ const PLACE_INFO := {
 		"text": "The Rooted's barrows, taken for the abbey's lay brothers and sealed with the Abbot's iron. The road down into the fen begins here."},
 	"ossuary": OSSG.PLACE_INFO["ossuary"],          # the ossuary (its own ground)
 	"rift": {"name": "The Ashen Rift", "line": "where the Stair stood",
-		"text": "Beyond Lastlight, where the pilgrims' road turned to the mountain: four thousand blessed steps, and then the wound. The Stair broke on the Night and the lava rose in it; only its threshold holds starwater. The Crossing is what is left."},
+		"text": "Beyond Lastlight, where the pilgrims' road turned to the mountain: four thousand blessed steps, and then the wound. The Stair broke on the Night and the lava rose in it. By the threshold it has cooled to a black crust; under the summit it still runs. The Crossing is what the pilgrims cut after: a stair down, a road over the crust, a stair up the crag."},
 	"summit": {"name": "Summit of Ascension", "line": "the door, held open",
 		"text": "The Order's cathedral of the Open Sky, and the dais where Hierarch Aurel opened the door. He is still there."},
 	"crags": {"name": "The Crowns", "line": "the rim the sky drains over",

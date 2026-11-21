@@ -4,7 +4,7 @@ extends Control
 ## (55 m) and wide (120 m); a third press hides it.
 ##
 ## The ground is painted once from RealmLand's heightfield (hillshade, biome colours, worn paths,
-## pools, the rift's lava and starwater, faint contours) on a worker thread as soon as the land exists: about
+## pools, the rift's lava, molten to crusted, faint contours) on a worker thread as soon as the land exists: about
 ## 0.4 s off the main thread, then it is one texture and a canvas shader.
 ##
 ## Markers (re-read twice a second, drawn every frame):
@@ -40,6 +40,7 @@ const ENEMY_NEAR := 40.0
 const CHEST_NEAR := 45.0
 const ACTION := "minimap"                ## N (M is the whole map: ui/world_map.gd)
 const Land := preload("res://core/world/realm/realm_land.gd")
+const RiftWay := preload("res://core/world/realm/realm_rift.gd")
 const HudPrefs := preload("res://ui/hud_prefs.gd")
 const Forge := preload("res://ui/hud_forge.gd")
 const UIType := preload("res://ui/type.gd")
@@ -752,7 +753,8 @@ func _paint() -> void:
 				col = Color(0.2, 0.3, 0.36).lerp(Color(0.32, 0.42, 0.46), clampf(shade - 0.6, 0.0, 1.0))
 			elif hc < lava_y + 1.2 and absf(wx - Endgame.O.x) < 40.0 and z < 0.0:        # the rift (the Well of Echoes is deeper)
 				var swirl := clampf(sin(wx * 0.4) * sin(z * 0.35) * 0.5 + 0.5, 0.0, 1.0) * 0.4
-				col = Color(0.85, 0.3, 0.08).lerp(Color(1.0, 0.62, 0.22), swirl) if z < -46.0 else Color(0.3, 0.22, 0.55).lerp(Color(0.52, 0.4, 0.9), swirl)   # lava; starwater at the Threshold
+				var heat := 1.0 - smoothstep(RiftWay.HOT_Z, RiftWay.COOL_Z, z)         # molten under the summit, crusted black by the south rim
+				col = Color(0.16, 0.07, 0.06).lerp(Color(0.85, 0.3, 0.08), heat).lerp(Color(1.0, 0.62, 0.22), swirl * heat)
 			# contours every 4 m
 			var cl := absf(fposmod(hc + 2.0, 4.0) - 2.0)
 			if cl < 0.12 and hc > lava_y + 2.0:
@@ -762,27 +764,26 @@ func _paint() -> void:
 	_img = img
 
 
-## The Crossing is not in the heightfield (it stands over the lava): its deck as a stone line.
+## The Crossing is not in the heightfield (it stands over the lava, on its own rock): its walk as a stone line (rift/crossing.gd's layout).
 func _paint_crossing(img: Image) -> void:
-	var pts: Array[Vector2] = [Vector2(0, -7), Vector2(0, -14), Vector2(-1.8, -40), Vector2(-1.8, -50)]
-	for k in range(1, 12):                         # the helix's centreline round the Spindle (r 6.5, clockwise from the east)
-		var th := -TAU * float(k) / 12.0
-		pts.append(Vector2(-8.3, -50.0) + Vector2(cos(th), sin(th)) * 6.5)
-	pts.append_array([Vector2(-1.4, -52.0), Vector2(-1.4, -62), Vector2(0, -71)])
-	for k in pts.size() - 1:
-		var a := pts[k] + Endgame.O2                # (drawn where the endgame stands: Endgame)
-		var b := pts[k + 1] + Endgame.O2
-		var n := int(a.distance_to(b) * PPM * 2.0) + 1
-		for s in n + 1:
-			var p := a.lerp(b, float(s) / float(n))
-			var cx := int((p.x - _origin.x) * PPM)
-			var cy := int((p.y - _origin.y) * PPM)
-			for oy in range(-3, 4):
-				for ox in range(-3, 4):
-					var px := cx + ox
-					var py := cy + oy
-					if px < 0 or py < 0 or px >= img.get_width() or py >= img.get_height():
-						continue
-					var d := Vector2(ox, oy).length()
-					if d <= 3.2:
-						img.set_pixel(px, py, Color(0.62, 0.58, 0.52) if d < 2.2 else Color(0.2, 0.16, 0.14))
+	var lines: Array = []
+	for key: String in ["rift_crossing", "rift_crossing_turn", "rift_crossing_top", "rift_crossing_chapel"]:
+		lines.append(RiftWay.Crossing.lane_pts(key))
+	for pts: Array in lines:
+		for k in pts.size() - 1:
+			var a := (pts[k] as Vector2) + Endgame.O2                # (drawn where the endgame stands: Endgame)
+			var b := (pts[k + 1] as Vector2) + Endgame.O2
+			var n := int(a.distance_to(b) * PPM * 2.0) + 1
+			for s in n + 1:
+				var p := a.lerp(b, float(s) / float(n))
+				var cx := int((p.x - _origin.x) * PPM)
+				var cy := int((p.y - _origin.y) * PPM)
+				for oy in range(-3, 4):
+					for ox in range(-3, 4):
+						var px := cx + ox
+						var py := cy + oy
+						if px < 0 or py < 0 or px >= img.get_width() or py >= img.get_height():
+							continue
+						var d := Vector2(ox, oy).length()
+						if d <= 3.2:
+							img.set_pixel(px, py, Color(0.62, 0.58, 0.52) if d < 2.2 else Color(0.2, 0.16, 0.14))

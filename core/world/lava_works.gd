@@ -70,10 +70,10 @@ func _ready() -> void:
 const RIFT := "res://core/world/realm/realm_rift.gd"
 
 
-## Under the Realm the rift module (RealmRift) builds the crossing's piers, islands and basalt in
-## the river after this node is ready, and says where the falls go: wait for its meta
-## "rift_lava" ({falls: [[z, side], ...]}) on the zone root, then map the banks (twice, for the
-## streamed Ossuary) and pour the falls it asked for. Falls back to the old search after 60 s.
+## Under the Realm the rift module (RealmRift) builds the Cinder Way, the islands and the basalt in the lava after this node is ready, and
+## says where the falls go and how the lava cools: wait for its meta "rift_lava" ({falls: [[z, side], ...], cool: Vector2(cool_z, hot_z),
+## boils: [Vector3]}) on the zone root, then map the banks (twice, for the streamed Ossuary), set the cooling, pour the falls it asked
+## for and churn the boils. Falls back to the old search after 60 s.
 func _realm_setup() -> void:
 	var root := get_parent()
 	var t := 0.0
@@ -85,27 +85,29 @@ func _realm_setup() -> void:
 	_map_banks()
 	get_tree().create_timer(8.0, false).timeout.connect(_map_banks)
 	await get_tree().create_timer(0.5, false).timeout
-	if spec.has("star_z"):
-		_starwater(float(spec.star_z), float(spec.get("star_band", 5.0)))
+	if spec.has("cool"):
+		_cooling(spec.cool, spec.get("glows", []))
 	if spec.has("falls"):
 		_falls_at(spec.falls)
 	else:
 		_falls()
-	if spec.has("starfalls"):
-		_falls_at(spec.starfalls, true)
+	for b: Vector3 in spec.get("boils", []):
+		_boil(b)
 	_bank_embers()
 
 
-var _lava_z := Vector2(-INF, INF)          ## the z span that is still lava (embers keep to it)
+var _lava_z := Vector2(-INF, INF)          ## the z span that is hot (embers keep to it)
 
 
-## The Pilgrims' Threshold (realm_rift.gd STAR_Z): south of star_z the sheet is starwater. The shader
-## turns there; the embers keep to the lava; the glow light over the threshold turns violet and the
-## next one moves up the lava so no fire light spills onto the village rim.
-func _starwater(star_z: float, band: float) -> void:
-	_mat.set_shader_parameter("star_z", star_z)
-	_mat.set_shader_parameter("star_band", band)
-	_lava_z = Vector2(_origin.y, star_z - band)
+## One element, cooling (the Ashen Rift from scratch, 21 Nov): molten north of cool.y, crusted black south of cool.x (the village end). The
+## shader crusts over; the embers keep to the hot reaches; the four glow lights go north with the heat (none over the south rim, where
+## the crust only glows in its seams); the current runs south, from the falls under the summit towards the village.
+func _cooling(cool: Vector2, spec_glows: Array) -> void:
+	_mat.set_shader_parameter("heat_z0", cool.x)
+	_mat.set_shader_parameter("heat_z1", cool.y)
+	_mat.set_shader_parameter("flow_dir", Vector2(0.06, 1.0))
+	_mat.set_shader_parameter("flow_rate", 0.55)
+	_lava_z = Vector2(_origin.y, cool.x)
 	var root := get_parent()
 	var lz := (_lava_z.x + _lava_z.y) * 0.5
 	var half := (_lava_z.y - _lava_z.x) * 0.5
@@ -117,21 +119,28 @@ func _starwater(star_z: float, band: float) -> void:
 		pm.emission_box_extents.z = half * 0.92
 		gp.process_material = pm
 		gp.global_position.z = lz
-	var g0 := root.get_node_or_null("Zone/Lava/Glow0") as OmniLight3D
-	if g0:
-		g0.global_position = Vector3(_cx, -11.5, -27.0)
-		g0.light_color = Color(0.52, 0.38, 1.0)
-		g0.light_energy = 2.6
-		g0.omni_range = 40.0
-	var g1 := root.get_node_or_null("Zone/Lava/Glow1") as OmniLight3D
-	if g1:
-		g1.global_position = Vector3(_cx, -13.0, -58.0)
+	# the glow lights (Zone/Lava/Glow0..3, made by the zone; lava.gd sets their strength) where the realm says (the lavafall, the lake)
+	var at: Array = spec_glows
+	for i in mini(at.size(), 4):
+		var g := root.get_node_or_null("Zone/Lava/Glow%d" % i) as OmniLight3D
+		if g:
+			g.global_position = at[i][0]
+			g.light_energy *= float(at[i][1])
+	# the chasm's haze (Zone/Fog/ChasmHaze, made by the zone) was a violet mist for the starwater: now the lava's own smoke, ash-grey and
+	# lit dull red from below, a little thinner so the low way reads through it
+	var haze := root.get_node_or_null("Zone/Fog/ChasmHaze") as FogVolume
+	if haze != null and haze.material is FogMaterial:
+		var fm := (haze.material as FogMaterial).duplicate() as FogMaterial
+		fm.albedo = Color(0.14, 0.11, 0.1)
+		fm.emission = Color(0.09, 0.03, 0.012)
+		fm.density = 0.045
+		haze.material = fm
 
 
 ## Falls at the given [z, side] stations: at each, walk out from the river centre towards that
 ## wall to the last open lava before the rock, and pour from the lip above it (if the wall there
 ## rises far enough above the river to make a fall).
-func _falls_at(list: Array, star := false) -> void:
+func _falls_at(list: Array) -> void:
 	var space := get_world_3d().direct_space_state
 	var n := 0
 	for st: Array in list:
@@ -147,9 +156,7 @@ func _falls_at(list: Array, star := false) -> void:
 				open_x = x
 				continue
 			if not String((hit.collider as Node).name).begins_with("Terrain"):
-				if _is_chapel(hit.collider as Node):
-					open_x = x                         # the Pilgrims' Chapel stands in the fall's way: the river's edge is its far side
-				continue                               # basalt, cliffs, piers: look past them
+				continue                               # basalt, the way's rock: look past them
 			var hy: float = (hit.position as Vector3).y
 			if absf(x - open_x) <= 6.0 and hy > _y + 7.0:
 				best = [Vector3(_cx + open_x + side * 0.8, hy, z), Vector3(-side, 0, 0), hy - _y]
@@ -157,20 +164,33 @@ func _falls_at(list: Array, star := false) -> void:
 		if best.is_empty():
 			print("LAVA no fall at z %.0f side %d (no wall high enough)" % [z, int(side)])
 			continue
-		_fall(best[0], best[1], float(best[2]), star)
+		_fall(best[0], best[1], float(best[2]))
 		n += 1
-	print("LAVA %d %s poured for the rift" % [n, "starfalls" if star else "falls"])
+	print("LAVA %d falls poured for the rift" % n)
 
 
-## True for a collider under the Pilgrims' Chapel's node (rift/chapel.gd names it "StarwaterChapel").
-func _is_chapel(n: Node) -> bool:
-	for i in 4:
-		if n == null:
-			return false
-		if n.name == &"StarwaterChapel":
-			return true
-		n = n.get_parent()
-	return false
+## Lava welling up boiling out of the channel's floor at `p` (world, on the lava): a churning froth (the falls' pool shader), spits of
+## embers and a thin smoke. No light.
+func _boil(p: Vector3) -> void:
+	var pool := MeshInstance3D.new()
+	pool.name = "LavaBoil%d" % get_child_count()
+	var pm := PlaneMesh.new()
+	pm.size = Vector2(7.0, 7.0)
+	pool.mesh = pm
+	var psh := Shader.new()
+	psh.code = POOL_SHADER
+	var pmat := ShaderMaterial.new()
+	pmat.shader = psh
+	pool.material_override = pmat
+	pool.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	add_child(pool)
+	pool.global_position = Vector3(p.x, _y + 0.05, p.z)
+	var spit := Vfx.emitter(Color(1.8, 0.6, 0.1), {"count": 40, "life": 1.2, "speed": Vector2(1.5, 4.0), "size": 0.09, "gravity": 6.0, "radius": 1.6, "spread": 30.0})
+	if spit:
+		add_child(spit)
+		spit.global_position = Vector3(p.x, _y + 0.1, p.z)
+		spit.emitting = true
+	print("LAVA boil at %s" % p.snapped(Vector3.ONE * 0.1))
 
 
 ## A second, denser ember field low over the river near both banks (the rift reads hotter).
@@ -187,7 +207,7 @@ func _bank_embers() -> void:
 		e.visibility_aabb = AABB(Vector3(-6, -1, -54), Vector3(12, 16, 108))
 		e.preprocess = 4.0
 		add_child(e)
-		if _lava_z.y < 0.0:                       # under the Threshold: the lava reach only
+		if _lava_z.y < 0.0:                       # under the Realm: the hot reaches only
 			pm.emission_box_extents.z = (_lava_z.y - _lava_z.x) * 0.5 * 0.85
 			e.global_position = Vector3(_cx + side * 14.0, _y + 0.3, (_lava_z.x + _lava_z.y) * 0.5)
 		else:
@@ -222,8 +242,9 @@ func _map_banks_run() -> void:
 		for i in w:
 			var x := _origin.x + (float(i) + 0.5) * CELL
 			var z := _origin.y + (float(j) + 0.5) * CELL
-			q.from = Vector3(x, _y + 1.2, z)
-			q.to = Vector3(x, _y - 0.02, z)      # rock at or above the surface: the real shoreline
+			q.from = Vector3(x, _y + 6.0, z)
+			q.to = Vector3(x, _y - 0.02, z)      # rock at or above the surface: the real shoreline (from 6 m up: a ray that
+			                                     # starts inside a thick rock's trimesh crosses no face and found no bank)
 			solid[j * w + i] = 1 if not space.intersect_ray(q).is_empty() else 0
 	if solid == _last_solid:
 		# the re-map for streamed pieces (the Ossuary's piers) usually finds the same shore
@@ -343,34 +364,6 @@ void fragment(){
 	ALBEDO = col * 1.35;
 	ALPHA = clamp(falling ? v * 1.2 : edge * src, 0.0, 1.0);
 }"""
-## A fall of light into the starwater: threads and streaks of violet and pale light sliding down,
-## sparks caught in them, a soft rill in the carved channel above the lip. Same UVs as FALL_SHADER.
-const STARFALL_SHADER := """shader_type spatial;
-render_mode unshaded, cull_disabled, depth_draw_never, blend_add;
-uniform vec3 violet : source_color = vec3(0.36, 0.25, 0.78);
-uniform vec3 pale : source_color = vec3(0.72, 0.72, 0.96);
-uniform float lip = 5.0;
-uniform float total = 20.0;
-float h(vec2 p){ return fract(sin(dot(p, vec2(41.3, 289.1))) * 43758.5); }
-float n(vec2 p){ vec2 i = floor(p), f = fract(p); f = f*f*(3.0-2.0*f);
-	return mix(mix(h(i), h(i+vec2(1,0)), f.x), mix(h(i+vec2(0,1)), h(i+vec2(1,1)), f.x), f.y); }
-void fragment(){
-	float m = UV.y;
-	bool falling = m > lip;
-	float sp = falling ? 2.4 : 0.6;
-	float taper = mix(0.25, 1.0, smoothstep(0.0, 2.2, m));
-	float u = clamp((UV.x - 0.5) / taper + 0.5, 0.0, 1.0);
-	float edge = smoothstep(0.0, 0.3, u) * smoothstep(1.0, 0.7, u) * step(abs(UV.x - 0.5), 0.5 * taper);
-	float threads = n(vec2(UV.x * 18.0, m * 0.25 - TIME * sp * 0.3));
-	float streak = smoothstep(0.55, 0.95, n(vec2(UV.x * 26.0, m * 0.6 - TIME * sp)));
-	vec2 sc = vec2(UV.x * 40.0, m * 6.0 - TIME * sp * 6.0);
-	float spark = step(0.995, h(floor(sc))) * (1.0 - smoothstep(0.08, 0.34, length((fract(sc) - 0.5) * vec2(1.0, 2.1)))) * (0.5 + 0.5 * sin(TIME * 2.0 + h(floor(sc)) * 40.0)) * smoothstep(0.2, 0.32, abs(UV.x - 0.5));   // a soft round mote that fades, never down the middle of the fall (where the doorway is)
-	float body = falling ? (0.22 + 0.45 * threads + 0.55 * streak) : (0.4 + 0.4 * threads);
-	float src = smoothstep(0.0, 0.8, m);
-	float foot = 1.0 - smoothstep(total - 3.0, total, m) * 0.6;
-	ALBEDO = mix(violet, pale, streak * 0.55 + spark) * (0.95 + spark * 1.6);
-	ALPHA = clamp(edge * src * body * foot * 0.55 + spark * edge * 0.8, 0.0, 1.0);
-}"""
 const POOL_SHADER := """shader_type spatial;
 render_mode unshaded, cull_disabled, depth_draw_never;
 uniform vec3 hot : source_color = vec3(1.0, 0.5, 0.12);
@@ -394,7 +387,7 @@ void fragment(){
 ## and follows the actual cliff face down (sampled with rays at every metre, so it never hangs off
 ## the rock), plunges half a metre under the river and churns a froth pool where it lands.
 ## `top` is just past the river's edge at the wall's height, `out` points from the wall to the river.
-func _fall(top: Vector3, out: Vector3, _height: float, star := false) -> void:
+func _fall(top: Vector3, out: Vector3, _height: float) -> void:
 	var space := get_world_3d().direct_space_state
 	var into := -out                                    # from the river towards the wall
 	var z := top.z
@@ -455,7 +448,7 @@ func _fall(top: Vector3, out: Vector3, _height: float, star := false) -> void:
 				(edge_pts[e] as Array).append(Vector3(px, float(ground.call(px, ze)) + lift, ze))
 				continue
 			var h: float = r[1]
-			# (the ray starts well out over the river: a building stood against the wall, the Pilgrims' Chapel, is hit from outside)
+			# (the ray starts well out over the river: anything stood against the wall is hit from outside)
 			var from := Vector3(x0 - into.x * 10.0, h, ze)
 			var hit := space.intersect_ray(PhysicsRayQueryParameters3D.create(from, from + into * 37.0, Layers.WORLD))
 			if hit and absf((hit.position as Vector3).x - lip_x) < 30.0:        # (a building stood out from the wall is further off than rock)
@@ -486,10 +479,10 @@ func _fall(top: Vector3, out: Vector3, _height: float, star := false) -> void:
 	var foot_x: float = ((edge_pts[0][rows.size() - 1] as Vector3).x + (edge_pts[1][rows.size() - 1] as Vector3).x) * 0.5 - out.x * 0.4
 	var path: Array[Vector3] = [((edge_pts[0][0] as Vector3) + (edge_pts[1][0] as Vector3)) * 0.5]
 	var mi := MeshInstance3D.new()
-	mi.name = ("StarFall%d" if star else "LavaFall%d") % get_child_count()
+	mi.name = "LavaFall%d" % get_child_count()
 	mi.mesh = st.commit()
 	var sh := Shader.new()
-	sh.code = STARFALL_SHADER if star else FALL_SHADER
+	sh.code = FALL_SHADER
 	var mat := ShaderMaterial.new()
 	mat.shader = sh
 	mat.set_shader_parameter("lip", lip_m)
@@ -501,26 +494,25 @@ func _fall(top: Vector3, out: Vector3, _height: float, star := false) -> void:
 	# froth pool where it lands, and the splash
 	var foot := Vector3(foot_x + out.x * 1.4, _y + 0.04, z)
 	var pool := MeshInstance3D.new()
-	pool.name = ("StarFallPool%d" if star else "LavaFallPool%d") % get_child_count()
+	pool.name = "LavaFallPool%d" % get_child_count()
 	var pm := PlaneMesh.new()
-	pm.size = Vector2(6.5, 6.5) if star else Vector2(5.5, 5.5)
+	pm.size = Vector2(5.5, 5.5)
 	pool.mesh = pm
 	var psh := Shader.new()
-	psh.code = POOL_SHADER.replace("vec3(1.0, 0.5, 0.12)", "vec3(0.55, 0.42, 1.0)").replace("render_mode unshaded,", "render_mode unshaded, blend_add,") if star else POOL_SHADER
+	psh.code = POOL_SHADER
 	var pmat := ShaderMaterial.new()
 	pmat.shader = psh
 	pool.material_override = pmat
 	pool.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(pool)
 	pool.global_position = foot
-	var splash := Vfx.emitter(Color(0.8, 0.7, 1.8), {"count": 44, "life": 2.2, "speed": Vector2(0.4, 1.5), "size": 0.06, "gravity": -0.5, "radius": 1.4, "spread": 40.0, "turbulence": true}) if star \
-		else Vfx.emitter(Color(1.8, 0.6, 0.1), {"count": 60, "life": 0.9, "speed": Vector2(1.0, 3.5), "size": 0.08, "gravity": 6.0, "radius": 1.2, "spread": 50.0})
+	var splash := Vfx.emitter(Color(1.8, 0.6, 0.1), {"count": 60, "life": 0.9, "speed": Vector2(1.0, 3.5), "size": 0.08, "gravity": 6.0, "radius": 1.2, "spread": 50.0})
 	if splash:
 		add_child(splash)
 		splash.global_position = foot
 		splash.emitting = true
 	# the vent it wells out of
-	var vent := Vfx.emitter(Color(0.7, 0.6, 1.6) if star else Color(1.6, 0.5, 0.1), {"count": 24, "life": 2.2, "speed": Vector2(0.3, 1.0), "size": 0.05, "gravity": -0.4, "radius": 0.8, "turbulence": true})
+	var vent := Vfx.emitter(Color(1.6, 0.5, 0.1), {"count": 24, "life": 2.2, "speed": Vector2(0.3, 1.0), "size": 0.05, "gravity": -0.4, "radius": 0.8, "turbulence": true})
 	if vent:
 		add_child(vent)
 		vent.global_position = path[0] + Vector3.UP * 0.1

@@ -20,6 +20,7 @@ const LoreMore := preload("res://core/world/realm/lore/lore_more.gd")
 const Flora := preload("res://core/world/realm/realm_flora.gd")
 const Plume := preload("res://core/world/realm/rift/plume.gd")
 const RockKit := preload("res://core/world/realm/rock_kit.gd")
+const Pit := preload("res://core/world/realm/rift/pit.gd")
 const TreeGen := preload("res://core/world/realm/tree_gen.gd")
 
 const SEED := 7307
@@ -86,8 +87,8 @@ static func _normal(space: PhysicsDirectSpaceState3D, x: float, z: float) -> Vec
 static func _blocked(p: Vector2, pad: float) -> bool:
 	if RealmLayout.path_dist(p) < 1.6 + pad or p.distance_to(Scorch.HERMIT) < 12.0 + pad:
 		return true                                  # (the Ash-Hermit's Perch, a secret built later, needs its rim)
-	if absf(p.x - Endgame.O.x) < 25.5 and p.y > -123.0 and p.y < -10.0:
-		return true                                  # the chasm and its lip
+	if absf(p.x - Endgame.O.x) < 25.5 + absf(Pit.shift(p.x, p.y)) and p.y > -123.0 and p.y < -10.0:
+		return true                                  # the chasm and its lip (where the pit's walls stand back, as far back as they do)
 	if p.x < 266.0 + pad:
 		return true                                  # the nav bakes in tiles split at x 262: nothing built across it
 	for s: Dictionary in WorldLanes.sites:
@@ -133,7 +134,8 @@ static func _spatter(space: PhysicsDirectSpaceState3D, rng: RandomNumberGenerato
 		while z > -118.0:
 			z -= rng.randf_range(1.6, 3.4)
 			for k in rng.randi_range(1, 3):
-				var p := Vector2(Endgame.O.x + side * rng.randf_range(26.5, 31.5), z + rng.randf_range(-1.2, 1.2))
+				var back := absf(Pit.shift(Endgame.O.x + side * 28.0, z))      # (where the pit's wall stands back, its lip does too)
+				var p := Vector2(Endgame.O.x + side * (rng.randf_range(26.5, 31.5) + back), z + rng.randf_range(-1.2, 1.2))
 				if _blocked(p, 0.3):
 					continue
 				var y := _ground(space, p.x, p.y)

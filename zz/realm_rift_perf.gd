@@ -9,7 +9,7 @@ var phase := 0
 var wait := 0
 var on := {}
 const VIEWS := [["rim", Vector3(0, 2.4, -4), Vector3(-7, 5, -28)], ["overview", Vector3(14, 30, 8), Vector3(-6, 6, -45)],
-	["west", Vector3(-40, 20, -28), Vector3(-4, 10, -52)], ["spindle", Vector3(-2, 22.5, -52), Vector3(-1.8, 25, -70)],
+	["west", Vector3(-40, 20, -28), Vector3(-4, 10, -52)], ["crag", Vector3(6.2, 9.4, -57.3), Vector3(-18, 17, -60)],
 	["landing_back", Vector3(0, 26.9, -68), Vector3(0, 10, -20)]]
 func _ready() -> void:
 	DisplayServer.window_set_size(Vector2i(1600, 1000))

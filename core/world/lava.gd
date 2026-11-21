@@ -5,7 +5,6 @@ extends Area3D
 ## The bone bridge's broken span and the Ember Rift islands need a miss to cost, not reload.
 
 const LAVA_GLOOM := 35.0
-const Rift := preload("res://core/world/realm/realm_rift.gd")
 
 
 func _ready() -> void:
@@ -56,9 +55,8 @@ func _reveal() -> void:
 func _on_body_entered(body: Node3D) -> void:
 	if not body.is_in_group(Groups.PLAYER):
 		return
-	var star := body.global_position.z > Rift.STAR_Z
 	if body.has_method("lava_burn"):
-		body.lava_burn(LAVA_GLOOM * (0.5 if star else 1.0), star)
+		body.lava_burn(LAVA_GLOOM)
 	elif body.has_method("hollow"):
 		Events.toast.emit("The molten dark takes you.")
 		body.hollow()

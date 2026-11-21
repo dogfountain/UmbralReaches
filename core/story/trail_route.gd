@@ -15,7 +15,7 @@ const OFF_REACH := 150.0           ## ... and this far from the place, the one t
 const OFF_COST := 2.5              ## a metre across country counts as this many along a way (the ways win where they go: at 1.6 the
                                    ## meadow fire's way to the thorn seal went round the Thornwood's hill, not up the henge way)
 ## Registered lanes that are walked (the others reserve ground: walls, hollow ways' sides).
-const LANES := ["rift_crossing", "rift_crossing_turn", "rift_crossing_top", "henge_way", "tavern_path", "poi_causeway", "poi_cw_", "r37w_bridge", "r37w_weir"]
+const LANES := ["rift_crossing", "rift_crossing_turn", "rift_crossing_top", "rift_crossing_chapel", "henge_way", "tavern_path", "poi_causeway", "poi_cw_", "r37w_bridge", "r37w_weir"]
 
 ## The graph. The legs onto and off the ways cost OFF_COST a metre through the points' weight scales (the engine's own cost,
 ## no script hook): the place's point and a twin of each way node near the wanderer weigh OFF_COST, so stepping into them

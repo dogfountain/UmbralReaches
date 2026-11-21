@@ -14,7 +14,7 @@ const GIVER_NAMES := {"perrin": "Perrin Aldwyn", "odile": "Odile Frane", "ione":
 
 const ORDER := ["aurel_edicts", "lamp_road", "name_on_roll", "horn_end", "vow_cell"]
 
-const AURELS_RIM := Vector2(310.0, -58.0)           ## the Crossing's foot, short of the ward: where the third stele stands
+const AURELS_RIM := Vector2(310.0, -67.6)           ## the stair's head on the Ward Crag, short of the ward: where the third stele stands
 
 const QUESTS := {
 	"aurel_edicts": {"name": "The Third Edict", "giver": "perrin", "zone": "road", "offer": true, "avail": "bosses:1",
@@ -35,26 +35,26 @@ const QUESTS := {
 					{"at": Vector2(322.0, 38.0), "text": "A drop of ink, long dried, black on a white stone. Then another beyond it, a stride on. He ran with the pen still in his hand and the lid off the pot."},
 					{"at": Vector2(318.0, 6.0), "text": "A satchel strap, snapped, snagged on a thorn. The leather is stained along one edge with the shape of a book. He did not stop for it. He stopped later, for something else."},
 					{"at": Vector2(313.0, -24.0), "text": "Knee-prints in the frost-hardened ground, two, side by side, where a man knelt a moment and got up. Beside them, a smear of ink in the shape of a clause: AND THEN. The rest is rubbed away by a sleeve."},
-					{"at": Vector2(311.0, -44.0), "text": "A wax tablet, face down, trampled. On the back, in a different hand, fine and level: Do not be afraid of what I ask. Write it all."},
+					{"at": Vector2(318.3, -43.0), "text": "A wax tablet, face down, trampled. On the back, in a different hand, fine and level: Do not be afraid of what I ask. Write it all."},
 				]},
-			{"kind": "clues", "at": AURELS_RIM, "r": 12.0, "need": 2, "label": "The scribe's desk at the Crossing's foot",
-				"text": "Search the scribe's desk at the Crossing's foot for what was dictated here ({n}/{of} read)",
+			{"kind": "clues", "at": AURELS_RIM, "r": 12.0, "need": 2, "label": "The scribe's desk at the stair's head",
+				"text": "Search the scribe's desk at the stair's head for what was dictated here ({n}/{of} read)",
 				"clues": [
-					{"key": "desk", "at": Vector2(306.0, -57.0), "name": "the scribe's desk", "text": "A stone table with a groove for a ruler and a ring where a pot stood. A cushion, still, on the stone seat, worn to the shape of one man. Whatever the Hierarch dictated, he dictated it here, patiently, at a desk."},
-					{"key": "board", "at": Vector2(312.0, -60.0), "name": "the dictation board", "text": "A slate with a wet-sponge mark across it and, in the corner, a line nobody wiped: until the last of you is through, and then I follow. A second hand, a clerk's, has struck through the last four words, then written them in again, then struck them through."},
-					{"key": "wax", "at": Vector2(310.0, -55.0), "name": "a wax tablet", "text": "The wax is soft still, as wax should not be after nine winters. A thumbprint in the corner. Under the stylus's furrows: I hold the door so that you may pass. When you have passed, I will shut it behind you, and then I will follow. You have only to be through."},
+					{"key": "desk", "at": Vector2(307.0, -67.4), "name": "the scribe's desk", "text": "A stone table with a groove for a ruler and a ring where a pot stood. A cushion, still, on the stone seat, worn to the shape of one man. Whatever the Hierarch dictated, he dictated it here, patiently, at a desk."},
+					{"key": "board", "at": Vector2(313.6, -70.0), "name": "the dictation board", "text": "A slate with a wet-sponge mark across it and, in the corner, a line nobody wiped: until the last of you is through, and then I follow. A second hand, a clerk's, has struck through the last four words, then written them in again, then struck them through."},
+					{"key": "wax", "at": Vector2(311.0, -65.6), "name": "a wax tablet", "text": "The wax is soft still, as wax should not be after nine winters. A thumbprint in the corner. Under the stylus's furrows: I hold the door so that you may pass. When you have passed, I will shut it behind you, and then I will follow. You have only to be through."},
 				]},
-			{"kind": "order", "at": Vector2(310.0, -62.0), "label": "The three edicts",
+			{"kind": "order", "at": Vector2(310.0, -67.6), "label": "The three edicts",
 				"text": "Touch the three edict-stones in the order they were cut: the first, the second, the third",
 				"things": [
-					{"key": "one", "at": Vector2(304.0, -62.0), "prop": "mark", "name": "the first edict stone", "verb": "Read", "text": "The first stone. EVERY SOUL ON THE ROAD. The cold is a small thing against it."},
-					{"key": "two", "at": Vector2(310.0, -64.5), "prop": "mark", "name": "the second edict stone", "verb": "Read", "text": "The second stone. NO FIRE BELOW THE STAIR. The air gets colder, and the sky above the Crossing turns a little faster."},
-					{"key": "three", "at": Vector2(316.0, -62.0), "prop": "mark", "name": "the third edict stone", "verb": "Read", "text": "The third stone. I WILL HOLD THE DOOR UNTIL THE LAST OF YOU IS THROUGH. It is cut cleanly to the end, and then there is a second line below, ragged, scratched with a nail: one is still on the Stair."},
+					{"key": "one", "at": Vector2(307.2, -69.6), "prop": "mark", "name": "the first edict stone", "verb": "Read", "text": "The first stone. EVERY SOUL ON THE ROAD. The cold is a small thing against it."},
+					{"key": "two", "at": Vector2(311.6, -67.0), "prop": "mark", "name": "the second edict stone", "verb": "Read", "text": "The second stone. NO FIRE BELOW THE STAIR. The air gets colder, and the sky above the Crossing turns a little faster."},
+					{"key": "three", "at": Vector2(316.4, -69.4), "prop": "mark", "name": "the third edict stone", "verb": "Read", "text": "The third stone. I WILL HOLD THE DOOR UNTIL THE LAST OF YOU IS THROUGH. It is cut cleanly to the end, and then there is a second line below, ragged, scratched with a nail: one is still on the Stair."},
 				],
 				"order": ["one", "two", "three"],
 				"wrong": "The stone is cold and says nothing. It was cut in an order, and the order is the whole of what it is. Begin at the first.",
 				"done": "One, two, three. The stones hum low, like a choir that has been told to wait."},
-			{"kind": "vigil", "at": Vector2(310.0, -64.0), "r": 9.0, "time": 60.0, "gloom": 0.6, "label": "The third stone", "noun": "stele", "prop": "cairn",
+			{"kind": "vigil", "at": Vector2(310.0, -67.6), "r": 9.0, "time": 60.0, "gloom": 0.6, "label": "The third stone", "noun": "stele", "prop": "cairn",
 				"waves": [{"at": 12.0, "kinds": ["husk"], "n": 2, "say": "Aurel: \"You came to read. Read, then. I will not hurry you.\""},
 					{"at": 30.0, "kinds": ["gaunt", "husk"], "n": 3, "say": "Aurel: \"Do you see it? It says what it says. I never asked to be believed.\""},
 					{"at": 46.0, "kinds": ["husk"], "n": 2, "say": "Aurel: \"The clerk who cut it was afraid of me. I wish he had not been.\""}],
