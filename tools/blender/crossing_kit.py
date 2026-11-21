@@ -212,7 +212,7 @@ def support_pier(P, C, rnd, c2, d, along, across, foot, bottom):
         for sgn in (-1, 1):
             blk(P, "hewn", at(c, d, 0.0, 0.5 * (va + vb), sgn * (across * 0.5 - fc * 0.5)), (along - 0.03, vb - va - 0.03, fc), d, rnd, bevel=0.04, warp=0.01)
             blk(P, "hewn", at(c, d, sgn * (along * 0.5 - fc * 0.5), 0.5 * (va + vb), 0.0), (fc, vb - va - 0.03, across - 2 * fc - 0.03), d, rnd, bevel=0.04, warp=0.01)
-    core(P, at(c, d, 0.0, 0.5 * (foot + bottom), 0.0), (along - 2 * fc + 0.02, bottom - foot, across - 2 * fc + 0.02), d)
+    core(P, at(c, d, 0.0, 0.5 * (foot + bottom), 0.0), (along - 2 * fc + 0.02, bottom - foot, across - 2 * fc + 0.02), d, key="hewn")
     for k, (wa, wh) in enumerate(((0.3, 0.35), (0.55, 0.35))):
         blk(P, "hewn", at(c, d, 0.0, bottom - 0.7 + 0.35 * k + 0.18, 0.0), (along + wa * 1.4, wh, across + wa), d, rnd, bevel=0.05)
     C.box(at(c, d, 0.0, 0.5 * (foot + bottom), 0.0), (along, bottom - foot, across), d)
@@ -331,8 +331,8 @@ def ward(objs, Pi, Pe):
     foot = LAVA - 0.8
     w, l = x1 - x0, z1 - z0
     for (o, d, ln) in (((x0, 0.0, z1), (1.0, 0.0), w), ((x1, 0.0, z0), (-1.0, 0.0), w), ((x0, 0.0, z0), (0.0, 1.0), l), ((x1, 0.0, z1), (0.0, -1.0), l)):
-        facing(P, rnd, o, d, 0.0, ln, foot, y - 0.55, -0.17)
-        for yy in (5.0, 14.5):
+        facing(P, rnd, o, d, 0.0, ln, foot, y - 0.55, -0.17, coarse_below=16.0)
+        for yy in (14.5,):
             for (a, b) in seg_runs(rnd, 0.0, ln, 1.2, 1.8):
                 blk(P, "hewn", at(o, d, 0.5 * (a + b), yy, 0.02), (b - a - 0.03, 0.34, 0.6), d, rnd, bevel=0.05)
         for (a, b) in seg_runs(rnd, 0.0, ln, 1.1, 1.7):
@@ -340,7 +340,7 @@ def ward(objs, Pi, Pe):
     core(P, ((x0 + x1) * 0.5, (foot + y - 0.55) * 0.5, (z0 + z1) * 0.5), (w - 0.68, y - 0.55 - foot, l - 0.68), (1.0, 0.0))
     # blind pointed arches on the west and east faces, two tiers of two
     for (xf, d) in ((x0, (0.0, 1.0)), (x1, (0.0, 1.0))):
-        for sp in (6.5, 16.0):
+        for sp in (16.0,):
             for fz in (0.3, 0.7):
                 arch_ring(P, rnd, (xf + (-0.1 if xf == x0 else 0.1), sp, z0 + l * fz), d, 3.0, 2.8, 0.5, t=0.5, layers=False)
                 for sgn in (-1, 1):

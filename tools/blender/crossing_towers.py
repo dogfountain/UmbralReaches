@@ -8,48 +8,42 @@ from crossing_deck import *      # noqa: F401,F403
 
 # ---------------------------------------------------------------------------------------------- fires
 def basket(P_iron, P_ember, c, r=0.46, deep=0.5, legs=True, big=False):
-    """An iron fire basket seated at game point c (the post cap's top): a flared bowl with a rolled rim, hoops, a coal bed (ember set)."""
+    """An iron fire cage seated at game point c (the post cap's top): a shallow dish on three feet, eight bars rising and flaring to a rim ring,
+    two hoops, a heap of coals showing between the bars (ember set); the flame is the game's."""
     sc = 1.0 if not big else 1.3
-    prof = [(0.0, 0.0), (0.16 * sc, 0.0), (0.24 * sc, 0.12 * sc), (r * sc * 0.9, deep * sc * 0.8), (r * sc, deep * sc), (r * sc + 0.05, deep * sc + 0.03), (r * sc - 0.04, deep * sc + 0.03)]
-    bm = P_iron.of("iron")
-    cb = bl(c)
-    lay = bm.verts.layers.float_color.get("vc") or bm.verts.layers.float_color.new("vc")
-    rings = []
-    seg = 12
-    for (rr, z) in prof:
-        ring = []
-        for s in range(seg):
-            a = math.tau * s / seg
-            v = bm.verts.new((cb.x + math.cos(a) * rr, cb.y + math.sin(a) * rr, cb.z + z))
-            v[lay] = (0.36, 0.33, 0.31, 1.0)
-            ring.append(v)
-        rings.append(ring)
-    for i in range(len(rings) - 1):
-        for s in range(seg):
-            try:
-                bm.faces.new((rings[i][s], rings[i][(s + 1) % seg], rings[i + 1][(s + 1) % seg], rings[i + 1][s]))
-            except ValueError:
-                pass
-    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
-    # coal bed
-    be = P_ember.of("ember")
-    lay2 = be.verts.layers.float_color.get("vc") or be.verts.layers.float_color.new("vc")
-    top = [be.verts.new((cb.x + math.cos(math.tau * s / seg) * r * sc * 0.82, cb.y + math.sin(math.tau * s / seg) * r * sc * 0.82, cb.z + deep * sc * 0.78)) for s in range(seg)]
-    apex = be.verts.new((cb.x, cb.y, cb.z + deep * sc * 0.98))
-    for v in top + [apex]:
-        v[lay2] = (1.0, 0.45, 0.12, 1.0)
-    for s in range(seg):
-        try:
-            be.faces.new((top[s], top[(s + 1) % seg], apex))
-        except ValueError:
-            pass
-    bmesh.ops.recalc_face_normals(be, faces=be.faces)
-    # three hoops
-    if legs:
-        for k in range(3):
-            a = math.tau * k / 3.0
-            for (z0, z1, rr0, rr1) in ((0.02, deep * sc * 0.55, 0.16 * sc, r * sc * 0.7),):
-                pass
+    R0, R1, H = 0.26 * sc, (r + 0.06) * sc, (deep + 0.12) * sc
+    rnd = rnd_for(77)
+    d = (1.0, 0.0)
+    # the dish: a low ring of plates
+    for k in range(10):
+        a = math.tau * k / 10.0
+        pc = (c[0] + math.cos(a) * R0 * 0.8, c[1] + 0.05, c[2] + math.sin(a) * R0 * 0.8)
+        blk(P_iron, "iron", pc, (R0 * 0.62, 0.08, R0 * 0.8), (-math.sin(a), math.cos(a)), rnd, bevel=0.0, warp=0, tint=False)
+    # the bars, flaring: each a thin box tilted outward
+    for k in range(8):
+        a = math.tau * k / 8.0
+        rm = (R0 + R1) * 0.5
+        pc = (c[0] + math.cos(a) * rm, c[1] + 0.05 + H * 0.5, c[2] + math.sin(a) * rm)
+        tilt = math.atan2(R1 - R0, H)
+        # pitch about the tangent axis tips the bar outwards: build it as a blk turned to the radial direction
+        blk(P_iron, "iron", pc, (0.05, H, 0.05), (math.cos(a), math.sin(a)), rnd, bevel=0.0, warp=0, roll=tilt, tint=False)
+    # hoops at the middle and the rim
+    for (hh, rr) in ((0.05 + H * 0.5, (R0 + R1) * 0.5), (0.05 + H, R1)):
+        for k in range(14):
+            a = math.tau * k / 14.0
+            pc = (c[0] + math.cos(a) * rr, c[1] + hh, c[2] + math.sin(a) * rr)
+            blk(P_iron, "iron", pc, (rr * 0.46, 0.05, 0.06), (-math.sin(a), math.cos(a)), rnd, bevel=0.0, warp=0, tint=False)
+    # three feet
+    for k in range(3):
+        a = math.tau * k / 3.0 + 0.4
+        pc = (c[0] + math.cos(a) * R0 * 0.9, c[1] + 0.0, c[2] + math.sin(a) * R0 * 0.9)
+        blk(P_iron, "iron", pc, (0.07, 0.12, 0.07), d, rnd, bevel=0.0, warp=0, tint=False)
+    # the coals: a heap of embers (ember set) with a few lumps
+    for k in range(7):
+        a = math.tau * k / 7.0
+        rr = R0 * 0.7 if k else 0.0
+        pc = (c[0] + math.cos(a) * rr, c[1] + 0.2 * sc + 0.05 * (k % 2), c[2] + math.sin(a) * rr)
+        blk(P_ember, "ember", pc, (0.2 * sc, 0.16 * sc, 0.2 * sc), (math.cos(a), math.sin(a)), rnd, bevel=0.03, warp=0.02, tint=False)
 
 
 def lamp_with_fire(P, Pi, Pe, rnd, c, d, h=1.9, big=False):
@@ -59,7 +53,7 @@ def lamp_with_fire(P, Pi, Pe, rnd, c, d, h=1.9, big=False):
         SINK[0].box((c[0], c[1] + h * 0.5, c[2]), (0.62, h, 0.62), d)
     top = (c[0], c[1] + h + 0.17, c[2])
     basket(Pi, Pe, top, big=big)
-    return (top[0], top[1] + 0.62, top[2])
+    return (top[0], top[1] + 0.5, top[2])
 
 
 def beacon(P, Pi, Pe, rnd, c, d):

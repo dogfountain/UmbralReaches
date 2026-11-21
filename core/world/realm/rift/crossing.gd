@@ -80,9 +80,9 @@ func _place(host: Node3D) -> void:
 	for b in node.find_children("*", "StaticBody3D", true, false):
 		(b as StaticBody3D).collision_layer = Layers.WORLD
 		(b as StaticBody3D).collision_mask = 0
-	var hewn := _mat("hewn", Color(1.28, 1.25, 1.3), 0.17)
-	var slate := _mat("slate", Color(1.24, 1.21, 1.27), 0.14)
-	var core := _mat("stone", Color(0.8, 0.78, 0.82), 0.04)
+	var hewn := _mat("hewn", Color(0.74, 0.71, 0.67), 0.05)
+	var slate := _mat("slate", Color(0.72, 0.70, 0.68), 0.04)
+	var core := _mat("stone", Color(0.6, 0.57, 0.55), 0.0)
 	var chunk: Array[MeshInstance3D] = []
 	for n in node.find_children("*", "MeshInstance3D", true, false):
 		var mi := n as MeshInstance3D
@@ -181,7 +181,7 @@ func _commit_fires(host: Node3D) -> void:
 	for f: Dictionary in fires:
 		var p := _v3(f["p"])
 		var big := bool(f.get("big", false))
-		var flame := Vfx.emitter(Color(1.9, 0.75, 0.22), {"count": 40 if big else 26, "life": 0.85 if big else 0.75, "speed": Vector2(0.4, 1.2) if big else Vector2(0.3, 0.9), "size": 0.3 if big else 0.2, "gravity": 2.4, "radius": 0.2 if big else 0.14, "spread": 14.0, "grow": 1.0})
+		var flame := Vfx.emitter(Color(1.9, 0.75, 0.22), {"count": 56 if big else 30, "life": 0.95 if big else 0.8, "speed": Vector2(0.4, 1.2) if big else Vector2(0.3, 0.9), "size": 0.38 if big else 0.22, "gravity": 2.4, "radius": 0.2 if big else 0.14, "spread": 14.0, "grow": 1.0})
 		if flame:
 			flame.name = "Flame"
 			host.add_child(flame)
@@ -211,8 +211,8 @@ func _underglow(host: Node3D) -> void:
 		var l := OmniLight3D.new()
 		l.name = "LavaGlow"
 		l.light_color = Color(1.0, 0.4, 0.12)
-		l.light_energy = 1.3
-		l.omni_range = 14.0
+		l.light_energy = 0.9
+		l.omni_range = 12.0
 		l.shadow_enabled = false
 		l.set_meta("light_class", "realm")
 		host.add_child(l)

@@ -14,6 +14,7 @@ const Crossing := preload("res://core/world/realm/rift/crossing.gd")
 const Features := preload("res://core/world/realm/rift/features.gd")
 const Threshold := preload("res://core/world/realm/rift/threshold.gd")
 const OssRemains := preload("res://core/world/realm/rift/oss_remains.gd")
+const HeatHaze := preload("res://core/world/realm/rift/heat_haze.gd")
 const Scorch := preload("res://core/world/realm/rift/scorch.gd")
 
 ## The Pilgrims' Threshold (Luke, 9 Nov: "I don't think the lava place should be so close to the village",
@@ -26,7 +27,7 @@ const STAR_BAND := 5.0
 ## Falls poured from the rim walls: [z, side (-1 west wall, +1 east wall)]. LavaWorks finds each
 ## lip on the real rock along that z (east side only south of the Ossuary). Lava north of STAR_Z;
 ## the STARFALLS south of it pour light into the pool down channels left in the terraces.
-const FALLS := [[-60.0, -1.0], [-82.0, -1.0], [-104.0, -1.0], [-114.0, 1.0]]
+const FALLS := [[-60.0, -1.0], [-70.0, 1.0], [-82.0, -1.0], [-88.0, 1.0], [-94.0, -1.0], [-104.0, -1.0], [-114.0, 1.0]]   ## (the two at z -88 and -94 pour from the cliffs below the summit: the pit's source)
 const STARFALLS := [[-37.0, -1.0]]   ## on a terrace bay centre (rift/threshold.gd leaves that bay open); none by the Watchers, whose pedestals fill the mouth
 
 
@@ -65,6 +66,7 @@ static func build(root: Node) -> void:
 	remains.name = "OssRemains"
 	host.add_child(remains)
 	OssRemains.build(remains)
+	HeatHaze.build(host)                         # the shimmer over the pit
 	Endgame.settle(root, s0, l0)                 # built at home: now where the endgame stands
 	# LavaWorks (attached by main.gd before the Realm builds) waits for this to lay out the lava
 	root.set_meta("rift_lava", {"falls": FALLS, "starfalls": STARFALLS, "star_z": STAR_Z, "star_band": STAR_BAND, "vents": fb.vents})

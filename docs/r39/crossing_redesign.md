@@ -77,6 +77,13 @@ Today's pit: a 40 m trench (walls at |x| 20-25 at y 0..4, the lava sheet 92 x 13
 - **Kept:** the lava's light (the Glow lights, the underglow), the kill volume and burn handling (the 92 x 130 m sheet already covers the widened bowl), the bank mask, LightGrid, sound.
 - **The Crossing spans it:** the route's lava stretch (the helix's piers, the Gate, the bridge's pier P2, the ward landing's foot) now stands in a pit that is visibly wide.
 
+### Round 2 (lead review): the pit as a real feature
+- `rift/pit.gd`: an irregular outline (a different lobe each side, walls drawn back 5 to 13 m, z -51 .. -91), bays and headlands.
+- Source: falls at z -70 (east), -88 (east, from the cliff below the summit), plus the west falls; islands 16 -> 34 (black basalt, some glowing-edged), channels and a lake of open flow in the middle.
+- `lava.gdshader`: plate size, current heading and crust coverage vary across the basin (no single tile).
+- `rift/heat_haze.gd` + `heat_haze.gdshader`: one sheet over the basin bending the screen behind it (GPU only).
+- Stone: grey-brown ashlar, darker, glow 0.05; underglow lights softer. Fire cages modelled (bars, hoops, coals); ward landing 64k -> 35k triangles.
+
 ## 3. What is kept (and read by the rest of the game)
 
 The forecourt's footprint and `CROSSING_FOOT`; the ward landing's footprint and `SUMMIT_WARD` (top 25.2); T3 at (-1.8, -40), r 3.5, deck 5.6 with the parapet opened at -35 deg for the Pilgrims' Stair (`rift/tower_stair.gd`, the chapel and the quay, untouched); the Spindle (basalt stack, collision cylinder, centre (-8.3, -50), r 4.1) and its site; the pier feet reaching the lava line (the bank mask); the `rift_*` sites and flights and the three `rift_crossing*` lanes in `WorldLanes`; the walk-test points (updated: `zz/realm_rift_walk.gd`, `zz/threshold_walk_test.gd --full`, `zz/perf_tour.gd`, the loading screen's cameras, the minimap's deck line); the seal guards' camps (moved from T2 to the Spindle's west landing and the ward landing).
