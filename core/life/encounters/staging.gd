@@ -198,8 +198,10 @@ func _build_one() -> bool:
 			var sp: EnemySpawner = director.spawner
 			if sp == null or not is_instance_valid(sp):
 				return _next()
-			if not sp.settled or sp.rares == null:
+			if not sp.settled:
 				return false                    # (the rares find their haunts once the camps are settled)
+			if sp.rares == null or not is_instance_valid(sp.rares):
+				return _next()
 			var rares: Variant = sp.rares
 			if _keys.is_empty() and _k == 0:
 				_keys = (rares.haunts as Dictionary).keys()
