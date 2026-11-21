@@ -155,8 +155,9 @@ func _shores() -> void:
 			if side > 0.0 and z < -21.0 and top > -7.5:
 				continue                                    # the old Ossuary's wall: a bare cliff above y -7
 			var p := Vector2(wx - side * 1.6, z)
-			if _blocked(p, top, 0.6) or _near_placed(p, 4.0):
-				continue
+			var half := (_variants[key][3] as AABB).size.z * 0.5 + 1.0
+			if _blocked(p, top, 0.6) or _near_placed(p, 4.0) or Rect2(p.x - 3.5, p.y - half, 7.0, half * 2.0).intersects(CHAPEL):
+				continue                                    # (a shore's length runs along the wall: none may reach into the chapel)
 			var b := Basis(Vector3.UP, (0.0 if side < 0.0 else PI) + rng.randf_range(-0.15, 0.15))
 			_put(key, Transform3D(b, Vector3(p.x, LAVA, p.y)))
 			placed += 1
@@ -171,7 +172,7 @@ const ISLE_GAP := 8.5
 func _lava_rock() -> void:
 	var n := {"Plate": 0, "Isle": 0, "Stack": 0}
 	var want := [["Plate", 3, 8, Rect2(-17.0, -26.0, 36.0, 14.0)], ["Isle", 4, 16, Rect2(-20.0, -100.0, 46.0, 72.0)],
-			["Stack", 3, 4, Rect2(13.0, -96.0, 12.0, 44.0)]]
+			["Stack", 3, 4, Rect2(11.0, -106.0, 13.0, 34.0)]]
 	for w: Array in want:
 		var kind: String = w[0]
 		var r: Rect2 = w[3]
