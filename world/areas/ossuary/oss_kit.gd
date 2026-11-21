@@ -910,7 +910,18 @@ func commit(parent: Node3D, body_name := "Body") -> int:
 				cells[key] = []
 			(cells[key] as Array).append(t)
 		for key: Vector2i in cells:
-			var mm := multimesh(mesh, cells[key], m, false, n.begins_with("Skulls") or n.begins_with("Bones"))
+			# a visibility range is measured to the node's ORIGIN: a cell's batch stands at its own centre, not at the area's origin
+			# (every skull, candle and bone more than 34/55 m from the Ossuary's origin was out of range: the pit court's mound and its
+			# candle ring, the far half of the gallery, the chapel)
+			var cen := Vector3.ZERO
+			for t: Transform3D in cells[key]:
+				cen += t.origin
+			cen /= float((cells[key] as Array).size())
+			var shifted: Array = []
+			for t: Transform3D in cells[key]:
+				shifted.append(Transform3D(t.basis, t.origin - cen))
+			var mm := multimesh(mesh, shifted, m, false, n.begins_with("Skulls") or n.begins_with("Bones"))
+			mm.position = cen
 			mm.name = "%s_%d_%d" % [n, key.x, key.y]
 			mm.visibility_range_end = far
 			mm.visibility_range_end_margin = far * 0.12
