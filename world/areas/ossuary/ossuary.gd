@@ -1009,10 +1009,16 @@ func _abbey() -> void:
 	if not is_inside_tree():
 		return
 	await get_tree().physics_frame
+	# the ground under the bank settles after the Realm is done (stamps, the settle pass): wait until it has held still for 2 s
 	var tries := 0
-	while is_inside_tree() and tries < 900 and not OssAbbey.ground_ready(get_world_3d().direct_space_state):
+	var still := 0
+	var last := NAN
+	while is_inside_tree() and tries < 1800 and still < 120:
 		tries += 1
 		await get_tree().physics_frame
+		var h := OssAbbey.ground_probe(get_world_3d().direct_space_state)
+		still = still + 1 if (not is_nan(h) and absf(h - last) < 0.02) else 0
+		last = h
 	if is_inside_tree():
 		OssAbbey.build(self, get_world_3d().direct_space_state)
 
