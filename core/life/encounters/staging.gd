@@ -28,6 +28,7 @@ var _step := 0                         ## 0 elites, 1 guardians, 2 rares, 3 done
 var _keys: Array = []
 var _k := 0
 var _built := 0
+var _esc_key := ""                     ## the guardian whose escort the pass is building
 var _t0 := 0
 
 
@@ -181,6 +182,11 @@ func _build_one() -> bool:
 			_built += 1
 			return true
 		1:
+			if _esc_key != "":                  # the last guardian's escort, one a call (each waits as its guardian does)
+				if bool(guardians.escort_next(_esc_key)):
+					_built += 1
+					return true
+				_esc_key = ""
 			if _keys.is_empty() and _k == 0:
 				guardians.refresh_sites()
 				_keys = (guardians.sites as Array).duplicate()
@@ -191,7 +197,8 @@ func _build_one() -> bool:
 			var key := String(s.key)
 			if is_instance_valid((guardians.nodes as Dictionary).get(key)) or bool(guardians.slain(key)) or LightGrid.is_lit(s.at as Vector3):
 				return true
-			stage(guardians.spawn(s, true) as Enemy, _d(pos, s.at as Vector3))       # its escort follows asleep (guardians.gd)
+			stage(guardians.spawn(s, false, false) as Enemy, _d(pos, s.at as Vector3))
+			_esc_key = key
 			_built += 1
 			return true
 		2:
@@ -235,4 +242,4 @@ func _finish() -> void:
 	var root: Variant = director.root
 	if root is Node:
 		(root as Node).set_meta(&"foes_staged", true)
-	print("STAGING %d guardians, elites and rares built ahead, asleep (%.1f s after the encounters came up)" % [_built, (Time.get_ticks_msec() - _t0) / 1000.0])
+	print("STAGING %d guardians, escorts, elites and rares built ahead, asleep (%.1f s after the encounters came up)" % [_built, (Time.get_ticks_msec() - _t0) / 1000.0])

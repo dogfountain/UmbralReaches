@@ -296,7 +296,8 @@ static func title(e: Enemy) -> String:
 
 ## `spread`: the escort rises over the next frames, one every third frame (the tick's path: a guardian and its whole escort built in
 ## one frame were a 20 ms frame at 55 m, perf tour probe 16 Nov); a direct call builds them all now, as before.
-func spawn(s: Dictionary, spread := false) -> Enemy:
+## `escort` false: the guardian alone; the caller builds its escort with escort_next (staging.gd, inside its frame budget).
+func spawn(s: Dictionary, spread := false, escort := true) -> Enemy:
 	var key: String = s.key
 	var id: String = s.id
 	var d: Dictionary = GUARDIANS[id]
@@ -328,12 +329,32 @@ func spawn(s: Dictionary, spread := false) -> Enemy:
 	var esc: Array[Enemy] = []
 	escorts[key] = esc
 	var kinds: Array = d.get("escort", [])
+	if not escort:
+		return e
 	if spread:
 		_escort_later(key, at, tier, kinds, esc)
 	else:
 		for i in kinds.size():
 			_escort_one(key, at, tier, kinds, i, esc)
 	return e
+
+
+## The next of a guardian's escort built now (staging.gd builds them one at a time, inside its frame budget); false once the
+## whole escort stands (or the guardian is gone).
+func escort_next(key: String) -> bool:
+	var esc: Variant = escorts.get(key)
+	if not (esc is Array) or not is_instance_valid(nodes.get(key)):
+		return false
+	for s: Dictionary in sites:
+		if String(s.key) == key:
+			var kinds: Array = GUARDIANS[String(s.id)].get("escort", [])
+			var i := (esc as Array).size()
+			if i >= kinds.size():
+				return false
+			var typed: Array[Enemy] = escorts[key]
+			_escort_one(key, s.at, Tiers.tier_at(s.at), kinds, i, typed)
+			return true
+	return false
 
 
 ## The escort one every third frame (a build is a heavy frame: back to back they read as one long stall); stops if
