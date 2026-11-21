@@ -3,7 +3,7 @@ extends Node
 ## north postern up the rift_rim path onto the Lip, down the Descent, over the causeway and the Cinder Isle, up the Ward Stair's four
 ## traverses, onto the ward landing, up the summit's approach stairs and onto the Warden's dais. The route is the layout's own lanes
 ## (art/models/rift_way_layout.json, in the rift's coordinates) walked Endgame.O east, where it stands.
-##   godot --headless --path . res://zz/realm_rift_walk.tscn -- --realm --realm-modules=land,rift,bosses
+##   godot --headless --path . res://zz/realm_rift_walk.tscn -- --realm --realm-modules=land,rift
 ##   -- --stair   the branch: the Lip, the Descent, the Foot, the branch along the wall to the chapel door and the kneeling stone
 ##   -- --lava    over the causeway to the Cinder Isle, then off its open north-east edge into the lava: it must burn once and give the
 ##                Player back on solid ground (as everywhere: lava_burn to the last safe ground)
@@ -106,7 +106,10 @@ func _physics_process(delta: float) -> void:
 		get_tree().quit()
 		return
 	if p.is_on_floor():
-		max_drop = maxf(max_drop, last_floor - p.global_position.y)
+		var drop := last_floor - p.global_position.y
+		if drop > 1.0:                           # off the floor and down more than a metre: where, and was it a hard landing
+			print("AIR leg %d %s: down %.2f m to %s (hurt by landings so far %.1f)" % [leg, route[leg][1], drop, (p.global_position - Endgame.O).snapped(Vector3.ONE * 0.01), p.falls_hurt])
+		max_drop = maxf(max_drop, drop)
 		last_floor = p.global_position.y
 	if burns > 0 and not lava:
 		print("STUCK fell into the lava on leg ", leg, " ", route[leg][1])

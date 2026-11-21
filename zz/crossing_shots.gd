@@ -3,6 +3,8 @@ extends Node
 ##   --shots=<json>  [{"n": name, "p": [x,y,z], "t": [x,y,z], "fov": 70}, ...] in the Crossing's own coordinates (chasm on x 0:
 ##                   Endgame.O is added); an optional "eye": true puts the camera 1.7 m over the ground under p (a ray down)
 ##   --out=<dir>     where the PNGs go (default res://shots)
+##   --probe         prints the chasm's walls (x of the terrain per z and height)
+##   --grid=<path>   writes the terrain and built heights on a 1 m grid over the rift as JSON
 ## Waits for the realm and the lava's second bank map, then shoots each view and quits.
 var main: Node
 var cam: Camera3D
