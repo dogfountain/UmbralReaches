@@ -11,12 +11,12 @@ var views: Array = [
 	["overview", Vector3(-24.0, 10.0, -48.0), Vector3(4.0, -15.5, -80.0)],
 	["bank", Vector3(-6.0, -9.0, -52.0), Vector3(-12.0, -15.5, -66.0)],
 	["under_summit", Vector3(-14.0, -6.0, -78.0), Vector3(2.0, -15.5, -100.0)],
-	["from_stair", Vector3(4.0, 14.0, -36.0), Vector3(-4.0, -15.5, -55.0)],
+	["from_stair", Vector3(6.2, 9.4, -57.3), Vector3(14.0, -15.5, -72.0)],
 ]
 var realm_views: Array = [
 	["rift_rim", Vector3(10.0, 8.0, 0.0), Vector3(-6.0, 0.0, -40.0)],
 	["rift_crossing", Vector3(14.0, 30.0, 8.0), Vector3(-6.0, 6.0, -45.0)],
-	["rift_spindle", Vector3(10.0, 18.0, -38.0), Vector3(-8.0, 15.0, -54.0)],
+	["rift_crag", Vector3(14.0, 6.0, -36.0), Vector3(-6.0, 8.0, -58.0)],
 	["rift_from_landing", Vector3(2.0, 29.8, -64.0), Vector3(-6.0, 0.0, -25.0)],
 	["rift_west_bank", Vector3(12.0, -7.0, -30.0), Vector3(-17.0, -12.0, -56.0)],
 ]

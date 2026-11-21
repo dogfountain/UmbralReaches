@@ -41,6 +41,9 @@ func _process(d: float) -> void:
 			(n as Node).queue_free()
 		if "--probe" in OS.get_cmdline_user_args():
 			_probe()
+		for a in OS.get_cmdline_user_args():
+			if a.begins_with("--grid="):
+				_grid(a.trim_prefix("--grid="))
 		if "--hud" not in OS.get_cmdline_user_args():
 			for c in get_tree().root.find_children("*", "CanvasLayer", true, false):
 				(c as CanvasLayer).visible = false
@@ -110,3 +113,39 @@ func _probe() -> void:
 				cell += res
 			line += " y%d:%s" % [y, cell]
 		print("PROBE ", line)
+
+
+## Terrain and built heights on a 1 m grid over the rift (rift coordinates), as JSON: {"x0", "z0", "nx", "nz", "ground": [...], "top": [...]}
+## (ground: the first Terrain hit from above, passing through anything built; top: the first WORLD hit of any kind; -99 = none).
+func _grid(path: String) -> void:
+	var space := (main as Node3D).get_world_3d().direct_space_state
+	var x0 := -44
+	var z0 := 8
+	var nx := 89
+	var nz := 141
+	var ground := PackedFloat32Array()
+	var top := PackedFloat32Array()
+	for j in nz:
+		for i in nx:
+			var x := Endgame.O.x + float(x0 + i)
+			var z := float(z0 - j)
+			var from := Vector3(x, 70.0, z)
+			var g := -99.0
+			var tp := -99.0
+			for k in 8:
+				var hit := space.intersect_ray(PhysicsRayQueryParameters3D.create(from, Vector3(x, -30.0, z), Layers.WORLD))
+				if hit.is_empty():
+					break
+				var y := (hit.position as Vector3).y
+				if tp < -98.0:
+					tp = y
+				if String((hit.collider as Node).name).begins_with("Terrain"):
+					g = y
+					break
+				from = Vector3(x, y - 0.05, z)
+			ground.append(g)
+			top.append(tp)
+	var f := FileAccess.open(path, FileAccess.WRITE)
+	f.store_string(JSON.stringify({"x0": x0, "z0": z0, "nx": nx, "nz": nz, "ground": Array(ground), "top": Array(top)}))
+	f.close()
+	print("GRID written ", path)
