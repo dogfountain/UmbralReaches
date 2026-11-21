@@ -52,6 +52,7 @@ func _run(root: Node) -> void:
 	c = f.pos
 	gy = lerpf(float(f.lo), float(f.hi), 0.5)
 	WorldLanes.register_terrace("wonder_hollow_king", c, RAD, gy)
+	WorldLanes.register_lane("hollow_king_door_way", [c + Vector2(26.0, 0.0), c + Vector2(7.0, 0.0)], 2.6)      # scatter keeps off the doorway's approach
 	k = WK.new()
 	k.setup(root, "HollowKing", 4417)
 	k.poi("hollow_king", "The Hollow King", "it died standing, and something lit it", "southwood")

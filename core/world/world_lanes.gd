@@ -85,13 +85,15 @@ static func register_zone(n: String, centre: Vector2, r: float, floor_y: float, 
 
 ## A built stair corridor a -> b (floors at their y), `half_w` wide: ground above the flight is
 ## cut away under it; props and grass keep off it.
-static func register_flight(n: String, a: Vector3, b: Vector3, half_w: float) -> void:
+## `hard`: the cut ends at the corridor's edge with no 4 m falloff (a hall's or cave's stair is walled: the falloff dug a crater round
+## its walls that a walker could slide into and not climb out of).
+static func register_flight(n: String, a: Vector3, b: Vector3, half_w: float, hard := false) -> void:
 	for s in sites:
 		if s.name == n:
 			return
 	var lo := Vector2(minf(a.x, b.x), minf(a.z, b.z)) - Vector2(half_w, half_w)
 	var hi := Vector2(maxf(a.x, b.x), maxf(a.z, b.z)) + Vector2(half_w, half_w)
-	sites.append({"name": n, "rect": Rect2(lo, hi - lo), "floor_y": minf(a.y, b.y), "cut_y": minf(a.y, b.y), "seg": [a, b, half_w]})
+	sites.append({"name": n, "rect": Rect2(lo, hi - lo), "floor_y": minf(a.y, b.y), "cut_y": minf(a.y, b.y), "seg": [a, b, half_w], "hard": hard})
 
 
 ## Inside a site's real shape (rect, circle or flight), grown by margin. Returns the floor there
@@ -110,6 +112,25 @@ static func site_floor(s: Dictionary, p: Vector2, margin := 0.0) -> float:
 			return NAN
 		return lerpf(a.y, b.y, t)
 	return float(s.floor_y) if (s.rect as Rect2).grow(margin).has_point(p) else NAN
+
+
+## Past a flight's end (before its foot or beyond its head): the stamp's round cap round each end. The cap at a flight's LOW end is
+## not cut at all (a hall's or cave's stair bottoms out 10 m under the hill: cutting its cap dug an open pit down onto the first
+## room, and the ground before a stair's foot is the road's); the cap at its HIGH end is cut flush with the floor, not 0.35 under it.
+## Returns -1 for no cut past this end, 0 inside the flight (the usual cut), 1 for the flush cut at the high end.
+static func end_cap(s: Dictionary, p: Vector2) -> int:
+	if not s.has("seg"):
+		return 0
+	var a: Vector3 = s.seg[0]
+	var b: Vector3 = s.seg[1]
+	var a2 := Vector2(a.x, a.z)
+	var ab := Vector2(b.x, b.z) - a2
+	var t := (p - a2).dot(ab) / maxf(ab.length_squared(), 0.0001)
+	if t >= 0.0 and t <= 1.0:
+		return 0
+	var here_y := a.y if t < 0.0 else b.y
+	var other_y := b.y if t < 0.0 else a.y
+	return -1 if here_y < other_y - 0.05 else 1
 
 
 static func register_lane(n: String, pts: Array, half_w: float) -> void:

@@ -904,7 +904,7 @@ def build(DATA, PREVIEW, objs_out):
         rw = r_in(y)
         ri_ = rw - 0.12 - STAIR_W
         rm = (rw + ri_) / 2 + 0.2
-        sb.box(tuple(pos(a, rm, y - 0.3)), (rw - ri_ + 0.6, 0.55, 3.6), "plank", yaw=a + math.pi / 2, scale_uv=0.5)
+        sb.box(tuple(pos(a, rm, y - 0.45)), (rw - ri_ + 0.6, 0.55, 3.6), "plank", yaw=a + math.pi / 2, scale_uv=0.5)      # zone fit: top 0.175 under the sill, so the treads either side meet it in a step of 0.17 (it stood 0.3 over the treads before it)
         sb.box(tuple(pos(a, rw + 0.6, y - 1.6)), (1.0, 3.0, 3.4), "heart", yaw=a + math.pi / 2, scale_uv=0.4)
     # the crown deck: an annulus of planks at the top of the flight
     y_top = stair_y(STAIR_N)
@@ -1066,7 +1066,9 @@ def build(DATA, PREVIEW, objs_out):
         rad = Vector((math.sin(a), 0, math.cos(a)))
         hw = (rw - ri_ + 0.6) / 2
         hl = 1.8
-        p = [c + rad * hw + tang * hl, c + rad * hw - tang * hl, c - rad * hw - tang * hl, c - rad * hw + tang * hl]
+        # the plate follows the flight's slope along the tangent (it was flat at the sill: the treads before it stood 0.3-0.6 under its edge)
+        rise_t = Vector((0, RISE / (DA * ((rw + ri_) / 2 + 0.2)) * hl, 0))
+        p = [c + rad * hw + tang * hl + rise_t, c + rad * hw - tang * hl - rise_t, c - rad * hw - tang * hl - rise_t, c - rad * hw + tang * hl + rise_t]
         # extend through the door to the limb's first walk point
         p0 = limb_col[limbs.index(lm)][0][0]
         try:

@@ -77,6 +77,12 @@ func _build(root: Node) -> void:
 	var gate2 := Vector2(C.x, C.z) + to_foot * (STAIR_R if realm else R)   # stair head on the terrace (raid floor) edge
 	var head := Vector3(gate2.x, C.y, gate2.y)
 	var dir3 := Vector3(foot.x - head.x, 0, foot.z - head.z).normalized() if realm else Vector3(to_foot.x, 0, to_foot.y)   # downhill along the flight
+	if realm:
+		# the road arrives from the downhill side: the foot is set into the ground there too (the ground 1-3 m out), or the first
+		# riser stood 0.6 m up from the road (the walk snagged at the foot)
+		for dd: float in [1.0, 2.0, 3.0]:
+			fg = minf(fg, _ground(space, foot.x + dir3.x * dd, foot.z + dir3.z * dd))
+		foot.y = fg - 0.12
 	var run := Vector2(head.x - foot.x, head.z - foot.z).length()
 	var mid_land := 2.6
 	var land_c := foot.lerp(head, 0.5)
@@ -103,6 +109,8 @@ func _build(root: Node) -> void:
 		var pins := ceili(run / 1.6)
 		for i in pins + 1:
 			var pp := foot.lerp(head, float(i) / float(pins))
+			if Vector2(pp.x - head.x, pp.z - head.z).length() < 6.6:
+				continue                   # a pin lowers the ground 0.5 m round it and 4 m beyond: near the head that dug the raid floor away from the top step (1 m drop)
 			var py := land_c.y if absf(Vector2(pp.x - land_c.x, pp.z - land_c.z).length()) < mid_land * 0.5 else pp.y
 			WorldLanes.register_terrace("henge_stair_pin%d" % i, Vector2(pp.x, pp.z), 2.4, maxf(py - 0.5, foot.y))   # never below the foot: its first riser stays a step
 	if realm:
@@ -127,6 +135,11 @@ func _build(root: Node) -> void:
 	k.stairs("stone", land_b, head, 3.9, n2, flight_min - Metrics.FOUNDATION_BURY)
 	var side := dir3.cross(Vector3.UP).normalized()
 	var lb := Basis(side, Vector3.UP, dir3)
+	if realm:
+		# the top step meets the raid floor: a paved apron flush with the head, past the raid door (the land round the head is cut
+		# by the flight's end cap and falls a few tenths short of the floor on a 3 m grid, so the join is built, not left to the ground)
+		var ap_len := 6.0
+		k.box("stone", head - dir3 * (ap_len * 0.5) + Vector3.DOWN * 1.0, Vector3(4.6, 2.0, ap_len), lb, true, 0.9)
 	k.box("stone", (land_a + land_b) * 0.5 + Vector3.DOWN * ((land_c.y - flight_min + 0.6) * 0.5), Vector3(3.9, land_c.y - flight_min + 0.6, mid_land + 0.04), lb, true, 0.92)
 	for s: float in [-1.0, 1.0]:                                     # low cheek walls with copings
 		for seg: Array in [[foot, land_a], [land_b, head]]:

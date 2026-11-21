@@ -197,7 +197,7 @@ func _deck() -> void:
 	out2.y = 0.0
 	out2 = out2.normalized()
 	var foot := br + out2 * 9.0
-	var gh := lvl
+	var gh := lvl - 1.1                                  # the flats fall away past the level: the foot is set under them
 	k.kit.stairs("wood_big", Vector3(foot.x, gh + 0.1, foot.z), Vector3(br.x - out2.x * 0.6, br.y, br.z - out2.z * 0.6), 2.2, maxi(6, int(ceilf((br.y - gh) / 0.36))), gh - 0.8)
 	# timber shores on the high side
 	for zi in 4:

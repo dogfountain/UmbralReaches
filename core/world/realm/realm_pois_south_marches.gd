@@ -91,6 +91,9 @@ static func reserve(root: Node) -> void:
 	var land := func(x: float, z: float) -> float: return RealmLayout.ground(space, x, z)
 	OakMound.queue(Kit.mesh(Kit.OAK, "Roots"), OAK_C, oy, float(Data.OAK_DOOR.a), land)
 	spots["r37s_oak"] = {"at": Vector3(OAK_C.x, oy, OAK_C.y), "yaw": 0.0, "rect": Rect2(OAK_C - Vector2(11, 11), Vector2(22, 22))}
+	# the doorway's approach kept clear of scatter: two fallen boughs lay across it 3.6 m out and the way in was shut (zone fit)
+	var door_out := Vector2(sin(float(Data.OAK_DOOR.a)), cos(float(Data.OAK_DOOR.a)))
+	WorldLanes.register_lane("oak_door_way", [OAK_C + door_out * 22.0, OAK_C + door_out * 5.0], 2.6)
 	# --- the shepherds' hut and fold: the fold's round first (a terrace), the hut beside it
 	var fold_pref := Vector2(12.0, 207.0)
 	var fq := LK.search_spot(space, fold_pref, 14.0, Vector2(9.0, 9.0), 1.5, 2.4, [], 2.0)

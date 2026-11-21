@@ -146,6 +146,7 @@ func _make(root: Node, i: int, c: Vector2, yaw: float) -> bool:
 	d.side = d.fwd.cross(Vector3.UP)
 	var start := c - fwd2 * 24.0
 	d.run = 20.0
+	d.kerb_l = 8.6
 	d.o = Vector3(start.x, WK.h(start.x, start.y), start.y)
 	# (map audit: every 3 m over the whole footprint and 1.6 m more cover: caves 1, 2 and 4 showed their roof slabs and
 	# black walls through the turf of their hillsides)
@@ -155,6 +156,15 @@ func _make(root: Node, i: int, c: Vector2, yaw: float) -> bool:
 			var q := d.o + d.fwd * (d.run + float(vi)) + d.side * float(ui)
 			gmin = minf(gmin, WK.h(q.x, q.z))
 	d.yf = gmin - 9.0
+	# a stair no steeper than ~31 degrees: cave 3's mouth stands 28 m over its floor and 20 m of run made a 54 degree wall nobody can walk down
+	if (d.o.y - d.yf) / 0.6 > d.run:
+		d.run = ceilf((d.o.y - d.yf) / 0.6)
+		gmin = d.o.y
+		for ui in range(-12, 13, 3):
+			for vi in range(-2, 40, 3):
+				var q2 := d.o + d.fwd * (d.run + float(vi)) + d.side * float(ui)
+				gmin = minf(gmin, WK.h(q2.x, q2.z))
+		d.yf = gmin - 9.0
 	d.wall = "cave"
 	d.trim = "cave"
 	d.ceil_key = "cave"

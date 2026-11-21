@@ -193,6 +193,7 @@ func _stair(root: Node, i: int, p: Vector2, top: Vector2, rng: RandomNumberGener
 	var s3 := d3.cross(Vector3.UP)
 	var b := Basis(s3, Vector3.UP, d3)
 	var yb := WK.h(p.x, p.y)
+	WorldLanes.register_terrace("climb_stair_foot_%d" % i, p, 3.2, yb)       # a level pad under the foot: the hillside fell 0.8 m in the first 1.2 m
 	var yt := WK.h(top.x, top.y) + 0.4
 	var a3 := Vector3(p.x, yb, p.y)
 	var t3 := Vector3(top.x, yt, top.y)
