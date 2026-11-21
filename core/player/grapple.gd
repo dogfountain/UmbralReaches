@@ -32,10 +32,15 @@ var _speed := 0.0
 var _stuck := 0.0
 var _mark: MeshInstance3D
 var _line: MeshInstance3D
+static var _ring: ImageTexture   ## the mark's ring, painted once
 
 
 func _ready() -> void:
 	player = get_parent() as Player
+	# made now, hidden: the loading screen's pipeline sweep draws them once (pipeline_warm.gd). Made the first time an
+	# anchor came in reach, the mark compiled its own pipeline in the frame it showed (70 ms riding into Hearthward)
+	_build_mark()
+	_build_line()
 
 
 func pulling() -> bool:
@@ -181,22 +186,7 @@ func _draw_line() -> void:
 	if not is_instance_valid(_anchor):
 		return
 	if _line == null:
-		_line = MeshInstance3D.new()
-		var cyl := CylinderMesh.new()
-		cyl.top_radius = 0.025
-		cyl.bottom_radius = 0.025
-		cyl.height = 1.0
-		cyl.radial_segments = 6
-		cyl.rings = 1
-		_line.mesh = cyl
-		var m := StandardMaterial3D.new()
-		m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-		m.albedo_color = COL
-		_line.material_override = m
-		_line.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		_line.top_level = true
-		_line.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF   # placed every rendered frame at the drawn staff head
-		add_child(_line)
+		_build_line()
 	var a: Vector3 = player._visual.muzzle_drawn() if player._visual != null else player.global_position + Vector3.UP * 1.5
 	var b := _anchor.global_position
 	var ln := a.distance_to(b)
@@ -217,32 +207,63 @@ func _show_mark() -> void:
 			_mark.visible = false
 		return
 	if _mark == null:
-		var q := QuadMesh.new()
-		q.size = Vector2(0.05, 0.05)
-		var m := StandardMaterial3D.new()
-		m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-		m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-		m.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
-		m.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
-		m.no_depth_test = true
-		m.fixed_size = true
-		m.albedo_texture = _ring_tex()
-		m.albedo_color = Color(1.3, 0.7, 2.6, 0.9)
-		_mark = MeshInstance3D.new()
-		_mark.mesh = q
-		_mark.material_override = m
-		_mark.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		_mark.top_level = true
-		add_child(_mark)
+		_build_mark()
 	_mark.global_position = target.global_position
 	_mark.visible = true
 
 
+## The anchor mark, made hidden (first in _ready).
+func _build_mark() -> void:
+	var q := QuadMesh.new()
+	q.size = Vector2(0.05, 0.05)
+	var m := StandardMaterial3D.new()
+	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	m.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+	m.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
+	m.no_depth_test = true
+	m.fixed_size = true
+	m.albedo_texture = _ring_tex()
+	m.albedo_color = Color(1.3, 0.7, 2.6, 0.9)
+	_mark = MeshInstance3D.new()
+	_mark.mesh = q
+	_mark.material_override = m
+	_mark.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	_mark.top_level = true
+	_mark.visible = false
+	add_child(_mark)
+
+
+## The line, made hidden (first in _ready).
+func _build_line() -> void:
+	_line = MeshInstance3D.new()
+	var cyl := CylinderMesh.new()
+	cyl.top_radius = 0.025
+	cyl.bottom_radius = 0.025
+	cyl.height = 1.0
+	cyl.radial_segments = 6
+	cyl.rings = 1
+	_line.mesh = cyl
+	var m := StandardMaterial3D.new()
+	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	m.albedo_color = COL
+	_line.material_override = m
+	_line.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	_line.top_level = true
+	_line.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF   # placed every rendered frame at the drawn staff head
+	_line.visible = false
+	add_child(_line)
+
+
+## The ring texture, painted once and shared.
 static func _ring_tex() -> ImageTexture:
+	if _ring != null:
+		return _ring
 	var img := Image.create(48, 48, false, Image.FORMAT_RGBA8)
 	for y in 48:
 		for x in 48:
 			var r := Vector2(x - 23.5, y - 23.5).length()
 			var a := clampf(1.0 - absf(r - 18.0) / 2.5, 0.0, 1.0) + clampf(1.0 - r / 3.0, 0.0, 1.0)
 			img.set_pixel(x, y, Color(1, 1, 1, clampf(a, 0.0, 1.0)))
-	return ImageTexture.create_from_image(img)
+	_ring = ImageTexture.create_from_image(img)
+	return _ring
