@@ -68,7 +68,7 @@ var realm_points := [
 	["r_spawn_north", Vector3(0.0, NAN, 40.0), 0.0],                 # village to the rift and the Crowns
 	["r_tavern_in", Vector3(11.4, -0.6, 27.0), -0.9],
 	["r_rim", Vector3(0.0, 2.3, -7.0) + Endgame.O, 0.0],            # the Crossing from the Lip (the far north-east: Endgame)
-	["r_crag", Vector3(6.2, 9.4, -57.3) + Endgame.O, PI * 0.5],             # on the Ward Stair's second turn, looking west along the crag
+	["r_crag", Vector3(6.0, 27.0, -65.2) + Endgame.O, PI],                  # at the well-head on the Ward Crag, looking down the stair's shaft to the rim
 	["r_summit", Vector3(0.0, 27.9, -92.0) + Endgame.O, 0.0],
 	["r_summit_back", Vector3(0.0, 28.2, -96.0) + Endgame.O, PI],               # the whole Realm from the dais
 	["r_henge", Vector3(-62.0, 8.0, -12.0), 0.9],

@@ -1,7 +1,7 @@
 extends Node
 ## The Crossing walk (RealmRift, the Cinder Way: docs/r39/rift_from_scratch.md): drives the Player with debug_drive from Lastlight's
-## north postern up the rift_rim path onto the Lip, down the Descent, over the causeway and the Cinder Isle, up the Ward Stair's four
-## traverses, onto the ward landing, up the summit's approach stairs and onto the Warden's dais. The route is the layout's own lanes
+## north postern up the rift_rim path onto the Lip, down the Descent, over the causeway and the Cinder Isle, in at the Ward Crag's door
+## and up the Ward Stair round its shaft, onto the ward landing, up the summit's approach stairs and onto the Warden's dais. The route is the layout's own lanes
 ## (art/models/rift_way_layout.json, in the rift's coordinates) walked Endgame.O east, where it stands.
 ##   godot --headless --path . res://zz/realm_rift_walk.tscn -- --realm --realm-modules=land,rift
 ##   -- --stair   the branch: the Lip, the Descent, the Foot, the branch along the wall to the chapel door and the kneeling stone
