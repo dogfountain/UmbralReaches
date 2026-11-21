@@ -96,7 +96,7 @@ const REGIONS := [
 	{"id": "rift", "name": "The Ashen Rift", "rect": Rect2(Vector2(-30, -118) + Endgame.O2, Vector2(60, 106)), "biome": "ash", "tier": 4,
 		"lore": "The wound the ascension tore in the land beyond Lastlight; lava where the pilgrims' stair once stood, starwater at its threshold."},
 	{"id": "ossuary", "name": "The Ossuary", "rect": Rect2(-70, 147, 114, 43), "blobs": [{"c": Vector2(-62, 85), "r": 9.0}, {"c": Vector2(-55, 101), "r": 11.0}, {"c": Vector2(-51, 117), "r": 10.0}, {"c": Vector2(-50, 136), "r": 12.0}], "biome": "ruin", "tier": 2,
-		"purpose": "its own area (docs/far_reaches.md): the necropolis's charnel house, a quarried bone pit under the Waiting Field's slope (the tiers over a still pool, the Counting Stair and the Abbot's hall beneath), with both its lips; and, the blobs, the Lych Way down from the road between walls of niches, the Bearers' Yard and the Lantern of the Dead (ossuary_ground.gd)", "lore": "Boss: the Bone Abbot. Seal 'oss_gallery'. Streamed area (world/areas/ossuary): the Pilgrims' Landing at the Waiting Field's west end, the bone bridge, the tiers."},
+		"purpose": "its own area (docs/far_reaches.md): the necropolis's charnel house, a quarried bone pit under the Waiting Field's slope (the tiers over a still pool, the Counting Stair and the Abbot's hall beneath), with both its lips; and, the blobs, the Lych Way down from the road between walls of niches, the Bearers' Yard and the Lantern of the Dead (ossuary_ground.gd)", "lore": "Boss: the Bone Abbot. Seal 'oss_gallery'. Streamed area (world/areas/ossuary): the Pilgrims' Landing at the Waiting Field's west end, the stone bridge, the tiers."},
 	{"id": "summit", "name": "The Summit of Ascension", "c": Vector2(0, -104) + Endgame.O2, "r": 42.0, "biome": "crag", "tier": 4,
 		"lore": "Boss: the Ascended Warden, last priest of the ascension. Seal 'summit'."},
 	{"id": "crags", "name": "The Crowns", "rect": Rect2(-260, -150, 520, 40), "biome": "crag", "tier": 2,
@@ -393,7 +393,7 @@ const HENGE_STAIR_FOOT := Vector2(-34.7, 0.5)              ## end of west_way (1
 const CHAPEL_C := Vector2(-72.0, 52.0)
 const GLADE_C := Vector2(-28.0, 32.0)                     ## (18 Nov: from (-38, 8), which the henge's 1.6x floor and skirt took)
 const BARROWS_C := Vector2(78.0, -42.0)
-const OSSUARY_GATE := Vector3(-40.0, 5.2, 147.5)          ## the Pilgrims' Landing: where the lane ends and the bone bridge begins (OssFrame.LANDING)
+const OSSUARY_GATE := Vector3(-40.0, 5.2, 147.5)          ## the Pilgrims' Landing: where the lane ends and the stone bridge begins (OssFrame.LANDING)
 
 
 ## r34: inside the streamed crypt or its reserved pit hall.

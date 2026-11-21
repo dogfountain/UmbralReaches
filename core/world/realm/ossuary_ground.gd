@@ -7,7 +7,7 @@ extends RefCounted
 ##                      Count, then a hollow way walled with niches of skulls and grave candles (z 96..124)
 ##   the lych gate      on oss_lane past south_track, its bell in the gable (it tolls when anyone passes under)
 ##   the Bearers' Yard  the Lantern of the Dead on a stepped base over its terrace, the bearers' table at its foot,
-##                      heaps of the uncounted; the Pilgrims' Landing and the bone bridge beyond
+##                      heaps of the uncounted; the Pilgrims' Landing and the stone bridge beyond
 ##   the Sorting Ground on the pit's west rim: slabs, bones heaped by kind, the sorters' slate
 ## The Lantern burns cold (the Abbot's count-light: its own flame, a cold light, a beacon on the compass and the
 ## horizon) until the Bone Abbot falls; then it goes dark. Hero meshes: tools/blender/oss_ground.py

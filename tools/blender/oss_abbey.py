@@ -601,6 +601,50 @@ def build_pier(m, objs):
     objs.append(ob)
     DATA["PIER"] = {"w": PIER_W, "seg": PIER_SEG, "foot": PIER_FOOT, "cap": y}
 
+
+# =================================================================================================
+# the Pilgrims' Bridge: a stone bridge of pointed arches in the abbey's masonry (it replaced the bone bridge)
+# =================================================================================================
+
+BR_L = 6.5               ## one span's length (along x); the end spans are stretched to fit
+BR_W = 4.0               ## deck width (z)
+BR_D = 3.0               ## depth of the arch barrel under the deck's top (the pier capitals stand at -BR_D)
+
+
+def build_bridge(m, objs):
+    mt = {"stone": m["stone"], "rubble": m["rubble"], "dark": m["dark"], "bone": m["bone"]}
+    b = B("OssBridgeSpan", mt)
+    hw = BR_W / 2
+    arch = pointed(BR_L - 1.7, BR_L * 0.27, 12)
+    hole = [(BR_L / 2 + x, 0.01 + y) for x, y in arch]
+    hole = [(BR_L / 2 - (BR_L - 1.7) / 2, 0.01)] + hole[1:-1] + [(BR_L / 2 + (BR_L - 1.7) / 2, 0.01)]
+    for sz in (-1.0, 1.0):
+        nrm = (0, 0, sz)
+        # the spandrel wall of each face, an arched opening in it
+        frame_panel(b, (-BR_L / 2, -BR_D, sz * hw), (1, 0, 0), (0, 1, 0), nrm, BR_L, BR_D, hole, "rubble")
+        # the string course under the parapet
+        b.box((0, -0.12, sz * (hw + 0.06)), (BR_L, 0.24, 0.16), "stone", jit=0.006, seed=int(40 + sz))
+        # the parapet: a wall with a coping
+        b.box((0, 0.55, sz * (hw - 0.3)), (BR_L, 1.1, 0.5), "rubble", jit=0.008, seed=int(50 + sz))
+        b.box((0, 1.17, sz * (hw - 0.3)), (BR_L, 0.2, 0.72), "stone", jit=0.006, seed=int(60 + sz))
+        # the keystone: a skull in the crown of the arch, the Order's only ornament here
+        OG.skull(b, (0, -BR_D + 0.01 + BR_L * 0.27 + 0.0, sz * (hw + 0.02)), (0, 0, sz), (0, 1, 0), s=1.9)
+    # the soffit: the arch's barrel, from face to face
+    ring_f = [Vector((x - BR_L / 2, y - BR_D, -hw)) for x, y in hole]
+    ring_b = [Vector((x - BR_L / 2, y - BR_D, hw)) for x, y in hole]
+    fs = b.loft([ring_f, ring_b], "stone", closed=True, smooth=False, box_uv=0.3)
+    cen = Vector((0, -BR_D + 1.2, 0))
+    for f in fs:
+        f.normal_update()
+        if f.normal.dot(cen - f.calc_center_median()) < 0:
+            f.normal_flip()
+    # the deck: paving between the parapets
+    b.box((0, -0.35, 0), (BR_L, 0.7, BR_W - 0.02), "stone", jit=0.004, seed=71)
+    ob = b.finish()
+    L.moss_colors(ob, seed=114, amount=0.3, tint=(0.4, 0.55, 0.45))
+    objs.append(ob)
+    DATA["BRIDGE"] = {"l": BR_L, "w": BR_W, "d": BR_D}
+
 # =================================================================================================
 # main
 # =================================================================================================
@@ -636,6 +680,7 @@ def main():
     build_turret(m, objs)
     build_tower(m, objs)
     build_pier(m, objs)
+    build_bridge(m, objs)
     L.export(os.path.join(L.MODEL_DIR, "oss_abbey.glb"), objs)
     write_data()
     if PREVIEW:
@@ -667,6 +712,11 @@ def main():
             elif o.name == "OssPierCap":
                 o.location = G((0, PIER_FOOT + PIER_SEG, 0))
         L.preview(os.path.join(PREVIEW, "pier.png"), objs, look_at=(0, 4, 0), dist=16.0, views=((200, 0.15), (235, 0.3)), res=(800, 1000), lens=40)
+        show(["OssBridgeSpan"])
+        for o in objs:
+            if o.name == "OssBridgeSpan":
+                o.location = G((0, 0, 0))
+        L.preview(os.path.join(PREVIEW, "bridge.png"), objs, look_at=(0, -1, 0), dist=13.0, views=((200, 0.15), (235, 0.2), (160, -0.15)), res=(1200, 800), lens=35)
         show(["AbbeyGable", "AbbeyTurret"])
         for o in objs:
             if o.name == "AbbeyGable":

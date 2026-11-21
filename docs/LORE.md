@@ -117,7 +117,7 @@ Line (ordered by Edict II to put out their cressets), the Chain Span (toll: one 
   fire; it keeps the wood. Its **Thorn Heart** still beats, slowly. Cut it out and the wood will
   bleed, and stop bleeding, and forget you.
 - **The Bone Abbot** (the Ossuary, the necropolis's charnel house: a quarried bone pit under the Waiting Field's
-  slope, reached by a bone bridge from the Pilgrims' Landing, west of the First Pilgrims' Tomb). Abbot Osric, who kept the dead in order for their ascension and never stopped counting
+  slope, reached by a stone bridge from the Pilgrims' Landing, west of the First Pilgrims' Tomb). Abbot Osric, who kept the dead in order for their ascension and never stopped counting
   them. He calls the faithful from the bones. His **crown** is knucklebone and iron; the **Bone
   Reliquary** rises from his charnel mound when he falls.
 - **The Ascended Warden** (the summit, across the Crossing). Once the Hierarch Aurel, last priest
@@ -224,7 +224,7 @@ keeps the pilgrims' roll by name), **Cadoc** (Corvin's Mere; rowed for Corvin, w
 over and walks the banks as the Ferryman Without a Boat). Rares their bounties name: Old Rook, Brother
 Chisel, Gorse-Wife Hennet, Clapper, Old Pippin, the Last Pilgrim, the Ferryman Without a Boat.
 The raids' attunements (`quest_chains.gd` ATTUNE): the keeper's three ward-stones and a ward-coal laid at
-the Ring's stair (the Thornwarden "holds back a hand"); the pilgrims' roll read at the Ossuary's bone bridge
+the Ring's stair (the Thornwarden "holds back a hand"); the pilgrims' roll read at the Ossuary's bridge
 (the Abbot's count comes up short: "a doubting Abbot is half an Abbot"); the Founder's peal rung in
 Mother's order and a tongue cast in her mould for Brannoc (the great bell in the Warden's hand rings
 wrong). None is needed to finish the story.
