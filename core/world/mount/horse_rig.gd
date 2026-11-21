@@ -67,8 +67,12 @@ var _lan := Vector2.ZERO               ## lantern angle (x fore-aft, z side) and
 var _lan_v := Vector2.ZERO
 var _prev_dy := 0.0
 var _extra_env := 0.0
+var _dy_s := 0.0                       ## the back height as drawn, its speed, and whether it has begun
+var _dy_v := 0.0
+var _dy_init := false
 var _drop_env := 0.0                   ## the back drop, held between the legs reach peaks
 const DROP_RELEASE := 0.35             ## m/s: how fast the held drop lets the back rise
+const DY_RATE := 45.0                  ## /s: the stiffness of the spring the back height is drawn through
 const DROP_ATTACK := 4.0               ## m/s: and how fast it may fall to a deeper reach (the hips never drop in one frame)
 var _seed := 0.0
 var _legs := {}                        ## leg -> {up, low, fet, hip, knee, fet_p, toe, l1, l2, sign}
@@ -378,17 +382,35 @@ func pose(ph: float, speed: float, graze: float, dt: float, accel := Vector2.ZER
 	# the hip joints ride the pitching, rolling spine: solve from where they are now, and sink the back a little
 	# further if a hoof would be left short of its place on the ground
 	_extra_env = _env(_extra_env, minf(extra, 0.4) if moving else 0.0, dt)
-	if _extra_env > 0.0 and moving:
-		extra = _extra_env
-		last_dy -= extra
+	# the back's height as drawn (the rider rides it too): the sum of the gait's bounce, the reach drop and the extra sink,
+	# through a stiff critically damped spring. The legs' reach peaks four times a stride and the raw sum fell ten centimetres
+	# in 30 ms at a gallop (a shudder the rider's own spring then had to disagree with); this takes the edge off, a few
+	# millimetres of hoof short at the peaks, and the rider can sit the same back the barrel is on.
+	var dy0 := last_dy
+	last_dy = _damp_dy(dy0 - (_extra_env if moving else 0.0), dt)
+	if absf(last_dy - dy0) > 0.00005:
 		_pose_bone("root", 0.0, 0.0, Vector3(0, last_dy, 0))
 		for l: String in hips:
-			hips[l] = (hips[l] as Vector3) - Vector3(0, extra, 0)
+			hips[l] = (hips[l] as Vector3) + Vector3(0, last_dy - dy0, 0)
 	for i in 4:
 		var l: String = LEGS[i]
 		if not _legs.has(l):
 			continue
 		_leg(_legs[l], tgt[l], float(swing[l]), k, l.begins_with("f"), hips[l])
+
+
+func _damp_dy(want: float, dt: float) -> float:
+	if not _dy_init or dt <= 0.0005:
+		_dy_s = want
+		_dy_v = 0.0
+		_dy_init = dt > 0.0005 or _dy_init
+		return want
+	var e := exp(-DY_RATE * dt)
+	var x := _dy_s - want
+	var j := _dy_v + DY_RATE * x
+	_dy_v = (_dy_v - DY_RATE * j * dt) * e
+	_dy_s = want + (x + j * dt) * e
+	return _dy_s
 
 
 ## An envelope that falls to a deeper `want` at DROP_ATTACK and rises back at DROP_RELEASE.

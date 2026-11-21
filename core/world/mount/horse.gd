@@ -65,6 +65,7 @@ var _dis_wait := 0.0                 ## > 0: braking to a walk before the swing 
 var _dis_to := Vector3.ZERO          ## where the rider's feet come down (the near side, on the ground)
 var _tilt := Vector2.ZERO            ## the body's pitch (x, + nose up) and roll (y, + right side up) to the ground, this tick
 var _tilt_prev := Vector2.ZERO
+var _defl := 0.0                     ## the line of travel's turn off the heading along a face (rad), eased
 var _yv := 0.0                       ## the body's vertical speed following the ground (m/s)
 ## the saddle's seat top, the stirrup tread and the barrel under the rider are the breed's own metres
 ## (horse_db.gd: seat, stirrup_y, stirrup_x, bw / bc / bl), measured off the built model
@@ -516,6 +517,11 @@ func _go(skip: Array[RID], fwd: Vector3, w: Vector3, want: float, sc: float, dt:
 			speed = move_toward(speed, cap, 30.0 * dt)
 		if float(sl.keep) > 0.0:
 			_yaw = lerp_angle(_yaw, atan2(-sdir.x, -sdir.z), (1.0 - exp(-6.0 * dt)) * e)
+	# the way along a face is taken up over ~0.1 s, not in one tick: at a gallop a tree met by the probe turned the line of
+	# travel by thirty degrees at once (a 7 cm jump of the whole horse in a frame)
+	_defl = lerpf(_defl, fwd.signed_angle_to(dir, Vector3.UP) if not hit.is_empty() else 0.0, 1.0 - exp(-10.0 * dt))
+	if absf(_defl) > 0.001:
+		dir = fwd.rotated(Vector3.UP, _defl)
 	if not _air and _gather <= 0.0 and speed > 3.5 and _mv.hop_cd <= 0.0 and _land < 0.3:
 		# a knee-high rise right ahead (a stone, a kerb, a log): a hop over it, not a stumble
 		var da := 0.55 * sc + 0.05 * speed
@@ -629,7 +635,7 @@ func _ride_follow(dt: float, ph: float) -> void:
 	# the back as the seat feels it: its quick ripples (the legs' reach) are taken out
 	var raw: float = _rig.last_dy
 	var prev: float = _back if _back < INF else raw
-	_back = lerpf(prev, raw, 1.0 - exp(-dt / (0.008 if raw > prev else 0.04))) if _back < INF else raw
+	_back = lerpf(prev, raw, 1.0 - exp(-dt / (0.004 if raw > prev else 0.012))) if _back < INF else raw
 	var back_v := clampf((_back - prev) / dt, -6.0, 6.0)
 	# the seat rides the whole back (it took 92 % and the horse out-bounced its rider), its quick ripples
 	# (the legs' reach) taken out; the horse's own back now eases into those too (horse_rig DROP_ATTACK)
@@ -637,7 +643,7 @@ func _ride_follow(dt: float, ph: float) -> void:
 	# (the legs' reach) taken out, a hand's breadth clear of the floor below so the two never fight
 	t.x = _back + 0.012 + (t.x - raw * 0.85)
 	for _i in n:
-		_rv += ((t - _rs) * Vector3(170.0, 45.0, 60.0) - _rv * Vector3(20.0, 7.0, 8.0)) * d
+		_rv += ((t - _rs) * Vector3(450.0, 45.0, 60.0) - _rv * Vector3(38.0, 7.0, 8.0)) * d      # the seat sits the back it is on: stiff (the back is smooth now)
 		_rs += _rv * d
 		# never far under the saddle: pushed out by the back, its speed matched, whatever the spring lags
 		var pen := _back - 0.015 - _rs.x

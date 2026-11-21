@@ -15,6 +15,10 @@ const COLS := 6
 
 var out := "/tmp/horse_ride_cap"
 var breed := "palfrey"
+var breeds: Array = []                   ## --breeds=a,b: each ridden through the same run, into <out>/<breed>
+var only: Array = []                     ## --only=a,b: just these segments
+var fps_k := 1.0                         ## --fps=144 (with --fixed-fps 144): the run is in 60 fps frames, scaled
+var out_base := ""
 var main: Node
 var p: Player
 var horse: Node3D
@@ -39,18 +43,28 @@ func _ready() -> void:
 			out = a.trim_prefix("--out=")
 		elif a.begins_with("--breed="):
 			breed = a.trim_prefix("--breed=")
+		elif a.begins_with("--breeds="):
+			breeds = Array(a.trim_prefix("--breeds=").split(",", false))
+		elif a.begins_with("--only="):
+			only = Array(a.trim_prefix("--only=").split(",", false))
+		elif a.begins_with("--fps="):
+			fps_k = float(a.trim_prefix("--fps=")) / 60.0
 	Travel.story = {"flags": {"arrived": true, "met_keep": true}, "picked": {}}
 	Travel.items = {"grave_ash": 90}
+	out_base = out
+	if breeds.is_empty():
+		breeds = [breed]
 	DirAccess.make_dir_recursive_absolute(out)
 	main = load("res://world/main.tscn").instantiate()
 	get_tree().root.add_child.call_deferred(main)
 	process_physics_priority = 100
+	process_priority = 1000                  # after the horse, the rider and the camera have all been placed this frame
 
 
 func _process(_d: float) -> void:
 	Travel._busy = true
 	var el := float(Time.get_ticks_msec() - t_start) / 1000.0
-	if el > 420.0:
+	if el > 1700.0:
 		print("HRIDE watchdog")
 		get_tree().quit(3)
 		return
@@ -119,7 +133,7 @@ func _hold(a: String, s := 1.0) -> void:
 
 
 func _frames(n: int) -> void:
-	for i in n:
+	for i in int(float(n) * fps_k):
 		await get_tree().process_frame
 
 
@@ -154,18 +168,32 @@ func _run() -> void:
 		(a as Node).set_physics_process(false)
 	for vp in get_tree().get_nodes_in_group(&"vow_panel"):
 		(vp as Node).remove_from_group(&"vow_panel")          # a vow offer would pause the run
-	for h in get_tree().get_nodes_in_group(&"horse"):
-		if String(h.get("breed")) == breed:
-			horse = h as Node3D
-	if horse == null:
-		print("HRIDE no horse of breed ", breed)
-		get_tree().quit(2)
-		return
-	var st := HorseScript.state()
-	if not (st.owned as Array).has(breed):
-		(st.owned as Array).append(breed)
 	_find_runway()
 	await _frames(420)                      # the zone's title and the first hints have gone by
+	for b: String in breeds:
+		breed = b
+		horse = null
+		for h in get_tree().get_nodes_in_group(&"horse"):
+			if String(h.get("breed")) == breed:
+				horse = h as Node3D
+		if horse == null:
+			print("HRIDE no horse of breed ", breed)
+			continue
+		var st := HorseScript.state()
+		if not (st.owned as Array).has(breed):
+			(st.owned as Array).append(breed)
+		out = out_base if breeds.size() == 1 else out_base.path_join(breed)
+		print("HRIDE breed ", breed)
+		await _ride()
+	print("HRIDE done")
+	get_tree().quit(0)
+
+
+func _want(label: String) -> bool:
+	return only.is_empty() or only.has(label)
+
+
+func _ride() -> void:
 	# 1. mount: the real step up (the wanderer beside the horse)
 	_release()
 	horse.global_position = start_pos
@@ -192,6 +220,8 @@ func _run() -> void:
 		_hold("sprint"))
 	# 4. turns while sprinting: the camera swings on the look stick as a player's does, the stick forward
 	for tn: Array in [["left_gentle", "look_left", 0.35, 0.0], ["right_gentle", "look_right", 0.35, 0.0], ["left_sharp", "look_left", 1.0, 1.0], ["right_sharp", "look_right", 1.0, 1.0]]:
+		if not _want(String(tn[0])):
+			continue
 		await _reset_ride()
 		await _segment(String(tn[0]), 330, 150, 5, func(f: int) -> void:
 			_hold("move_forward")
@@ -205,40 +235,43 @@ func _run() -> void:
 				Input.action_release("move_left")
 				Input.action_release("move_right"))
 	# 5. the pack: ridden into at a gallop, then fought from the saddle
-	await _reset_ride()
-	_spawn_pack()
-	await _segment("pack", 400, 150, 4, func(f: int) -> void:
-		if f < 220:
-			_hold("move_forward")
-			_hold("sprint")
-		elif f < 320:
-			_hold("move_forward", 0.5)
-			if f % 25 == 0:
-				Input.action_press("staff_strike")
-			elif f % 25 == 3:
-				Input.action_release("staff_strike")
-		else:
-			Input.action_release("move_forward")
-			Input.action_release("sprint"))
-	_release()
-	for e in _pack:
-		if is_instance_valid(e):
-			e.queue_free()
+	if _want("pack"):
+		await _reset_ride()
+		_spawn_pack()
+		await _segment("pack", 400, 150, 4, func(f: int) -> void:
+			if f < 220:
+				_hold("move_forward")
+				_hold("sprint")
+			elif f < 320:
+				_hold("move_forward", 0.5)
+				if f % 25 == 0:
+					Input.action_press("staff_strike")
+				elif f % 25 == 3:
+					Input.action_release("staff_strike")
+			else:
+				Input.action_release("move_forward")
+				Input.action_release("sprint"))
+		_release()
+		for e in _pack:
+			if is_instance_valid(e):
+				e.queue_free()
 	# 6. down: the interact key, as a player presses it
-	await _reset_ride()
-	await _segment("dismount", 150, 20, 3, func(f: int) -> void:
-		if f == 0:
-			_hold("move_forward", 0.5)
-		if f == 40:
-			_release()
-		if f == 80:
-			var ev := InputEventAction.new()
-			ev.action = &"interact"
-			ev.pressed = true
-			Input.parse_input_event(ev))
+	if _want("dismount"):
+		await _reset_ride()
+		await _segment("dismount", 150, 20, 3, func(f: int) -> void:
+			if f == 0:
+				_hold("move_forward", 0.5)
+			if f == 40:
+				_release()
+			if f == 80:
+				var ev := InputEventAction.new()
+				ev.action = &"interact"
+				ev.pressed = true
+				Input.parse_input_event(ev))
 	_release()
-	print("HRIDE done")
-	get_tree().quit(0)
+	if p.riding != null:
+		horse.dismount()
+	await _frames(10)
 
 
 func _spawn_pack() -> void:
@@ -262,14 +295,17 @@ func _spawn_pack() -> void:
 
 ## Run `frames` rendered frames, calling `drive(frame)` before each; from `cap_from` every `every`th frame is shot.
 func _segment(label: String, frames: int, cap_from: int, every: int, drive: Callable) -> void:
+	if not _want(label):
+		return
 	var shots: Array[Image] = []
 	var ids: Array[int] = []
 	_samples.clear()
 	_recording = true
-	for f in frames:
-		drive.call(f)
+	var k := fps_k
+	for f in int(float(frames) * k):
+		drive.call(int(float(f) / k))
 		await RenderingServer.frame_post_draw
-		if not headless and f >= cap_from and (f - cap_from) % every == 0:
+		if not headless and f >= int(float(cap_from) * k) and (f - int(float(cap_from) * k)) % maxi(int(float(every) * k), 1) == 0:
 			var im := get_viewport().get_texture().get_image()
 			im.convert(Image.FORMAT_RGB8)
 			shots.append(im)
@@ -287,7 +323,7 @@ func _sample() -> void:
 		return
 	var cam := get_viewport().get_camera_3d()
 	var piv: Node3D = p.get("_rig")
-	var s := {"len": p._arm.spring_length, "shx": p._arm.position.x, "rise": p._cam.position.y, "piv": piv.global_position, "cam": cam.global_position, "camy": cam.global_basis.get_euler().y, "root": rig.global_position, "yaw": rig.global_basis.get_euler().y, "speed": float(horse.get("speed")), "air": bool(horse.get("_air")), "vy": float(horse.get("_vy"))}
+	var s := {"dbg": p.camera_ctl.dbg, "len": p._arm.spring_length, "shx": p._arm.position.x, "rise": p._cam.position.y, "piv": piv.global_position, "cam": cam.global_position, "camy": cam.global_basis.get_euler().y, "root": rig.global_position, "yaw": rig.global_basis.get_euler().y, "speed": float(horse.get("speed")), "air": bool(horse.get("_air")), "vy": float(horse.get("_vy"))}
 	var vis: Node3D = p.get_node_or_null("Visual")
 	if vis != null:
 		s["rider"] = vis.global_position
@@ -301,8 +337,10 @@ func _report(label: String) -> void:
 	if n < 5:
 		print("HRIDE %-16s too few samples (%d)" % [label, n])
 		return
+	var pj_i := 0
 	var cj := 0.0
 	var lj := 0.0
+	var lj_i := 0
 	var sj := 0.0
 	var rj2 := 0.0
 	var pj := 0.0
@@ -317,9 +355,15 @@ func _report(label: String) -> void:
 		var a: Dictionary = _samples[i - 2]
 		var b: Dictionary = _samples[i - 1]
 		var c: Dictionary = _samples[i]
-		lj = maxf(lj, absf(float(c.len) - 2.0 * float(b.len) + float(a.len)))
+		var ljd := absf(float(c.len) - 2.0 * float(b.len) + float(a.len))
+		if ljd > lj:
+			lj_i = i
+		lj = maxf(lj, ljd)
 		sj = maxf(sj, absf(float(c.shx) - 2.0 * float(b.shx) + float(a.shx)))
 		rj2 = maxf(rj2, absf(float(c.rise) - 2.0 * float(b.rise) + float(a.rise)))
+		var pjd := (((c.piv as Vector3) - (b.piv as Vector3)) - ((b.piv as Vector3) - (a.piv as Vector3))).length()
+		if pjd > pj:
+			pj_i = i
 		pj = maxf(pj, (((c.piv as Vector3) - (b.piv as Vector3)) - ((b.piv as Vector3) - (a.piv as Vector3))).length())
 		cj = maxf(cj, (((c.cam as Vector3) - (b.cam as Vector3)) - ((b.cam as Vector3) - (a.cam as Vector3))).length())
 		cy = maxf(cy, absf(((c.cam as Vector3).y - (b.cam as Vector3).y) - ((b.cam as Vector3).y - (a.cam as Vector3).y)))
@@ -332,12 +376,25 @@ func _report(label: String) -> void:
 			rel = maxf(rel, ((c.rel as Vector3) - (b.rel as Vector3)).length())
 		cr = maxf(cr, absf(rad_to_deg(angle_difference(float(b.camy), float(c.camy)))))
 		vmax = maxf(vmax, float(c.speed))
+	if pj > 0.02:
+		var seq := []
+		for k in range(maxi(pj_i - 4, 0), mini(pj_i + 3, n)):
+			var q2: Dictionary = _samples[k]
+			var pv: Vector3 = q2.piv
+			seq.append("(%.1f,%.1f,%.1f)" % [pv.x * 100.0, pv.y * 100.0, pv.z * 100.0])
+		print("HRIDE   pivot jerk frame ", pj_i, " of ", n, " pivot cm ", seq)
 	if rj > 0.05:
 		var ex := []
 		for k in range(maxi(rj_i - 3, 0), mini(rj_i + 2, n)):
 			var q: Dictionary = _samples[k]
 			ex.append("v%.1f y%.3f air%d" % [float(q.speed), (q.root as Vector3).y, int(bool(q.air))])
 		print("HRIDE   root jerk frame ", rj_i, " ", ex)
+	if lj > 0.1:
+		var seq2 := []
+		for k in range(maxi(lj_i - 4, 0), mini(lj_i + 3, n)):
+			var d4: Vector4 = (_samples[k] as Dictionary).dbg
+			seq2.append("reach %.2f lead %.2f want %.2f len %.2f" % [d4.x, d4.y, d4.z, d4.w])
+		print("HRIDE   arm jerk frame ", lj_i, " ", seq2)
 	print("HRIDE   boom jerk: arm length %.2f cm, shoulder %.2f cm, rise %.2f cm" % [lj * 100.0, sj * 100.0, rj2 * 100.0])
 	print("HRIDE %-16s n=%d speed_max=%.1f pivot_jerk=%.2fcm cam_jerk=%.2fcm cam_y_jerk=%.2fcm root_jerk=%.2fcm yaw_snap=%.0fdeg/s rider_vs_barrel_jump=%.2fcm cam_yaw_step=%.2fdeg" % [label, n, vmax, pj * 100.0, cj * 100.0, cy * 100.0, rj * 100.0, ys, rel * 100.0, cr])
 
@@ -356,4 +413,14 @@ func _save(label: String, shots: Array[Image], ids: Array[int]) -> void:
 		sm.resize(CELL.x, CELL.y, Image.INTERPOLATE_BILINEAR)
 		sheet.blit_rect(sm, Rect2i(0, 0, CELL.x, CELL.y), Vector2i((i % COLS) * CELL.x, (i / COLS) * CELL.y))
 	sheet.save_png(out.path_join(label + "_strip.png"))
+	if label in ["mount", "dismount", "pack", "left_sharp"]:
+		var ccell := Vector2i(640, 400)
+		var ccols := 4
+		var crows := ceili(float(shots.size()) / float(ccols))
+		var csheet := Image.create(ccell.x * ccols, ccell.y * crows, false, Image.FORMAT_RGB8)
+		for i in shots.size():
+			var full: Image = shots[i]
+			var cr := full.get_region(Rect2i(full.get_width() / 2 - 320, full.get_height() / 2 - 230, 640, 400))
+			csheet.blit_rect(cr, Rect2i(0, 0, ccell.x, ccell.y), Vector2i((i % ccols) * ccell.x, (i / ccols) * ccell.y))
+		csheet.save_png(out.path_join(label + "_crop.png"))
 	print("HRIDE strip ", out.path_join(label + "_strip.png"), " frames=", shots.size())

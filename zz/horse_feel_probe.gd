@@ -180,6 +180,7 @@ func _process(dt: float) -> void:
 	if vis != null:
 		var barrel := skel.global_transform * skel.get_bone_global_pose(skel.find_bone("barrel")).origin
 		s["rider"] = xf.basis.inverse() * (vis.global_position - barrel)
+		s["parts"] = [vis.global_position.y, barrel.y, xf.origin.y, float(horse.get("_back")), float((horse.get("_rs") as Vector3).x), float(rig.get("last_dy"))]
 	s["rider_w"] = p.get_node("Visual").global_position
 	s["cam"] = cam.global_position
 	s["speed"] = float(horse.get("speed"))
@@ -263,6 +264,11 @@ func _stats(arr: Array) -> Dictionary:
 		for k in range(maxi(jump_i - 3, 0), mini(jump_i + 3, n)):
 			around.append(snappedf(((arr[k] as Dictionary).rider as Vector3).y * 100.0, 0.1))
 		out["rider_y_around_jump_cm"] = str(around)
+		var parts := []
+		for k in range(maxi(jump_i - 3, 0), mini(jump_i + 3, n)):
+			var pr: Array = (arr[k] as Dictionary).get("parts", [])
+			parts.append(pr.map(func(v: float) -> float: return snappedf(v * 100.0, 0.1)))
+		out["parts_visy_barrely_rooty_back_rsx_lastdy"] = str(parts)
 	var win := int(0.4 * FPS)
 	var pp := 0.0
 	var pp_root := 0.0

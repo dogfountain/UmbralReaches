@@ -24,6 +24,14 @@ var _thin_q: PhysicsShapeQueryParameters3D
 var _thin_ray: PhysicsRayQueryParameters3D   ## reused by _thin_occluder (r35: five rays, no allocation each)
 var _sight_ray: PhysicsRayQueryParameters3D
 var _sight_hold := 0.0
+const LEAD_T := 0.5                      ## s: how far ahead the boom looks (a find that far off counts for nothing yet)
+var dbg := Vector4.ZERO                  ## last frame: the cast reach, the look-ahead reach, the wanted length, the length drawn (zz/horse_ride_cap reads it)
+var _prev_yaw := 0.0
+var _lead_keep := 99.0
+var _prev_piv := Vector3.ZERO
+var _piv_v := Vector3.ZERO              ## the boom pivot's velocity, flat (m/s), smoothed
+var _yaw_rate := 0.0                    ## the view's turn rate (rad/s), smoothed: the boom looks ahead by it
+var _len_v := 0.0                       ## the boom length's speed while it eases in
 var _shoulder_v := 0.0                  ## the boom's swing across the shoulder (per second): a spring, so it has no first-frame step
 var _rise := 0.0                        ## metres the camera lifts over the hood while a wall presses the arm short
 var _rise_ray: PhysicsRayQueryParameters3D
@@ -196,6 +204,7 @@ func _update_arm(delta: float) -> void:
 	want += 0.35 * player._run_blend - 0.25 * player._slide_blend + 0.45 * fk
 	var space := player.get_world_3d().direct_space_state if player.is_inside_tree() else null
 	var reach := want
+	var hard_reach := want                      # what is in the way of the boom NOW: the only reach the length is clamped to
 	if space:
 		_pass_tick(delta)
 		_shoulder_tick(space, want, delta)
@@ -212,8 +221,21 @@ func _update_arm(delta: float) -> void:
 		var frac: PackedFloat32Array = space.cast_motion(q)
 		if frac.size() > 0:
 			reach = want * frac[0]
-		if reach < want - 0.05 and _thin_occluder(player._arm.global_position, player._arm.global_basis.z.normalized(), want):
+		# on horseback no boom lets a trunk pass: a thing passed through is a thing the view then sits inside, and its release
+		# (the hold ending) cut the length in one frame; at a gallop everything is met fast, so it is eased in instead
+		var pass_thin := player.riding == null
+		if pass_thin and reach < want - 0.05 and _thin_occluder(player._arm.global_position, player._arm.global_basis.z.normalized(), want):
 			_thin_hold = 0.15                    # a post or a pole: let it pass, don't yank the view in
+		# a swinging view meets a trunk before the boom touches it: look where the boom will be a moment from now (by the
+		# turn's own rate) and start easing in for what is coming, so the length is never cut at the wall in one frame
+		hard_reach = reach
+		var lead := _lead_reach(space, q, want, delta, pass_thin)
+		_lead_keep = minf(move_toward(_lead_keep, want, delta * 3.0), lead)         # held, and let go of slowly: a look that finds the trunk and loses it again does not let the length out and cut it back
+		lead = _lead_keep
+		dbg.x = reach
+		dbg.y = lead
+		if lead < reach and _thin_hold <= 0.0:
+			reach = lead
 		_thin_hold = maxf(0.0, _thin_hold - delta)
 		if _thin_hold > 0.0:
 			_thin_q.transform = Transform3D(Basis.IDENTITY, player._arm.global_position + player._arm.global_basis.z.normalized() * want)
@@ -222,11 +244,20 @@ func _update_arm(delta: float) -> void:
 			else:
 				reach = want
 	reach = maxf(reach, 0.5)
+	hard_reach = maxf(want if _thin_hold > 0.0 else hard_reach, 0.5)
 	if reach < _cam_len:
-		_cam_len = minf(lerpf(_cam_len, reach, 1.0 - exp(-28.0 * delta)), reach + 0.25)
+		# in: a critically damped spring (no first-frame step), quick; the hard clamp stays for a wall that is right there
+		var w := 12.0
+		var x := _cam_len - reach
+		var j := _len_v + w * x
+		_len_v = (_len_v - w * j * delta) * exp(-w * delta)
+		_cam_len = minf(reach + (x + j * delta) * exp(-w * delta), hard_reach + Player.ARM_PROBE)
 	else:
-		_cam_len = lerpf(_cam_len, reach, 1.0 - exp(-8.0 * delta))
+		_len_v = 0.0
+		_cam_len = lerpf(_cam_len, reach, 1.0 - exp(-4.0 * delta))
 	player._arm.spring_length = _cam_len
+	dbg.z = want
+	dbg.w = _cam_len
 	# pressed against a wall (the pit hall's, a standing stone), the camera rose no higher and the hood filled a third of
 	# the view: it lifts over the shoulder as the arm shortens, as far as the space above it allows
 	var squeeze := clampf((want - _cam_len) / maxf(want * 0.6, 0.1), 0.0, 1.0)
@@ -242,6 +273,45 @@ func _update_arm(delta: float) -> void:
 			lift = maxf(0.0, from.distance_to(up_hit.position) - 0.35)
 	_rise = lerpf(_rise, lift, 1.0 - exp(-6.0 * delta))
 	player._cam.position = Vector3(0.0, _rise, _cam_len)
+
+
+## The shortest reach of the boom swung on by the view's own turn rate (five looks out to 0.45 s: a trunk is thinner than the gap between two). The sphere cast `q` is reused.
+func _lead_reach(space: PhysicsDirectSpaceState3D, q: PhysicsShapeQueryParameters3D, want: float, delta: float, pass_thin: bool) -> float:
+	var rate := angle_difference(_prev_yaw, player._yaw) / maxf(delta, 0.0001)
+	_prev_yaw = player._yaw
+	_yaw_rate = lerpf(_yaw_rate, rate, 1.0 - exp(-30.0 * delta))
+	var piv := player._arm.global_position
+	var step := piv - _prev_piv
+	_prev_piv = piv
+	if step.length_squared() > 4.0:             # the first frame, a teleport, a mount: not a speed
+		step = Vector3.ZERO
+		_lead_keep = 99.0
+	var v := step / maxf(delta, 0.0001)
+	v.y = 0.0
+	_piv_v = _piv_v.lerp(v.limit_length(25.0), 1.0 - exp(-20.0 * delta))
+	var best := want
+	var dir := player._arm.global_basis.z.normalized()
+	var looks: Array[Array] = []                          # [origin offset, direction, seconds ahead]
+	if absf(_yaw_rate) >= 0.4:
+		for t: float in [0.05, 0.1, 0.2, 0.3, 0.45]:
+			looks.append([Vector3.ZERO, dir.rotated(Vector3.UP, _yaw_rate * t), t])
+	if _piv_v.length_squared() > 9.0:                      # the pivot itself is carried toward a trunk at a ride's pace
+		for t: float in [0.1, 0.2, 0.3, 0.45]:
+			looks.append([_piv_v * t, dir, t])
+	for lk: Array in looks:
+		var d: Vector3 = lk[1]
+		var at := piv + (lk[0] as Vector3)
+		q.transform = Transform3D(Basis.IDENTITY, at)
+		q.motion = d * want
+		var f: PackedFloat32Array = space.cast_motion(q)
+		if f.size() > 0 and f[0] < 1.0:
+			# what is found t ahead counts for less the farther off it is: the target length slides in as the trunk comes
+			# on (a step the spring could only chase), the full amount when it is here
+			var r := want - (want - want * f[0]) * (1.0 - smoothstep(0.0, LEAD_T, float(lk[2])))
+			if r < best and not (pass_thin and _thin_occluder(at, d, want)):
+				best = r
+	q.transform = Transform3D(Basis.IDENTITY, piv)
+	return best
 
 
 ## The boom's casts pass through the wanderer and through the great stones near him (Groups.CAMERA_PASS: they dissolve
@@ -289,6 +359,18 @@ func _shoulder_tick(space: PhysicsDirectSpaceState3D, want: float, delta: float)
 	r.to = piv + (piv - r.from).normalized() * Player.ARM_PROBE
 	if not space.intersect_ray(r).is_empty():
 		_sight_hold = 0.5
+	elif _piv_v.length_squared() > 4.0:
+		# carried along at a ride's pace the shoulder will stand in a trunk the horse brushes past: swing in behind the
+		# wanderer before it does, not once the boom's start is inside it (a cut of the whole length)
+		var shoulder_dir := (piv - r.from).normalized()
+		var centre := r.from
+		for t: float in [0.12, 0.25, 0.4]:
+			var off := _piv_v * t
+			r.from = centre + off
+			r.to = piv + off + shoulder_dir * Player.ARM_PROBE
+			if not space.intersect_ray(r).is_empty():
+				_sight_hold = maxf(_sight_hold, 0.4)
+				break
 	r.from = piv
 	r.to = piv + dir * want
 	var hit := space.intersect_ray(r)

@@ -18,7 +18,15 @@ Luke, 20 Nov: "Horse is janky." Evidence: `zz/horse_ride_cap` (the real Realm, t
 | Rider yaw lagged the horse in turns | 12/s lag | locked (40/s), seat follows the tilted saddle | |
 | Wall hit stopped dead | 0.2 s | 0.4 s | |
 
-Left: the boom's collision snap in a sharp full-stick camera swing through trees (arm length jumps up to 2 m in one frame, the
-camera's occlusion clamp, not the horse); the rider-to-barrel metric stays 11 cm per frame at 60 fps in the ride capture; right
-turns show a 15 cm root jerk in both before and after (a tick skipped by the fixed-fps harness: pivot and root agree); the
-studio strips (`horse_seq --cam=follow`) were not re-shot.
+## Round 2 (lead review)
+
+| Jank | Cause | Fix | Before -> after (ride capture, 60 fps unless noted) |
+|---|---|---|---|
+| Camera slammed into the horse's back through trees | the boom's length was cut to the wall in one frame (`min(.., reach + 0.25)`), a "thin" trunk was passed through and then cut when the pass ended, the swinging view and the carried pivot met trunks with no warning | the boom looks ahead by the view's turn rate and the pivot's velocity (5 + 4 sphere casts out to 0.45 s, counted less the farther off: the target length slides in), in-spring at 12/s, the hard clamp is only the real reach now, no thin pass-through while riding, the shoulder swings in behind the horse before it passes a trunk (look-ahead on the shoulder ray) | camera jerk, palfrey: sprint 12.9 -> 0.56, walk to sprint 17.7 -> 0.79, gentle turns 17.7 -> 1.7 and 3.2, the pack 17.7 -> 0.82 cm; draught right gentle 294 -> 3.5; sharp full-stick camera swings 24 (palfrey) -> 52-94 cm (see left) |
+| Rider floated off the saddle (rider vs barrel) | the hips fell 10 cm in 30 ms at the gallop (the legs' reach peaks), the rider's soft spring and ripple filter then disagreed with the back | the back height is drawn through a stiff damped spring (45/s), the rider's seat spring is stiffer (450) and its back filter faster | rider vs barrel jump per frame: 144 fps probe 6.8 -> 2.3 cm, trot 4.9 -> 1.9; ride capture 60 fps 11.2 -> 5.5 cm (palfrey), 4.1 (draught), 4.9 (garron) |
+| Right turn 15 cm root jerk | not the harness: the slide along a face turned the line of travel 30 degrees in one tick when the probe met a tree | the deflection is eased (10/s) | 144 fps right gentle 7.4 -> 1.05 cm; 60 fps 15.7 -> 2.7 cm |
+| Mount | (checked) no stop or pop in the strip; jerk 1.1 cm at 144 fps (4.4 at 60) is the spline's start | none needed | |
+
+Draught and garron were run through the same capture (ride_after5/draught, garron): sprint, gentle turns and the pack under 4 cm camera jerk for all three breeds.
+
+Left: full-stick camera swings (240 degrees per second) through forest still pull the length in by up to a metre in a frame when the look-ahead sees a trunk too late (52-94 cm at 60 fps, about 10-15 cm at 144 fps); the pivot still enters a trunk the horse brushes within a few centimetres. Trunks are WORLD cylinders in the flora chunk bodies, so a layer for thin ones was not added: the existing thin-occluder ray test remains for the wanderer on foot.
