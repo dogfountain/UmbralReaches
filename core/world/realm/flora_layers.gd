@@ -22,6 +22,7 @@ const Wayside := preload("res://core/world/realm/realm_wayside.gd")
 const Themes := preload("res://core/world/realm/wayside_themes.gd")
 const TreeGen := preload("res://core/world/realm/tree_gen.gd")
 const Footing := preload("res://core/world/footing.gd")
+const GroundSeat := preload("res://core/world/realm/ground_seat.gd")
 const Tables := preload("res://core/world/realm/flora_tables.gd")
 
 const WATER := -0.9
@@ -164,7 +165,7 @@ static func _put(layer: String, sp: String, x: float, z: float, near := 0.0, s :
 		# a fallen trunk 5 m long lies along a slope that curves under it: it sits on its lowest point (no draw, same layout), never lifted
 		var sm: Variant = TreeGen.kind(id).solid
 		if sm is Mesh:
-			xf.origin.y = minf(xf.origin.y, Footing.seat_y(F.ground_y, Footing.base_points(sm as Mesh), xf.basis, Vector2(x, z), xf.origin.y, 0.9))
+			xf.origin.y = minf(xf.origin.y, Footing.seat_y(GroundSeat.fast_fn(), GroundSeat.mesh_points(sm as Mesh), xf.basis, Vector2(x, z), xf.origin.y, 0.9))
 	var col: Color = F._tint(_rng, 0.14 if sp != "flowers" else 0.05)
 	if sp in F.TINTED:
 		var tc: Color = F._tc[F._bidx(x, z)]
