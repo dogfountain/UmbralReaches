@@ -39,15 +39,11 @@ uniform vec2 bank_size = vec2(92.0, 130.0);
 uniform vec2 flow_dir = vec2(0.15, -1.0);   // the river's current (world xz)
 uniform float flow_rate = 0.9;               // m/s of crust drift
 uniform float swell = 0.11;
-// Starwater (Luke, 9 Nov: no lava by the village): south of star_z (world z greater, towards Hearthward)
-// the river is a still pool of violet starlight, not fire; the lava cools into it over star_band metres.
-// LavaWorks sets star_z under the Realm; the default keeps the whole sheet molten.
-uniform float star_z = 1000.0;
-uniform float star_band = 5.0;
-uniform vec3 star_deep : source_color = vec3(0.01, 0.008, 0.03);
-uniform vec3 star_violet : source_color = vec3(0.4, 0.24, 0.92);
-uniform vec3 star_teal : source_color = vec3(0.2, 0.42, 0.9);
-uniform float star_energy = 2.1;
+// Cooling (r39, the Ashen Rift from scratch; Luke, 9 Nov: no fire by the village): one element, cooling towards the village end. North
+// of heat_z1 (world z smaller) the lava is molten; south of heat_z0 it has crusted black, thin dim seams between cold plates. LavaWorks
+// sets both under the Realm; the defaults keep the whole sheet molten.
+uniform float heat_z0 = 1001.0;
+uniform float heat_z1 = 1000.0;
 
 // VERTEX is view-space inside fragment(), which would make the crust swim as the camera moves.
 // Carry the world position across explicitly so the pattern stays welded to the world.
@@ -120,42 +116,41 @@ void vertex() {
 	float bank_v = bank_at(world_pos.xz);
 	// slow swells, damped to nothing at the banks so the sheet never lifts off the rock
 	float s = sin(world_pos.x * 0.21 + TIME * 0.6) * sin(world_pos.z * 0.17 - TIME * 0.45);
-	float still = 1.0 - smoothstep(star_z - star_band, star_z + star_band, world_pos.z);   // starwater lies flat
+	float still = mix(0.1, 1.0, 1.0 - smoothstep(heat_z1, heat_z0, world_pos.z));   // the crust hardly heaves
 	VERTEX.y += s * swell * smoothstep(0.0, 0.6, bank_v) * still;
 	world_pos.y += s * swell * smoothstep(0.0, 0.6, bank_v) * still;
 }
 
 void fragment() {
-	vec2 uv = world_pos.xz * noise_scale;     // world-space, so the sheet never shows UV seams
+	// welded to the sheet (its own middle as the origin), so the sheet never shows UV seams and the patterns stay small numbers where
+	// the endgame stands, 310 m east of the world's origin
+	vec2 uv = (world_pos.xz - (bank_origin + bank_size * 0.5)) * noise_scale;
 	float t = TIME * flow_speed;
 	float bank = bank_at(world_pos.xz);
 	float open = smoothstep(0.08, 0.7, bank);
+	float heatz = 1.0 - smoothstep(heat_z1, heat_z0, world_pos.z);       // 1 molten .. 0 crusted
 
 	// the current carries the plates (a plain translation: no shear, so no re-seeding needed);
 	// the warp field crawls slowly on its own, so plate edges bend and creep as they drift
 	vec2 drift = normalize(flow_dir) * flow_rate * noise_scale * TIME;
 	vec2 q = vec2(fbm3(uv + vec2(t, -t * 0.6)), fbm3(uv + vec2(5.2, 1.3) - t * 0.4)) - 0.5;
 	float hot = smoothstep(0.3, 0.75, fbm3(uv * 0.6 + q * 0.8 - drift * 0.5 + vec2(2.1, 7.7)));
-	// plates drawn out along the current (a river's crust tears into rafts, not honeycomb)
-	// regional variation (the pit is a basin, not a tile): plate size, the current's heading and the crust's coverage change across it
-	float r1 = fbm3(world_pos.xz * 0.013 + vec2(3.7, 1.1));
-	float r2 = fbm3(world_pos.xz * 0.021 + vec2(9.3, 4.4));
-	float ang = (r2 - 0.5) * 1.8;
-	vec2 fd0 = normalize(flow_dir);
-	vec2 fd = vec2(fd0.x * cos(ang) - fd0.y * sin(ang), fd0.x * sin(ang) + fd0.y * cos(ang));
-	float psc = plate_scale * mix(0.55, 1.5, r1);
-	hot = clamp(hot + (r1 - 0.5) * 0.55, 0.0, 1.0);
+	// plates drawn out along the current (a river's crust tears into rafts, not honeycomb). Regional variety is in the heat and the crust's
+	// coverage only: a plate size or a heading that changed across the sheet sheared the plates into rings and swirls (r39)
+	float r1 = fbm3(uv * 0.24 + vec2(3.7, 1.1));
+	hot = clamp(hot * mix(0.3, 1.15, heatz) + (r1 - 0.5) * 0.45 + (heatz - 0.5) * 0.35, 0.0, 1.0);
+	vec2 fd = normalize(flow_dir);
 	vec2 pu = uv - drift + warp * q * 0.8;
 	pu = vec2(dot(pu, vec2(fd.y, -fd.x)), dot(pu, fd) * plate_stretch);
-	vec2 pl = plates(pu * psc);
+	vec2 pl = plates(pu * plate_scale);
 	float edge = pl.x;
 
 	// cracks: thin where the crust has cooled, opening into molten channels in the hot reaches;
 	// fwidth keeps a far crack a soft line instead of a crawling dotted one
-	float w = crack_width * mix(0.45, 3.6, hot * hot) * mix(0.6, 1.0, open);
+	float w = crack_width * mix(0.45, 3.6, hot * hot) * mix(0.6, 1.0, open) * mix(0.45, 1.0, heatz);
 	float aa = fwidth(edge);
 	// cooled reaches let some edges go dark entirely, so not every seam is lit (no tiled look)
-	float lit = smoothstep(0.15, 0.6, hot + 0.6 * vnoise(uv * plate_scale * 0.5 + 3.3) - 0.3);
+	float lit = smoothstep(0.15, 0.6, hot + 0.6 * vnoise(uv * plate_scale * 0.5 + 3.3) - 0.3) * mix(0.5, 1.0, heatz);
 	float crack = (1.0 - smoothstep(0.0, w + aa, edge)) * mix(0.3, 1.0, lit);
 	// hairline fissures across the plates where the crust is thin (one ridged noise, hot reaches only)
 	float fn = abs(vnoise((uv - drift) * plate_scale * 2.3 + q * 4.0) - 0.5);
@@ -174,48 +169,20 @@ void fragment() {
 	// the open channel runs hotter (thin crust); near the rock it cools into a dark shelf of
 	// crust, with a bright line of magma where it still licks the stone
 	heat = mix(heat * 0.25, min(1.0, heat * 1.15 + 0.08), open);
-	float rim = smoothstep(0.0, 0.03, bank) * (1.0 - smoothstep(0.05, 0.13, bank));
+	float rim = smoothstep(0.0, 0.03, bank) * (1.0 - smoothstep(0.05, 0.13, bank)) * mix(0.35, 1.0, heatz);
 	heat = max(heat, rim * (0.75 + 0.25 * sin(TIME * 1.7 + world_pos.x * 0.8)));
 
 	// fine grain on the crust plates so they read as rock, not flat paint
 	float grain = 0.65 + 0.7 * vnoise(uv * 22.0 + q * 3.0);
-	ALBEDO = mix(crust_color * grain * (1.0 - 0.35 * plate), hot_color, heat * 0.65);
+	ALBEDO = mix(crust_color * grain * (1.0 - 0.35 * plate) * mix(0.8, 1.0, heatz), hot_color, heat * 0.65);
 
 	// blackbody ramp: blood red -> orange -> amber, white-hot only down the cracks' middles
 	vec3 ramp = mix(hot_color * vec3(0.55, 0.3, 0.4), hot_color, smoothstep(0.0, 0.45, heat));
 	ramp = mix(ramp, core_color, smoothstep(0.45, 0.9, heat));
-	ramp = mix(ramp, white_hot, core * smoothstep(0.75, 1.0, heat) * open * 0.7);
+	ramp = mix(ramp, white_hot, core * smoothstep(0.75, 1.0, heat) * open * 0.7 * smoothstep(0.5, 0.95, heatz));
 	float sheet = mix(0.08, 0.28, open) * mix(1.0, plate_dark, plate) * (0.75 + 0.5 * hot) + heat * 0.72;
-	EMISSION = ramp * sheet * emission_energy;
-	EMISSION += core_color * speck * heat * emission_energy * 0.8;
+	EMISSION = ramp * sheet * emission_energy * mix(0.2, 1.15, heatz);
+	EMISSION += core_color * speck * heat * emission_energy * 0.8 * heatz;
 	ROUGHNESS = mix(0.96, 0.32, heat);
 	METALLIC = 0.0;
-
-	// --- starwater: slow luminous veils drifting under a dark glassy skin, star specks that
-	// twinkle, rings spreading from where a mote touches down, a cold bright line at the stone
-	float sw = smoothstep(star_z - star_band, star_z + star_band, world_pos.z);
-	if (sw > 0.001) {
-		vec2 su = world_pos.xz * 0.075;
-		float c1 = fbm3(su + vec2(TIME * 0.018, -TIME * 0.011));
-		float c2 = fbm3(su * 2.2 + q * 1.5 - vec2(TIME * 0.026, TIME * 0.009));
-		float veil = smoothstep(0.56, 0.9, c1) * 0.6 + smoothstep(0.64, 0.95, c2) * 0.4;
-		vec2 sc2 = world_pos.xz * 1.35;
-		vec2 si = floor(sc2);
-		vec2 sf = fract(sc2) - 0.5 - (hash2(si + 4.1) - 0.5) * 0.7;
-		float tw = 0.5 + 0.5 * sin(TIME * (1.3 + 2.5 * hash(si + 9.7)) + hash(si) * 30.0);
-		float star = step(0.93, hash(si)) * (1.0 - smoothstep(0.02, 0.09, length(sf))) * tw;
-		vec2 rc = floor(world_pos.xz / 9.0);
-		vec2 rp = (rc + 0.25 + 0.5 * hash2(rc + 2.3)) * 9.0;
-		float ph = fract(TIME * 0.13 + hash(rc + 7.1));
-		float rr = length(world_pos.xz - rp) - ph * 7.0;
-		float ring = (1.0 - smoothstep(0.0, 0.18 + fwidth(rr), abs(rr))) * (1.0 - ph) * (1.0 - ph);
-		float shore = smoothstep(0.0, 0.03, bank) * (1.0 - smoothstep(0.03, 0.1, bank));   // (polish: a narrower, dimmer line: round a plinth's square foot it drew a flat blue rectangle)
-		vec3 glow = mix(star_violet, star_teal, smoothstep(0.55, 0.95, c2));
-		vec3 sem = glow * (0.05 + veil * 0.85 + ring * 0.45) + vec3(0.82, 0.86, 1.0) * star * 1.6 + mix(star_violet, star_teal, 0.5) * shore * 0.28;
-		// where the two waters meet the lava's last heat goes out in a dull ember band
-		float meet = sw * (1.0 - sw) * 4.0;
-		ALBEDO = mix(ALBEDO, star_deep, sw);
-		EMISSION = mix(EMISSION * (1.0 - meet * 0.6), sem * star_energy, sw);
-		ROUGHNESS = mix(ROUGHNESS, 0.06, sw);
-	}
 }

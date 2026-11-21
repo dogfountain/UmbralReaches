@@ -29,8 +29,8 @@ func _init(p: Player) -> void:
 	player = p
 
 
-## Lava: a heavy Gloom burn and a throw back to the last solid ground (see Lava). `star`: the
-## Threshold's starwater (RealmRift.STAR_Z), which gives you back with a lighter wound and no fire.
+## Lava: a heavy Gloom burn and a throw back to the last solid ground (see Lava). `star`: a pool of
+## light that gives you back with a lighter wound and no fire (the Ossuary's pool, oss_pool.gd).
 func lava_burn(amount: float, star := false) -> void:
 	if player._burn_cd > 0.0 or player._hollowing:
 		return

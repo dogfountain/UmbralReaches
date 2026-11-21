@@ -1,9 +1,10 @@
 extends RefCounted
-## The pit's heat shimmer: one flat sheet over the lava basin (world/zones/heat_haze.gdshader bends the screen behind it). Built with the rift
-## (its host moves to the endgame with it), no per-frame work.
+## The heat shimmer: one flat sheet over the molten east channel and the pool under the Ward Crag (world/zones/heat_haze.gdshader bends the
+## screen behind it; from scratch, 21 Nov: the hot heart, not the crusted south). Built with the rift (its host moves to the endgame with it),
+## no per-frame work.
 
-const CENTRE := Vector3(0.0, -3.0, -78.0)
-const HALF := Vector2(34.0, 42.0)
+const CENTRE := Vector3(12.0, -9.0, -62.0)
+const HALF := Vector2(16.0, 26.0)
 
 
 static func build(host: Node3D) -> void:
