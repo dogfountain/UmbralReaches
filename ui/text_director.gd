@@ -230,7 +230,7 @@ func can_begin(kind: StringName) -> bool:
 		return false
 	if opening and kind in [&"discovery", &"quest"]:
 		return false                                     # the title card and the opening's words go first
-	if kind == &"lesson" and is_inside_tree() and get_tree().get_first_node_in_group(&"opening_shot") != null:
+	if kind == &"lesson" and is_inside_tree() and (get_tree().get_first_node_in_group(&"opening_shot") != null or get_tree().get_first_node_in_group(&"fire_flight") != null):
 		return false                                     # the authored shot is on: no control card over the sky (it queues, and draws after)
 	if in_fight() and not kind in [&"boss_emote", &"lesson", &"narration"]:
 		return false
@@ -439,6 +439,8 @@ func _poll_world() -> void:
 	var tree := get_tree()
 	var dlg := tree.get_first_node_in_group(&"dialogue")
 	_dialogue_open = dlg != null and dlg.has_method("is_open") and bool(dlg.call("is_open"))
+	if _tip_t > 0.0 and tree.get_first_node_in_group(&"fire_flight") != null:
+		_lesson_bumped()                          # a lesson on screen when the Ember Road's flight starts goes back to the queue, and draws on landing
 	var p := tree.get_first_node_in_group(Groups.PLAYER)
 	_locked = p != null and p.has_method("lock_target") and p.call("lock_target") != null
 	var pl := p as Player

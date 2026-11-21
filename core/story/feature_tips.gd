@@ -41,8 +41,8 @@ func _tick() -> void:
 	if get_tree().paused or _done():
 		return
 	var p := get_tree().get_first_node_in_group(Groups.PLAYER) as Node3D
-	if p == null or Player.boss_fight_active(get_tree()):
-		return
+	if p == null or Player.boss_fight_active(get_tree()) or get_tree().get_first_node_in_group("fire_flight") != null:
+		return                                             # no lesson while the Ember Road's flight is on
 	var hud: Variant = get_tree().get_first_node_in_group(&"hud")          # hud.gd has no class_name
 	if hud != null and hud.lesson_busy():
 		return                                             # one lesson at a time

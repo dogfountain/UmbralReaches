@@ -46,6 +46,11 @@ func _ready() -> void:
 	if dup != null and dup.get("brazier") != self:
 		dup.name = "EmberPostCopy"               # Area.make_brazier duplicates a dressed fire: a fresh post
 		dup.queue_free()
+	for stale in ["FarPlume", "Beacon_"]:                  # Area.make_brazier duplicates a dressed fire with its far plume and beacon: they belong to Hearthward's
+		var old := get_node_or_null(stale)
+		if old != null and old.get("brazier") != self:
+			old.name = stale + "Copy"
+			old.queue_free()
 	if get_node_or_null("EmberPost") == null:
 		var post: Node3D = (load("res://core/world/ember_post.gd") as GDScript).new()
 		post.name = "EmberPost"
@@ -75,7 +80,7 @@ func _ready() -> void:
 
 ## Hearthward's fire is the Realm's home: it reads from afar as a warm point (the landmark beacon's glow), like every landmark's.
 func _far_glow() -> void:
-	if is_inside_tree():
+	if is_inside_tree() and Vector2(global_position.x, global_position.z).distance_to(Vector2(RealmLayout.SPAWN.x, RealmLayout.SPAWN.z)) < 8.0:     # Hearthward's only (other areas have a Sanctuary too)
 		Wayfinding.beacon(self, global_position + Vector3.UP * 1.4, "", Color(1.0, 0.66, 0.34), 0.0, 1.5, 4.0, true, 0.0)
 		var plume := MeshInstance3D.new()
 		plume.set_script(load("res://core/world/fire_plume.gd"))

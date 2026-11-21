@@ -209,8 +209,8 @@ func _announce(method: String, title: String, line: String, fresh: bool) -> void
 
 
 func _pump_holds() -> void:
-	if _hold.is_empty():
-		return
+	if _hold.is_empty() or get_tree().get_first_node_in_group("fire_flight") != null:
+		return                                  # a title waits for the Ember Road's landing
 	var td := TextDirector.of(self)
 	if td == null:
 		return

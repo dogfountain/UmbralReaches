@@ -55,6 +55,8 @@ func _on_kindled(b: Node3D) -> void:
 func announce_if_inside(p: Node3D, bounds: AABB) -> void:
 	if _announced or p == null or title == "":
 		return
+	if is_inside_tree() and get_tree().get_first_node_in_group(&"fire_flight") != null:
+		return                                   # the Ember Road's flight parks the wanderer at the far fire at once: the card plays on landing
 	if bounds.has_point(to_local(p.global_position)):
 		_announced = true
 		Events.zone_entered.emit(title, subtitle)

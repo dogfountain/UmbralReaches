@@ -162,11 +162,12 @@ func _travel() -> void:
 		return
 	if not b.lit:
 		b._set_lit(true, false)
+	await _secs(9.0)                       # the night's own cards and lessons first: they must not be what the flight shows
 	var f: Node = FireRoad.travel(a, b)
 	if f == null:
 		_fail("the flight did not start")
 		return
-	for k in 26:
+	for k in 36:
 		await _shot("travel_%02d" % k)
 		await _secs(0.3)
 

@@ -185,8 +185,8 @@ func _process(delta: float) -> void:
 	_clock += delta
 	_plate.visible = not get_tree().paused
 	var td := TextDirector.of(self)
-	if td != null and (td.in_combat() or td.is_up(&"boss_title")):
-		# a fight is on: a banner on screen bows out (a first discovery is kept to show again), none starts
+	if (td != null and (td.in_combat() or td.is_up(&"boss_title"))) or get_tree().get_first_node_in_group("fire_flight") != null:
+		# a fight is on, or the Ember Road's flight (the place is named on landing): a banner on screen bows out (a first discovery is kept to show again), none starts
 		if _plate.modulate.a > 0.01 and not _cut:
 			_cut = true
 			if _tw:
