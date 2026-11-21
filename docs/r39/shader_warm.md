@@ -24,7 +24,7 @@ copy of Luke's save and settings each run; `base/` the baseline logs, `after/` t
 - [x] where the compiles come from (the log, three probes)
 - [x] the engine's options (ubershaders, shader cache, the Metal pipeline cache)
 - [x] fixes (2a649a74, 85da5df2)
-- [ ] final, cold and warm (`<S>/after/`)
+- [x] final, cold and warm (`<S>/after/`; a first set in `<S>/after1/`)
 - [ ] tests: not run here (the lead runs the one suite after merging)
 
 ## Baseline (before, 21 Nov morning; `<S>/base/`)
