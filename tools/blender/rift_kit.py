@@ -770,7 +770,7 @@ def sec_crag(objs):
         rock.append(((tx, (t + 18.0) * 0.5, tz), (trnd.uniform(1.4, 2.6), (t - 18.0) * 0.5, trnd.uniform(1.2, 2.2)), trnd.uniform(0, 90),
                      trnd.uniform(-8, 8), trnd.uniform(-8, 8)))
     # the lavafall's cleft at the crag's south-east corner stays open (sec_fall builds it): no rough rock in its channel
-    M.keeps.append(((FALL_X - 1.9, L - 1.0, -64.5), (FALL_X + 1.9, 21.0, -46.6)))
+    M.keeps.append(((FALL_X - 3.0, L - 1.0, -64.5), (FALL_X + 3.0, 21.0, -46.6)))
     fall_avoid = [(FALL_X, -48.5, 3.0), (FALL_X, -53.0, 3.2), (FALL_X, -58.0, 3.2), (FALL_X, -62.5, 3.0)]
     n = massing(rock, M.keeps, 501, 9, (-24.0, 15.0), (-47.4, -50.4), (L + 0.8, L + 5.0), w=(1.2, 2.0),
                 avoid=WATCHERS_AVOID + fall_avoid)                                                       # the foot in the pool, close in
@@ -795,7 +795,8 @@ def sec_crag(objs):
 
 
 # ============================================================================================ the lavafall
-FALL_X = 17.5
+FALL_X = 18.0
+FALL_HW = 3.6             # the cheeks stand this far either side of the sheet's middle (a sheet up to 5.6 m wide pours between them)
 CRAG_KEEPS = []           # the crag's walk volumes (sec_crag), so the cleft's rock keeps off the climb's foot and the windows
 ## The source: lava wells up in a basin on the crag's south-east shoulder, runs a short channel to the lip and pours down a chute cut in
 ## the corner, between two cheeks of basalt, into the pool by the climb's foot. Game points, the vent first; FALL_LIP is the lip's index.
@@ -833,21 +834,32 @@ def sec_fall(objs):
         pitch = math.degrees(math.atan2(a.y - b.y, abs(a.z - b.z)))          # raised at its north (upper) end
         mid = (a + b) * 0.5
         floor = mid - n * (2.0 + 0.14)                                          # the chute's bed, 0.14 m behind the sheet
-        rock.append(((floor.x, floor.y, floor.z), (ln * 0.5 + 0.6, 2.0, 1.9), 90.0, pitch, 0.0))
+        rock.append(((floor.x, floor.y, floor.z), (ln * 0.5 + 0.6, 2.0, FALL_HW - 0.4), 90.0, pitch, 0.0))
         for side in (-1.0, 1.0):                                                # the cheeks, standing 2.2 m proud of the bed
-            ch = mid + Vector((side * 2.55, 0.0, 0.0)) - n * 0.6
+            ch = mid + Vector((side * FALL_HW, 0.0, 0.0)) - n * 0.6
             rock.append(((ch.x, ch.y, ch.z), (ln * 0.5 + 0.8, 2.8, 0.75), 90.0, pitch, 0.0))
-        lines.append(((a.x, a.y, a.z), (b.x, b.y, b.z), 3.2))
+        lines.append(((a.x, a.y, a.z), (b.x, b.y, b.z), 4.4))
     v0, v1 = Vector(FALL[0]), Vector(FALL[FALL_LIP])
-    rock.append(((FALL_X, v1.y - 1.4, (v0.z + v1.z) * 0.5), (2.3, 1.25, 2.0), 0.0))                 # the basin under the channel
-    rock.append(((FALL_X, (v1.y + 4.5 + BED) * 0.5, v0.z - 2.2), (2.8, (v1.y + 4.5 - BED) * 0.5, 1.6), 0.0))   # the rock behind the vent
+    rock.append(((FALL_X, v1.y - 1.4, (v0.z + v1.z) * 0.5), (FALL_HW - 0.2, 1.25, 2.0), 0.0))         # the basin under the channel
+    rock.append(((FALL_X, (v1.y + 4.5 + BED) * 0.5, v0.z - 2.2), (FALL_HW + 0.8, (v1.y + 4.5 - BED) * 0.5, 1.6), 0.0))   # behind the vent
     for side in (-1.0, 1.0):
-        rock.append(((FALL_X + side * 2.55, v1.y + 0.6, (v0.z + v1.z) * 0.5), (0.75, 1.4, 2.2), 0.0))
-    lines.append(((v0.x, v0.y, v0.z), (v1.x, v1.y, v1.z), 2.6))
-    keep = CRAG_KEEPS + [((FALL_X - 1.6, L - 1.0, -64.0), (FALL_X + 1.6, 21.0, -47.0))]      # the sheet's channel, the foot: the rock only sinks back
-    ob = R.rock_mass("Cleft", rock, voxel=0.3, keep=keep, seed=41, tris=5000, disp=0.45)
+        rock.append(((FALL_X + side * FALL_HW, v1.y + 0.6, (v0.z + v1.z) * 0.5), (0.75, 1.4, 2.2), 0.0))
+    lines.append(((v0.x, v0.y, v0.z), (v1.x, v1.y, v1.z), 3.6))
+    # the splash pool at the foot: a low broken rim of spatter round where the sheet lands, open to the lake on the south, glowing all
+    # along its lip (the lava churns inside it: realm_rift.gd's boil, LavaWorks' glow light, crossing.gd's splash)
+    foot = Vector(FALL[-1])
+    prnd = random.Random(4417)
+    for k in range(9):
+        a = math.radians(-20.0 - k * 17.5)                                     # from the east round the back (north) to the west
+        r = 5.6 + prnd.uniform(-0.4, 0.5)
+        c = (foot.x + math.cos(a) * r, (L + prnd.uniform(0.4, 0.9) + BED) * 0.5, foot.z + math.sin(a) * r)
+        rock.append((c, (prnd.uniform(1.0, 1.6), (L + 0.7 - BED) * 0.5, prnd.uniform(0.8, 1.2)), math.degrees(-a) + prnd.uniform(-15, 15), 0.0, 0.0))
+    lines.append(((foot.x - 5.6, L + 0.6, foot.z), (foot.x, L + 0.6, foot.z - 5.6), 3.0))
+    lines.append(((foot.x, L + 0.6, foot.z - 5.6), (foot.x + 5.6, L + 0.6, foot.z), 3.0))
+    keep = CRAG_KEEPS + [((FALL_X - 2.9, L - 1.0, -64.0), (FALL_X + 2.9, 21.0, -47.0))]      # the sheet's channel, the foot: the rock only sinks back
+    ob = R.rock_mass("Cleft", rock, voxel=0.3, keep=keep, seed=41, tris=6500, disp=0.45, calm=_waterline)
     objs += R.rock_finish(ob, "Cleft", "ash", col_ratio=0.3, ember_lines=lines)
-    # the sheet: rows every half metre down the path, 1.6 m wide at the vent, 2.6 at the lip, 3.0 at the foot
+    # the sheet: rows every half metre down the path, 3.0 m wide at the vent, 4.6 at the lip, 5.6 at the foot (a heavy fall, not a thread)
     pts = []
     for i in range(len(FALL) - 1):
         a, b = Vector(FALL[i]), Vector(FALL[i + 1])
@@ -865,7 +877,7 @@ def sec_fall(objs):
             m += (p - pts[idx - 1][0]).length
         if f <= FALL_LIP + 1e-6:
             lip_m = m
-        w = 1.6 + (2.6 - 1.6) * min(f / FALL_LIP, 1.0) if f <= FALL_LIP else 2.6 + 0.4 * (f - FALL_LIP) / (len(FALL) - 1 - FALL_LIP)
+        w = 3.0 + (4.6 - 3.0) * min(f / FALL_LIP, 1.0) if f <= FALL_LIP else 4.6 + 1.0 * (f - FALL_LIP) / (len(FALL) - 1 - FALL_LIP)
         rows.append((bm.verts.new(bl((p.x - w * 0.5, p.y, p.z))), bm.verts.new(bl((p.x + w * 0.5, p.y, p.z))), m))
     for (a0, a1, ma), (b0, b1, mb) in zip(rows, rows[1:]):
         f = bm.faces.new((a0, a1, b1, b0))

@@ -148,6 +148,33 @@ func _vent(host: Node3D) -> void:
 		host.add_child(smoke)
 		smoke.global_position = at + Vector3.UP * 0.4
 		smoke.emitting = true
+	_splash(host, _v3(lf["foot"]))
+
+
+## The lavafall's splash pool: where the sheet lands it throws glowing droplets up and falls back, a hot veil hangs over the churn
+## (the boil is realm_rift.gd's, the light LavaWorks' first glow), and the fumes rise off it.
+func _splash(host: Node3D, foot: Vector3) -> void:
+	var at := Vector3(foot.x, -15.3, foot.z + 0.8)
+	var drops := Vfx.emitter(Color(2.2, 0.8, 0.2), {"count": 64, "life": 1.1, "speed": Vector2(2.5, 6.0), "size": 0.1, "gravity": -9.0, "radius": 2.2, "spread": 35.0, "damping": 0.2})
+	if drops:
+		drops.name = "FallSplash"
+		host.add_child(drops)
+		drops.global_position = at
+		drops.emitting = true
+	var veil := Vfx.emitter(Color(1.5, 0.45, 0.1, 0.35), {"count": 18, "life": 1.6, "speed": Vector2(0.5, 1.5), "size": 1.4, "gravity": 0.6, "radius": 2.2, "spread": 30.0, "grow": 1.2})
+	if veil:
+		veil.name = "FallVeil"
+		host.add_child(veil)
+		veil.global_position = at + Vector3.UP * 0.4
+		veil.emitting = true
+	var fume := Vfx.emitter(Color(0.17, 0.13, 0.12, 0.35), {"count": 10, "life": 6.0, "speed": Vector2(0.8, 1.6), "size": 2.8, "gravity": 0.3, "radius": 1.8, "spread": 14.0, "additive": false, "turbulence": true, "damping": 0.2, "grow": 0.5})
+	if fume:
+		fume.name = "FallFume"
+		fume.visibility_aabb = AABB(Vector3(-7, -1, -7), Vector3(14, 20, 14))
+		fume.preprocess = 4.0
+		host.add_child(fume)
+		fume.global_position = at + Vector3.UP * 0.8
+		fume.emitting = true
 
 
 ## The fire baskets' coals (the flames over them are particles): a banked glow.
