@@ -140,6 +140,7 @@ var t0_ms := 0
 var _first: Node
 var _proc_us := 0
 var _phys_us := 0
+var _phys_us_shown := 0                ## this frame's physics share of _proc_us (the probe)
 var _phys_begin := 0
 
 var blame := false
@@ -279,6 +280,8 @@ static func _make_stamp() -> GDScript:
 func _physics_process(_d: float) -> void:
 	if _phys_begin > 0:
 		_phys_us += Time.get_ticks_usec() - _phys_begin
+		_probe_tp_span = Vector2i(_phys_begin, Time.get_ticks_usec())     # (the probe: this tick's ends)
+		_probe_ticks += 1
 
 
 ## A conversation or an offer that opens by itself where the tour stands (a found start by the towns) pauses the night,
@@ -400,6 +403,7 @@ func _process(d: float) -> void:
 	t += d
 	var script_us := Time.get_ticks_usec() - _proc_begin if _proc_begin > 0 else 0
 	_proc_us = script_us + _phys_us
+	_phys_us_shown = _phys_us
 	_phys_us = 0
 	if p == null:
 		p = get_tree().get_first_node_in_group(Groups.PLAYER) as Player
@@ -612,6 +616,8 @@ var _probe_on := false
 var _probe_units: Array[String] = []
 var _probe_t := PackedInt64Array()           ## idle pass: stamp time by unit
 var _probe_tp_last := PackedInt64Array()     ## physics pass: each unit's stamp in the last tick
+var _probe_tp_span := Vector2i.ZERO          ## the last tick's first and last stamp (the tour's own)
+var _probe_ticks := 0                        ## physics ticks since the last idle frame
 var _probe_left := 120                       ## reports at most this many frames
 var _probe_us := 8000                        ## a frame whose scripts run over this is reported (--probe-ms=N)
 
@@ -637,6 +643,11 @@ func _probe_setup() -> void:
 			_probe_left = 600
 		if a.begins_with("--probe-split="):
 			split = a.trim_prefix("--probe-split=").split(",")
+	# the autoloads and Main's own node are units too (a burst outside Main's children was reported as nobody's); Main's
+	# children come after and take their subtrees back
+	for c in get_tree().root.get_children():
+		if c != self and not String(c.name).begins_with("Perf"):
+			units.append(c)
 	for c in main.get_children():
 		if c.get_child_count() <= PROBE_SPLIT and not (String(c.name) in split):
 			units.append(c)
@@ -654,7 +665,9 @@ func _probe_setup() -> void:
 	holder.name = "PerfProbes"
 	holder.process_mode = Node.PROCESS_MODE_ALWAYS
 	get_tree().root.add_child(holder)
-	var renumbered := 0
+	# each node is renumbered once, by the last (the deepest) unit that holds it: a subtree that is also split into units
+	# was renumbered twice, which moved it past every stamp (its time showed as nobody's)
+	var unit_of := {}                                 # node id -> [node, unit]
 	for k in units.size():
 		var u := units[k]
 		_probe_units.append(String(main.get_path_to(u)))
@@ -662,13 +675,18 @@ func _probe_setup() -> void:
 		if not ((u.get_child_count() > PROBE_SPLIT or String(u.name) in split) and u.get_parent() == main):
 			nodes.append_array(u.find_children("*", "", true, false))
 		for n in nodes:
-			var p := n.process_priority
-			var pp := n.process_physics_priority
-			if absi(p) < PROBE_STRIDE / 2:
-				n.process_priority = p * PROBE_STRIDE + 2 * k + 1
-			if absi(pp) < PROBE_STRIDE / 2:
-				n.process_physics_priority = pp * PROBE_STRIDE + 2 * k + 1
-			renumbered += 1
+			unit_of[n.get_instance_id()] = [n, k]
+	for id: int in unit_of:
+		var n := unit_of[id][0] as Node
+		var k := int(unit_of[id][1])
+		var p := n.process_priority
+		var pp := n.process_physics_priority
+		if absi(p) < PROBE_STRIDE / 2:
+			n.process_priority = p * PROBE_STRIDE + 2 * k + 1
+		if absi(pp) < PROBE_STRIDE / 2:
+			n.process_physics_priority = pp * PROBE_STRIDE + 2 * k + 1
+	var renumbered := unit_of.size()
+	for k in units.size():
 		var st := Node.new()
 		st.set_script(script)
 		st.set("tour", self)
@@ -698,25 +716,56 @@ func _probe_report() -> void:
 	if _proc_us > _probe_us and _probe_left > 0:
 		_probe_left -= 1
 		var gaps: Array = []
+		var last := _probe_t.size() - 1
 		if _probe_t[0] > 0 and _proc_begin > 0:
 			gaps.append([_probe_t[0] - _proc_begin, 0])      # unit 0, and every node spawned since the setup (priority 0)
 		for k in range(1, _probe_t.size()):
 			if _probe_t[k] > 0 and _probe_t[k - 1] > 0:
 				gaps.append([_probe_t[k] - _probe_t[k - 1], k])
+		if _probe_t[last] > 0:
+			gaps.append([Time.get_ticks_usec() - _probe_t[last], -1])         # after the last unit: a node with a priority past the bands
 		var pg: Array = []
+		if _probe_tp_last[0] > 0 and _probe_tp_span.x > 0 and _probe_tp_last[0] >= _probe_tp_span.x:
+			pg.append([_probe_tp_last[0] - _probe_tp_span.x, 0])          # unit 0 and the nodes spawned since (as above)
 		for k in range(1, _probe_tp_last.size()):
 			if _probe_tp_last[k] > 0 and _probe_tp_last[k - 1] > 0 and _probe_tp_last[k] >= _probe_tp_last[k - 1]:
 				pg.append([_probe_tp_last[k] - _probe_tp_last[k - 1], k])
+		if _probe_tp_last[_probe_tp_last.size() - 1] > 0 and _probe_tp_span.y >= _probe_tp_last[_probe_tp_last.size() - 1]:
+			pg.append([_probe_tp_span.y - _probe_tp_last[_probe_tp_last.size() - 1], -1])
 		gaps.sort_custom(func(a: Array, b: Array) -> bool: return a[0] > b[0])
 		pg.sort_custom(func(a: Array, b: Array) -> bool: return a[0] > b[0])
 		var txt := PackedStringArray()
 		for g: Array in gaps.slice(0, 4):
-			txt.append("%s %.1f" % [_probe_units[g[1]], g[0] / 1000.0])
+			txt.append("%s %.1f" % [_probe_units[g[1]] if int(g[1]) >= 0 else "(after the last unit)", g[0] / 1000.0])
 		var ptxt := PackedStringArray()
 		for g: Array in pg.slice(0, 3):
-			ptxt.append("%s %.1f" % [_probe_units[g[1]], g[0] / 1000.0])
-		print("PROBE t %.2f scripts %.1f ms | idle: %s | last tick: %s" % [t, _proc_us / 1000.0, ", ".join(txt), ", ".join(ptxt)])
+			ptxt.append("%s %.1f" % [_probe_units[g[1]] if int(g[1]) >= 0 else "(after the last unit)", g[0] / 1000.0])
+		print("PROBE t %.2f scripts %.1f ms (idle %.1f, physics %.1f in %d ticks) | idle: %s | last tick: %s" % [t, _proc_us / 1000.0,
+			(_proc_us - _phys_us_shown) / 1000.0, _phys_us_shown / 1000.0, _probe_ticks, ", ".join(txt), ", ".join(ptxt)])
+		if not gaps.is_empty() and int((gaps[0] as Array)[1]) == -1:
+			_probe_tail()
 	_probe_t.fill(0)
+	_probe_ticks = 0
+
+
+## The tail is the nodes processed after the last unit's stamp: a priority past the bands (a positive one, or one set since
+## the setup). Name the ones processing now (a scan of the tree: only on such a report).
+func _probe_tail() -> void:
+	var top := 2 * _probe_units.size() + 2
+	var by := {}                                      # script (or class) -> [count, a path]
+	for n in get_tree().root.find_children("*", "", true, false):
+		if n == self or String(n.name).begins_with("Perf") or not (n.is_processing() or n.is_processing_internal()):
+			continue
+		if n.process_priority > top and n.process_priority < (1 << 30):
+			var scr := n.get_script() as Script
+			var k := "%s %d" % [scr.resource_path.get_file() if scr else n.get_class(), n.process_priority / PROBE_STRIDE]
+			if not by.has(k):
+				by[k] = [0, str(n.get_path())]
+			by[k][0] += 1
+	var out := PackedStringArray()
+	for k: String in by:
+		out.append("%s x%d (%s)" % [k, int(by[k][0]), String(by[k][1])])
+	print("PROBE tail: %s" % ", ".join(out))
 
 
 # --- static views ----------------------------------------------------------------------------------
