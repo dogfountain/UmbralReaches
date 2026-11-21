@@ -84,11 +84,13 @@ float fbm3(vec2 p) {
 
 // Worley F2 - F1 over a 3x3 neighbourhood: 0 on the edge two plates share, ~0.5 at a plate's middle.
 // .y = F1 (distance to the plate's own centre), for the per-plate shading.
-vec2 plates(vec2 p) {
+// .z = the plate's own id (0..1, the hash of its cell): which plates are crust rafts and which open lava in the molten lake
+vec3 plates(vec2 p) {
 	vec2 i = floor(p);
 	vec2 f = fract(p);
 	float d1 = 8.0;
 	float d2 = 8.0;
+	float id = 0.0;
 	for (int y = -1; y <= 1; y++) {
 		for (int x = -1; x <= 1; x++) {
 			vec2 g = vec2(float(x), float(y));
@@ -97,13 +99,14 @@ vec2 plates(vec2 p) {
 			if (d < d1) {
 				d2 = d1;
 				d1 = d;
+				id = hash(i + g + 17.3);
 			} else if (d < d2) {
 				d2 = d;
 			}
 		}
 	}
 	d1 = sqrt(d1);
-	return vec2(sqrt(d2) - d1, d1);
+	return vec3(sqrt(d2) - d1, d1, id);
 }
 
 float bank_at(vec2 xz) {
@@ -127,8 +130,11 @@ void fragment() {
 	vec2 uv = (world_pos.xz - (bank_origin + bank_size * 0.5)) * noise_scale;
 	float t = TIME * flow_speed;
 	float bank = bank_at(world_pos.xz);
-	float open = smoothstep(0.08, 0.7, bank);
 	float heatz = 1.0 - smoothstep(heat_z1, heat_z0, world_pos.z);       // 1 molten .. 0 crusted
+	// the deep end, under the Ward Crag and the summit: the hottest and brightest
+	float core_z = 1.0 - smoothstep(heat_z1 - 34.0, heat_z1 - 6.0, world_pos.z);
+	// the crust shelf along the rock: wide where the lava has cooled, a narrow lip round the rock in the molten lake
+	float open = smoothstep(mix(0.08, 0.015, heatz), mix(0.7, 0.2, heatz), bank);
 
 	// the current carries the plates (a plain translation: no shear, so no re-seeding needed);
 	// the warp field crawls slowly on its own, so plate edges bend and creep as they drift
@@ -142,8 +148,11 @@ void fragment() {
 	vec2 fd = normalize(flow_dir);
 	vec2 pu = uv - drift + warp * q * 0.8;
 	pu = vec2(dot(pu, vec2(fd.y, -fd.x)), dot(pu, fd) * plate_stretch);
-	vec2 pl = plates(pu * plate_scale);
+	vec3 pl = plates(pu * plate_scale);
 	float edge = pl.x;
+	// the molten lake: most plates there are open lava, the rest crust rafts drifting on it (all crust where it has cooled, and on the
+	// shelf by the rock)
+	float raft = max(step(pl.z, mix(1.0, 0.34, heatz) - 0.1 * core_z), 1.0 - smoothstep(0.1, 0.45, open + (1.0 - heatz)));
 
 	// cracks: thin where the crust has cooled, opening into molten channels in the hot reaches;
 	// fwidth keeps a far crack a soft line instead of a crawling dotted one
@@ -185,4 +194,20 @@ void fragment() {
 	EMISSION += core_color * speck * heat * emission_energy * 0.8 * heatz;
 	ROUGHNESS = mix(0.96, 0.32, heat);
 	METALLIC = 0.0;
+
+	// --- the open lava between the rafts: bright, swirling with the current, hotter veins and a darker skin that wrinkles and tears
+	float mw = (1.0 - raft) * smoothstep(0.0, 0.35, heatz);
+	if (mw > 0.001) {
+		float flowv = fbm3(uv * 1.3 + q * 1.8 - drift * 1.3);
+		float vn = abs(fbm3(uv * 2.4 + q * 2.6 - drift * 1.1 + vec2(4.1, 1.7)) - 0.5);
+		float vein = 1.0 - smoothstep(0.0, 0.05 + fwidth(vn) * 1.5, vn);
+		float skin = smoothstep(0.56, 0.86, fbm3(uv * 3.3 + q * 2.2 - drift * 1.6 + vec2(9.2, 3.3)));
+		float edge_glow = 1.0 - smoothstep(0.0, 0.16, edge);                  // the seam against a raft runs hottest
+		vec3 mcol = mix(hot_color, core_color, smoothstep(0.32, 0.82, flowv + 0.25 * core_z));
+		mcol = mix(mcol, white_hot, (vein * 0.45 + edge_glow * 0.25) * (0.35 + 0.65 * core_z));
+		float me = mix(0.75, 1.25, flowv) * (1.0 - skin * 0.6) * (1.0 + 0.55 * core_z) + vein * 0.7 + edge_glow * 0.35;
+		EMISSION = mix(EMISSION, mcol * me * emission_energy * 0.42 * pulse, mw);
+		ALBEDO = mix(ALBEDO, hot_color * 0.45, mw);
+		ROUGHNESS = mix(ROUGHNESS, 0.38, mw);
+	}
 }

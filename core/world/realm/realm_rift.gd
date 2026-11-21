@@ -20,15 +20,20 @@ const Threshold := preload("res://core/world/realm/rift/threshold.gd")
 const HeatHaze := preload("res://core/world/realm/rift/heat_haze.gd")
 const Scorch := preload("res://core/world/realm/rift/scorch.gd")
 
-## The lava's cooling (lava.gdshader): fully molten north of HOT_Z, crusted black with thin seams south of COOL_Z (the village end).
-const HOT_Z := -46.0
-const COOL_Z := -14.0
+## The lava's cooling (lava.gdshader): a molten lake north of HOT_Z (from the Foot on, round the isles, under the crag and the summit),
+## crusted black with thin seams south of COOL_Z (the village end, about the rift's first quarter).
+const HOT_Z := -30.0
+const COOL_Z := -16.0
 
 ## Falls poured from the rim walls: [z, side (-1 west wall, +1 east wall)]. LavaWorks finds each lip on the real rock along that z. The
 ## two off the east wall by the summit are the rift's source; the west ones pour behind the Ward Crag.
 const FALLS := [[-70.0, 1.0], [-82.0, -1.0], [-88.0, 1.0], [-104.0, -1.0]]
-## Where the lava wells up boiling out of the channel's floor (rift coordinates, on the lava): a churn and spits, no new light.
-const BOILS := [Vector3(18.0, -15.5, -78.0), Vector3(12.0, -15.5, -46.5)]
+## Where the lava wells up boiling out of the lake's floor (rift coordinates, on the lava): a churn and spits, no new light. The lavafall's
+## foot (from the way's layout) churns too.
+const BOILS := [Vector3(18.0, -15.5, -78.0), Vector3(17.0, -15.5, -60.0), Vector3(-12.0, -15.5, -45.0)]
+## The lava's four glow lights (made by the zone, unshadowed): at the lavafall's foot, on the crag's face beside the fall, down the channel
+## and over the lake under the causeway. [rift point, strength] (LavaWorks)
+const GLOWS := [[Vector3(14.5, -10.5, -47.5), 1.15], [Vector3(16.0, 5.0, -54.0), 0.55], [Vector3(17.0, -12.0, -76.0), 1.0], [Vector3(-2.0, -12.0, -36.0), 0.8]]
 
 
 static func build(root: Node) -> void:
@@ -69,5 +74,11 @@ static func build(root: Node) -> void:
 	var boils: Array[Vector3] = []
 	for b: Vector3 in BOILS:
 		boils.append(b + Endgame.O)
-	root.set_meta("rift_lava", {"falls": FALLS, "cool": Vector2(COOL_Z, HOT_Z), "boils": boils, "vents": fb.vents})
+	var lf: Dictionary = cb.layout.get("lavafall", {})
+	if lf.has("foot"):
+		boils.append(Vector3(float(lf.foot[0]), -15.5, float(lf.foot[2]) + 0.6) + Endgame.O)
+	var glows: Array = []
+	for g: Array in GLOWS:
+		glows.append([(g[0] as Vector3) + Endgame.O, g[1]])
+	root.set_meta("rift_lava", {"falls": FALLS, "cool": Vector2(COOL_Z, HOT_Z), "boils": boils, "glows": glows, "vents": fb.vents})
 	print("RIFT crossing %d ms, features %d ms" % [t1 - t0, Time.get_ticks_msec() - t1])

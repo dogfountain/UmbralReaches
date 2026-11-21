@@ -86,7 +86,7 @@ func _realm_setup() -> void:
 	get_tree().create_timer(8.0, false).timeout.connect(_map_banks)
 	await get_tree().create_timer(0.5, false).timeout
 	if spec.has("cool"):
-		_cooling(spec.cool)
+		_cooling(spec.cool, spec.get("glows", []))
 	if spec.has("falls"):
 		_falls_at(spec.falls)
 	else:
@@ -102,11 +102,12 @@ var _lava_z := Vector2(-INF, INF)          ## the z span that is hot (embers kee
 ## One element, cooling (the Ashen Rift from scratch, 21 Nov): molten north of cool.y, crusted black south of cool.x (the village end). The
 ## shader crusts over; the embers keep to the hot reaches; the four glow lights go north with the heat (none over the south rim, where
 ## the crust only glows in its seams); the current runs south, from the falls under the summit towards the village.
-func _cooling(cool: Vector2) -> void:
+func _cooling(cool: Vector2, spec_glows: Array) -> void:
 	_mat.set_shader_parameter("heat_z0", cool.x)
 	_mat.set_shader_parameter("heat_z1", cool.y)
 	_mat.set_shader_parameter("flow_dir", Vector2(0.06, 1.0))
-	_lava_z = Vector2(_origin.y, lerpf(cool.y, cool.x, 0.5))
+	_mat.set_shader_parameter("flow_rate", 0.55)
+	_lava_z = Vector2(_origin.y, cool.x)
 	var root := get_parent()
 	var lz := (_lava_z.x + _lava_z.y) * 0.5
 	var half := (_lava_z.y - _lava_z.x) * 0.5
@@ -118,11 +119,9 @@ func _cooling(cool: Vector2) -> void:
 		pm.emission_box_extents.z = half * 0.92
 		gp.process_material = pm
 		gp.global_position.z = lz
-	# the glow lights (Zone/Lava/Glow0..3, made by the zone; lava.gd sets their strength): the pool under the crag, the east channel,
-	# the falls; the first one low over the cooling middle, dimmer
-	var at := [[Vector3(_cx + 2.0, -12.5, cool.y + 8.0), 0.45], [Vector3(_cx + 6.0, -12.5, cool.y - 2.0), 1.0],
-			[Vector3(_cx + 17.0, -12.5, cool.y - 22.0), 1.0], [Vector3(_cx + 16.0, -12.5, cool.y - 44.0), 1.0]]
-	for i in at.size():
+	# the glow lights (Zone/Lava/Glow0..3, made by the zone; lava.gd sets their strength) where the realm says (the lavafall, the lake)
+	var at: Array = spec_glows
+	for i in mini(at.size(), 4):
 		var g := root.get_node_or_null("Zone/Lava/Glow%d" % i) as OmniLight3D
 		if g:
 			g.global_position = at[i][0]
