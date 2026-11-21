@@ -66,7 +66,7 @@ static func mat(key: String) -> Material:
 		return _mats[key]
 	var m := StandardMaterial3D.new()
 	match key:
-		"stone":      _tri(m, "oss_ashlar", 0.32, Color(0.92, 0.9, 0.88))
+		"stone":      _blender_stone(m, 0.312)             # the abbey's own ashlar (oss_abbey.py's maps): one stone family from the tower to the tiers
 		"plaster":    _daub(m, 0.16, Color(0.84, 0.82, 0.78))        # lime daub, cracked and stained (oss_plaster's bare-brick holes read as leopard print on every facade)
 		"brick":      _tri(m, "oss_brick", 0.5, Color(0.95, 0.92, 0.9))
 		"ruin":       _tri(m, "oss_ruin", 0.4, Color(1.12, 1.1, 1.07))
@@ -77,7 +77,7 @@ static func mat(key: String) -> Material:
 		"slate":      _tri(m, "oss_slate", 0.45, Color(0.9, 0.9, 0.95))
 		# the world pass masonry scale tiers: a colossal work's courses are 2-3 times a house's, so its blocks read as the size they are
 		# (the world-triplanar texture scale is per metre: half the scale, twice the stone)
-		"stone_big":  _tri(m, "oss_ashlar", 0.14, Color(0.9, 0.9, 0.92))
+		"stone_big":  _blender_stone(m, 0.156)
 		"ruin_big":   _tri(m, "oss_ruin", 0.17, Color(1.08, 1.06, 1.04))
 		"brick_big":  _tri(m, "oss_brick", 0.22, Color(0.95, 0.92, 0.9))
 		"wood_big":   _tri(m, "tavern_wood", 0.24, Color(0.52, 0.47, 0.42))
@@ -121,6 +121,23 @@ static func mat(key: String) -> Material:
 			return sm
 	_mats[key] = m
 	return m
+
+
+## The Order's ashlar as the Blender kit bakes it (art/models/oss_abbey_Oss_Ashlar_*), world-triplanar like _tri: the tiers, the
+## bridge's piers and the Landing arch match the abbey's masonry (the old brown ashlar read salmon under candle light).
+static func _blender_stone(m: StandardMaterial3D, scale: float) -> void:
+	var base := "res://art/models/oss_abbey_Oss_Ashlar_"
+	m.albedo_texture = load(base + "albedo.png")
+	m.albedo_color = Color(1.0, 1.0, 1.0)
+	m.normal_enabled = true
+	m.normal_texture = load(base + "normal.png")
+	m.roughness = 0.86
+	m.uv1_triplanar = true
+	m.uv1_world_triplanar = true
+	m.uv1_triplanar_sharpness = 4.0
+	m.uv1_scale = Vector3.ONE * scale
+	m.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
+	m.vertex_color_use_as_albedo = true
 
 
 ## The lime-daub plaster (art/textures r37_daub_*: albedo, normal and an ORM map), world-triplanar like _tri.

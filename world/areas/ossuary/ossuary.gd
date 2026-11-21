@@ -625,8 +625,10 @@ func _pit(k: OssKit) -> void:
 	for tier in 6:
 		var r := 2.5 - 0.4 * float(tier)
 		var ty := 0.3 * float(tier)
-		for ang: float in [0.0, PI * 0.25]:
-			k.box("dark", c + Vector3(0, ty + 0.17, 0), Vector3((r - 0.2) * 2.0, 0.34, (r - 0.2) * 2.0), Basis(Vector3.UP, ang), false, 0.8)
+		for j in 12:                                  # the core: twelve slabs from the middle out, a round drum (squares put corners through the skulls)
+			var ca := TAU * float(j) / 12.0
+			var len := r - 0.15
+			k.box("dark", c + Vector3(cos(ca) * len * 0.5, ty + 0.17, sin(ca) * len * 0.5), Vector3(len, 0.34, len * 0.56), Basis(Vector3.UP, -ca), false, 0.8)
 		var cnt := maxi(3, int(TAU * r / 0.21))
 		for i in cnt:
 			var a := TAU * float(i) / float(cnt) + float(tier) * 0.3

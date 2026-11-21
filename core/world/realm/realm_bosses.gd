@@ -191,3 +191,5 @@ static func _ossuary_sites() -> void:
 	var y := RealmLayout.OSSUARY_GATE.y
 	WorldLanes.register_site("oss_pit", pit, y, y)
 	WorldLanes.register_site("oss_landing", OssFrame.wrect(Rect2(-17.5, -40.0, 14.5, 12.0)), y, y)      # with the steps up from the lane
+	for ab: Dictionary in preload("res://world/areas/ossuary/oss_abbey.gd").site_rects():        # the abbey on the south bank: its ground is cut to it, nothing else is placed there
+		WorldLanes.register_site(String(ab.name), ab.rect, float(ab.floor_y), float(ab.cut_y))

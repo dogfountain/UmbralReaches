@@ -68,6 +68,23 @@ static func pier(k: OssKit, base: Vector3, top: float, w: float) -> void:
 	k.append_mesh("stone", cap, Transform3D(Basis.from_scale(Vector3(s, 1.0, s)), Vector3(base.x, top - ch, base.z)))
 
 
+## The church's ground, as sites for the Realm's terrain stamp and every placing pass (RealmBosses registers them with the pit's):
+## one rect per pair of bays (the tower's with the first, a forecourt before the gable with the last), the ground cut down to the
+## pair's base, so no wall is swallowed by the slope and the gable's door stands on level ground; nothing else is placed in them.
+## [{name, rect (world xz), floor_y, cut_y (world y)}]
+static func site_rects() -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
+	var bw: float = Data.BAY.w
+	var depth: float = Data.BAY.depth
+	for g in range(BAY_N >> 1):
+		var z_a := Z_N - bw * float(g * 2) + (10.2 if g == 0 else 0.0)
+		var z_b := Z_N - bw * float(g * 2 + 2) - (3.6 if g == (BAY_N >> 1) - 1 else 0.0)
+		var wr := OssFrame.wrect(Rect2(FRONT_X - 2.6, z_b - 0.4, 2.6 + depth + 1.2, z_a - z_b + 0.8))
+		var by: float = float(BASES[g * 2]) + OssFrame.ORIGIN.y
+		out.append({"name": "oss_abbey_%d" % g, "rect": wr, "floor_y": by, "cut_y": by})
+	return out
+
+
 ## Build the abbey under `area` (the Ossuary). The Realm's ground must be in (the caller waits for it).
 static func build(area: Node3D) -> void:
 	if built and is_instance_valid(area.get_node_or_null("Abbey")):
@@ -178,10 +195,12 @@ static func build(area: Node3D) -> void:
 	var wr := OssFrame.wrect(footprint(1.0))
 	var near: PackedStringArray = []
 	for st: Dictionary in WorldLanes.sites:
-		if (st.rect as Rect2).intersects(wr):
+		if (st.rect as Rect2).intersects(wr) and not String(st.name).begins_with("oss_abbey"):
 			near.append(String(st.name))
 	if not near.is_empty():
-		print("OSSUARY abbey: sites inside its footprint: %s" % [near])
+		print("OSSUARY abbey: OVERLAPS %d sites inside its footprint: %s" % [near.size(), near])
+	else:
+		print("OSSUARY abbey: 0 overlaps (its ground is its own)")
 	print("OSSUARY abbey built in %d ms: %d bays on %s, tower %.1f..%.1f (local y), %d draws, %d boxes" % [
 		Time.get_ticks_msec() - t0, BAY_N, str(base_y), tower_base, tower_top, draws, shapes.size()])
 
