@@ -30,6 +30,7 @@ static func release() -> void:
 	_cloth = null
 	_wood_m = null
 	_water_m = null
+	_prop_wood_m = null
 
 
 ## Plain vertex-coloured cloth / straw / leaf material (two-sided: cards).
@@ -132,12 +133,20 @@ static func _goods() -> ArrayMesh:
 static func parts(file: String) -> Array:
 	var key := "glb:" + file
 	if not _meshes.has(key):
-		_meshes[key] = {"parts": _glb_parts(file)}
+		_meshes[key] = {"parts": _glb_parts(file, true)}
+	return _meshes[key].parts
+
+
+## The same parts with the kit's own timber (no outdoor lift): for a room that candles light (the tavern's furniture).
+static func parts_indoor(file: String) -> Array:
+	var key := "glb_in:" + file
+	if not _meshes.has(key):
+		_meshes[key] = {"parts": _glb_parts(file, false)}
 	return _meshes[key].parts
 
 
 ## [{mesh, mat}] of a glb under art/models/props/: one per `<part>__<set>` mesh (the -colonly node is no mesh).
-static func _glb_parts(file: String) -> Array:
+static func _glb_parts(file: String, lift := true) -> Array:
 	var out: Array = []
 	var ps := Kit.scene("props/%s.glb" % file)
 	if ps == null:
@@ -149,12 +158,23 @@ static func _glb_parts(file: String) -> Array:
 		if parts.size() < 2:
 			continue
 		var set_name := parts[parts.size() - 1].get_slice(".", 0).get_slice("_", 0)
-		out.append({"mesh": mi.mesh, "mat": _water() if set_name == "water" else Kit.prop_mat(set_name)})
+		out.append({"mesh": mi.mesh, "mat": _water() if set_name == "water" else (_prop_wood() if lift and set_name == "timber" else Kit.prop_mat(set_name))})
 	root.free()
 	return out
 
 
 static var _water_m: StandardMaterial3D
+static var _prop_wood_m: StandardMaterial3D
+
+
+## The modelled props' timber (crates, barrels, benches): the kit's prop wood, lifted. Its texture is a night value (a mean of about 0.1)
+## under baked vertex tone of 0.2 and less, so a modelled crate or barrel stood black even in a lamp's light at Saltmarket's doors (the
+## polish pass, 20 Nov); the procedural props beside them carry wood()'s 2.3 lift (a gentler 1.6 here: the glb crate has the baked shade of a lit crate).
+static func _prop_wood() -> StandardMaterial3D:
+	if _prop_wood_m == null:
+		_prop_wood_m = Kit.prop_mat("timber").duplicate() as StandardMaterial3D
+		_prop_wood_m.albedo_color = Color(1.6, 1.45, 1.3)
+	return _prop_wood_m
 
 
 ## The trough's water: dark and glossy (the game has no still-water material that fits a trough-sized pool).

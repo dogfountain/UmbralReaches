@@ -71,7 +71,7 @@ static func mat(key: String) -> Material:
 		"brick":      _tri(m, "oss_brick", 0.5, Color(0.95, 0.92, 0.9))
 		"ruin":       _tri(m, "oss_ruin", 0.4, Color(1.12, 1.1, 1.07))
 		"floor":      _tri(m, "oss_floor", 0.22, Color(0.9, 0.88, 0.86))
-		"dark":       _tri(m, "rock", 0.5, Color(0.26, 0.24, 0.25))
+		"dark":       _tri(m, "rock", 0.5, Color(0.4, 0.37, 0.38))                 # (polish: 0.26 stood pitch black at night: every kit "dark" block read as a hole)
 		"iron":       _tri(m, "tavern_iron", 0.6, Color(0.5, 0.48, 0.5))
 		"wood":       _tri(m, "tavern_wood", 0.5, Color(0.7, 0.57, 0.46))
 		"slate":      _tri(m, "oss_slate", 0.45, Color(0.9, 0.9, 0.95))
@@ -805,13 +805,30 @@ static func puddle_mesh() -> ArrayMesh:
 	return _puddle
 
 
-static func multimesh(mesh: Mesh, xforms: Array, mat_override: Material, shadows := true) -> MultiMeshInstance3D:
+## `aged`: every instance gets its own tone (polish, 20 Nov: a wall of bone was one flat orange under the candles): the colour is a
+## hash of where the piece lies, so a rebuild gives the same wall. Ivory, tea-stained, grey, a few soot-dark.
+static func bone_tone(at: Vector3) -> Color:
+	var h := absi(hash(Vector3i((at * 23.0).round()))) % 1000
+	var v := float(h % 97) / 97.0
+	var k := float((h / 97) % 7) / 7.0
+	var c := Color(1.0, 0.96, 0.88).lerp(Color(0.78, 0.62, 0.42), k * 0.7)      # ivory to tea
+	if h % 11 == 0:
+		c = Color(0.5, 0.45, 0.4)                                                  # soot-dark
+	elif h % 7 == 0:
+		c = Color(0.72, 0.72, 0.7)                                                 # grey
+	return c * (0.3 + 0.42 * v)           # (the candles' light is strong: at full albedo the whole wall clipped to one gold; at 0.3 .. 0.72 the skulls read apart)
+
+
+static func multimesh(mesh: Mesh, xforms: Array, mat_override: Material, shadows := true, aged := false) -> MultiMeshInstance3D:
 	var mm := MultiMesh.new()
 	mm.transform_format = MultiMesh.TRANSFORM_3D
+	mm.use_colors = aged
 	mm.mesh = mesh
 	mm.instance_count = xforms.size()
 	for i in xforms.size():
 		mm.set_instance_transform(i, xforms[i])
+		if aged:
+			mm.set_instance_color(i, bone_tone((xforms[i] as Transform3D).origin))
 	var mmi := MultiMeshInstance3D.new()
 	mmi.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF   # static: interpolating a MultiMesh makes its add wait on the GPU (zz/stream_probe.gd)
 	mmi.multimesh = mm
@@ -875,7 +892,7 @@ func commit(parent: Node3D, body_name := "Body") -> int:
 				cells[key] = []
 			(cells[key] as Array).append(t)
 		for key: Vector2i in cells:
-			var mm := multimesh(mesh, cells[key], m, false)
+			var mm := multimesh(mesh, cells[key], m, false, n.begins_with("Skulls") or n.begins_with("Bones"))
 			mm.name = "%s_%d_%d" % [n, key.x, key.y]
 			mm.visibility_range_end = far
 			mm.visibility_range_end_margin = far * 0.12

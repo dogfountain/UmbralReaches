@@ -52,6 +52,7 @@ func begin(player: Node3D, again := false) -> bool:
 		return false
 	_home = _pcam.global_transform
 	_origin = _player.global_position
+	add_to_group(&"opening_shot")                 # the HUD's lessons wait while it plays (polish, 20 Nov: the WASD card drew over the sky)
 	_space = _player.get_world_3d().direct_space_state
 	_cam = Camera3D.new()
 	_cam.name = "OpeningCam"

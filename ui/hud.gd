@@ -515,6 +515,8 @@ func _tips_tick(delta: float) -> void:
 	_tip_check = 0.25
 	if _menu_open() or (not staged_in() and not _lifting) or title_busy():
 		return                         # the title card goes first: no tip draws under it
+	if get_tree().get_first_node_in_group(&"opening_shot") != null or get_tree().get_first_node_in_group(&"fire_flight") != null:
+		return                         # the opening's lens (or the Ember Road's flight) is on the sky: the wanderer cannot move yet, so no move card
 	var zn := get_tree().current_scene
 	if zn != null and zn.get_node_or_null("LoadingScreen") != null:
 		return                         # the cover is still up: no lesson over a tour

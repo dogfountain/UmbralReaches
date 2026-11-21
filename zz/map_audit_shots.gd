@@ -149,6 +149,7 @@ func _run() -> void:
 	lamp.light_energy = 6.0
 	lamp.omni_range = 60.0
 	lamp.omni_attenuation = 0.6
+	lamp.light_volumetric_fog_energy = 0.0         # (the camera lamp lit the fog round the lens into a translucent box beside the nearest prop)
 	lamp.shadow_enabled = false
 	lamp.visible = lit
 	get_tree().root.add_child(lamp)
@@ -479,7 +480,27 @@ func _near_debug() -> void:
 			continue
 		var bb: AABB = gi.global_transform * gi.get_aabb()
 		if bb.size.length() < 3.0 and bb.get_center().distance_to(cp) < 12.0:
-			print("MAPAUDIT near %s %s at %s size %s" % [gi.get_class(), main.get_tree().root.get_path_to(gi), bb.get_center(), bb.size])
+			var mdesc := ""
+			var mo := gi.material_override as StandardMaterial3D
+			if mo != null:
+				mdesc = " mat[alb %s vcol %s metal %.2f rough %.2f tex %s ncol %s emis %s]" % [mo.albedo_color, mo.vertex_color_use_as_albedo, mo.metallic, mo.roughness, mo.albedo_texture != null, mo.normal_enabled, mo.emission_enabled]
+			if gi is MultiMeshInstance3D:
+				mdesc += " mm[colors %s count %d]" % [(gi as MultiMeshInstance3D).multimesh.use_colors, (gi as MultiMeshInstance3D).multimesh.instance_count]
+			print("MAPAUDIT near %s %s at %s size %s%s" % [gi.get_class(), main.get_tree().root.get_path_to(gi), bb.get_center(), bb.size, mdesc])
+		elif gi is MultiMeshInstance3D and (gi as MultiMeshInstance3D).multimesh != null and (gi as MultiMeshInstance3D).multimesh.instance_count <= 400:
+			var mmi := gi as MultiMeshInstance3D
+			var best := INF
+			for ii in mmi.multimesh.instance_count:
+				best = minf(best, (mmi.global_transform * mmi.multimesh.get_instance_transform(ii)).origin.distance_to(cp))
+			if best < 12.0:
+				var mo2 := mmi.material_override as StandardMaterial3D
+				var md2 := ""
+				if mo2 != null:
+					md2 = " mat[alb %s vcol %s metal %.2f rough %.2f tex %s emis %s]" % [mo2.albedo_color, mo2.vertex_color_use_as_albedo, mo2.metallic, mo2.roughness, mo2.albedo_texture != null, mo2.emission_enabled]
+				var sm := ""
+				if mmi.multimesh.mesh != null:
+					sm = " surfaces %d aabb %s" % [mmi.multimesh.mesh.get_surface_count(), mmi.multimesh.mesh.get_aabb().size]
+				print("MAPAUDIT nearmm %s nearest %.1f m, %d inst, colors %s layers %d%s%s" % [main.get_tree().root.get_path_to(gi), best, mmi.multimesh.instance_count, mmi.multimesh.use_colors, gi.layers, md2, sm])
 		elif gi is GPUParticles3D or gi is CPUParticles3D or gi is MultiMeshInstance3D:
 			if bb.grow(1.0).has_point(cp):
 				print("MAPAUDIT around %s %s box %s" % [gi.get_class(), main.get_tree().root.get_path_to(gi), bb])
@@ -572,6 +593,8 @@ func _shoot_place(s: Dictionary) -> void:
 		if first:
 			await _secs(1.1)
 			first = false
+			if "--near-debug" in OS.get_cmdline_user_args():
+				_near_debug()
 		else:
 			await _secs(0.35)
 		frames.append(await _grab(3))
@@ -765,7 +788,38 @@ func _shoot_interior(s: Dictionary) -> void:
 			await _secs(0.3)
 			frames.append(await _grab(3))
 			labels.append("HIGH, BEHIND")
+			await _variants(s, eye3, fl3, base)
 	_save_sheet(s, frames, labels, info)
+
+
+## --variants=A,B,C (the "oss" spots): the AHEAD view again with the nodes named A hidden (then B, then C: each alone), saved beside
+## the sheet's frames as <stem>_v_<name>.jpg. For "what draws that pale sheet": hide the suspect and look again (polish, 20 Nov).
+func _variants(s: Dictionary, eye: Vector3, floor_y: float, base: float) -> void:
+	var names: PackedStringArray = []
+	for a in OS.get_cmdline_user_args():
+		if a.begins_with("--variants="):
+			names = a.trim_prefix("--variants=").split(",", false)
+	if names.is_empty() or headless:
+		return
+	var dir := out_root.path_join(section).path_join("full")
+	DirAccess.make_dir_recursive_absolute(dir)
+	for nm: String in names:
+		var hidden: Array[Node3D] = []
+		for n in main.find_children(nm, "Node3D", true, false):
+			var n3 := n as Node3D
+			if n3.visible:
+				n3.visible = false
+				hidden.append(n3)
+		_park(eye, eye + _dir(base) + Vector3(0, -0.12, 0), floor_y)
+		await _secs(0.4)
+		var img: Image = await _grab(3)
+		if img != null:
+			img.convert(Image.FORMAT_RGB8)
+			img.save_jpg(dir.path_join("%s_v_%s.jpg" % [String(s.name), nm]), 0.88)
+		print("MAPAUDIT variant %s hid %d nodes" % [nm, hidden.size()])
+		for n3: Node3D in hidden:
+			if is_instance_valid(n3):
+				n3.visible = true
 
 
 # ------------------------------------------------------------------------------------------------------

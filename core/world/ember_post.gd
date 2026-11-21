@@ -123,7 +123,7 @@ func _build() -> void:
 	# PBR sets) and the coal as its own mesh "Flame", which keeps this post's own emissive material
 	var kit := _kit()
 	for part: Dictionary in kit.parts:
-		var mi := _mesh(part.mesh, Kit37.mat(String(part.set)), Vector3.ZERO)
+		var mi := _mesh(part.mesh, _post_mat(String(part.set)), Vector3.ZERO)
 		mi.name = String(part.name)
 	_coal_mat = StandardMaterial3D.new()
 	_coal_mat.emission_enabled = true
@@ -150,6 +150,17 @@ func _build() -> void:
 	cs.position = Vector3(0, 1.15, 0)
 	body.add_child(cs)
 	add_child(body)
+
+
+## The post's sets in the kit's night-readable masonry and iron: the West kit's iron is metallic (nothing in the night to reflect: it
+## drew black) and its stone a night value, so at Hearthward's first fire the post stood as a black pillar on a black step (the opening
+## shot looks straight at it; polish, 20 Nov).
+func _post_mat(set_name: String) -> Material:
+	if set_name == "iron":
+		return OssKit.mat("iron")
+	if set_name == "stone" or set_name == "ashlar" or set_name == "hewn":
+		return OssKit.mat("stone")
+	return Kit37.mat(set_name)
 
 
 func _mesh(m: Mesh, mat: Material, at: Vector3) -> MeshInstance3D:

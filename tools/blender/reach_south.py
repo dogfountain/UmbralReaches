@@ -74,6 +74,14 @@ def do_castellum():
     L.export(objs, os.path.join(L.MODELS, "reach_s_castellum.glb"), "castellum")
     if not L.PREVIEW_DIR[0]:
         return
+    if "--far" in args:                  # the far hull (Tower_Far): a look from where it is seen (190 m out), polish pass
+        vis = [o for o in objs if o.name.startswith("Tower_Far__")]
+        for o in objs:
+            if o not in vis:
+                o.hide_render = True
+        bpy.ops.mesh.primitive_plane_add(size=600, location=(0, 0, -15.0))
+        L.preview(vis, "castellum_far", [((-60, -80, 6), (0, 0, -3), 34), ((70, 60, 12), (0, 0, -2), 34), ((0, -90, 25), (0, 0, 0), 30)])
+        return
     vis = [o for o in objs if o.name.startswith(("Tower__", "Roof__")) and not any(k in o.name for k in L.HIDE)]
     bpy.ops.mesh.primitive_plane_add(size=300, location=(0, 0, -15.0))
     L.preview(vis, "castellum", [((-26, -34, 2), (0, 0, -3), 34), ((22, 30, -6), (0, 0, -2), 36), ((0, -16, -9), (0, 0, -7), 50)])

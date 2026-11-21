@@ -131,8 +131,8 @@ func _ready() -> void:
 	_root.visible = false
 	_feed = VBoxContainer.new()
 	_feed.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
-	_feed.offset_left = -700.0                 # left of the minimap, right-aligned, wide enough for a long item name
-	_feed.offset_right = -250.0
+	_feed.offset_left = -740.0                 # left of the minimap, right-aligned, wide enough for a long item name
+	_feed.offset_right = -292.0                # (its plates' edge touched the dial's rim at -250: polish, 20 Nov)
 	_feed.offset_top = -330.0
 	_feed.offset_bottom = -44.0
 	_feed.alignment = BoxContainer.ALIGNMENT_END

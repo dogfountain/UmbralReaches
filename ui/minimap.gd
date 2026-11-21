@@ -465,6 +465,8 @@ func _draw_place(ci: CanvasItem, c: Vector2, r: float) -> void:
 	var w := _font.get_string_size(_region, HORIZONTAL_ALIGNMENT_LEFT, -1, pt).x
 	var sw := maxf(w + 64.0, 190.0)
 	var top := c.y - r - 72.0
+	if _tier != "" and _gear != "":
+		top -= 22.0                                                # the gear hint is a third row: the stack rises, so it clears the dial's bezel and its N (polish, 20 Nov)
 	var plate := Rect2(Vector2(c.x - sw * 0.5, top), Vector2(sw, 32))
 	Forge.strip(ci, plate, 1.0, 16.0, 0.92)
 	var col: Color = Danger.color(_tier_i)

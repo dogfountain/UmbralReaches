@@ -44,6 +44,10 @@ vec3 vs_far_ranges(vec3 d, vec3 col, vec3 haze, vec3 deep, float north_fade) {
 	float px = fwidth(d.y) * 1.2 + 0.0006;
 	float in_b = smoothstep(hb + px, hb - px, d.y);
 	float in_a = smoothstep(ha + px, ha - px, d.y);
+	// the ranges have a foot: filled to the bottom of the sky they read, from a ridge or the summit (where the real hills sit
+	// under the horizon and leave gaps), as a dark slab with a straight underside; they fade into the haze a little below the crest
+	in_b *= smoothstep(hb - 0.07, hb - 0.035, d.y);
+	in_a *= smoothstep(ha - 0.075, ha - 0.04, d.y);
 	// each range lighter at its foot (the haze pools in the valleys between them), darker up to the crest
 	vec3 far_c = mix(haze * 1.05, mix(col, deep, 0.35) * 0.9 + haze * 0.35, smoothstep(hb - 0.03, hb, d.y));
 	vec3 near_c = mix(haze * 0.62, deep * 0.62 + haze * 0.16, smoothstep(ha - 0.05, ha, d.y));

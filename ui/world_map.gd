@@ -497,7 +497,7 @@ func _pick_hover() -> void:
 	var best := -1
 	var bd := PICK_R
 	for i in _marks.size():
-		if not _cl.is_empty() and _cl.hide[i] == 1:
+		if not _cl.is_empty() and i < _cl.hide.size() and _cl.hide[i] == 1:         # (the clusters are one repaint behind a mark list that grew: polish, 20 Nov, a script error)
 			continue
 		var d := _w2s(_marks[i].at).distance_to(at)
 		if d < bd:

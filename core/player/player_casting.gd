@@ -203,9 +203,9 @@ func set_charge_glow(c: float) -> void:
 			player._charge_fx.global_position = _muzzle_drawn()
 		player._charge_fx.emitting = on
 		if on:
-			player._charge_sfx.play()
+			Sfx.loop_on(player._charge_sfx, -7.0, 0.12)
 		else:
-			player._charge_sfx.stop()
+			Sfx.loop_off(player._charge_sfx, 0.14)
 			_charge_was_full = false
 			_over_pulsed = false
 	if not on:

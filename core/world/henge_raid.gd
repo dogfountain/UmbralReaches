@@ -19,6 +19,11 @@ extends Node3D
 ## it; the inner henge (ThornHenge's hedge at 12.2, its menhirs and altar) stays, so the ring between it and the wall
 ## doubles (maze radii r' = 12.2 + (r - 12.2) * 2.0)
 const _RockKit := preload("res://core/world/realm/rock_kit.gd")
+const _Kit := preload("res://core/world/realm/south_marches_kit.gd")
+const _Stamp := preload("res://core/util/mesh_stamp.gd")
+const BRIAR := "res://art/models/briar_wall.glb"        ## the modelled thicket (tools/blender/polish_briar.py): BriarA/B/C 3.3 m modules, BriarTrunk
+const BRIAR_LEN := 3.3
+const BRIAR_H := 7.0
 const FLOOR_R := 49.6
 const ARENA_R := 46.4
 const WALL_R := 48.3
@@ -283,6 +288,7 @@ func _build() -> void:
 	var t0 := Time.get_ticks_msec()
 	_outer_wall()
 	_stones()
+	_litter()
 	_maze()
 	_bowls_and_lights()
 	_briar_band_build()
@@ -305,8 +311,8 @@ func _bramble_mat() -> StandardMaterial3D:
 	bm.vertex_color_use_as_albedo = true
 	bm.roughness = 0.95
 	bm.emission_enabled = true
-	bm.emission = Color(0.4, 0.06, 0.03)
-	bm.emission_energy_multiplier = 0.15
+	bm.emission = Color(0.4, 0.1, 0.05)
+	bm.emission_energy_multiplier = 0.05            # (polish: 0.15 washed the wall's dark canes to a flat pink)
 	return bm
 
 
@@ -355,16 +361,90 @@ func _outer_wall() -> void:
 		cs.shape = bs
 		cs.transform = Transform3D(bas, p + Vector3.UP * WALL_H * 0.5)
 		body.add_child(cs)
-	var mi := MeshInstance3D.new()
-	mi.name = "RaidWall"
-	mi.mesh = _cached("wall", _wall_mesh.bind(rng, segs))
-	mi.material_override = _bramble_mat()
-	add_child(mi)
+	if _Kit.mesh(BRIAR, "BriarA") != null and _Kit.mesh(BRIAR, "BriarLoA") != null:
+		_wall_chunks(segs)
+	else:
+		var mi := MeshInstance3D.new()
+		mi.name = "RaidWall"
+		mi.mesh = _cached("wall", _wall_mesh.bind(rng, segs))
+		mi.material_override = _bramble_mat()
+		add_child(mi)
 	_door_frame()
+
+
+## The modelled thicket laid along `length` metres from `xf` (x along the wall): whole modules, scaled to fit, each flipped or
+## turned a little so no two read alike. `parts` collects [Mesh, Transform3D] for MeshStamp.merge.
+func _briar_run(parts: Array, rng: RandomNumberGenerator, xf: Transform3D, length: float, h: float, lo := false) -> void:
+	var n := maxi(1, roundi(length / BRIAR_LEN))
+	var sx := length / (float(n) * BRIAR_LEN)
+	for k in n:
+		var m := _Kit.mesh(BRIAR, ("BriarLo" if lo else "Briar") + "ABC"[rng.randi() % 3])
+		var flip := PI if rng.randf() < 0.5 else 0.0
+		var x := (float(k) + 0.5) * length / float(n) - length * 0.5
+		var local := Transform3D(Basis(Vector3.UP, flip + rng.randf_range(-0.08, 0.08)).scaled(Vector3(sx, h / BRIAR_H * rng.randf_range(0.95, 1.08), 1.0)), Vector3(x, 0.0, rng.randf_range(-0.25, 0.25)))
+		parts.append([m, xf * local])
+
+
+const WALL_CHUNKS := 8
+const WALL_NEAR_END := 78.0             ## the full thicket (5.5k tris a module) is drawn within this; beyond it the far modules (550 tris)
+
+
+## The wall as WALL_CHUNKS arcs, each in a near mesh (the full modules) and a far mesh (the 550-tri modules), each its own
+## instance with a visibility range and its own bounds, so an arc out of view or out of range costs nothing.
+func _wall_chunks(segs: int) -> void:
+	var memo := {false: [], true: []}
+	var mat := _bramble_mat()
+	for lo in [false, true]:
+		for c in WALL_CHUNKS:
+			var key := "wall%s%d" % ["f" if lo else "n", c]
+			var m := _cached(key, func() -> ArrayMesh:
+				if (memo[lo] as Array).is_empty():
+					memo[lo] = _wall_parts(lo, segs)
+				return _Stamp.merge((memo[lo] as Array)[c]))
+			if m == null:
+				continue
+			var mi := MeshInstance3D.new()
+			mi.name = "RaidWall%s%d" % ["Far" if lo else "Near", c]
+			mi.mesh = m
+			mi.material_override = mat
+			mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF if lo else GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+			mi.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
+			if lo:
+				mi.visibility_range_begin = WALL_NEAR_END - 12.0
+				mi.visibility_range_begin_margin = 12.0
+			else:
+				mi.visibility_range_end = WALL_NEAR_END
+				mi.visibility_range_end_margin = 12.0
+			mi.add_to_group(Groups.CULL_SKIP)
+			add_child(mi)
+
+
+## [Mesh, Transform3D] parts of the wall, one list per chunk, the same placements for the near and the far modules.
+func _wall_parts(lo: bool, segs: int) -> Array:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 3401
+	var out: Array = []
+	for c in WALL_CHUNKS:
+		out.append([])
+	for i in segs:
+		var a0 := gate_a + TAU * (float(i) + 0.5) / float(segs)
+		if absf(wrapf(a0 - gate_a, -PI, PI)) < MOUTH:
+			continue
+		var parts: Array = out[mini(WALL_CHUNKS - 1, i * WALL_CHUNKS / segs)]
+		var p := Vector3(C.x + cos(a0) * WALL_R, C.y, C.z + sin(a0) * WALL_R)
+		var bas := Basis(Vector3.UP, -a0 + PI * 0.5)
+		var seg_len := TAU * WALL_R / float(segs) + 0.12
+		_briar_run(parts, rng, Transform3D(bas, p), seg_len, WALL_H * 1.3, lo)
+		if i % 3 == 1:
+			var tm := _Kit.mesh(BRIAR, "BriarLoTrunk" if lo else "BriarTrunk")
+			parts.append([tm, Transform3D(Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3.ONE * rng.randf_range(0.9, 1.15)), p)])
+	return out
 
 
 func _wall_mesh(rng: RandomNumberGenerator, segs: int) -> ArrayMesh:
 	var cm := CreatureMesh.new(3402)
+	var modelled := _Kit.mesh(BRIAR, "BriarA") != null
+	var parts: Array = []
 	for i in segs:
 		var a0 := gate_a + TAU * (float(i) + 0.5) / float(segs)
 		if absf(wrapf(a0 - gate_a, -PI, PI)) < MOUTH:
@@ -372,8 +452,14 @@ func _wall_mesh(rng: RandomNumberGenerator, segs: int) -> ArrayMesh:
 		var p := Vector3(C.x + cos(a0) * WALL_R, C.y, C.z + sin(a0) * WALL_R)
 		var bas := Basis(Vector3.UP, -a0 + PI * 0.5)
 		var seg_len := TAU * WALL_R / float(segs) + 0.12
-		_brambles(cm, rng, Transform3D(bas, p), seg_len, WALL_H * 0.92, 1.3)
-		if i % 6 == 3:
+		if modelled:
+			_briar_run(parts, rng, Transform3D(bas, p), seg_len, WALL_H * 1.3)
+		else:
+			_brambles(cm, rng, Transform3D(bas, p), seg_len, WALL_H * 0.92, 1.3)
+		if modelled and i % 3 == 1:
+			var tm := _Kit.mesh(BRIAR, "BriarTrunk")
+			parts.append([tm, Transform3D(Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3.ONE * rng.randf_range(0.9, 1.15)), p + Vector3(0.0, 0.0, 0.0))])
+		elif not modelled and i % 6 == 3:
 			# a thorn trunk: an old briar grown thick as a tree, the wall's silhouette
 			var pts := PackedVector3Array()
 			var rad := PackedFloat32Array()
@@ -388,6 +474,8 @@ func _wall_mesh(rng: RandomNumberGenerator, segs: int) -> ArrayMesh:
 				var base := pts[int(t * 7.0)]
 				var out := Vector3(cos(float(k) * 2.4), 0.5, sin(float(k) * 2.4)).normalized()
 				cm.claw(base, out, 1.2, 0.08, Vector3(0, 0.3, 0), Color(0.18, 0.1, 0.07))
+	if modelled:
+		return OssKit.with_lods(_Stamp.merge(parts))
 	return OssKit.with_lods(cm.commit())
 
 
@@ -427,6 +515,40 @@ func _stones() -> void:
 				body.add_to_group(Groups.CAMERA_PASS)
 
 
+## Fallen stone and thrown rock lying about the floor (EN4, the henge's floor was one flat dark disc): small boulders in three
+## shapes, no collision, in two MultiMeshes by size, seated on the floor.
+func _litter() -> void:
+	var rk := load("res://core/world/realm/rock_kit.gd")
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 3470
+	var mat: Material = rk.material("granite")
+	var mats := [mat, rk.material("mossy")]
+	for v in 3:
+		var mm := MultiMesh.new()
+		mm.transform_format = MultiMesh.TRANSFORM_3D
+		var xfs: Array[Transform3D] = []
+		for q in 26:
+			var deg := rng.randf() * 360.0
+			var r := rng.randf_range(7.0, WALL_R - 4.0)
+			if absf(wrapf(deg_to_rad(deg), -PI, PI)) < MOUTH * 1.6 and r > WALL_R - 16.0:
+				continue
+			var p := at_polar(deg, r)
+			var sc := rng.randf_range(0.35, 1.1) * (1.6 if q % 9 == 0 else 1.0)
+			var b := Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3(sc * rng.randf_range(0.8, 1.4), sc * rng.randf_range(0.5, 0.9), sc))
+			xfs.append(Transform3D(b, p + Vector3.DOWN * 0.12 * sc))
+		mm.mesh = rk.boulder(3471 + v, Vector3(1.0, 0.7, 0.9), "mossy" if v == 2 else "granite")
+		mm.instance_count = xfs.size()
+		for i in xfs.size():
+			mm.set_instance_transform(i, xfs[i])
+		var mi := MultiMeshInstance3D.new()
+		mi.name = "RaidLitter%d" % v
+		mi.multimesh = mm
+		mi.material_override = mats[1] if v == 2 else mats[0]
+		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		mi.visibility_range_end = 120.0
+		add_child(mi)
+
+
 func _maze() -> void:
 	var mat := _bramble_mat()
 	for m: Array in MAZE:
@@ -444,9 +566,13 @@ func _maze() -> void:
 		w.global_transform = Transform3D(bas, mid)
 		var idx := walls.size()
 		w.setup(p0, p1, _cached("maze%d" % idx, func() -> ArrayMesh:
-			var cm := CreatureMesh.new(3441 + idx)
 			var r2 := RandomNumberGenerator.new()
 			r2.seed = 3440 + idx
+			if _Kit.mesh(BRIAR, "BriarA") != null:
+				var mparts: Array = []
+				_briar_run(mparts, r2, Transform3D.IDENTITY, length + 0.4, 4.4)
+				return _Stamp.merge(mparts)
+			var cm := CreatureMesh.new(3441 + idx)
 			_brambles(cm, r2, Transform3D.IDENTITY, length + 0.4, 4.4, 1.2)
 			return cm.commit()), mat)
 		walls.append(w)

@@ -4,6 +4,7 @@ extends RefCounted
 ## piece's origin (the Saltmarket houses are the old hamlet models at 1.5x, the works' sheds are modelled at size).
 ## Used by realm_pois_east_works.gd and realm_pois_east_saltmarket.gd. Load by path (no class_name).
 
+const SiteProps := preload("res://core/world/realm/site_props.gd")
 static var _meshes := {}
 static var _win_mat: StandardMaterial3D = null
 
@@ -11,6 +12,7 @@ static var _win_mat: StandardMaterial3D = null
 static func release() -> void:
 	_meshes.clear()
 	_win_mat = null
+	_stack_parts.clear()
 
 
 ## A lit window: warm and low (under the bloom threshold; the hearth is behind it).
@@ -116,7 +118,47 @@ static func many(host: Node3D, node_name: String, path: String, nm: String, xfs:
 	parent.name = node_name
 	host.add_child(parent)
 	for t: Transform3D in xfs:
+		if nm == "Block_Stack" and _salt_stack(parent, t, view_end):
+			continue
 		piece(parent, path, nm, t, Vector2(0, view_end))
+
+
+const SALT_STACK := "res://art/models/salt_stack.glb"
+static var _stack_parts: Array = []
+
+
+## The salt block stack as the modelled piece (tools/blender/polish_salt.py: bevelled loaves, a plank, sacks, a rope) in place of r37e_works'
+## five courses of plain boxes; false when it is not imported (the old piece then stands). One mesh a set (chalk, timber, cloth).
+static func _salt_stack(parent: Node3D, t: Transform3D, view_end: float) -> bool:
+	if _stack_parts.is_empty():
+		var ps := load(SALT_STACK) as PackedScene if ResourceLoader.exists(SALT_STACK) else null
+		if ps == null:
+			return false
+		var inst := ps.instantiate()
+		for n: Node in inst.find_children("*", "MeshInstance3D", true, false):
+			var mi := n as MeshInstance3D
+			var set_name := String(mi.name).get_slice("__", 1).get_slice(".", 0)
+			var mat: Material = OssKit.mat("chalk") if set_name == "chalk" else (SiteProps.wood() if set_name == "timber" else null)
+			if set_name == "cloth":
+				mat = SiteProps.cloth()
+			if mi.mesh != null and mat != null:
+				_stack_parts.append([mi.mesh, mat])
+		inst.free()
+	if _stack_parts.is_empty():
+		return false
+	var host := Node3D.new()
+	host.name = "Block_Stack"
+	parent.add_child(host)
+	host.global_transform = t
+	for pr: Array in _stack_parts:
+		var mi2 := MeshInstance3D.new()
+		mi2.mesh = pr[0]
+		mi2.material_override = pr[1]
+		mi2.visibility_range_end = view_end
+		mi2.visibility_range_end_margin = view_end * 0.1
+		mi2.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
+		host.add_child(mi2)
+	return true
 
 
 ## Collision of a box table (rows [cx, cy, cz, sx, sy, sz, qx, qy, qz, qw], local to the piece) for each transform in

@@ -131,8 +131,24 @@ func show_lines(lines: Array) -> void:
 				# the count goes at the end, MMO-tracker style; the step's own "(n/of)" comes out
 				line = line.replace(" (%d/%d)" % [int(o.get("n", 0)), of], "")
 				line += "   %d/%d" % [int(o.get("n", 0)), of]
-			var s := _label(("›  " if not ready else "✓  ") + TextDirector.sentence(line), 18, LANTERN if ready else QUIET, UIType.body())
-			box.add_child(s)
+			# the step's mark is painted (the HUD's pips: a hollow ring while it stands, a filled one when it is ready), not a glyph
+			var srow := HBoxContainer.new()
+			srow.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			srow.alignment = BoxContainer.ALIGNMENT_END
+			srow.add_theme_constant_override("separation", 8)
+			var s := _label(TextDirector.sentence(line), 18, LANTERN if ready else QUIET, UIType.body())
+			s.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			srow.add_child(s)
+			var pip := TextureRect.new()
+			pip.texture = IconArt.art("hud", "pip_full" if ready else "pip_hollow")
+			pip.custom_minimum_size = Vector2(14, 14)
+			pip.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+			pip.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+			pip.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+			pip.modulate = LANTERN if ready else Color(QUIET, 0.8)
+			pip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			srow.add_child(pip)
+			box.add_child(srow)
 			_labels.append(s)
 			if fresh:
 				_flash(box)

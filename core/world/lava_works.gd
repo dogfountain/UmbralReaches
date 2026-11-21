@@ -121,7 +121,7 @@ func _starwater(star_z: float, band: float) -> void:
 	if g0:
 		g0.global_position = Vector3(_cx, -11.5, -27.0)
 		g0.light_color = Color(0.52, 0.38, 1.0)
-		g0.light_energy = 3.4
+		g0.light_energy = 2.6
 		g0.omni_range = 40.0
 	var g1 := root.get_node_or_null("Zone/Lava/Glow1") as OmniLight3D
 	if g1:

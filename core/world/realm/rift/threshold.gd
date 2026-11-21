@@ -41,6 +41,7 @@ var rng := RandomNumberGenerator.new()
 var rune: SurfaceTool                  ## violet rune slits (one emissive mesh)
 var report: Array[String] = []
 var _skips := {}                       ## why a bay's tier was not built (printed)
+var _bay_at: Array[Transform3D] = []   ## each built tier's modelled face (terrace_bay.glb), laid after the loop (_bay_look)
 var _cols: Array[AABB] = []            ## boxes of collision-less instanced pieces here (the crossing's colonnade)
 var _audit: Array[String] = []         ## every piece that was moved or dropped for touching something (printed)
 var _last_hit := ""                    ## what the last failed _clear touched
@@ -71,6 +72,7 @@ func build(root: Node, host: Node3D, p_star_z: float, p_falls: Array) -> void:
 		while z - BAY >= star_z + 1.0:
 			bays += _bay(side, z - BAY * 0.5)
 			z -= BAY
+	_bay_look(host)
 	var tstair := TowerStair.new()
 	var stair_ok := tstair.build(self)
 	report.append("tower stair: %d steps (%d narrowed, %d as spans past the fallen column's pier)" % [tstair.steps_built, tstair.narrow_steps, tstair.spans])
@@ -192,6 +194,11 @@ func _bay(side: float, zc: float) -> int:
 		k.block(STONE, lo, hi)
 		var along := Vector3(0, 0, 1)
 		var inward := Vector3(-side, 0, 0)      # from the wall towards the pool
+		# the face's look is a modelled bay (terrace_bay.glb, tools/blender/polish_terrace.py: coursed facing, pilasters, a pointed blind
+		# arch, a moulded coping and a balustrade; _bay_look lays them); the boxes below are its colliders only (polish, 20 Nov)
+		var turn := Basis(Vector3.UP, 0.0 if side < 0.0 else PI) * Basis.from_scale(Vector3(1.0, (yt - yb) / 4.0, 1.0))
+		_bay_at.append(Transform3D(turn, Vector3(front, yb, zc)))
+		k.visual = false
 		# coping: a moulded lip along the walk's edge, a hand proud of the face
 		k.box(STONE, Vector3(front - side * 0.08, yt + 0.11, zc), Vector3(0.75, 0.22, BAY), Basis.IDENTITY)
 		# balustrade on the edge (posts at the pilasters)
@@ -206,12 +213,43 @@ func _bay(side: float, zc: float) -> int:
 		# a blind lancet arch on the face (the face shows through it: a shallow niche)
 		var arch_base := Vector3(front - side * 0.3, yb + (0.0 if i > 0 else 1.2), zc)
 		k.arch_panel(STONE, arch_base, along, 1.8, maxf(yt - yb - 2.6 - (0.0 if i > 0 else 1.2), 0.6), yt - arch_base.y - 0.05, 0.56, 0.36, 0.9, 0.0, STONE)
+		k.visual = true
 				# candle offerings on the walk below this tier, at the niche's foot
 		if i > 0 and not is_nan(walk_x):
 			k.candle_cluster(Vector3(front + inward.x * 0.55, yb + 0.02, zc + rng.randf_range(-0.6, 0.6)), rng.randi_range(4, 8), 0.32, rng)
 		walk_x = front
 		built += 1
 	return built
+
+
+const BAYS := "res://art/models/terrace_bay.glb"
+
+
+## The modelled faces of every tier built (one MultiMesh per variant, one draw each), in the rift's own stone.
+func _bay_look(host: Node3D) -> void:
+	if _bay_at.is_empty() or not ResourceLoader.exists(BAYS):
+		return
+	var ps := load(BAYS) as PackedScene
+	if ps == null:
+		return
+	var inst := ps.instantiate()
+	var mat := (OssKit.mat(STONE) as StandardMaterial3D).duplicate() as StandardMaterial3D
+	mat.vertex_color_use_as_albedo = true
+	var per: Array = [[], []]
+	for i in _bay_at.size():
+		(per[(i * 7 + int(absf(_bay_at[i].origin.z)) / 4) % 2] as Array).append(_bay_at[i])
+	for v in 2:
+		var mi := inst.find_child("Bay%d" % v, true, false) as MeshInstance3D
+		if mi == null or mi.mesh == null or (per[v] as Array).is_empty():
+			continue
+		var mmi := OssKit.multimesh(mi.mesh, per[v], mat, true)
+		mmi.name = "TerraceBays%d" % v
+		mmi.visibility_range_end = 170.0
+		mmi.visibility_range_end_margin = 20.0
+		mmi.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
+		mmi.add_to_group(Groups.CULL_SKIP)
+		host.add_child(mmi)
+	inst.free()
 
 
 # --- the Pilgrims' Chapel ---------------------------------------------------------------------------
@@ -250,7 +288,7 @@ func _watchers(host: Node3D) -> void:
 		ol.name = "OrbLight"
 		ol.position = oc
 		ol.light_color = Color(0.6, 0.45, 1.0)
-		ol.light_energy = 3.0
+		ol.light_energy = 2.2
 		ol.omni_range = 26.0
 		ol.shadow_enabled = false
 		ol.distance_fade_enabled = true
@@ -281,7 +319,7 @@ func _dress_watcher(m: Node3D) -> void:
 		var W := "res://art/models/wonders/"
 		var fig := StandardMaterial3D.new()
 		fig.albedo_texture = load(W + "watchers_pillar_albedo.png")
-		fig.albedo_color = Color(0.92, 0.92, 0.94)
+		fig.albedo_color = Color(0.6, 0.58, 0.64)         # (polish: five violet lights on a pale horizontal tread drew a flat saturated slab)
 		fig.normal_enabled = true
 		fig.normal_texture = load(W + "watchers_pillar_normal.png")
 		var orm: Texture2D = load(W + "watchers_pillar_orm.png")
@@ -530,11 +568,11 @@ static func _rune_mat() -> StandardMaterial3D:
 ## water, with LavaWorks' Glow0 between them, and one higher in front of the chapel that lights the west terraces' faces and the
 ## chapel's facade. Unshadowed, budgeted like the Realm's own lights.
 func _pool_lights(host: Node3D) -> void:
-	for spec: Array in [[Vector3(0.0, LAVA + 1.6, -18.5), 4.0, 24.0], [Vector3(4.0, LAVA + 1.6, -38.0), 4.0, 24.0], [Vector3(-11.0, LAVA + 6.5, -37.0), 3.2, 13.0]]:
+	for spec: Array in [[Vector3(0.0, LAVA + 1.6, -18.5), 2.8, 24.0], [Vector3(4.0, LAVA + 1.6, -38.0), 3.6, 24.0], [Vector3(-11.0, LAVA + 6.5, -37.0), 3.2, 13.0]]:
 		var at: Vector3 = spec[0]
 		var l := OmniLight3D.new()
 		l.name = "PoolLight"
-		l.light_color = Color(0.5, 0.38, 1.0)
+		l.light_color = Color(0.6, 0.5, 1.0)          # (polish: a paler violet and less of it at the plinths: their lower treads drew as flat neon-blue slabs)
 		l.light_energy = float(spec[1])
 		l.omni_range = float(spec[2])
 		l.omni_attenuation = 0.8

@@ -748,7 +748,7 @@ func _pool() -> void:
 	var face := MeshInstance3D.new()
 	face.name = "PoolFace"
 	var pm := PlaneMesh.new()
-	pm.size = Vector2(OssFrame.PIT_X1_HALL - OssFrame.PIT_X0 + 6.0, OssFrame.PIT_Z1 - OssFrame.PIT_Z0 + 6.0)
+	pm.size = Vector2(OssFrame.PIT_X1_HALL - OssFrame.PIT_X0 + 14.0, OssFrame.PIT_Z1 - OssFrame.PIT_Z0 + 14.0)       # the Realm's sheet reaches 4 m past the pit's rim and a cell more: the face covers all of it (polish, 20 Nov: the pale strip beside the Count door)
 	face.mesh = pm
 	var wm := StandardMaterial3D.new()
 	wm.albedo_color = Color(0.012, 0.016, 0.02)
@@ -916,6 +916,25 @@ func _count_bank(host: Node3D, crest: float) -> void:
 			rk.spawn(host, rk.slab(3480 + row * 7 + i, Vector3(5.3, hgt + 0.5, 2.6), "granite", 0.06), OssFrame.xf() * Transform3D(wb, c), true, 160.0)
 		y += hgt - 0.4
 		row += 1
+	_bank_backing(host)
+
+
+## The probe (zz/map_audit_shots.gd --variants, polish pass 20 Nov) showed the Count door's pale void is the open sky and the far Realm: south
+## of the shaft the bank's terrain is missing behind the slabs (the Realm's triangles are 4 m, and the shaft's cut took whole ones), so from
+## the threshold the eye passes between the slabs, over the pit, and out of the world. A dark backing behind the slabs closes it: a box of the
+## kit's rock, two-sided, inside the bank (x 31.4 .. 40, y -5 .. 9, over the pit hall's roof and clear of the shaft, z -82.6 .. -60).
+func _bank_backing(host: Node3D) -> void:
+	var mi := MeshInstance3D.new()
+	mi.name = "BankBacking"
+	var bm := BoxMesh.new()
+	bm.size = Vector3(8.6, 14.0, 22.6)
+	mi.mesh = bm
+	var m := (OssKit.mat("dark") as StandardMaterial3D).duplicate() as StandardMaterial3D
+	m.cull_mode = BaseMaterial3D.CULL_DISABLED
+	mi.material_override = m
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	host.add_child(mi)
+	mi.global_transform = OssFrame.xf() * Transform3D(Basis.IDENTITY, Vector3(35.7, 2.0, -71.3))
 
 
 ## The ground's triangles come out whole, so the cut reaches past the shaft as far as its last triangle does: from the Count
