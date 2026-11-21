@@ -85,3 +85,10 @@ the stair's slits look into the hall.
 - [x] walk the real Player: Landing -> Pit Hall, the Lower Count, the lift (zz/oss_walk)
 - [x] re-shoot; look at every frame
 - [x] parse check; lint
+
+## Review fixes (lead, 21 Nov)
+
+1. **Ground.** There was no later pass: the abbey's base sampler divided its mean by two (a plain arithmetic bug, 9 for 19). The abbey now has authored bases AND its ground: `OssAbbey.site_rects()` registers one rect site per pair of bays (the tower with the first, a forecourt before the gable with the last) in `RealmBosses._ossuary_sites`, so `TerrainStamp` cuts the bank to each base. The charnel door and the rose stand on level ground; no wall end is in the slope.
+2. **Overlaps.** The same sites keep every placing pass off the church; the Shepherd's fold and hut search clear of it (`realm_pois_south_marches.gd`, local to the abbey) and the Oak's fire takes its second spot. Build log: `OSSUARY abbey: 0 overlaps`.
+3. **Mound.** The kit's prop skulls (and candles) did not draw out in the pit at all; the mound is now authored in Blender (`OssMound`: 260 skulls, a stepped drum, a crown of long bones). The prop batches also now stand at their own cell's centre (their visibility ranges were measured to the area's origin).
+4. **One stone.** The kit's `stone` and `stone_big` are the abbey's own Blender ashlar maps (cool tint), so the tiers, the bridge's piers, the Landing arch and the abbey are one family.
