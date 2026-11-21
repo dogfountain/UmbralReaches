@@ -801,6 +801,7 @@ func commit(range_end := 0.0) -> int:
 			gi.visibility_range_end = range_end
 			gi.visibility_range_end_margin = range_end * 0.1
 			gi.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
+	WorldLanes.own(host)                  # every batch of a wonder (its flames, halos, candles, props) is placed on purpose: the scatter cull inside its site must leave them
 	return n
 
 
@@ -858,6 +859,7 @@ func _commit_props() -> int:
 			var mmi := MultiMeshInstance3D.new()
 			mmi.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF   # static: interpolating a MultiMesh makes its add wait on the GPU (zz/stream_probe.gd)
 			mmi.name = "Prop_" + file
+			mmi.add_to_group(&"final_seat")
 			mmi.multimesh = mm
 			if pd.mat != null:
 				mmi.material_override = pd.mat

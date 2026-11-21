@@ -3,7 +3,7 @@ extends Node
 ## height on the downhill side of the spot and looks at it. In memory only.
 ##   godot --path . res://zz/ground_shots.tscn -- --spots=spots.json --out=dir --tag=before [--from=0 --count=60]
 ## A spot may carry "cam_x","cam_z" (where to stand) and "look_y" (height above the ground to aim at) to override the pick.
-const SETTLE := 60
+var settle := 60
 var p: Player
 var main: Node
 var spots: Array = []
@@ -18,6 +18,11 @@ var rank_out := ""
 var cam3: Camera3D              ## the stills' own camera: the Player's rig stopped following the wanderer after a few far moves (the fx views all showed one boardwalk)
 var fx_views := true
 var keep_spots := false
+var places_mode := false          ## --places[=from:count]: every place a player visits, three views each (approach, close 3/4, high), JPG + a strip per place
+var pl_from := 0
+var pl_count := 100000
+var strips := {}
+var pl_ids: PackedStringArray = []
 var fx_only := false              ## no ground spots: only the sky effects (--probe/--rank are ignored)
 var probe_out := ""             ## --probe=file.tsv: measure the whole Realm first (zz/ground_probe.gd), then shoot
 
@@ -38,6 +43,16 @@ func _ready() -> void:
 			rank_out = a.trim_prefix("--rank=")        ## after the probe, rank it (tools/ground_rank.py) and shoot the worst 60 written here
 		elif a.begins_with("--no-fx"):
 			fx_views = false
+		elif a.begins_with("--places"):
+			places_mode = true
+			fx_views = false
+			if a.contains("="):
+				var pc := a.get_slice("=", 1).split(":")
+				pl_from = int(pc[0])
+				pl_count = int(pc[1])
+			settle = 30
+		elif a.begins_with("--place-ids="):
+			pl_ids = a.get_slice("=", 1).split(",")
 		elif a == "--keep-spots":
 			keep_spots = true                         ## the after run: rank the new probe for the counts, but shoot the spots given by --spots
 		elif a == "--fx-only":
@@ -96,8 +111,14 @@ func _process(_d: float) -> void:
 					spots = spots.slice(0, 60)
 		if fx_views:
 			_add_fx_views()
+		if places_mode:
+			_add_place_views()
 		for n in get_tree().get_nodes_in_group(Groups.ENEMY):
 			(n as Node).queue_free()
+		for c in get_tree().root.find_children("*", "CanvasLayer", true, false):
+			if String(c.name) != "Grade":
+				(c as CanvasLayer).visible = false
+	if t % 20 == 0:
 		for c in get_tree().root.find_children("*", "CanvasLayer", true, false):
 			if String(c.name) != "Grade":
 				(c as CanvasLayer).visible = false
@@ -109,8 +130,13 @@ func _process(_d: float) -> void:
 	if i >= 0:
 		var s: Dictionary = spots[i]
 		var path := out.path_join(("%s_%s.png" % [String(s["file"]), tag]) if s.has("file") else "spot_%03d_%s.png" % [first + i, tag])
-		get_viewport().get_texture().get_image().save_png(path)
 		var img := get_viewport().get_texture().get_image()
+		if s.has("place"):
+			path = path.replace(".png", ".jpg")
+			img.save_jpg(path, 0.88)
+			_strip(s, img)
+		else:
+			img.save_png(path)
 		var lum := 0.0
 		for k in 40:
 			lum += img.get_pixel(40 + k * 28, 100 + (k % 7) * 90).get_luminance()
@@ -148,7 +174,7 @@ func _setup() -> bool:
 		return false
 	s["cam_x"] = cam.x
 	s["cam_z"] = cam.y
-	var eye := _ground(cam.x, cam.y) + 1.7
+	var eye := _ground(cam.x, cam.y) + float(s.get("eye_up", 1.7))
 	var tgt := gy + float(s.get("look_y", minf(float(s.get("h", 1.0)), 3.0) * 0.35))
 	var d := Vector3(at.x - cam.x, tgt - eye, at.y - cam.y)
 	if not (d.length() > 0.1):
@@ -168,7 +194,7 @@ func _setup() -> bool:
 		cam3.make_current()
 	cam3.global_position = Vector3(cam.x, eye, cam.y)
 	cam3.look_at(Vector3(at.x, tgt, at.y), Vector3.UP)
-	wait = SETTLE
+	wait = settle
 	return true
 
 
@@ -260,3 +286,94 @@ func _sees(from: Vector3, to: Vector3) -> bool:
 	var q := PhysicsRayQueryParameters3D.create(from, to, 0xFFFFF)
 	var hit := space.intersect_ray(q)
 	return hit.is_empty() or (hit.position as Vector3).distance_to(to) < 5.0
+
+
+## The places: WorldLanes.sites merged within 18 m, the lore landmarks, the camps, the braziers; the Ossuary's area, the Rift and the Summit left out.
+func _place_list() -> Array:
+	var raw: Array = []
+	for st: Dictionary in WorldLanes.sites:
+		var r: Rect2 = st.rect
+		raw.append([String(st.name), r.get_center(), maxf(r.size.x, r.size.y)])
+	for lm: Dictionary in preload("res://core/world/realm/lore/lore_kit.gd").landmarks:
+		var at: Vector3 = lm.at
+		raw.append(["lore:" + String(lm.name), Vector2(at.x, at.z), 10.0])
+	for c: Dictionary in EnemySpawner.REALM_CAMPS:
+		var at2: Vector3 = c.at
+		raw.append(["camp:" + String(c.get("id", "")), Vector2(at2.x, at2.z), 8.0])
+	var br := main.get_node_or_null("Zone/Braziers")
+	if br != null:
+		for b in br.get_children():
+			if b is Node3D:
+				raw.append(["fire:" + String(b.name), Vector2((b as Node3D).global_position.x, (b as Node3D).global_position.z), 6.0])
+	var out: Array = []
+	for e: Array in raw:
+		var c2: Vector2 = e[1]
+		if Rect2(-150.0, 60.0, 260.0, 210.0).has_point(c2) or not RealmLayout.BOUNDS.grow(-12.0).has_point(c2):
+			continue
+		var rid := String(RealmLayout.region_at(c2.x, c2.y).get("id", ""))
+		if rid in ["rift", "summit", "ossuary"]:
+			continue
+		var dup := false
+		for o: Array in out:
+			if (o[1] as Vector2).distance_to(c2) < 18.0:
+				dup = true
+				(o[0] as Array).append(String(e[0]))
+				break
+		if not dup:
+			out.append([[String(e[0])], c2, float(e[2]), rid])
+	return out
+
+
+func _add_place_views() -> void:
+	var places := _place_list()
+	var lines := PackedStringArray()
+	var idx := 0
+	var added := 0
+	for pl: Array in places:
+		var c: Vector2 = pl[1]
+		var gy := _ground(c.x, c.y)
+		if is_nan(gy):
+			idx += 1
+			continue
+		lines.append("%03d\t%s\t%.0f\t%.0f\t%s\t%s" % [idx, (pl[0] as Array)[0], c.x, c.y, pl[3], ";".join((pl[0] as Array).slice(1, 6))])
+		if (pl_ids.is_empty() and (idx < pl_from or idx >= pl_from + pl_count)) or (not pl_ids.is_empty() and not str(idx) in pl_ids):
+			idx += 1
+			continue
+		var away := Vector2(0.0, 33.0) - c
+		var dir0 := away.normalized() if away.length() > 30.0 else Vector2(0.0, 1.0)
+		var rad := clampf(float(pl[2]) * 0.5, 6.0, 30.0)
+		var specs := [[rad + 14.0, 0.0, 1.7, 1.5], [rad * 0.55 + 6.0, deg_to_rad(50.0), 1.7, 1.0], [rad + 22.0, deg_to_rad(-40.0), 15.0, 0.0]]
+		for k in 3:
+			var sp: Array = specs[k]
+			var cam := c + dir0.rotated(float(sp[1])) * float(sp[0])
+			var ok := false
+			for t2 in 12:
+				var cand := c + dir0.rotated(float(sp[1]) + float((t2 + 1) / 2) * TAU / 16.0 * (1.0 if t2 % 2 == 1 else -1.0)) * float(sp[0])
+				var cg := _ground(cand.x, cand.y)
+				if _cam_ok(cand) and not is_nan(cg) and (k == 2 or _sees(Vector3(cand.x, cg + 1.7, cand.y), Vector3(c.x, gy + 1.5, c.y))):
+					cam = cand
+					ok = true
+					break
+			if not _cam_ok(cam):
+				continue
+			spots.append({"x": c.x, "z": c.y, "cam_x": cam.x, "cam_z": cam.y, "eye_up": float(sp[2]), "look_y": float(sp[3]), "why": "place", "kind": String((pl[0] as Array)[0]),
+				"place": idx, "view": k, "file": "pl_%03d_%d" % [idx, k]})
+			added += 1
+		idx += 1
+	FileAccess.open(out.path_join("places_%d.txt" % pl_from), FileAccess.WRITE).store_string("\n".join(lines))
+	print("PLACES %d places, %d views (from %d)" % [places.size(), added, pl_from])
+
+
+func _strip(s: Dictionary, img: Image) -> void:
+	var pi := int(s.place)
+	if not strips.has(pi):
+		strips[pi] = []
+	var small := img.duplicate() as Image
+	small.resize(640, 400, Image.INTERPOLATE_BILINEAR)
+	(strips[pi] as Array).append(small)
+	if (strips[pi] as Array).size() >= 3 or int(s.view) == 2:
+		var sheet := Image.create(640 * (strips[pi] as Array).size(), 400, false, Image.FORMAT_RGB8)
+		for i2 in (strips[pi] as Array).size():
+			sheet.blit_rect((strips[pi] as Array)[i2] as Image, Rect2i(0, 0, 640, 400), Vector2i(640 * i2, 0))
+		sheet.save_jpg(out.path_join("strip_%03d.jpg" % pi), 0.85)
+		strips.erase(pi)

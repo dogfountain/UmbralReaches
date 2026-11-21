@@ -12,6 +12,7 @@ extends RefCounted
 ##   9 assets (quality pass hooks)  10 cull_scatter / chunks
 ## Modules own their own files; this file and the hooks in glimmers.gd / main.gd belong to the lead.
 
+const FinalSeat := preload("res://core/world/realm/final_seat.gd")
 const GroundFollow := preload("res://core/world/realm/ground_follow.gd")
 const FadeGuard := preload("res://core/world/fade_guard.gd")
 const PlacementLog := preload("res://core/world/realm/placement_log.gd")
@@ -185,11 +186,15 @@ static func build(root: Node) -> void:
 	await _run("lamps", root)
 	t = Time.get_ticks_usec()
 	await TerrainStamp.settle(root)              # the ground yields to the floors as built (after every building and its dress, before the nav)
+	FinalSeat.settle(root)                       # props that stood on the ground before the settle moved it
 	GroundFollow.settle(root)                    # chests stand on the floors as built and the ground as settled
 	TerrainStamp.release()                       # the build's copy of the terrain (ground_at() stops answering)
 	prof_add("stage: terrain settle", t)
 	await _run("nav", root)                      # after every collider is in; waits a bounded time for the bake
 	t = Time.get_ticks_usec()
+	var pois := root.get_node_or_null("RealmPois")
+	if pois != null:
+		WorldLanes.own(pois)                     # the places' own batches (flames, halos, candles, yards' barrels, kerbs, footings): placed on purpose, not scatter
 	print("REALM cull ", WorldLanes.cull_scatter(root))
 	prof_add("stage: cull scatter", t)
 	var keys := prof.keys()

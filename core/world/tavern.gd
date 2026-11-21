@@ -563,6 +563,7 @@ func _place_props() -> void:
 		for part: Dictionary in Props.parts_indoor(file):
 			var mmi := OssKit.multimesh(part.mesh, xfs, part.mat, not file.begins_with("bar_shelf"))
 			mmi.name = "Prop_%s_%d" % [file, i]
+			mmi.add_to_group(&"final_seat")
 			add_child(mmi)
 			i += 1
 
