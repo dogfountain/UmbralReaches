@@ -10,6 +10,7 @@ const HAVEN := Vector3(-3.4, 0.0, -8.5) + Endgame.O       ## the Crossing fire's
 const HAVEN_R := 12.0
 
 const ReachCamps := preload("res://core/enemy/realm_camps_reaches.gd")
+const CampDress := preload("res://core/world/realm/camp_dress.gd")
 
 ## Camps of the redesigned zone (docs/REALM_PLAN.md, RealmLayout). r28: five camps that the sites
 ## had swallowed (skipped at plant: "inside site barrow_92_-65", "fen_graves_55_22", "barrow_89_-50",
@@ -360,6 +361,27 @@ func _settle() -> void:
 	_make_rares()
 	settled = true
 	settled_done.emit()
+	CampDress.build(host as Node3D, _camp_view())      # every camp a place (core/world/realm/camp_dress.gd)
+
+
+## The camps as the dressing sees them: [{center, ats (where each foe stands), kinds, seal, route}] (strict slots, the Crossing's, are left out).
+func _camp_view() -> Array:
+	var by_at := {}
+	for camp: Dictionary in _camps:
+		by_at[str(camp.at)] = camp
+	var out := {}
+	for slot: Dictionary in _slots:
+		var ck := String(slot.key).get_slice("#", 0)
+		if not by_at.has(ck) or bool(slot.get("strict", false)):
+			continue
+		if not out.has(ck):
+			var camp: Dictionary = by_at[ck]
+			var route: Array = []
+			if slot.has("patrol"):
+				route.assign(slot.patrol)
+			out[ck] = {"center": slot.get("center", slot.at), "ats": [], "kinds": PackedStringArray(camp.kinds), "seal": String(camp.get("seal", "")), "route": route}
+		(out[ck].ats as Array).append(slot.at)
+	return out.values()
 
 
 ## Each slot's final footing once the Realm's ground is final: [{g: where it stands (INF: nowhere better), pts: its patrol's stops}] by

@@ -11,6 +11,7 @@ const LoreIndex := preload("res://core/world/realm/lore/lore_index.gd")
 const LA := preload("res://core/world/realm/lore/lore_assets.gd")
 const StoneProps := preload("res://core/world/realm/lore/stone_props.gd")
 const GroundSeat := preload("res://core/world/realm/ground_seat.gd")
+const Barrels := preload("res://core/world/realm/lore/lore_barrels.gd")
 const PlacementLog := preload("res://core/world/realm/placement_log.gd")
 const T := "res://art/textures/"
 const KIT_PATH := "res://core/world/realm/lore/lore_kit.gd"
@@ -52,6 +53,7 @@ var _mb: Dictionary = {}           ## material key -> LA.MB (UV-mapped quads: ca
 var _uvm: Dictionary = {}          ## material key -> SurfaceTool (appended UV meshes: thatch, slates)
 var _uv_props: Dictionary = {}     ## material keys drawn as props (visibility-ranged)
 var _props: Array = []             ## [glb file, Transform3D] stone models, drawn as MultiMeshes at finish
+var _barrels: Array[Transform3D] = []   ## upright barrels: the modelled one, in group final_seat (set on the ground as the terrain settle leaves it)
 var _plain: Array = []             ## [centre, normal, w, h, cell]: unlit carvings, unless letters() claims the face
 
 
@@ -418,7 +420,7 @@ func finish() -> int:
 	for pl: Array in _plain:
 		panel(pl[0], pl[1], pl[2], pl[3], pl[4], false, Vector3.ZERO, true)
 	_plain.clear()
-	var draws := k.commit(holder, "Body") + _commit_rocks() + _commit_props()
+	var draws := k.commit(holder, "Body") + _commit_rocks() + _commit_props() + Barrels.commit(holder, _barrels)
 	var props := Node3D.new()
 	props.name = "Props"
 	holder.add_child(props)
@@ -857,6 +859,10 @@ func rune_stone(at: Vector3, yaw: float, h := 1.4) -> Vector3:
 # --- village props --------------------------------------------------------------------------
 
 func barrel(kit: OssKit, at: Vector3, s := 1.0, lying := false, yaw := 0.0) -> void:
+	if not lying:
+		# the modelled barrel, in group final_seat (lore_barrels.gd): the kit's own was merged into its mesh where it was set and hung 0.9 m over the yard the settle lowered
+		_barrels.append(Barrels.seat(Transform3D(Basis(Vector3.UP, yaw).scaled(Vector3.ONE * s), at)))
+		return
 	var h := 0.85 * s
 	var body := pooled("barrel", func() -> ArrayMesh:
 		var cm := CreatureMesh.new(5)

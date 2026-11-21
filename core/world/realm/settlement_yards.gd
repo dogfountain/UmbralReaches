@@ -14,7 +14,10 @@ const Dress := preload("res://core/world/realm/wonders/r39/wonder_dress.gd")
 const Zones := preload("res://core/world/realm/dress_zones.gd")
 const More := preload("res://core/world/realm/settlement_yards_more.gd")
 
-const TOWNS := [[Vector2(6.0, 38.0), 34.0, 10, 0.62], [Vector2(-311.0, 281.0), 30.0, 11], [Vector2(-160.0, 300.0), 34.0, 12], [Vector2(324.5, 53.5), 40.0, 14]]
+const TOWNS := [[Vector2(6.0, 38.0), 34.0, 10, 0.62], [Vector2(-311.0, 281.0), 30.0, 11], [Vector2(-160.0, 300.0), 34.0, 12], [Vector2(324.5, 53.5), 40.0, 14],
+	[Vector2(212.0, 100.0), 30.0, 7], [Vector2(-196.0, 70.0), 34.0, 8], [Vector2(-165.0, 18.0), 24.0, 5]]
+const NOT_HOUSES := ["walk", "bank", "wall", "garden", "deck", "landing", "stair", "bridge", "fire", "notice", "shrine", "well", "hearthstone", "punt", "rick", "rack", "pole", "stook",
+	"scarecrow", "hurdle", "gate", "trap", "stack", "lamp", "forge", "brazier", "pier", "dock", "pit", "grave", "stall", "cross", "weir", "wheel", "treb", "tower_top"]
 const KINDS := ["washing", "garden", "pen", "smith", "grave", "market", "well", "pen", "fence", "workshop", "linen", "garden", "geese", "well", "workshop", "fence"]
 
 
@@ -41,24 +44,47 @@ func _run(root: Node) -> void:
 		var want: int = t[2]
 		var inner: float = float(t[3]) if t.size() > 3 else 0.0      # Hearthward's yards stay on its outer ring: the plaza, the graves and the fire are the villagers' own
 		var n := 0
-		var tries := 0
-		while n < want and tries < want * 24:
-			tries += 1
-			var a := rng.randf() * TAU
-			var p := c + Vector2(cos(a), sin(a)) * lerpf(inner, 0.95, sqrt(rng.randf())) * r
-			if not _open(space, q, p, made):
-				continue
-			var g := WK.span(p, Vector2(3.4, 3.4), 0.0).x      # the scene stands on its lowest ground (the high side buried, nothing in the air)
-			var kind := String(KINDS[(n + tries) % KINDS.size()])
-			if kind == "grave" and p.distance_to(c) < r * 0.6:
-				kind = "garden"
-			var key := Vector2i(floori(p.x / 56.0), floori(p.y / 56.0))
-			if not cells.has(key):
-				cells[key] = []
-			(cells[key] as Array).append([Vector3(p.x, g, p.y), kind, rng.randf() * TAU])
-			made.append(p)
-			n += 1
+		# Anchored: a yard belongs to a house. It stands against the house's back (the side furthest from the lanes and the walks), 4.9 m out from the wall,
+		# its x along the wall and its +z turned away from it (a lean-to rests its back on the wall; a line of washing, a garden and a pen are the house's own).
+		# (It used to be a random point in the town's disc with a random heading: pens in the green, a smithy facing nothing.)
+		var anchors := _anchors(c, r, inner)
+		for i in range(anchors.size() - 1, 0, -1):
+			var j := rng.randi_range(0, i)
+			var tmp: Array = anchors[i]
+			anchors[i] = anchors[j]
+			anchors[j] = tmp
+		for an: Array in anchors:
+			if n >= want:
+				break
+			var rc: Rect2 = an[1]
+			var cands: Array = []
+			for d: Vector2 in [Vector2(1, 0), Vector2(-1, 0), Vector2(0, 1), Vector2(0, -1)]:
+				var half := rc.size.x * 0.5 if d.x != 0.0 else rc.size.y * 0.5
+				var along := rc.size.y if d.x != 0.0 else rc.size.x
+				var perp := Vector2(d.y, d.x)
+				for out_m: float in [4.9, 6.3]:
+					for tt: float in [0.0, -0.28, 0.28]:
+						var p0 := rc.get_center() + d * (half + out_m) + perp * (tt * along)
+						cands.append([minf(Zones.lane_dist(p0), 24.0) + minf(_town_walk_dist(p0), 24.0) + minf(RealmLayout.path_dist(p0), 12.0) - out_m, p0, d])
+			cands.sort_custom(func(a: Array, b: Array) -> bool: return float(a[0]) > float(b[0]))
+			for cd: Array in cands:
+				var p: Vector2 = cd[1]
+				if not _open(space, q, p, made, String(an[0])):
+					continue
+				var g := WK.span(p, Vector2(3.4, 3.4), 0.0).x      # the scene stands on its lowest ground (the high side buried, nothing in the air)
+				var kind := String(KINDS[(n * 3 + anchors.find(an)) % KINDS.size()])
+				if kind == "grave" and p.distance_to(c) < r * 0.6:
+					kind = "garden"
+				var dd: Vector2 = cd[2]
+				var key := Vector2i(floori(p.x / 56.0), floori(p.y / 56.0))
+				if not cells.has(key):
+					cells[key] = []
+				(cells[key] as Array).append([Vector3(p.x, g, p.y), kind, atan2(dd.x, dd.y)])
+				made.append(p)
+				n += 1
+				break
 		total += n
+		print("REALM yards %s: %d buildings, %d yards" % [c, anchors.size(), n])
 	for key: Vector2i in cells:
 		var k := WK.new()
 		k.setup(root, "Yards_%d_%d" % [key.x, key.y], 9400 + key.x * 17 + key.y)
@@ -66,30 +92,65 @@ func _run(root: Node) -> void:
 			for sc: Array in (cells[key] as Array):
 				_scene(k, String(sc[1]), sc[0] as Vector3, float(sc[2]))
 		k.commit(120.0)
-	print("REALM yards: %d scenes in %d towns, %d kits" % [total, TOWNS.size(), cells.size()])
+	print("REALM yards: %d scenes in %d towns, %d kits; refused: %s" % [total, TOWNS.size(), cells.size(), why])
 
 
-func _open(space: PhysicsDirectSpaceState3D, q: PhysicsShapeQueryParameters3D, p: Vector2, made: Array[Vector2]) -> bool:
-	for m: Vector2 in made:
-		if m.distance_to(p) < 9.0:
-			return false
-	if RealmLayout.path_dist(p) < 3.5 or WK.wet(p.x, p.y) or Zones.lane_dist(p) < 3.2 or WK.near_walk(p, 6.5):
-		return false
-	if _town_walk_dist(p) < 4.0:               # off the towns' own walks too: a fence on one left a reeve stuck mid-lane (21 Nov)
-		return false
-	var hit := space.intersect_ray(PhysicsRayQueryParameters3D.create(Vector3(p.x, 60.0, p.y), Vector3(p.x, -20.0, p.y), Layers.WORLD))
-	if hit.is_empty() or absf((hit.position as Vector3).y - WK.h(p.x, p.y)) > 0.6:
-		return false
-	var span := WK.span(p, Vector2(3.4, 3.4), 0.0)       # the whole scene (a fence row runs 3 m each way), not its middle 4 m
-	if span.x == INF or span.y - span.x > 0.55:
-		return false
+## The buildings of a town: the registered sites whose middle lies in its disc (past `inner` of it), of a house's size and not a well, a walk, a deck or a wall.
+func _anchors(c: Vector2, r: float, inner: float) -> Array:
+	var out: Array = []
 	for st: Dictionary in WorldLanes.sites:
-		# a yard keeps 6 m off every building's site: a door's approach lies in that strip, and a fence stood 3.4 m out of the tithe
-		# barn's door (zone fit)
-		if WorldLanes.site_hits_rect(st, Rect2(p - Vector2(2.4, 2.4), Vector2(4.8, 4.8)), 3.6):
-			return false
-	q.transform = Transform3D(Basis.IDENTITY, Vector3(p.x, WK.h(p.x, p.y) + 1.5, p.y))
-	return space.intersect_shape(q, 1).is_empty()
+		var rc: Rect2 = st.rect
+		var d := rc.get_center().distance_to(c)
+		var area := rc.size.x * rc.size.y
+		if d > r or d < inner * r * 0.6 or area < 22.0 or area > 700.0:
+			continue
+		var nm := String(st.name).to_lower()
+		var skip := false
+		for w: String in NOT_HOUSES:
+			if nm.contains(w):
+				skip = true
+				break
+		if not skip:
+			out.append([String(st.name), rc])
+	return out
+
+
+func _open(space: PhysicsDirectSpaceState3D, q: PhysicsShapeQueryParameters3D, p: Vector2, made: Array[Vector2], anchor := "") -> bool:
+	for m: Vector2 in made:
+		if m.distance_to(p) < 7.5:
+			return _no("near another yard")
+	if RealmLayout.path_dist(p) < 3.5:
+		return _no("a way")
+	if WK.wet(p.x, p.y):
+		return _no("wet")
+	if Zones.lane_dist(p) < 3.2 or WK.near_walk(p, 5.0):
+		return _no("a lane or walk")
+	if _town_walk_dist(p) < 4.0:               # off the towns' own walks too: a fence on one left a reeve stuck mid-lane (21 Nov)
+		return _no("a town walk")
+	var hit := space.intersect_ray(PhysicsRayQueryParameters3D.create(Vector3(p.x, 60.0, p.y), Vector3(p.x, -20.0, p.y), Layers.WORLD))
+	# (the ground behind a house was settled up to a metre off the height formula: the ray's own ground is the one the scene stands on)
+	if hit.is_empty() or absf((hit.position as Vector3).y - WK.h(p.x, p.y)) > 1.2:
+		return _no("not open ground")
+	var span := WK.span(p, Vector2(3.4, 3.4), 0.0)       # the whole scene (a fence row runs 3 m each way), not its middle 4 m
+	if span.x == INF or span.y - span.x > 0.7:
+		return _no("slope")
+	for st: Dictionary in WorldLanes.sites:
+		# a yard keeps 3.6 m off every other building's site (a door's approach lies in that strip: a fence stood 3.4 m out of the tithe barn's door, zone fit);
+		# its own house allows 2 m: it stands on that house's back
+		if WorldLanes.site_hits_rect(st, Rect2(p - Vector2(2.4, 2.4), Vector2(4.8, 4.8)), 2.0 if String(st.name) == anchor else 3.6):
+			return _no("a site")
+	q.transform = Transform3D(Basis.IDENTITY, Vector3((hit.position as Vector3).x, (hit.position as Vector3).y + 1.5, (hit.position as Vector3).z))
+	if not space.intersect_shape(q, 1).is_empty():
+		return _no("something solid")
+	return true
+
+
+static var why := {}
+
+
+func _no(r: String) -> bool:
+	why[r] = int(why.get(r, 0)) + 1
+	return false
 
 
 func _scene(k, kind: String, o: Vector3, yaw: float) -> void:
