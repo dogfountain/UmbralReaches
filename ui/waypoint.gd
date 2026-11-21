@@ -13,7 +13,11 @@ const QuestTrack := preload("res://core/story/quest_track.gd")
 const QuestTrail := preload("res://core/story/quest_trail.gd")
 const Forge := preload("res://ui/hud_forge.gd")
 const INK := Color(0.96, 0.9, 0.78)
-const SIZE := 50.0                          ## 42 read small at 100 m and past (walk stills)
+const SIZE := 25.0                          ## half the 50 it was (Luke, 21 Nov: "50% smaller")
+const LOOK_IN := 0.07                       ## the mark is whole within this share of the screen's height from its middle
+const LOOK_OUT := 0.3                       ## and faint from here out (Luke: "transparent when not looking directly at it")
+const LOOK_MIN := 0.22                      ## how faint
+const FONT := 13                            ## the metres under it (17 at the old size)
 const SAFE := Vector2(70.0, 96.0)           ## kept this far inside the screen's edges: x, and y under the compass strip
 const FOOT := 170.0                         ## and above the hotbar and the cast bar
 const NEAR_OUT := 3.5                       ## gone this close to the place (metres, flat)
@@ -22,6 +26,7 @@ const UPDOWN := 4.0                         ## an arrow above or below the mark 
 const HOP := 1.5                            ## the point moved this far (the next bend): the mark dips out and back
 
 var _alpha := 0.0
+var _look := 1.0                            ## 1 looking straight at it, LOOK_MIN when it sits off to the side (eased)
 var _at := Vector2.ZERO
 var _art := ""
 var _dist := 0.0
@@ -83,6 +88,9 @@ func _process(delta: float) -> void:
 				# (it no longer waits under a "Next" banner: straight ahead is where the banner is, and the mark hid
 				# there for the banner's whole stay; it draws over the banner instead, z_index)
 	_alpha = move_toward(_alpha, want, delta * (3.0 if want > _alpha else 6.0))
+	var vs := get_viewport_rect().size
+	var off := (_at - vs * 0.5).length() / maxf(vs.y, 1.0)
+	_look = lerpf(_look, lerpf(1.0, LOOK_MIN, smoothstep(LOOK_IN, LOOK_OUT, off)), 1.0 - exp(-8.0 * delta))
 	if _alpha > 0.0 or _drawn > 0.0:
 		_drawn = _alpha
 		queue_redraw()                         # an unseen waypoint is not redrawn
@@ -91,24 +99,25 @@ func _process(delta: float) -> void:
 func _draw() -> void:
 	if _alpha <= 0.01 or _art == "":
 		return
-	var bob := sin(_t * 2.2) * 2.0
+	var a := _alpha * _look
+	var bob := sin(_t * 2.2) * 1.0
 	var c := _at + Vector2(0.0, bob)
 	var glow := 0.5 + 0.5 * sin(_t * 2.2 + 1.2)
 	# a soft dark pool behind the mark, so it reads on a lit wall and on the night sky alike, and a slow lantern breath round it
-	draw_circle(c, SIZE * 0.66, Color(0.02, 0.015, 0.01, 0.45 * _alpha))
-	draw_arc(c, SIZE * 0.7 + 3.0 * glow, 0.0, TAU, 40, Color(1.0, 0.7, 0.3, 0.18 * _alpha), 6.0, true)
-	draw_arc(c, SIZE * 0.58 + 2.0 * glow, 0.0, TAU, 40, Color(1.0, 0.8, 0.42, (0.7 + 0.3 * glow) * _alpha), 3.0, true)
-	if not IconArt.draw_mark(self, "mark", _art, c, SIZE, Color(1, 1, 1, _alpha)):
-		draw_circle(c, SIZE * 0.3, Color(1.0, 0.72, 0.3, _alpha))
-	var rim := SIZE * 0.66 + 6.0                # just outside the glow ring
+	draw_circle(c, SIZE * 0.66, Color(0.02, 0.015, 0.01, 0.45 * a))
+	draw_arc(c, SIZE * 0.7 + 1.5 * glow, 0.0, TAU, 40, Color(1.0, 0.7, 0.3, 0.18 * a), 3.0, true)
+	draw_arc(c, SIZE * 0.58 + 1.0 * glow, 0.0, TAU, 40, Color(1.0, 0.8, 0.42, (0.7 + 0.3 * glow) * a), 2.0, true)
+	if not IconArt.draw_mark(self, "mark", _art, c, SIZE, Color(1, 1, 1, a)):
+		draw_circle(c, SIZE * 0.3, Color(1.0, 0.72, 0.3, a))
+	var rim := SIZE * 0.66 + 3.0                # just outside the glow ring
 	var s := SIZE * 0.2
 	var below := 0.0                            # room the down arrow takes above the label
 	if absf(_dy) > UPDOWN:                      # Destiny's inset arrow: the point is well above or below
 		var dir := -1.0 if _dy > 0.0 else 1.0
 		var tip := c + Vector2(0.0, dir * (rim + s))
-		draw_colored_polygon(PackedVector2Array([tip, tip + Vector2(-s, -dir * s), tip + Vector2(s, -dir * s)]), Color(1.0, 0.82, 0.45, _alpha))
+		draw_colored_polygon(PackedVector2Array([tip, tip + Vector2(-s, -dir * s), tip + Vector2(s, -dir * s)]), Color(1.0, 0.82, 0.45, a))
 		if dir > 0.0:
-			below = s + 4.0                         # the label steps down under it (it sat on the "237 m")
+			below = s + 2.0                         # the label steps down under it (it sat on the "237 m")
 	var text := "%d m" % roundi(_dist)
-	var w := _font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, 17).x
-	Forge.label(self, _font, c + Vector2(-w * 0.5, rim + below + 15.0), text, 17, Color(INK.r, INK.g, INK.b, _alpha), HORIZONTAL_ALIGNMENT_LEFT, -1.0, 3)
+	var w := _font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, FONT).x
+	Forge.label(self, _font, c + Vector2(-w * 0.5, rim + below + 11.0), text, FONT, Color(INK.r, INK.g, INK.b, a), HORIZONTAL_ALIGNMENT_LEFT, -1.0, 3)
