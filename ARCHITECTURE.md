@@ -19,7 +19,9 @@ world/main.tscn (baked: Zone, Player, HUD, SettingsMenu, WorldEnvironment, Moon,
   Realm.build            core/world/realm/realm.gd  retire baked stair layers -> land -> rift -> bosses
                          -> Tavern (adds Story) -> lore -> TerrainStamp -> flora -> SummitDress
                          -> assets -> progression -> village -> life -> secrets -> encounters -> cull
-  loading screen         ui/loading_screen.gd  waits for the build + shader warm-up, then lifts
+  loading screen         ui/loading_screen.gd  waits for the build + shader warm-up (the tour of views, each heading
+                                              with and without the lantern's light state; then beside the panels the
+                                              pipeline sweep, core/world/pipeline_warm.gd), then lifts
 teardown (quit, or the Deeper Night rebuilding in-process)
   main.gd _exit_tree     SessionState.reset_night()  (core/world/session_state.gd)
 ```
