@@ -125,6 +125,8 @@ func _run() -> void:
 		get_viewport().use_occlusion_culling = not bool(v.get("no_occ", false))        # A/B: "no_occ": true draws the view without occlusion culling
 		await _secs(float(v.get("wait", 2.5)))
 		await RenderingServer.frame_post_draw
+		if bool(v.get("dump", false)):
+			_dump(f, float(v.get("dump_r", 25.0)))
 		var img := get_viewport().get_texture().get_image()
 		var path := out.path_join("%s_%s.png" % [tag, nm])
 		img.save_png(path)
@@ -176,3 +178,30 @@ func _real_shot(v: Dictionary, f: Vector3, t: Vector3, nm: String) -> void:
 	p.process_mode = Node.PROCESS_MODE_DISABLED
 	p.visible = false
 	cam.make_current()
+
+
+## What the prop batches (and any small mesh) near `f` look like to the renderer: range, margin, fade, layers, visibility, bounds.
+func _dump(f: Vector3, rad: float) -> void:
+	var n_mm := 0
+	for n: Node in main.find_children("*", "MultiMeshInstance3D", true, false):
+		var g := n as MultiMeshInstance3D
+		var nm := String(g.name)
+		if not (nm.begins_with("Candles") or nm.begins_with("Skulls") or nm.begins_with("Bones") or nm.begins_with("Flames") or nm.begins_with("Halos") or nm.begins_with("WaxPuddles")):
+			continue
+		var bb: AABB = g.global_transform * g.get_aabb()
+		if bb.grow(rad).has_point(f):
+			n_mm += 1
+			var hid := ""
+			var q: Node = g
+			while q != null:
+				if q is Node3D and not (q as Node3D).visible:
+					hid = String(q.get_path())
+					break
+				q = q.get_parent()
+			print("OSSDUMP %s pos %s d %.1f end %.1f margin %.1f begin %.1f fade %d layers %d vis_in_tree %s hidden_by '%s' n %d custom_aabb %s aabb %s cull_margin %.1f" % [g.get_path(), g.global_position.snapped(Vector3.ONE * 0.1), g.global_position.distance_to(f), g.visibility_range_end, g.visibility_range_end_margin, g.visibility_range_begin, g.visibility_range_fade_mode, g.layers, g.is_visible_in_tree(), hid, g.multimesh.instance_count, g.custom_aabb, bb.snapped(Vector3.ONE * 0.1), g.extra_cull_margin])
+	print("OSSDUMP %d prop batches within %.0f m" % [n_mm, rad])
+	for n: Node in main.find_children("*", "GeometryInstance3D", true, false):
+		var gi := n as GeometryInstance3D
+		var bb2: AABB = gi.global_transform * gi.get_aabb()
+		if bb2.size.length() < 4.0 and bb2.get_center().distance_to(f) < 12.0 and not (n is MultiMeshInstance3D):
+			print("OSSNEAR %s %s size %s at %s" % [gi.get_class(), gi.get_path(), bb2.size.snapped(Vector3.ONE * 0.1), bb2.get_center().snapped(Vector3.ONE * 0.1)])

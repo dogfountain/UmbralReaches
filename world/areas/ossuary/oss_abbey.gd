@@ -44,11 +44,25 @@ static func part(nm: String) -> ArrayMesh:
 	return Kit.parts(GLB).get(nm) as ArrayMesh
 
 
-## The charnel mound of the pit court (oss_abbey.py OssMound: the stepped skull drum and its crown of long bones) at `at`.
-static func mound(k: OssKit, at: Vector3) -> void:
-	var m := part("OssMound")
-	if m != null:
-		k.append_modelled(m, Transform3D(Basis.IDENTITY, at))
+## The charnel mound of the pit court (oss_abbey.py OssMound*: a rough heap of ~230 skulls and ~120 long bones in four weathered
+## tones on a lump of grave earth, ~20k triangles, the importer's LODs) at `at` under `area`, and the candles standing on it.
+static func mound(area: Node3D, k: OssKit, at: Vector3, rng: RandomNumberGenerator) -> void:
+	for nm: String in ["OssMoundBase", "OssMoundTea", "OssMoundGrey", "OssMoundSoot", "OssMoundPale"]:
+		var m := part(nm)
+		if m == null:
+			continue
+		var mi := MeshInstance3D.new()
+		mi.name = nm
+		mi.mesh = m
+		mi.position = at
+		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		mi.visibility_range_end = 120.0
+		mi.visibility_range_end_margin = 12.0
+		mi.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
+		mi.add_to_group(Groups.CULL_SKIP)
+		area.add_child(mi)
+	for p: Array in Data.MOUND_CANDLES:
+		k.candle_cluster(at + Vector3(float(p[0]), float(p[1]), float(p[2])), 4, 0.1, rng)
 
 
 ## The Order's pier (oss_abbey.py OssPier*): a footing at `base`, a shaft of 4 m lengths (the last stretched to fit) and a

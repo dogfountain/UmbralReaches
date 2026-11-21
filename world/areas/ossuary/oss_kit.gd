@@ -708,18 +708,6 @@ func append_mesh(key: String, mesh: ArrayMesh, xf: Transform3D) -> void:
 		(_st[key] as SurfaceTool).append_from(mesh, sf, xf)
 
 
-## A modelled mesh (Blender) into the kit, each surface by its material: bone into the pale bone surface, everything else into the kit's stone.
-func append_modelled(mesh: ArrayMesh, xf: Transform3D) -> void:
-	for sf in mesh.get_surface_count():
-		var mat_name := String(mesh.surface_get_material(sf).resource_name).to_lower() if mesh.surface_get_material(sf) != null else ""
-		var key := "bone_cm" if mat_name.contains("bone") else "stone#m"
-		if not _st.has(key):
-			var st := SurfaceTool.new()
-			st.begin(Mesh.PRIMITIVE_TRIANGLES)
-			_st[key] = st
-		(_st[key] as SurfaceTool).append_from(mesh, sf, xf)
-
-
 # --- prop meshes ----------------------------------------------------------------------------
 
 ## Runtime LOD chain (the importer's simplifier): distant prop cells draw a fraction of the tris.

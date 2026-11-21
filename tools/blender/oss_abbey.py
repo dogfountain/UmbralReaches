@@ -647,30 +647,127 @@ def build_bridge(m, objs):
 
 
 # =================================================================================================
-# the charnel mound of the pit court: a stepped drum of skulls and a crown of long bones
+# the charnel mound of the pit court: a rough heap of skulls and long bones, piled the way the Order's bearers tipped them
 # =================================================================================================
 
+import random as _random
+
+MOUND_R = 2.5
+MOUND_H = 1.6
+TONES = {"Tea": (0.66, 0.54, 0.36), "Grey": (0.54, 0.53, 0.48), "Soot": (0.32, 0.28, 0.25), "Pale": (0.82, 0.76, 0.64)}
+
+
+def mound_h(r):
+    """The heap's surface height at radius r (a rough dome)."""
+    t = max(0.0, 1.0 - (r / MOUND_R) ** 2)
+    return MOUND_H * t ** 0.9
+
+
+def rot_basis(rng, face):
+    """A random rotation whose forward (+z) is near `face` (a Vector), spun at random about it."""
+    f = Vector(face).normalized()
+    ref = Vector((0, 1, 0)) if abs(f.y) < 0.9 else Vector((1, 0, 0))
+    r = f.cross(ref).normalized()
+    u = f.cross(r).normalized()
+    a = rng.uniform(0, math.tau)
+    r2 = r * math.cos(a) + u * math.sin(a)
+    u2 = f.cross(r2).normalized()
+    return r2, u2, f
+
+
+def low_skull(b, at, R, s, jaw=True):
+    """A cheap skull (about 110 triangles): an ellipsoid cranium, a face block, optional jaw, two dark sockets. R = (right, up, fwd)."""
+    r, u, f = R
+    P = lambda x, y, z: Vector(at) + (r * x + u * y + f * z) * s
+    rings, seg = 4, 7
+    grid = []
+    for i in range(rings + 1):
+        th = math.pi * i / rings
+        row = []
+        for j in range(seg):
+            ph = math.tau * j / seg
+            row.append(P(math.sin(th) * math.cos(ph) * 0.095, math.cos(th) * 0.1 + 0.02, math.sin(th) * math.sin(ph) * 0.105))
+        grid.append(row)
+    fs = []
+    for i in range(rings):
+        for j in range(seg):
+            j2 = (j + 1) % seg
+            q = b.face([grid[i][j], grid[i][j2], grid[i + 1][j2], grid[i + 1][j]], "bone")
+            if q is not None:
+                fs.append(q)
+    b._box_uv(fs, 2.4)
+    for sd in (-1, 1):
+        c = P(sd * 0.04, 0.0, 0.098)
+        oface(b, [c + (r * -0.022 + u * -0.022) * s, c + (r * 0.022 + u * -0.022) * s, c + (r * 0.022 + u * 0.022) * s, c + (r * -0.022 + u * 0.022) * s], "dark", f)
+    face = b.box(tuple(P(0, -0.07, 0.075)), (0.1 * s, 0.07 * s, 0.07 * s), "bone", scale_uv=2.0)
+    if jaw:
+        b.box(tuple(P(0, -0.125, 0.06)), (0.095 * s, 0.035 * s, 0.085 * s), "bone", scale_uv=2.0)
+
+
 def build_mound(m, objs):
+    rng = _random.Random(2117)
     mt = {"rubble": m["rubble"], "bone": m["bone"], "dark": m["dark"]}
-    b = B("OssMound", mt)
-    for t in range(6):
-        r = 2.5 - 0.4 * t
-        y = 0.3 * t
-        lathe(b, [(r - 0.08, y), (r - 0.08, y + 0.34)], "rubble", 16, 0.0, 3.2, cap_top=True)
-        cnt = max(6, int(math.tau * r / 0.2))
-        for i in range(cnt):
-            a = math.tau * i / cnt + t * 0.3
-            out = (math.cos(a), 0.0, math.sin(a))
-            OG.skull(b, (math.cos(a) * (r - 0.02), y + 0.19, math.sin(a) * (r - 0.02)), out, (0, 1, 0), s=1.3)
-    # the crown: upright long bones leaning in
-    for i in range(14):
-        a = math.tau * i / 14
-        base = (math.cos(a) * 0.25, 1.82, math.sin(a) * 0.25)
-        tip = (math.cos(a) * (0.55 + 0.1 * (i % 3)), 3.6 + 0.12 * (i % 4), math.sin(a) * (0.55 + 0.1 * (i % 3)))
-        b.tube(base, tip, 0.05, 0.03, "bone", sides=5, bark=0.6)
-        b.box(tip, (0.12, 0.1, 0.12), "bone", jit=0.01, seed=i)
-    ob = b.finish()
-    objs.append(ob)
+    # the heap itself: a lumpy dome of earth and grave-dirt
+    b = B("OssMoundBase", mt)
+    prof = [(MOUND_R + 0.35, -0.1), (MOUND_R + 0.25, 0.12), (MOUND_R * 0.82, MOUND_H * 0.38), (MOUND_R * 0.52, MOUND_H * 0.72), (MOUND_R * 0.24, MOUND_H * 0.92), (0.05, MOUND_H * 0.99)]
+    lathe(b, prof, "rubble", 18, 0.0, 3.2, cap_top=True, jit=lambda an, y: 0.88 + 0.2 * (hash3(math.cos(an) * 3, y * 2, math.sin(an) * 3, 5) + 0.5))
+    base = b.finish()
+    objs.append(base)
+    parts = {k: B("OssMound" + k, mt) for k in TONES}
+    names = list(TONES)
+    weights = [0.38, 0.3, 0.22, 0.10]
+    skull_n = 0
+    for i in range(235):
+        r_ = MOUND_R * (rng.random() ** 0.62) * 0.98
+        th = rng.uniform(0, math.tau)
+        h = mound_h(r_)
+        bury = rng.uniform(0.0, 0.09)
+        slope = (mound_h(r_ + 0.05) - mound_h(r_ - 0.05)) / 0.1
+        nrm = Vector((-slope * math.cos(th), 1.0, -slope * math.sin(th))).normalized()
+        face = (nrm * rng.uniform(0.2, 1.0) + Vector((math.cos(th), 0.15, math.sin(th))) * rng.uniform(0.0, 0.9) + Vector((rng.uniform(-1, 1), rng.uniform(-0.6, 0.8), rng.uniform(-1, 1))) * 0.9)
+        R = rot_basis(rng, face)
+        sc = rng.choice((1.0, 1.15, 1.3, 1.45, 1.6, 1.8))
+        tone = rng.choices(names, weights)[0]
+        low_skull(parts[tone], (r_ * math.cos(th), h + 0.05 - bury, r_ * math.sin(th)), R, sc, jaw=rng.random() < 0.55)
+        skull_n += 1
+    bone_n = 0
+    for i in range(120):
+        r_ = MOUND_R * (rng.random() ** 0.7) * 1.02
+        th = rng.uniform(0, math.tau)
+        h = mound_h(r_)
+        ln = rng.uniform(0.3, 0.55)
+        d = rng.uniform(0, math.tau)
+        lift = rng.choice((0.0, 0.0, 0.0, 0.1, 0.2))          # most lie along the heap; a few stand out of it
+        a0 = Vector((r_ * math.cos(th), h + 0.04, r_ * math.sin(th)))
+        dv = Vector((math.cos(d), lift * rng.uniform(0.3, 1.4), math.sin(d))).normalized() * ln
+        tone = rng.choices(names, weights)[0]
+        pb = parts[tone]
+        pb.tube(tuple(a0), tuple(a0 + dv), 0.04 * rng.uniform(0.8, 1.3), 0.034, "bone", sides=5, bark=0.5)
+        for e, w in ((a0, 1.0), (a0 + dv, 1.0)):
+            pb.box(tuple(e), (0.11 * w, 0.09, 0.11 * w), "bone", yaw=rng.uniform(0, 3), jit=0.01, seed=i)
+        bone_n += 1
+    # a few long bones leaning up out of the crown
+    for i in range(5):
+        a = math.tau * i / 5 + rng.uniform(-0.3, 0.3)
+        a0 = Vector((math.cos(a) * 0.28, MOUND_H * 0.95, math.sin(a) * 0.28))
+        tip = Vector((math.cos(a) * rng.uniform(0.5, 0.9), MOUND_H + rng.uniform(0.4, 0.8), math.sin(a) * rng.uniform(0.5, 0.9)))
+        parts["Grey"].tube(tuple(a0), tuple(tip), 0.04, 0.028, "bone", sides=5, bark=0.5)
+        parts["Grey"].box(tuple(tip), (0.1, 0.08, 0.1), "bone", yaw=a)
+    for k, pb in parts.items():
+        ob = pb.finish()
+        col = ob.data.color_attributes.new("Col", 'BYTE_COLOR', 'POINT')
+        for i in range(len(ob.data.vertices)):
+            col.data[i].color = (*TONES[k], 1.0)
+        objs.append(ob)
+    base.data.color_attributes.new("Col", 'BYTE_COLOR', 'POINT')
+    for i in range(len(base.data.vertices)):
+        base.data.color_attributes["Col"].data[i].color = (0.42, 0.36, 0.3, 1.0)
+    DATA["MOUND"] = {"r": MOUND_R, "h": MOUND_H, "skulls": skull_n, "bones": bone_n}
+    # candles stand on the heap (the game lights them): anchor points on its surface
+    pts = []
+    for (r_, th) in ((0.9, 0.4), (1.5, 1.7), (1.2, 2.9), (1.8, 4.0), (0.6, 5.2), (1.7, 5.7)):
+        pts.append([round(r_ * math.cos(th), 3), round(mound_h(r_) + 0.04, 3), round(r_ * math.sin(th), 3)])
+    DATA["MOUND_CANDLES"] = pts
 
 # =================================================================================================
 # main
@@ -745,9 +842,9 @@ def main():
             if o.name == "OssBridgeSpan":
                 o.location = G((0, 0, 0))
         L.preview(os.path.join(PREVIEW, "bridge.png"), objs, look_at=(0, -1, 0), dist=13.0, views=((200, 0.15), (235, 0.2), (160, -0.15)), res=(1200, 800), lens=35)
-        show(["OssMound"])
+        show(["OssMoundBase", "OssMoundTea", "OssMoundGrey", "OssMoundSoot", "OssMoundPale"])
         for o in objs:
-            if o.name == "OssMound":
+            if o.name.startswith("OssMound"):
                 o.location = G((0, 0, 0))
         L.preview(os.path.join(PREVIEW, "mound.png"), objs, look_at=(0, 1.6, 0), dist=9.0, views=((200, 0.2), (240, 0.35)), res=(1000, 800), lens=35)
         show(["AbbeyGable", "AbbeyTurret"])

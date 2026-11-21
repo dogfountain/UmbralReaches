@@ -622,7 +622,7 @@ func _pit(k: OssKit) -> void:
 		k.candle_cluster(p + Vector3(0, 1.6, 0), 6, 0.6, _rng)
 	# the charnel mound (the court's heart; it was a 2 m heap on a 22 m floor): a stepped drum of skulls 5 m across and 2 m
 	# high on a core of rock, a crown of upright long bones, a ring of candles. Solid: the court is walked round it.
-	OssAbbey.mound(k, c)                       # Blender: oss_abbey.py OssMound (the kit's prop skulls did not draw out here)
+	OssAbbey.mound(self, k, c, _rng)           # Blender: oss_abbey.py OssMound*
 	k.collider(c + Vector3(0, 0.95, 0), Vector3(4.7, 1.9, 4.7))
 	k.collider(c + Vector3(0, 0.95, 0), Vector3(4.7, 1.9, 4.7), Basis(Vector3.UP, PI * 0.25))
 	for i in 16:
