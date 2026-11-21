@@ -858,6 +858,7 @@ func _commit_props() -> int:
 			var mmi := MultiMeshInstance3D.new()
 			mmi.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF   # static: interpolating a MultiMesh makes its add wait on the GPU (zz/stream_probe.gd)
 			mmi.name = "Prop_" + file
+			mmi.add_to_group(&"final_seat")
 			mmi.multimesh = mm
 			if pd.mat != null:
 				mmi.material_override = pd.mat

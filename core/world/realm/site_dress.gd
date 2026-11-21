@@ -646,6 +646,7 @@ static func _emit(host: Node3D, id: String, c: Vector2) -> void:
 			var mmi := MultiMeshInstance3D.new()
 			mmi.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF   # static: interpolating a MultiMesh makes its add wait on the GPU (zz/stream_probe.gd)
 			mmi.name = "Dress_" + kind
+			mmi.add_to_group(&"final_seat")
 			mmi.multimesh = mm
 			if g.mat:
 				mmi.material_override = g.mat
