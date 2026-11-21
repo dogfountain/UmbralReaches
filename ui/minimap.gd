@@ -764,8 +764,11 @@ func _paint() -> void:
 
 ## The Crossing is not in the heightfield (it stands over the lava): its deck as a stone line.
 func _paint_crossing(img: Image) -> void:
-	var pts: Array[Vector2] = [Vector2(0, -7), Vector2(0, -21), Vector2(-13, -30), Vector2(-1.8, -40),
-		Vector2(-8.3 + 6.5, -50), Vector2(-8.3, -56.5), Vector2(-14.8, -50), Vector2(-8.3, -43.5), Vector2(0, -62), Vector2(0, -71)]
+	var pts: Array[Vector2] = [Vector2(0, -7), Vector2(0, -14), Vector2(-1.8, -40), Vector2(-1.8, -50)]
+	for k in range(1, 12):                         # the helix's centreline round the Spindle (r 6.5, clockwise from the east)
+		var th := -TAU * float(k) / 12.0
+		pts.append(Vector2(-8.3, -50.0) + Vector2(cos(th), sin(th)) * 6.5)
+	pts.append_array([Vector2(-1.4, -52.0), Vector2(-1.4, -62), Vector2(0, -71)])
 	for k in pts.size() - 1:
 		var a := pts[k] + Endgame.O2                # (drawn where the endgame stands: Endgame)
 		var b := pts[k + 1] + Endgame.O2

@@ -9,7 +9,7 @@ from crossing_deck import *      # noqa: F401,F403
 # ---------------------------------------------------------------------------------------------- fires
 def basket(P_iron, P_ember, c, r=0.46, deep=0.5, legs=True, big=False):
     """An iron fire basket seated at game point c (the post cap's top): a flared bowl with a rolled rim, hoops, a coal bed (ember set)."""
-    sc = 1.0 if not big else 1.6
+    sc = 1.0 if not big else 1.3
     prof = [(0.0, 0.0), (0.16 * sc, 0.0), (0.24 * sc, 0.12 * sc), (r * sc * 0.9, deep * sc * 0.8), (r * sc, deep * sc), (r * sc + 0.05, deep * sc + 0.03), (r * sc - 0.04, deep * sc + 0.03)]
     bm = P_iron.of("iron")
     cb = bl(c)
@@ -21,7 +21,7 @@ def basket(P_iron, P_ember, c, r=0.46, deep=0.5, legs=True, big=False):
         for s in range(seg):
             a = math.tau * s / seg
             v = bm.verts.new((cb.x + math.cos(a) * rr, cb.y + math.sin(a) * rr, cb.z + z))
-            v[lay] = (0.2, 0.19, 0.19, 1.0)
+            v[lay] = (0.36, 0.33, 0.31, 1.0)
             ring.append(v)
         rings.append(ring)
     for i in range(len(rings) - 1):
@@ -55,6 +55,8 @@ def basket(P_iron, P_ember, c, r=0.46, deep=0.5, legs=True, big=False):
 def lamp_with_fire(P, Pi, Pe, rnd, c, d, h=1.9, big=False):
     """A post with its fire basket on top; returns the fire's game point (the flame's seat)."""
     lamp_post(P, rnd, c, d, h)
+    if SINK[0] is not None:
+        SINK[0].box((c[0], c[1] + h * 0.5, c[2]), (0.62, h, 0.62), d)
     top = (c[0], c[1] + h + 0.17, c[2])
     basket(Pi, Pe, top, big=big)
     return (top[0], top[1] + 0.62, top[2])
@@ -66,6 +68,8 @@ def beacon(P, Pi, Pe, rnd, c, d):
         y = c[1] + sum(hh for (_, hh) in ((1.5, 0.4), (1.2, 0.6), (1.35, 0.22))[:k]) + h * 0.5
         blk(P, "hewn", (c[0], y, c[2]), (w, h, w), d, rnd, bevel=0.05)
     top = (c[0], c[1] + 1.22, c[2])
+    if SINK[0] is not None:
+        SINK[0].box((c[0], c[1] + 0.61, c[2]), (1.4, 1.22, 1.4), d)
     basket(Pi, Pe, top, r=0.5, deep=0.55, big=True)
     return (top[0], top[1] + 1.0, top[2])
 
@@ -97,11 +101,12 @@ def drum(P, C, rnd, c, r, top, foot, opens, halfs, deck=0.55, lamps=(), n_par=No
     k = 0
     batter = 0.0
     while y < top - deck - 0.05:
-        h = rnd.uniform(0.52, 0.66)
+        low = y < 4.0
+        h = rnd.uniform(0.85, 1.05) if low else rnd.uniform(0.52, 0.66)
         if top - deck - y - h < 0.4:
             h = top - deck - y
         grow = 0.32 * max(0.0, 1.0 - (y - foot) / 4.0) + (0.0 if (y - foot) > 4.0 else 0.0)
-        ring_blocks(P, rnd, c, r - 0.9, r, y, y + h - 0.012, nb, off=0.5 * (k % 2), grow=grow)
+        ring_blocks(P, rnd, c, r - 0.9, r, y, y + h - 0.012, nb if not low else max(12, nb * 2 // 3), off=0.5 * (k % 2), grow=grow, bevel=0.0 if low else 0.035)
         y += h
         k += 1
     # core (a polygon prism, dark): the fill behind the facing
@@ -158,7 +163,7 @@ def drum(P, C, rnd, c, r, top, foot, opens, halfs, deck=0.55, lamps=(), n_par=No
         if nxt_open:
             post(P, rnd, polar(c, rr, a1, top), tang)
     # collision: the drum (a prism) with its top at the deck
-    poly2 = [(c[0] + math.cos(math.tau * i / 20) * (r + 0.05), c[1] + math.sin(math.tau * i / 20) * (r + 0.05)) for i in range(20)]
+    poly2 = [(c[0] + math.cos(math.tau * i / 20) * (r - 0.12), c[1] + math.sin(math.tau * i / 20) * (r - 0.12)) for i in range(20)]   # a hand inside the face: the Pilgrims' Stair's landing slab starts at r 3.55 and must clear it
     C.prism(poly2, foot, top)
 
 
@@ -218,6 +223,9 @@ def pointed_gate(P, rnd, c, d, w, h_jamb, rise, depth, pier=0.8):
     for sgn in (-1, 1):
         for (va, vb) in rows(rnd, 0.0, h_jamb, 0.5, 0.65):
             blk(P, "hewn", at(c, d, sgn * (w * 0.5 + pier * 0.5), 0.5 * (va + vb), 0.0), (pier - 0.02, vb - va - 0.02, depth), d, rnd, bevel=0.04)
+    if SINK[0] is not None:
+        for sgn in (-1, 1):
+            SINK[0].box(at(c, d, sgn * (w * 0.5 + pier * 0.5), h_jamb * 0.5, 0.0), (pier, h_jamb, depth), d)
     top = arch_ring(P, rnd, (c[0], c[1] + h_jamb, c[2]), d, w, rise, depth, t=0.5, layers=False)
     # a capped finial on each jamb
     for sgn in (-1, 1):

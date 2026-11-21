@@ -4,7 +4,7 @@ extends RefCounted
 ## ward landing (RealmLayout.SUMMIT_WARD). The end of the night: it stands at the Realm's far north-east beyond
 ## Lastlight (Endgame). Its builders were made round the chasm under Hearthward and still build there (the land keeps
 ## the chasm at home while they do); Endgame.settle then moves the whole of it east and the ground at home is laid again.
-##   rift/crossing.gd  the ruined viaduct (towers, arcades, fallen column, the Spindle, the landing)
+##   rift/crossing.gd  the ruined viaduct, modelled (tools/blender/crossing_kit.py): the Causeway, the Pilgrims' Gate, the helix round the Spindle, the bridge, the ward landing
 ##   rift/features.gd  basalt stacks and organ pipes, crust islands, ash fields, fissures, vents
 ##   lava_works.gd     the lava itself: surface, bank mask, embers, falls (told where by this module)
 ## Everything lives under one node with meta "site" (StoneBodies leaves it alone) and registers

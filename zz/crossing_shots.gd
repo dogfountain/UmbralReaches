@@ -41,6 +41,9 @@ func _process(d: float) -> void:
 			(n as Node).queue_free()
 		if "--probe" in OS.get_cmdline_user_args():
 			_probe()
+		if "--hud" not in OS.get_cmdline_user_args():
+			for c in get_tree().root.find_children("*", "CanvasLayer", true, false):
+				(c as CanvasLayer).visible = false
 		cam = Camera3D.new()
 		cam.far = 500.0
 		get_tree().root.add_child(cam)

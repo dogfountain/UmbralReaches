@@ -25,6 +25,7 @@ from polish_lib import CP, finish, rnd_for                                      
 
 LAVA = -15.5
 BED = -17.5
+SINK = [None]          # the section being built: its Col (free-standing posts add their own collision)
 UV_TILE = {"hewn": 1.9, "slate": 2.0, "stone": 3.0, "iron": 2.0}
 
 
@@ -257,9 +258,19 @@ def arch_extent_u(w, rise, v, t=0.62):
     return -off + math.sqrt(max(ro * ro - v * v, 0.0))
 
 
-def facing(P, rnd, o, d, u0, u1, v0, v1, w_face, depth_face=0.34, lmin=0.9, lmax=1.55, excl=None, rowh=(0.46, 0.62), skip=0.0):
+def facing(P, rnd, o, d, u0, u1, v0, v1, w_face, depth_face=0.34, lmin=0.9, lmax=1.55, excl=None, rowh=(0.46, 0.62), skip=0.0, coarse_below=4.0):
     """Coursed face blocks on the wall at across offset w_face (the face plane), over u0..u1, v0..v1 (over o); `excl(va, vb)` gives the
-    u-intervals still to fill in that row (the rest is arch ring or opening). `skip` leaves that fraction of stones out (a ruin)."""
+    u-intervals still to fill in that row (the rest is arch ring or opening). `skip` leaves that fraction of stones out (a ruin). Below
+    `coarse_below` (game y: the dark foot, in the water's glow) the courses are taller and the stones longer and unchamfered."""
+    split = coarse_below - o[1]
+    if v0 < split < v1:
+        facing(P, rnd, o, d, u0, u1, v0, split, w_face, depth_face, lmin, lmax, excl, rowh, skip, coarse_below)
+        facing(P, rnd, o, d, u0, u1, split, v1, w_face, depth_face, lmin, lmax, excl, rowh, skip, coarse_below)
+        return
+    coarse = v1 <= split
+    if coarse:
+        rowh = (0.8, 1.0)
+        lmin, lmax = 1.4, 2.3
     for (va, vb) in rows(rnd, v0, v1, *rowh):
         spans = excl(va, vb) if excl else [(u0, u1)]
         for (a, b) in spans:
@@ -267,12 +278,11 @@ def facing(P, rnd, o, d, u0, u1, v0, v1, w_face, depth_face=0.34, lmin=0.9, lmax
             b = min(b, u1)
             if b - a < 0.15:
                 continue
-            off = rnd.uniform(0.0, 0.5)
-            for (xa, xb) in seg_runs(rnd, a + (off if b - a > 2.0 else 0.0) * 0.0, b, lmin, lmax):
+            for (xa, xb) in seg_runs(rnd, a, b, lmin, lmax):
                 if skip and rnd.random() < skip:
                     continue
                 c = at(o, d, 0.5 * (xa + xb), 0.5 * (va + vb), w_face)
-                blk(P, "hewn", c, (xb - xa - 0.025, vb - va - 0.025, depth_face), d, rnd, bevel=0.035, warp=0.01)
+                blk(P, "hewn", c, (xb - xa - 0.025, vb - va - 0.025, depth_face), d, rnd, bevel=0.0 if coarse else 0.035, warp=0.01)
 
 
 def spandrel(P, rnd, o, d, half_len, w, rise, v_top, depth, t=0.62, face=0.34):

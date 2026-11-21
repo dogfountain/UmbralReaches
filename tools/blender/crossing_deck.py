@@ -102,6 +102,9 @@ def deck(P, C, rnd, o, d, prof, under, width=W_DECK, rail=(True, True), posts=Tr
                 for half in (-1, 1):
                     q = [at(o, d, p0[0], p0[1], half * hw), at(o, d, p0[0], p0[1], 0.0), at(o, d, p1[0], p1[1], 0.0), at(o, d, p1[0], p1[1], half * hw)]
                     C.quad(*q)
+                    # level from the last half tread on to the flight's end (the next piece's floor takes over there)
+                    q2 = [at(o, d, p1[0], p1[1], half * hw), at(o, d, p1[0], p1[1], 0.0), at(o, d, u1 + 0.05, p1[1], 0.0), at(o, d, u1 + 0.05, p1[1], half * hw)]
+                    C.quad(*q2)
                 # what is under the ramp (the pier-less flight) is closed by the stair body: a slab so the ramp never floats
     # parapets and posts
     if rail[0] or rail[1]:
@@ -168,8 +171,8 @@ def arcade(P, C, rnd, o, d, L, pw, under, foot, width=W_DECK, spring0=LAVA + 1.0
     if spring0 - foot > 0.1:
         for (ua, ub) in ((0.0, pw * 0.5), (L - pw * 0.5, L)):
             for sgn in (-1, 1):
-                for (va, vb) in rows(rnd, foot, spring0, 0.55, 0.75):
-                    blk(P, "hewn", at(o, d, 0.5 * (ua + ub), 0.5 * (va + vb), sgn * (width * 0.5 - face * 0.5)), (ub - ua - 0.03, vb - va - 0.03, face), d, rnd, bevel=0.035, warp=0.01)
+                for (va, vb) in rows(rnd, foot, spring0, 0.9, 1.1):
+                    blk(P, "hewn", at(o, d, 0.5 * (ua + ub), 0.5 * (va + vb), sgn * (width * 0.5 - face * 0.5)), (ub - ua - 0.03, vb - va - 0.03, face), d, rnd, bevel=0.0, warp=0.01)
             core(P, at(o, d, 0.5 * (ua + ub), 0.5 * (foot + spring0), 0.0), (ub - ua, spring0 - foot, width - 2 * face + 0.02), d)
     for j in range(n):
         sj = spring0 + j * U

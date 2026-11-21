@@ -46,7 +46,9 @@ LAYOUT = {"lanes": {}, "flights": [], "sites": [], "fires": [], "points": {}}
 
 
 def new_section():
-    return CP(), Col()
+    C = Col()
+    SINK[0] = C
+    return CP(), C
 
 
 def emit(objs, P, C, name, smooth=()):
@@ -59,10 +61,15 @@ def emit(objs, P, C, name, smooth=()):
 
 # ---------------------------------------------------------------- the causeway
 CAUSEWAY_PIECES = [
-    [("flat", 1.8), ("steps", 6, 0.72), ("flat", 1.4)],
-    [("flat", 1.4), ("steps", 6, 0.72), ("flat", 1.8)],
-    [("flat", 1.8), ("steps", 7, 0.72), ("flat", 0.68)],
+    [("flat", 1.2), ("steps", 5, 0.72), ("flat", 1.03)],
+    [("flat", 1.2), ("steps", 5, 0.72), ("flat", 1.03)],
+    [("flat", 1.2), ("steps", 5, 0.72), ("flat", 1.03)],
+    [("flat", 1.0), ("steps", 4, 0.72), ("flat", 1.18)],
 ]
+# Pier centres along the axis (m from the gate line): the last pier stands clear of the Pilgrims' Stair's ring round T3 (its steps wind r 4.4 .. 6.7
+# from the tower's centre), so the last bay is one arch from that pier to the drum, the stair passing under it. The bay runs 1 m into the drum
+# (its far half-pier is hidden in the masonry).
+CAUSEWAY_PIERS = [0.0, 5.83, 11.67, 17.5]
 
 
 def causeway(objs):
@@ -70,26 +77,24 @@ def causeway(objs):
     rnd = rnd_for(4101)
     d = unit(G0, T3)
     s_end = math.hypot(T3[0] - G0[0], T3[1] - G0[1]) - T3_R
-    L = s_end / 3.0
     o = (G0[0], 0.0, G0[1])
     y = FORE_Y
-    lamps_all = []
-    ridx = []
-    for k in range(3):
-        ok = at(o, d, L * k, 0.0, 0.0)
-        pr = Prof(y, CAUSEWAY_PIECES[k], riser=(5.0 / 19.0))
-        # stretch the pieces to the bay's length: the last flat takes up what is left
-        pr.pieces[-1]["u1"] += max(0.0, L - pr.length)
-        pr.length = max(pr.length, L)
+    riser = 5.0 / 19.0
+    for k in range(4):
+        ok = at(o, d, CAUSEWAY_PIERS[k], 0.0, 0.0)
+        last = k == 3
+        L = (s_end - CAUSEWAY_PIERS[k]) + 1.0 if last else CAUSEWAY_PIERS[k + 1] - CAUSEWAY_PIERS[k]
+        pr = Prof(y, CAUSEWAY_PIECES[k], riser=riser)
         under = y - 0.9
-        arcade(P, C, rnd, ok, d, L, 2.0, under, BED)
-        lamps = [(0.0, 1), (0.0, -1)] if k == 1 else []
+        if last:
+            # one arch over the Pilgrims' Stair: springing 4.8 m under the deck, nothing below it but the pier
+            arcade(P, C, rnd, ok, d, L, 2.0, under, BED, tiers=1, spring0=under - 4.82)
+        else:
+            arcade(P, C, rnd, ok, d, L, 2.0, under, BED)
         deck(P, C, rnd, ok, d, pr, under, lamps=[(pr.length, 1)] if k == 1 else [])
         y = pr.y1
-        LAYOUT["flights"].append({"name": "rift_c%d" % k, "a": at(ok, d, 0.0, pr.y0, 0.0), "b": at(ok, d, L, pr.y1, 0.0), "hw": 2.5})
-    LAYOUT["lanes"]["rift_crossing"] = [list(G0), list(T3)]
+        LAYOUT["flights"].append({"name": "rift_c%d" % k, "a": at(ok, d, 0.0, pr.y0, 0.0), "b": at(ok, d, pr.length, pr.y1, 0.0), "hw": 2.5})
     emit(objs, P, C, "Causeway")
-
 
 
 # ---------------------------------------------------------------- the Pilgrims' Gate (T3) and the flight north
@@ -99,7 +104,7 @@ def tower3(objs, Pi, Pe):
     a_s = math.atan2(G0[1] - T3[1], G0[0] - T3[0])           # towards the causeway (south)
     a_n = -math.pi * 0.5
     a_e = math.radians(-35.0)                                  # the Pilgrims' Stair (rift/tower_stair.gd: A0)
-    drum(P, C, rnd, T3, T3_R, T3_TOP, BED + 1.0, [a_s, a_n, a_e], [0.72, 0.72, 0.36])
+    drum(P, C, rnd, T3, T3_R, T3_TOP, LAVA - 0.8, [a_s, a_n, a_e], [0.72, 0.72, 0.36])
     # the Pilgrims' arch over the stair's head: a freestanding pointed gate with a violet lantern, so the way down to the light reads
     ca = (T3[0] + math.cos(a_e) * 2.9, T3_TOP, T3[1] + math.sin(a_e) * 2.9)
     tang = (-math.sin(a_e), math.cos(a_e))
@@ -110,7 +115,7 @@ def tower3(objs, Pi, Pe):
     for sgn in (-1, 1):
         pt = (T3[0] + sgn * 2.55, T3_TOP, T3[1] - 2.2)
         fires.append(lamp_with_fire(P, Pi, Pe, rnd, pt, (1.0, 0.0), h=2.0, big=True))
-    LAYOUT["fires"] += [{"p": list(f), "lit": True, "big": True, "tag": "t3_north"} for f in fires]
+    LAYOUT["fires"] += [{"p": list(f), "lit": i == 0, "big": True, "tag": "t3_north"} for i, f in enumerate(fires)]
     pt = (T3[0] + 2.7, T3_TOP, T3[1] + 1.2)
     f = lamp_with_fire(P, Pi, Pe, rnd, pt, (1.0, 0.0), h=1.9)
     LAYOUT["fires"].append({"p": list(f), "lit": False, "big": False, "tag": "t3_south"})
@@ -180,15 +185,14 @@ def spindle(objs, Pi, Pe):
     th_e = math.radians(-325.0)
     bottom = top_at(rec, th_e) - 1.5
     support_pier(P, C, rnd, (1.8, -46.6), (0.0, -1.0), 2.0, 1.9, BED, bottom - 0.4)
-    for k in range(3):                                         # corbels carrying the slab's edge
-        w_ = 1.9 + 0.5 * k
-        blk(P, "hewn", (1.8 - 0.9 - 0.35 * k * 0 - (0.5 * k), bottom - 0.4 + 0.25 * k + 0.12, -46.6), (w_ + 0.3, 0.3, 2.2), (0.0, -1.0), rnd, bevel=0.04)
+    y_t = bottom - 0.4                                         # a corbel under the slab's edge, over the pier's capital
+    blk(P, "hewn", (0.4, y_t + 0.2, -46.6), (1.5, 0.4, 2.3), (0.0, -1.0), rnd, bevel=0.05)
     LAYOUT["fires"] += [{"p": list(f), "lit": True, "big": True, "tag": "spindle_landing"} for f in fires]
     LAYOUT["points"]["spindle_landings"] = [list(f) for f in fires]
     LAYOUT["points"]["spindle_skipped_piers"] = skipped
     LAYOUT["sites"].append({"name": "rift_spindle", "rect": [SPIN[0] - SPIN_R - 2.2, SPIN[1] - SPIN_R - 2.2, (SPIN_R + 2.2) * 2, (SPIN_R + 2.2) * 2], "y": SPIN_Y0})
     lane = []
-    for i in range(1, 24):
+    for i in range(3, 22):                                     # (the first and last quarter-turns lie over the flight in: left to their sites)
         th = -math.tau * i / 24.0
         lane.append([SPIN[0] + math.cos(th) * SPIN_R, SPIN[1] + math.sin(th) * SPIN_R])
     LAYOUT["lanes"]["rift_crossing_turn"] = lane
@@ -216,7 +220,7 @@ def gate(objs, Pi, Pe):
     x0, x1 = GATE_X
     z0, z1 = GATE_Z                                 # z0 north (-52.0), z1 south (-50.2)
     top = SPIN_Y1
-    foot = BED + 1.0
+    foot = LAVA - 0.8
     hw, spring, rise = 2.4, 12.0, 3.4
     lap_floor = 7.4
     w_ = x1 - x0
@@ -254,7 +258,7 @@ def gate(objs, Pi, Pe):
     fires = []
     for fx in (x0 + 0.7, x1 - 0.5):
         fires.append(lamp_with_fire(P, Pi, Pe, rnd, (fx, top, (z0 + z1) * 0.5), (1.0, 0.0), h=1.9, big=True))
-    LAYOUT["fires"] += [{"p": list(f), "lit": True, "big": True, "tag": "spindle_gate"} for f in fires]
+    LAYOUT["fires"] += [{"p": list(f), "lit": i == 0, "big": True, "tag": "spindle_gate"} for i, f in enumerate(fires)]
     # collision: the lower mass, the side piers, the lintel and the roof slab
     C.box(((x0 + x1) * 0.5, (BED + lap_floor) * 0.5, (z0 + z1) * 0.5), (w_, lap_floor - BED, z1 - z0))
     for (xa, xb) in ((x0, GATE_C - hw), (GATE_C + hw, x1)):
@@ -300,11 +304,11 @@ def bridge(objs, Pi, Pe):
             # P2: the pier in the lava, faced both sides and ends, from the foot to under
             c = (AXB, 0.0, zs - u0 - L * 0.5)
             fc = 0.34
-            for (va, vb) in rows(rnd, BED + 1.0, under, 0.8, 1.1):
+            for (va, vb) in rows(rnd, LAVA - 0.8, under, 0.8, 1.1):
                 for sgn in (-1, 1):
                     blk(P, "hewn", at(c, d, 0.0, 0.5 * (va + vb), sgn * (W_DECK * 0.5 - fc * 0.5)), (L - 0.03, vb - va - 0.03, fc), d, rnd, bevel=0.04, warp=0.01)
                     blk(P, "hewn", at(c, d, sgn * (L * 0.5 - fc * 0.5), 0.5 * (va + vb), 0.0), (fc, vb - va - 0.03, W_DECK - 2 * fc - 0.03), d, rnd, bevel=0.04, warp=0.01)
-            core(P, at(c, d, 0.0, 0.5 * (BED + 1.0 + under), 0.0), (L - 2 * fc + 0.02, under - BED - 1.0, W_DECK - 2 * fc + 0.02), d)
+            core(P, at(c, d, 0.0, 0.5 * (LAVA - 0.8 + under), 0.0), (L - 2 * fc + 0.02, under - BED - 1.0, W_DECK - 2 * fc + 0.02), d)
             C.box(at(c, d, 0.0, 0.5 * (BED + under), 0.0), (L, under - BED, W_DECK), d)
         deck(P, C, rnd, o, d, pr, under, lamps=[])
         LAYOUT["flights"].append({"name": "rift_b%s" % kind, "a": [AXB, y0, zs - u0], "b": [AXB, y0 + n * risers, zs - u0 - L], "hw": 2.5})
@@ -319,7 +323,7 @@ def ward(objs, Pi, Pe):
     rnd = rnd_for(4707)
     x0, z0, x1, z1 = LAND
     y = LAND_Y
-    foot = BED + 1.0
+    foot = LAVA - 0.8
     w, l = x1 - x0, z1 - z0
     for (o, d, ln) in (((x0, 0.0, z1), (1.0, 0.0), w), ((x1, 0.0, z0), (-1.0, 0.0), w), ((x0, 0.0, z0), (0.0, 1.0), l), ((x1, 0.0, z1), (0.0, -1.0), l)):
         facing(P, rnd, o, d, 0.0, ln, foot, y - 0.55, -0.17)
@@ -368,7 +372,7 @@ def ward(objs, Pi, Pe):
     fires.append(beacon(P, Pi, Pe, rnd, (x1 - 1.35, y, z1 - 1.5), (1.0, 0.0)))
     for sx in (x0 + 1.0, x1 - 1.0):
         fires.append(lamp_with_fire(P, Pi, Pe, rnd, (sx, y, z0 + 1.2), (1.0, 0.0), h=1.9, big=True))
-    LAYOUT["fires"] += [{"p": list(f), "lit": True, "big": True, "tag": "ward"} for f in fires]
+    LAYOUT["fires"] += [{"p": list(f), "lit": i < 2, "big": True, "tag": "ward"} for i, f in enumerate(fires)]
     C.box(((x0 + x1) * 0.5, (BED + y) * 0.5 - 0.25, (z0 + z1) * 0.5), (w, y - BED - 0.5, l))
     C.box(((x0 + x1) * 0.5, y - 0.25, (z0 + z1) * 0.5), (w, 0.5, l))
     LAYOUT["sites"].append({"name": "rift_ward_landing", "rect": [x0, z0 + 0.8, w, l - 0.8], "y": y})
