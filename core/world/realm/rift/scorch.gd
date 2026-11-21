@@ -21,6 +21,7 @@ extends RefCounted
 ## the endgame stands (the chasm's centreline is x O.x).
 
 const O := Endgame.O2
+const Pit := preload("res://core/world/realm/rift/pit.gd")
 const RECT := Rect2(236.0, -156.0, 134.0, 164.0)       ## x 236..370, z -156..8 (the Anchorholds' cells keep out of it)
 const NX := 135
 const NZ := 165
@@ -291,10 +292,11 @@ static func _noise() -> void:
 	_n_drift.fractal_octaves = 3
 
 
-## Distance outside the lip (negative inside), its edge broken by a slow, wide warp (lobes, not a halo).
+## Distance outside the lip (negative inside), its edge broken by a slow, wide warp (lobes, not a halo). The east lip stands back where
+## the pit's east wall does (rift/pit.gd).
 static func _lip_d(p: Vector2) -> float:
 	var q := p + Vector2(_n_lo.get_noise_2d(p.x, p.y + 40.0), _n_lo.get_noise_2d(p.x + 70.0, p.y)) * 11.0
-	var dx := maxf(LIP.position.x - q.x, q.x - LIP.end.x)
+	var dx := maxf(LIP.position.x - q.x, q.x - LIP.end.x - _east_back(p))
 	var dz := maxf(LIP.position.y - q.y, q.y - LIP.end.y)
 	if dx <= 0.0 and dz <= 0.0:
 		return maxf(dx, dz)
@@ -303,7 +305,12 @@ static func _lip_d(p: Vector2) -> float:
 
 ## The true lip distance (no warp): inside the chasm everything is burned.
 static func _in_lip(p: Vector2) -> bool:
-	return LIP.has_point(p)
+	return LIP.has_point(p) or (p.x > LIP.end.x and p.x < LIP.end.x + _east_back(p) and p.y > LIP.position.y and p.y < LIP.end.y)
+
+
+## How far the east lip stands back from LIP at p (the pit's east wall: rift/pit.gd), read at the lip's own line.
+static func _east_back(p: Vector2) -> float:
+	return maxf(Pit.shift(LIP.end.x + 4.0, p.y), 0.0)
 
 
 ## How far downwind of the lip p lies (0 upwind or across, 1 straight downwind).

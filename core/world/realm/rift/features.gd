@@ -173,7 +173,7 @@ const ISLE_GAP := 15.0
 
 func _lava_rock() -> void:
 	var n := {"Plate": 0, "Isle": 0, "Stack": 0}
-	var want := [["Plate", 3, 3, Rect2(-17.0, -26.0, 36.0, 14.0)], ["Isle", 3, 4, Rect2(-20.0, -100.0, 46.0, 70.0)],
+	var want := [["Plate", 3, 3, Rect2(-17.0, -26.0, 45.0, 14.0)], ["Isle", 3, 5, Rect2(-20.0, -100.0, 52.0, 78.0)],
 			["Stack", 3, 3, Rect2(11.0, -106.0, 13.0, 34.0)]]
 	for w: Array in want:
 		var kind: String = w[0]
@@ -417,7 +417,7 @@ func _fissures(host: Node3D) -> void:
 	for i in 14:
 		seeds.append(Vector2(rng.randf_range(-30.0, -21.0), rng.randf_range(-112.0, -30.0)))
 	for i in 3:
-		seeds.append(Vector2(rng.randf_range(20.0, 30.0), rng.randf_range(-19.0, -10.0)))
+		seeds.append(Vector2(rng.randf_range(28.0, 38.0), rng.randf_range(-19.0, -10.0)))      # (the east lip, back where the pit's wall now stands)
 	for s in seeds:
 		var pts: Array[Vector3] = []
 		var p := s
@@ -477,7 +477,7 @@ func _vents(host: Node3D) -> void:
 	for i in vents.size():
 		if i % 2 == 0:
 			spots.append(vents[i])
-	for p: Vector2 in [Vector2(19.0, -46.0), Vector2(22.5, -66.0), Vector2(16.0, -82.0), Vector2(-12.0, -44.0)]:
+	for p: Vector2 in [Vector2(26.0, -40.0), Vector2(27.0, -66.0), Vector2(16.0, -82.0), Vector2(-12.0, -44.0)]:
 		spots.append(Vector3(p.x, LAVA + 0.1, p.y))
 	for p in spots:
 		var smoke := Vfx.emitter(Color(0.16, 0.13, 0.13, 0.35), {"count": 14, "life": 7.0, "speed": Vector2(0.6, 1.3), "size": 2.4, "gravity": 0.25, "radius": 0.5, "spread": 12.0, "additive": false, "turbulence": true, "damping": 0.2, "grow": 0.5})
