@@ -653,7 +653,7 @@ func _hitch_log(d: float) -> void:
 	_ev_mem = mem
 	if _ev_ring.size() > 4:
 		_ev_ring.pop_front()
-	if d * 1000.0 > hitch_ms and _hitch_n < 400:
+	if d * 1000.0 > hitch_ms and _hitch_n < (2000 if _camps_run else 400):     # (a camps run teleports two dozen times)
 		_hitch_n += 1
 		print("HITCH t %.2f s %s %.1f ms:" % [t, phase if phase != "" else "settle", d * 1000.0])
 		for e: Array in _ev_ring:
