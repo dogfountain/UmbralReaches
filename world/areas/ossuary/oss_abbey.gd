@@ -74,14 +74,17 @@ static func _gy(space: PhysicsDirectSpaceState3D, x: float, z: float) -> float:
 	var wp := OssFrame.w(Vector3(x, 0.0, z))
 	var q := PhysicsRayQueryParameters3D.create(Vector3(wp.x + 0.0037, 220.0, wp.z + 0.0029), Vector3(wp.x + 0.0037, -120.0, wp.z + 0.0029), Layers.WORLD | Layers.PROPS)
 	var skip: Array[RID] = []
-	for i in 10:
+	var seen: PackedStringArray = []
+	for i in 60:
 		q.exclude = skip
 		var hit := space.intersect_ray(q)
 		if hit.is_empty():
 			break
 		if String((hit.collider as Node).name).begins_with("Terrain"):
 			return (hit.position as Vector3).y - OssFrame.ORIGIN.y
+		seen.append(String((hit.collider as Node).name))
 		skip.append(hit.rid)
+	print("OSSUARY abbey: no terrain under (%.1f, %.1f); passed %s" % [x, z, seen.slice(0, 6)])
 	return RealmLand.height_at(wp.x, wp.z) - OssFrame.ORIGIN.y
 
 
