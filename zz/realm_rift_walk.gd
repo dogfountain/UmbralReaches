@@ -3,6 +3,7 @@ extends Node
 ## path, over the Crossing (forecourt, towers, viaduct, fallen column, round the Spindle, the last
 ## flights), onto the ward landing, up the summit's approach stairs and onto the Warden's dais. The route is in the
 ## Crossing's own coordinates (chasm on x 0) and walked Endgame.O east, where it stands.
+## (r39: the redesigned Crossing: the causeway, the Pilgrims' Gate, the helix round the Spindle, the bridge.)
 ##   godot --headless --path . res://zz/realm_rift_walk.tscn -- --realm --realm-modules=land,rift
 ## Prints LEG lines and "RIFTWALK ok", or "STUCK" (with where) and quits.
 const RealmLand := preload("res://core/world/realm/realm_land.gd")
@@ -22,18 +23,26 @@ func _ready() -> void:
 	var spin := Vector2(-8.3, -50.0)
 	route = [
 		[Vector3(0, 0, 22), "postern->rim"], [Vector3(0, 0, 4), "rift_rim"], [Vector3(0, 0, -10.5), "forecourt"],
-		[Vector3(0, 0, -15.5), "L1 rim steps"], [Vector3(0, 0, -21), "tower 1"],
-		[Vector3(-13, 0, -30), "L2 viaduct to tower 2"], [Vector3(-1.8, 0, -40), "L3 fallen column to tower 3"],
-		[Vector3(-1.8, 0, -49.5), "L4 flight to the Spindle"],
+		[Vector3(0, 0, -15.5), "gate and the first flight"], [Vector3(-0.3, 0, -21), "causeway bay 1"],
+		[Vector3(-0.8, 0, -27), "causeway bay 2"], [Vector3(-1.3, 0, -33), "causeway bay 3"], [Vector3(-1.8, 0, -40), "the Pilgrims' Gate (T3)"],
+		[Vector3(-1.8, 0, -49.5), "flight north to the Spindle Gate"],
 	]
 	for i in range(1, 25):
 		var th := -TAU * float(i) / 24.0
 		var q := spin + Vector2(cos(th), sin(th)) * 6.5
 		route.append([Vector3(q.x, 0, q.y), "spindle %d/24" % i])
-	route.append_array([[Vector3(-1.8, 0, -56), "L6a flight"], [Vector3(-1.8, 0, -61.5), "L6b flight"],
+	route.append_array([[Vector3(-1.4, 0, -56), "bridge bay A"], [Vector3(-1.4, 0, -61.5), "bridge bay B"],
 		[Vector3(0, 0, -66.5), "ward landing"], [Vector3(0, 0, -71.4), "landing->summit stairs"],
 		[Vector3(0, 0, -77.5), "summit stairs"], [Vector3(-2.8, 0, -79.5), "round the statue"], [Vector3(-3.6, 0, -83.5), "summit deck"],
 		[Vector3(-2.6, 0, -87.0), "summit deck"], [Vector3(0, 0, -89.0), "summit rear"], [Vector3(0, 0, -92.0), "onto the dais"], [Vector3(0, 0, -103.9), "dais centre"]])
+	if "--stair" in OS.get_cmdline_user_args():          # the branch: from the Pilgrims' Gate down the Pilgrims' Stair to the quay and the chapel door
+		route = route.slice(0, 8)
+		var TS := preload("res://core/world/realm/rift/tower_stair.gd")
+		route.append([Vector3(0.66, 0, -41.72), "the Pilgrims' arch"])
+		for i in range(0, TS.N + 1, 2):
+			var q: Vector3 = TS.at(i)
+			route.append([Vector3(q.x, 0, q.z), "stair %d" % i])
+		route.append_array([[Vector3(-10.5, 0, -40.0), "quay"], [Vector3(-13.1, 0, -40.0), "chapel forecourt"], [Vector3(-14.9, 0, -36.85), "chapel door"]])
 	for r: Array in route:
 		r[0] = Endgame.w(r[0])
 func _physics_process(delta: float) -> void:
@@ -66,10 +75,12 @@ func _physics_process(delta: float) -> void:
 	if p.is_on_floor():
 		max_drop = maxf(max_drop, last_floor - p.global_position.y)
 		last_floor = p.global_position.y
-	if p.global_position.y < -12.0 or (leg > 3 and p.global_position.y < last_y - 6.0):
+	if p.global_position.y < -12.0 or (leg > 3 and p.global_position.y < last_y - 6.0 and not "--stair" in OS.get_cmdline_user_args()):
 		print("STUCK fell at ", p.global_position, " on leg ", leg, " ", route[leg][1])
 		get_tree().quit()
 		return
+	if "--trace" in OS.get_cmdline_user_args() and t % 6 == 0:
+		print("TRACE leg %d %s" % [leg, p.global_position.snapped(Vector3.ONE * 0.01)])
 	var goal: Vector3 = route[leg][0]
 	var d := Vector2(goal.x - p.global_position.x, goal.z - p.global_position.z)
 	leg_t += delta

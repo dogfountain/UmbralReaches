@@ -24,9 +24,9 @@ const REALM_CAMPS: Array[Dictionary] = [
 	{"at": Vector3(-26.0, 60.0, -9.0), "kinds": ["spitter", "wretch"], "probe": 0.0, "seal": "henge"},       # the stair's foot, east of the flight, off the walk
 	{"at": Vector3(-35.0, 60.0, -15.0), "kinds": ["leaper", "crawler"], "probe": 0.0, "seal": "henge"},      # at the raid floor's rim south of the stair's head, 13 m+ from HengeFire on its landing
 	# guardians of the summit ward (it also needs the Thornwarden and the Bone Abbot): they hold the
-	# Crossing itself, its west tower (Crossing.T2, parapeted) and its head in front of the ward
+	# Crossing itself, its junction tower (the Pilgrims' Gate, parapeted) and its head in front of the ward
 	# (r32: the first pack stood 12-16 m east of the Crossing's foot, off the way, beside a roaming pack)
-	{"at": Vector3(-13.0, 12.0, -30.0) + Endgame.O, "kinds": ["husk", "wretch"], "probe": 18.0, "r": 1.4, "strict": true, "seal": "summit"},
+	{"at": Vector3(-1.8, 9.0, -41.0) + Endgame.O, "kinds": ["husk", "wretch"], "probe": 18.0, "r": 1.4, "strict": true, "seal": "summit"},
 	{"at": Vector3(0.0, 28.0, -68.0) + Endgame.O, "kinds": ["spitter", "wretch"], "probe": 18.0, "r": 1.4, "strict": true, "seal": "summit"},
 	# roaming packs (they come back)
 	# r28 war bands: a guard (Bulwark) before a caster (Chanter), flankers on the sides

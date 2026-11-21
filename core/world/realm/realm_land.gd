@@ -533,7 +533,7 @@ static func _heights() -> void:
 			h = lerpf(h, SPAWN_Y, sp)
 			var k := keep_weight(x, z)
 			if k > 0.0:
-				var o := old_height_at(x, z)
+				var o := old_height_at(x - preload("res://core/world/realm/rift/pit.gd").shift(x, z), z)      # (the lava pit's wider bowl: rift/pit.gd)
 				if not is_nan(o):
 					h = lerpf(h, o, k)
 				h = RealmLayout.raid_shape(x, z, h)          # r34: the summit's raid volume is cut out of the kept core too

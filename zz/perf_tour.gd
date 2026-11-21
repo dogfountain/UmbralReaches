@@ -115,7 +115,7 @@ var route := [
 	# the Crossing (the far north-east, from Lastlight's north postern: Endgame)
 	[Vector3(0, 0, 22) + Endgame.O, "@rim"],
 	[Vector3(0, 0, 4) + Endgame.O, "rift_rim"], [Vector3(0, 0, -10.5) + Endgame.O, "forecourt"], [Vector3(0, 0, -15.5) + Endgame.O, "rim steps"],
-	[Vector3(0, 0, -21) + Endgame.O, "tower 1"], [Vector3(-13, 0, -30) + Endgame.O, "viaduct"], [Vector3(-1.8, 0, -40) + Endgame.O, "fallen column"],
+	[Vector3(-0.3, 0, -20) + Endgame.O, "causeway"], [Vector3(-1.0, 0, -29) + Endgame.O, "causeway"], [Vector3(-1.8, 0, -40) + Endgame.O, "pilgrims gate"],
 	[Vector3(-1.8, 0, -49.5) + Endgame.O, "spindle flight"],
 ]
 var p: Player
@@ -391,7 +391,7 @@ func _spindle_route() -> void:
 		var th := -TAU * float(k) / 24.0
 		var q := spin + Vector2(cos(th), sin(th)) * 6.5
 		route.append([Vector3(q.x, 0, q.y) + Endgame.O, "spindle"])
-	for e: Array in [[Vector3(-1.8, 0, -56), "flights"], [Vector3(-1.8, 0, -61.5), "flights"],
+	for e: Array in [[Vector3(-1.4, 0, -56), "bridge"], [Vector3(-1.4, 0, -61.5), "bridge"],
 			[Vector3(0, 0, -66.5), "ward landing"], [Vector3(0, 0, -71.4), "summit stairs"],
 			[Vector3(0, 0, -77.5), "summit stairs"], [Vector3(-2.8, 0, -79.5), "summit"], [Vector3(-3.6, 0, -83.5), "summit"],
 			[Vector3(-2.6, 0, -87.0), "summit"], [Vector3(0, 0, -89.0), "summit"], [Vector3(0, 0, -92.0), "dais"],

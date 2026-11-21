@@ -46,10 +46,9 @@ func _process(delta: float) -> void:
 		var full := "--full" in OS.get_cmdline_user_args()
 		var pts: Array = []
 		if full:
-			pts = [["rim", Vector2(0, -4) + Endgame.O2], ["forecourt", Vector2(0, -9) + Endgame.O2], ["forecourt_top", Vector2(0, -13.5) + Endgame.O2], ["t1", Vector2(0, -21) + Endgame.O2]]
-			pts.append(["viaduct_mid", Vector2(-6.5, -25.5) + Endgame.O2])
-			pts.append(["t2", Vector2(-13, -30) + Endgame.O2])
-			pts.append(["column_mid", Vector2(-7.4, -35.0) + Endgame.O2])
+			pts = [["rim", Vector2(0, -4) + Endgame.O2], ["forecourt", Vector2(0, -9) + Endgame.O2], ["forecourt_top", Vector2(0, -13.5) + Endgame.O2], ["bay1", Vector2(-0.3, -20) + Endgame.O2]]
+			pts.append(["bay2", Vector2(-0.8, -27) + Endgame.O2])
+			pts.append(["bay3", Vector2(-1.3, -33) + Endgame.O2])
 		pts.append(["t3", Vector2(-1.8, -40) + Endgame.O2])
 		var sp := Vector2(-1.8, -40.0) + Endgame.O2
 		pts.append(["t3_east", sp + Vector2(cos(deg_to_rad(-35.0)), sin(deg_to_rad(-35.0))) * 3.0])

@@ -171,15 +171,18 @@ func _islands(host: Node3D) -> void:
 		return
 	var placed := 0
 	var tries := 0
-	while placed < 16 and tries < 200:
+	while placed < 34 and tries < 500:
 		tries += 1
-		var p := Vector2(rng.randf_range(-15.0, 15.0), rng.randf_range(-112.0, -14.0))
+		var wide := rng.randf_range(-24.0, 24.0) if rng.randf() < 0.6 else rng.randf_range(-15.0, 15.0)
+		var p := Vector2(wide, rng.randf_range(-112.0, -14.0))
 		if p.y > star_z - 4.0 or _blocked(p, LAVA + 1.0, 2.5):
 			continue
 		if p.y < -88.0 and absf(p.x) < 15.0:
 			continue                                     # under the summit dais: never seen
 		var s := Vector3(rng.randf_range(2.5, 6.5), rng.randf_range(0.9, 1.6), rng.randf_range(2.0, 5.0))
-		var mesh: Mesh = rk.call("boulder", rng.randi(), s, "ash")
+		if placed % 3 == 0:
+			s *= 1.5
+		var mesh: Mesh = rk.call("boulder", rng.randi(), s, "ash" if placed % 2 == 0 else "basalt")
 		var xf := Transform3D(Basis(Vector3.UP, rng.randf() * TAU), Vector3(p.x, LAVA - s.y * 0.55, p.y))
 		var mi: MeshInstance3D = rk.call("spawn", host, mesh, xf, true, 200.0)
 		mi.name = "CrustIsland%d" % placed

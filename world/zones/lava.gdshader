@@ -137,10 +137,17 @@ void fragment() {
 	vec2 q = vec2(fbm3(uv + vec2(t, -t * 0.6)), fbm3(uv + vec2(5.2, 1.3) - t * 0.4)) - 0.5;
 	float hot = smoothstep(0.3, 0.75, fbm3(uv * 0.6 + q * 0.8 - drift * 0.5 + vec2(2.1, 7.7)));
 	// plates drawn out along the current (a river's crust tears into rafts, not honeycomb)
-	vec2 fd = normalize(flow_dir);
+	// regional variation (the pit is a basin, not a tile): plate size, the current's heading and the crust's coverage change across it
+	float r1 = fbm3(world_pos.xz * 0.013 + vec2(3.7, 1.1));
+	float r2 = fbm3(world_pos.xz * 0.021 + vec2(9.3, 4.4));
+	float ang = (r2 - 0.5) * 1.8;
+	vec2 fd0 = normalize(flow_dir);
+	vec2 fd = vec2(fd0.x * cos(ang) - fd0.y * sin(ang), fd0.x * sin(ang) + fd0.y * cos(ang));
+	float psc = plate_scale * mix(0.55, 1.5, r1);
+	hot = clamp(hot + (r1 - 0.5) * 0.55, 0.0, 1.0);
 	vec2 pu = uv - drift + warp * q * 0.8;
 	pu = vec2(dot(pu, vec2(fd.y, -fd.x)), dot(pu, fd) * plate_stretch);
-	vec2 pl = plates(pu * plate_scale);
+	vec2 pl = plates(pu * psc);
 	float edge = pl.x;
 
 	// cracks: thin where the crust has cooled, opening into molten channels in the hot reaches;
