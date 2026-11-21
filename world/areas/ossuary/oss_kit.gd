@@ -128,7 +128,7 @@ static func mat(key: String) -> Material:
 static func _blender_stone(m: StandardMaterial3D, scale: float) -> void:
 	var base := "res://art/models/oss_abbey_Oss_Ashlar_"
 	m.albedo_texture = load(base + "albedo.png")
-	m.albedo_color = Color(1.0, 1.0, 1.0)
+	m.albedo_color = Color(0.78, 0.85, 0.95)         # cool: warm candle light on pale stone read salmon
 	m.normal_enabled = true
 	m.normal_texture = load(base + "normal.png")
 	m.roughness = 0.86

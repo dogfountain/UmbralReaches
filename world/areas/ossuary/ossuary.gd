@@ -632,7 +632,8 @@ func _pit(k: OssKit) -> void:
 		var cnt := maxi(3, int(TAU * r / 0.21))
 		for i in cnt:
 			var a := TAU * float(i) / float(cnt) + float(tier) * 0.3
-			k.skull(c + Vector3(cos(a) * r, 0.02 + ty, sin(a) * r), -a - PI * 0.5 + PI, 1.05, tier % 2, -0.15)
+			# laid straight into the kit's skulls: the clipping test (skull()) rejected every one of them (the mound stands on the court's lanes)
+			(k.skulls[tier % 2] as Array).append(Transform3D(Basis(Vector3.UP, -a + PI * 0.5) * Basis(Vector3.RIGHT, -0.15).scaled(Vector3.ONE * 1.05), c + Vector3(cos(a) * r, 0.02 + ty, sin(a) * r)))
 	k.collider(c + Vector3(0, 0.95, 0), Vector3(4.7, 1.9, 4.7))
 	k.collider(c + Vector3(0, 0.95, 0), Vector3(4.7, 1.9, 4.7), Basis(Vector3.UP, PI * 0.25))
 	for i in 14:
