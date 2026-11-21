@@ -222,7 +222,7 @@ static func _put(kind: String, p: Vector2, yaw: float, scale := 1.0, lift := 0.0
 	if lift == 0.0 and kind not in FLAT and _blocked(Vector3(p.x, y, p.y), rad, kind.begins_with("stall")):
 		return false
 	# r39 grounding: the ground under the whole footprint, not the one ray at its middle: it sits on its lowest corner (the high side buried), and
-	# ground that falls more than 0.7 m under it is no place for a stall or a crate (re-placed: the caller tries another spot)
+	# ground that falls more than 0.5 m under it is no place for a stall or a crate (re-placed: the caller tries another spot)
 	var drop := 0.0
 	if kind not in FLAT and lift == 0.0:
 		var ex := Vector2(cos(yaw), -sin(yaw)) * rad * 0.75
@@ -235,7 +235,7 @@ static func _put(kind: String, p: Vector2, yaw: float, scale := 1.0, lift := 0.0
 				var gq := Footing.terrain_y(_space, q.x, q.y, y)
 				lo = minf(lo, gq)
 				hi = maxf(hi, gq)
-		if hi - lo > 0.7:
+		if hi - lo > 0.5:
 			return false
 		drop = lo - y
 	var bas := Basis(Vector3.UP, yaw)
