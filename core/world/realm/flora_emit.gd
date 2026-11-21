@@ -9,6 +9,7 @@ extends RefCounted
 
 const TreeGen := preload("res://core/world/realm/tree_gen.gd")
 const RockKit := preload("res://core/world/realm/rock_kit.gd")
+const Footing := preload("res://core/world/footing.gd")
 
 const CHUNK := 24.0                    ## undergrowth chunks
 const TREE_CHUNK := 32.0               ## tree chunks
@@ -199,6 +200,7 @@ static func emit(host: Node3D, items: Dictionary, stones: Dictionary, canopy: Di
 					counts.y += 1
 	for key: String in stones:
 		var mesh: Mesh = prop_mesh.call(key)
+		var feet := Footing.base_points(mesh)
 		var kind := key.split("|")[0]
 		var pr: Array = PROPS.get(kind, ["", STONE_SIZES[0], "", 0.0, STONE_RANGE, false])
 		var per: Dictionary = stones[key]
@@ -206,6 +208,12 @@ static func emit(host: Node3D, items: Dictionary, stones: Dictionary, canopy: Di
 			var buf: PackedFloat32Array = per[ck]
 			var ch := _chunk(host, chunks, ck, CHUNK, ground)
 			var n := buf.size() / 16
+			if feet.size() >= 3:
+				buf = buf.duplicate()                      # (the placement's own buffer stays as placed)
+				for i in n:
+					var o := i * 16
+					var org := Vector3(buf[o + 3], buf[o + 7], buf[o + 11])
+					buf[o + 7] = minf(org.y, Footing.seat_y(ground, feet, _basis_at(buf, o), Vector2(org.x, org.z), org.y, 0.45))      # a stone sits on its lowest point, never lifted
 			counts.x += 1
 			var mmi := _batch(ch, buf, n, "Flora_%s_s" % key.replace("|", "_"), mesh, "stone", 0.0, float(pr[4]), ["stone", "s", false, float(pr[4]), n], STYLE["stone"], false, hide_args)
 			mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF if kind != "cairn" else GeometryInstance3D.SHADOW_CASTING_SETTING_ON
