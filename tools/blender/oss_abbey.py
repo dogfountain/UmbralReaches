@@ -654,7 +654,7 @@ import random as _random
 
 MOUND_R = 2.5
 MOUND_H = 1.6
-TONES = {"Tea": (0.66, 0.54, 0.36), "Grey": (0.54, 0.53, 0.48), "Soot": (0.32, 0.28, 0.25), "Pale": (0.82, 0.76, 0.64)}
+TONES = {"Tea": (0.8, 0.7, 0.52), "Grey": (0.68, 0.67, 0.62), "Soot": (0.44, 0.4, 0.36), "Pale": (0.9, 0.85, 0.74)}
 
 
 def mound_h(r):
@@ -679,7 +679,7 @@ def low_skull(b, at, R, s, jaw=True):
     """A cheap skull (about 110 triangles): an ellipsoid cranium, a face block, optional jaw, two dark sockets. R = (right, up, fwd)."""
     r, u, f = R
     P = lambda x, y, z: Vector(at) + (r * x + u * y + f * z) * s
-    rings, seg = 4, 7
+    rings, seg = 5, 8
     grid = []
     for i in range(rings + 1):
         th = math.pi * i / rings
@@ -694,6 +694,7 @@ def low_skull(b, at, R, s, jaw=True):
             j2 = (j + 1) % seg
             q = b.face([grid[i][j], grid[i][j2], grid[i + 1][j2], grid[i + 1][j]], "bone")
             if q is not None:
+                q.smooth = True
                 fs.append(q)
     b._box_uv(fs, 2.4)
     for sd in (-1, 1):
@@ -715,9 +716,9 @@ def build_mound(m, objs):
     objs.append(base)
     parts = {k: B("OssMound" + k, mt) for k in TONES}
     names = list(TONES)
-    weights = [0.38, 0.3, 0.22, 0.10]
+    weights = [0.3, 0.3, 0.2, 0.2]
     skull_n = 0
-    for i in range(235):
+    for i in range(185):
         r_ = MOUND_R * (rng.random() ** 0.62) * 0.98
         th = rng.uniform(0, math.tau)
         h = mound_h(r_)
