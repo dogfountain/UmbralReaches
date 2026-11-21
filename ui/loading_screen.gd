@@ -6,7 +6,13 @@ extends CanvasLayer
 ##   3 warm    a camera tour of the Realm under the cover: every world material is drawn once, so the
 ##             Mac compiles its shaders here, not when you first walk into the wood. At the first
 ##             stop one of each enemy, the spell effects and the particle kinds are shown too.
-##   4 steady  the player's camera again; waits for a run of even frames, then fades out.
+##             The combat set is drawn on alternate frames with a light of the wanderer's lantern's kind over
+##             it (a light with a size makes every material it touches a pipeline of its own, and in play the
+##             lantern touches whatever is near the wanderer).
+##   4 panels  each big panel opened once; beside it the pipeline sweep (core/world/pipeline_warm.gd): every
+##             other way the world draws something, by stand-ins in a lab below the land, under each light
+##             state play reaches (collected over the tour's frames)
+##   5 steady  the player's camera again; waits for a run of even frames, then fades out.
 ## The player is frozen until the cover lifts. Shown only when the night is the running scene (not
 ## under the zz/ test harnesses); `--loading` forces it, `--no-loading` skips it.
 ## No class_name: Zone loads it by path.
@@ -42,6 +48,7 @@ const MORE_KIN := ["res://core/enemy/bulwark.gd", "res://core/enemy/chanter.gd",
 const PanelWarm := preload("res://ui/panel_warm.gd")
 const NightWarm := preload("res://core/world/night_life/night_warm.gd")
 const LootWarm := preload("res://ui/loot_warm.gd")
+const PipelineWarm := preload("res://core/world/pipeline_warm.gd")
 const Foley := preload("res://core/vfx/foley.gd")
 const FOLEY_PER_FRAME := 3
 const PauseScope := preload("res://core/world/pause_scope.gd")
@@ -49,6 +56,7 @@ const WarmAttackKit := preload("res://core/enemy/attack_kit.gd")
 const WarmBossKit := preload("res://core/enemy/boss_kit.gd")
 const WarmHorseRig := preload("res://core/world/mount/horse_rig.gd")
 const WarmHorseDB := preload("res://core/world/mount/horse_db.gd")
+const WarmFlight := preload("res://core/world/fire_flight.gd")
 const BOSSES := ["res://core/enemy/thornwarden.gd", "res://core/enemy/bone_abbot.gd", "res://core/enemy/ascended_warden.gd",
 	# --- west marches ---
 	"res://core/enemy/hierarch_voice.gd",
@@ -65,7 +73,7 @@ const VARIANT_ON := {"drowned": "res://core/enemy/husk.gd", "stonebound": "res:/
 const CORES := ["core_prism", "core_lodestar", "core_cinder", "core_rime"]
 const SKIP_AFTER_VIEW := 2        # stops (spawn, the Keg) the tour must have shown before a key may leave the rest
 const DIRS := 6                 # headings per stop
-const FRAMES_PER_DIR := 2
+const FRAMES_PER_DIR := 1       ## a heading's first frame asks for every pipeline in view (the sweep covers the states)
 const FX_HOLD := 14             # frames the warm-up enemies stay in view
 const BAR_W := 560.0
 const BUILD_SHARE := 0.68       # bar share of the build; the warm tour gets most of the rest
@@ -95,6 +103,8 @@ var _spell_keep := {}             ## instance ids of spell leftovers that stood 
 var _warm_saved := {}             ## the wanderer before the warm-up cast every spell
 var _warm_life: Node
 var _pw: PanelWarm                ## opens each big panel once under the cover
+var _sweep: PipelineWarm          ## the pipeline sweep: collected beside the tour, drawn beside the panels
+var _soft: OmniLight3D            ## on the warm camera every other frame of the combat set: the lantern's light state
 var _fx_frames := -1
 var _combat_shown := false
 var _sounds_done := false
@@ -235,7 +245,8 @@ func _process(delta: float) -> void:
 			_stage.text = "Laying out the Journal"
 			_hint.text = ""
 			_target = 0.98
-			if _pw == null or _pw.done or _phase_t > 20.0:
+			var swept := _sweep_step()
+			if (_pw == null or _pw.done or _phase_t > 20.0) and swept:
 				_next("steady")
 		"steady":
 			_stage.text = "Almost there"
@@ -270,7 +281,7 @@ func _next(p: String) -> void:
 	if p == "warm":
 		_start_tour()
 	elif p == "panels":
-		_end_tour()
+		_end_tour(true)                   # the warm camera stays for the sweep
 		PauseScope.mark(zone)                 # scenery branches skip the pause's notification walk
 		_pw = PanelWarm.new()
 		_pw.zone = zone
@@ -303,9 +314,20 @@ func _start_tour() -> void:
 		_cam.far = pc.far
 	zone.add_child(_cam)
 	_cam.current = true
+	_soft = OmniLight3D.new()             # the lantern's kind of light (0.35 m), over the combat set
+	_soft.name = "WarmLantern"
+	_soft.light_size = 0.35
+	_soft.omni_range = 24.0
+	_soft.light_energy = 0.05
+	_soft.light_specular = 0.0
+	_soft.light_volumetric_fog_energy = 0.0
+	_soft.visible = false
+	_soft.set_meta(&"ld_gov", true)       # not governed (budget, fade, shadow policy): it is the warm-up's, not the night's
+	_cam.add_child(_soft)
 	_view = 0
 	_dir = 0
 	_frame = 0
+	_sweep = PipelineWarm.new(get_tree())
 	_place()
 
 
@@ -325,12 +347,17 @@ func _ground(at: Vector3) -> float:
 
 
 func _warm_step() -> void:
+	if _sweep != null:
+		_sweep.collect()                 # a slice of the walk over the tree a frame, beside the views
+	# the combat set (foes, bosses, horses, spells: skinned bodies and effects the sweep's stand-ins only approximate) is
+	# drawn on alternate frames with and without a light of the lantern's kind over it
+	_soft.visible = _fx_frames >= 0 and Engine.get_process_frames() % 2 == 1
 	if _fx_frames >= 0:                  # the combat set is on show: hold this heading
 		_fx_frames += 1
 		if _fx_frames > FX_HOLD:
 			_clear_combat()
 		return
-	if not _combat_shown and _view == 0 and _frame == 1:
+	if not _combat_shown and _view == 0 and _dir * FRAMES_PER_DIR + _frame == 1:     # the tour's second frame
 		_combat_shown = true
 		_show_combat()
 		return
@@ -436,6 +463,7 @@ func _show_more(c: Vector3, at: Vector3, right: Vector3, fwd: Vector3, col: Colo
 		h.global_position = c - fwd * 4.0 + right * (float(bi) - 1.0) * 2.5
 		_warm_nodes.append(h)
 		bi += 1
+	_warm_nodes.append(WarmFlight.build_wisp(zone, at + right * 2.0))      # the Ember Road's wisp and its trail
 	Vfx.impact(at, hot, fwd, false)
 	Vfx.impact(at, col, fwd, true)
 	var em := Vfx.emitter(col, {})
@@ -594,6 +622,8 @@ func _show_r28(c: Vector3, at: Vector3, right: Vector3, fwd: Vector3, col: Color
 
 
 func _clear_combat() -> void:
+	if _sweep != null:
+		_sweep.flush()                    # everything the set added while it was on show, keyed before it goes
 	LootWarm.clear(_warm_loot)
 	_warm_loot.clear()
 	for n in _warm_nodes:
@@ -625,8 +655,26 @@ func _clear_combat() -> void:
 	_fx_frames = -1
 
 
-func _end_tour() -> void:
+## The sweep's frame beside the panels (the warm camera in its lab); true once it is done and the camera given back.
+func _sweep_step() -> bool:
+	if _sweep == null or not is_instance_valid(_cam):
+		return true
+	if not _sweep.done and _sweep.collect():
+		_soft.visible = false
+		_sweep.draw_step(zone, _cam)
+	if _sweep.done:
+		_end_tour(false)
+		_sweep = null
+		return true
+	return false
+
+
+func _end_tour(keep_cam := false) -> void:
 	_clear_combat()
+	if keep_cam and _sweep != null and not _sweep.done:
+		return
+	if _sweep != null and not _sweep.done:
+		_sweep.clear()                    # (left early: a key, or the steady phase)
 	if is_instance_valid(_cam):
 		_cam.queue_free()
 	if _player:

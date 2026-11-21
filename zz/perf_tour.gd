@@ -38,6 +38,8 @@ extends Node
 ##                                   exactly: old priority first, then tree order) and a stamp runs between subtrees
 ##                                   --probe-ms=N: name the subtrees of every frame whose scripts run over N ms (default 8)
 ##   --loading                       run the real loading screen (build + shader warm-up) first
+##   --moments / --psolog / --clean-quit   play moments (zz/perf_moments.gd); name each in-play compile (zz/pso_watch.gd);
+##                                   quit like a player at the end (the engine saves its pipeline cache), not a kill
 ##   --early                         start measuring the moment the Realm is built (no 6 s settle):
 ##                                   shows what a player meets right after the load
 ## Frame time is the real frame delta (vsync off). "scripts" = every _process and _physics_process
@@ -232,6 +234,9 @@ func _ready() -> void:
 				_held.append(sh)                    # held: a dropped Resource leaves the cache
 				print("PERF shader variant %s <- %s" % [parts[0], parts[1].get_file()])
 	get_window().size = Vector2i(1600, 1000)
+	_psow = _PsoWatch.new()
+	_psow.tour = self
+	add_child(_psow)
 	main = load("res://world/main.tscn").instantiate()
 	get_tree().root.add_child.call_deferred(main)
 
@@ -321,9 +326,11 @@ func _quiet_enemies() -> void:
 	for n in get_tree().get_nodes_in_group(Groups.ENEMY):
 		if not (n is Node3D):
 			continue
+		if n.has_meta(&"tour_awake"):
+			continue                                          # --moments: the fight's own foes
 		if n.process_mode != Node.PROCESS_MODE_DISABLED:
 			n.process_mode = Node.PROCESS_MODE_DISABLED       # (an ambush's 0.9 s wake timer)
-		if n.has_meta(&"tour_muted"):
+		if n.has_meta(&"tour_muted") or n.has_meta(&"tour_awake"):
 			continue
 		n.set_meta(&"tour_muted", true)
 		if "sleep_range" in n:
@@ -412,7 +419,7 @@ func _process(d: float) -> void:
 		return
 	if not main.has_meta("realm_done"):
 		return
-	if load_ms > 0:
+	if load_ms > 0 and not (_moments != null and _moments.map_open):
 		_unpause()
 		# the dark is not what is measured: a long stand away from light hollowed the wanderer mid-tour (19 Nov, at the
 		# Long Arches), a respawn and a teleport inside a measured window
@@ -477,7 +484,17 @@ func _process(d: float) -> void:
 		return
 	if phase == "":
 		print("PSO at start of play: %s" % _pso_totals())
-		if "--bosses" in OS.get_cmdline_user_args():
+		_psow.go_live()
+		if "--moments" in OS.get_cmdline_user_args():
+			phase = "moments"
+			_moments = _PerfMoments.new()
+			_moments.tour = self
+			_moments.p = p
+			_moments.main = main
+			_moments.process_mode = Node.PROCESS_MODE_ALWAYS
+			add_child(_moments)
+			_moments.run()
+		elif "--bosses" in OS.get_cmdline_user_args():
 			phase = "bosses"
 			_bosses_begin()
 		elif blame:
@@ -506,6 +523,26 @@ func _process(d: float) -> void:
 		"census":
 			_census_step()
 
+
+
+## The window a frame belongs to (PsoWatch labels each compile with it).
+const _PsoWatch := preload("res://zz/pso_watch.gd")
+const _PerfMoments := preload("res://zz/perf_moments.gd")
+var _psow: _PsoWatch
+var _moments: _PerfMoments
+
+
+func where() -> String:
+	match phase:
+		"points", "attrib", "census", "blame":
+			return "pt:" + (String(points[i][0]) if i >= 0 and i < points.size() else "?")
+		"path":
+			return "path:" + (String(route[leg][1]) if leg < route.size() else "end")
+		"bosses":
+			return "boss:%s%s" % [(_bs_arenas[_bs_i] as BossArena).boss_id if _bs_i >= 0 and _bs_i < _bs_arenas.size() and is_instance_valid(_bs_arenas[_bs_i]) else "?", " pull" if _bs_stage == 1 else ""]
+		"moments":
+			return "moments:" + (_moments.name_now if _moments != null and _moments.name_now != "" else "-")
+	return "settle"
 
 
 # --- hitch attribution (--hitches): what a slow frame's neighbours did ---------------------------------------
@@ -1498,11 +1535,15 @@ func _finish() -> void:
 			over33 += int(r[8])
 		print("PERF summary: lowest fps %.1f (%s), lowest 1%% low %.1f, worst frame %.1f ms, frames >33ms %d, max draws %d, max prims %d, load %d ms" % [
 			worst_fps, at, worst_low, worst_frame, over33, max_draws, max_prims, load_ms])
+	_psow.report()
 	print("PSO at end: %s" % _pso_totals())
 	print("PERF done (nodes %d, static mem %.0f MB, video mem %.0f MB)" % [
 		Performance.get_monitor(Performance.OBJECT_NODE_COUNT),
 		Performance.get_monitor(Performance.MEMORY_STATIC) / 1048576.0,
 		Performance.get_monitor(Performance.RENDER_VIDEO_MEM_USED) / 1048576.0])
+	if "--clean-quit" in OS.get_cmdline_user_args():
+		get_tree().quit()                    # a player's quit: the engine writes its pipeline cache on the way out
+		return
 	OS.kill(OS.get_process_id())
 
 
