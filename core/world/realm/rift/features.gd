@@ -3,17 +3,18 @@ extends RefCounted
 ## (tools/blender/rift_rocks.py -> art/models/rift_rocks.glb) and set about the rift here:
 ##   - shores: broken basalt along both walls at the lava line (their backs buried in the rock)
 ##   - crust plates: thin cold rafts in the south, where the lava has crusted over
-##   - islands: low basalt in the cooling middle and the molten pool
+##   - islands: low basalt spread through the molten lake, the lava running wall to wall round them
 ##   - stacks: tall broken basalt in the molten east channel (the skyline from the Lip)
-## Each piece has its collision, so LavaWorks' bank mask gives it a crust shelf and a glowing contact rim. Merged per material (two
-## draws, cut in 24 m cells). On the rim, as before: ash drifts and spalls, glowing fissures with smoke and ember vents at their mouths.
+##   - the dressing: boulders, cooled spatter and heaved crust slabs crowding the walls' feet and ringing every island, the Watchers'
+##     plinths and the way's isles (MultiMesh, no collision)
+## The bigger pieces have their collision, so LavaWorks' bank mask gives each a crust lip and a glowing contact rim. Merged per material
+## (two draws, cut in 24 m cells). On the rim, as before: ash drifts and spalls, glowing fissures with smoke and ember vents at their mouths.
 ## Keeps off the Cinder Way (its sites, lanes and rock), the Watchers' plinths, the old Ossuary site and every RealmLayout path.
 
 const RockKitS := preload("res://core/world/realm/rock_kit.gd")
 const ROCKS := "res://art/models/rift_rocks.glb"
 const LAVA := -15.5
 const BED := -19.5
-const COOL_Z := -30.0                   ## south of this (z greater) the lava has crusted: plates, no islands
 const CHAPEL := Rect2(-25.0, -42.5, 14.5, 9.5)    ## the Pilgrims' Chapel cut into the west wall and its forecourt (rift/chapel.gd ORIGIN)
 
 var vents: Array[Vector3] = []
@@ -59,6 +60,7 @@ func build(root: Node, host: Node3D) -> void:
 		_shores()
 		_lava_rock()
 		_commit(host)
+		_dress(host)
 	await root.get_tree().process_frame
 	_ash_fields(host)
 	_fissures(host)
@@ -123,24 +125,6 @@ func _commit(host: Node3D) -> void:
 		mi.queue_free()
 
 
-## Space for a piece of footprint radius `r` at p (rift coordinates): off the Cinder Way, the Watchers, the chapel, the paths, the
-## Ossuary's old wall, and nothing built under its middle or its rim (rays down from over its top: the way's rock, another piece; the
-## ground is allowed).
-func _free(p: Vector2, r: float, top_y: float) -> bool:
-	if _blocked(p, top_y, minf(r, 1.2)):
-		return false
-	for q: Vector3 in _placed:
-		if p.distance_to(Vector2(q.x, q.y)) < (r + q.z) * 0.75:
-			return false                             # (another piece: the bodies just added may not answer rays yet)
-	for k in 9:
-		var o := Vector2.ZERO if k == 0 else Vector2(cos(TAU * float(k) / 8.0), sin(TAU * float(k) / 8.0)) * r * 0.8
-		var q := PhysicsRayQueryParameters3D.create(Vector3(p.x + o.x, top_y + 8.0, p.y + o.y), Vector3(p.x + o.x, LAVA - 0.4, p.y + o.y), Layers.WORLD)
-		var hit := space.intersect_ray(q)
-		if not hit.is_empty() and not String((hit.collider as Node).name).begins_with("Terrain"):
-			return false
-	return true
-
-
 ## The wall's x at height y and z (the first terrain hit going out from the middle), or NAN.
 func _wall_x(side: float, y: float, z: float) -> float:
 	var from := Vector3(side * 4.0, y, z)
@@ -154,13 +138,13 @@ func _wall_x(side: float, y: float, z: float) -> float:
 	return NAN
 
 
-## Broken basalt along both walls at the lava line, every 9-13 m, backs into the rock (local -x is a shore's back).
+## Broken basalt along both walls at the lava line, every 5-8 m, backs into the rock (local -x is a shore's back).
 func _shores() -> void:
 	var placed := 0
 	for side: float in [-1.0, 1.0]:
 		var z := -12.0
 		while z > -100.0:
-			z -= rng.randf_range(9.0, 13.0)
+			z -= rng.randf_range(5.0, 8.0)
 			var key := "Shore%d" % rng.randi_range(0, 2)
 			if not _variants.has(key):
 				continue
@@ -171,7 +155,7 @@ func _shores() -> void:
 			if side > 0.0 and z < -21.0 and top > -7.5:
 				continue                                    # the old Ossuary's wall: a bare cliff above y -7
 			var p := Vector2(wx - side * 1.6, z)
-			if not _free(p, 3.0, top):
+			if _blocked(p, top, 0.6) or _near_placed(p, 4.0):
 				continue
 			var b := Basis(Vector3.UP, (0.0 if side < 0.0 else PI) + rng.randf_range(-0.15, 0.15))
 			_put(key, Transform3D(b, Vector3(p.x, LAVA, p.y)))
@@ -179,16 +163,20 @@ func _shores() -> void:
 	report.append("shores: %d" % placed)
 
 
-## Plates on the crusted south, islands in the cooling middle and the pool, stacks in the molten channel.
+## Crust plates on the crusted south; islands spread through the molten lake (at least ISLE_GAP apart, so the lava runs wall to wall
+## round them); stacks in the channel under the summit.
+const ISLE_GAP := 8.5
+
+
 func _lava_rock() -> void:
 	var n := {"Plate": 0, "Isle": 0, "Stack": 0}
-	var want := [["Plate", 3, 11, Rect2(-17.0, -40.0, 36.0, 28.0)], ["Isle", 4, 9, Rect2(-16.0, -50.0, 34.0, 20.0)],
-			["Isle", 4, 5, Rect2(13.0, -96.0, 12.0, 46.0)], ["Stack", 3, 4, Rect2(13.0, -92.0, 12.0, 40.0)]]
+	var want := [["Plate", 3, 8, Rect2(-17.0, -26.0, 36.0, 14.0)], ["Isle", 4, 16, Rect2(-20.0, -100.0, 46.0, 72.0)],
+			["Stack", 3, 4, Rect2(13.0, -96.0, 12.0, 44.0)]]
 	for w: Array in want:
 		var kind: String = w[0]
 		var r: Rect2 = w[3]
 		var got := 0
-		for i in 120:
+		for i in 260:
 			if got >= int(w[2]):
 				break
 			var key := "%s%d" % [kind, rng.randi_range(0, int(w[1]) - 1)]
@@ -196,15 +184,130 @@ func _lava_rock() -> void:
 				continue
 			var ab: AABB = _variants[key][3]
 			var p := Vector2(rng.randf_range(r.position.x, r.end.x), rng.randf_range(r.position.y, r.end.y))
-			if kind == "Plate" and p.y < COOL_Z - 8.0:
-				continue
 			var rad := maxf(ab.size.x, ab.size.z) * 0.5
-			if not _free(p, rad + 0.8, LAVA + ab.end.y):
+			if kind != "Plate" and _near_placed(p, ISLE_GAP):
+				continue
+			if not _open_lava(p, rad * 0.6, LAVA + ab.end.y):
 				continue
 			_put(key, Transform3D(Basis(Vector3.UP, rng.randf() * TAU), Vector3(p.x, LAVA, p.y)))
 			got += 1
 		n[kind] = int(n[kind]) + got
 	report.append("lava rock: %d plates, %d islands, %d stacks" % [n.Plate, n.Isle, n.Stack])
+
+
+func _near_placed(p: Vector2, gap: float) -> bool:
+	for q: Vector3 in _placed:
+		if p.distance_to(Vector2(q.x, q.y)) < gap:
+			return true
+	return false
+
+
+## Open lava at p and round it (radius r): no rock of the way, the crag or another piece under it (rays down; the ground allowed), off
+## the Watchers' plinths and the chapel, and the ground itself under the lava there.
+func _open_lava(p: Vector2, r: float, top_y: float) -> bool:
+	if CHAPEL.grow(1.0).has_point(p):
+		return false
+	for w: Vector3 in watchers:
+		if p.distance_to(Vector2(w.x, w.z)) < 8.0 + r:
+			return false
+	var oss := AABB(Endgame.l(RealmLayout.OSSUARY_OLD.position), RealmLayout.OSSUARY_OLD.size)
+	if p.x > 18.0 and p.y > oss.position.z and p.y < oss.end.z and top_y > oss.position.y - 1.0:
+		return false                                 # the old Ossuary's east wall stays a bare cliff above y -7
+	for k in 5:
+		var o := Vector2.ZERO if k == 0 else Vector2(cos(TAU * float(k) / 4.0), sin(TAU * float(k) / 4.0)) * r
+		var hit := space.intersect_ray(PhysicsRayQueryParameters3D.create(Vector3(p.x + o.x, 40.0, p.y + o.y), Vector3(p.x + o.x, LAVA - 0.6, p.y + o.y), Layers.WORLD))
+		if hit.is_empty():
+			return false                             # (no ground under it at all: outside the chasm)
+		if not String((hit.collider as Node).name).begins_with("Terrain") or (hit.position as Vector3).y > LAVA - 0.3:
+			return false                             # something built over it, or the bank itself
+	return true
+
+
+## The banks and the islands crowded with the small cooled basalt (boulders, spatter, heaved crust slabs): no collision, a MultiMesh a
+## variant. Along both walls at the lava line every metre or two; in rings round the islands, the Watchers' plinths, the Cinder Way's
+## isles, the Foot and the crag's foot; slabs strewn over the crusted south.
+func _dress(host: Node3D) -> void:
+	var kinds: Array[String] = []
+	for k: String in _variants:
+		if k.begins_with("Boulder") or k.begins_with("Spatter") or k.begins_with("Slab"):
+			kinds.append(k)
+	if kinds.is_empty():
+		return
+	kinds.sort()
+	var xfs := {}
+	for k in kinds:
+		xfs[k] = []
+	var pick := func(slab: float) -> String:
+		var f := rng.randf()
+		var pre := "Slab" if f < slab else ("Spatter" if f < slab + 0.3 else "Boulder")
+		var opts: Array[String] = []
+		for k in kinds:
+			if k.begins_with(pre):
+				opts.append(k)
+		return opts[rng.randi() % opts.size()]
+	var put := func(p: Vector2, key: String, s: float) -> void:
+		if CHAPEL.has_point(p):
+			return
+		for w: Vector3 in watchers:
+			if p.distance_to(Vector2(w.x, w.z)) < 5.6:
+				return                                   # (on the plinth's top: the pillar stands there)
+		var b := Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3(s, s * rng.randf_range(0.8, 1.15), s))
+		(xfs[key] as Array).append(Transform3D(b, Vector3(p.x, LAVA - rng.randf_range(0.05, 0.35) * s, p.y)))
+	# the walls' feet
+	for side: float in [-1.0, 1.0]:
+		var z := -9.0
+		while z > -110.0:
+			z -= rng.randf_range(1.2, 2.6)
+			var wx := _wall_x(side, LAVA + 0.3, z)
+			if is_nan(wx):
+				continue
+			for k in rng.randi_range(1, 2):
+				put.call(Vector2(wx - side * rng.randf_range(0.2, 2.4), z + rng.randf_range(-0.6, 0.6)), pick.call(0.1), rng.randf_range(0.7, 1.5))
+	# rings round what stands in the lava
+	var rings: Array = []                         # [centre, radius]
+	for q: Vector3 in _placed:
+		rings.append([Vector2(q.x, q.y), q.z * 0.85])
+	for w: Vector3 in watchers:
+		rings.append([Vector2(w.x, w.z), 7.4])
+	for c: Array in [[Vector2(4.0, -28.6), 4.4], [Vector2(9.6, -37.2), 5.6], [Vector2(-6.5, -24.3), 5.2]]:
+		rings.append(c)
+	for c: Array in rings:
+		var ctr: Vector2 = c[0]
+		var rr: float = c[1]
+		var m := int(TAU * rr / 2.0)
+		for i in m:
+			var a := TAU * (float(i) + rng.randf_range(-0.3, 0.3)) / float(m)
+			put.call(ctr + Vector2(cos(a), sin(a)) * (rr + rng.randf_range(-0.4, 1.1)), pick.call(0.15), rng.randf_range(0.6, 1.3))
+	var x := -23.0                                # the crag's foot, along the pool's north side
+	while x < 11.0:
+		put.call(Vector2(x, rng.randf_range(-46.6, -48.4)), pick.call(0.05), rng.randf_range(0.8, 1.6))
+		x += rng.randf_range(1.4, 2.6)
+	# heaved crust slabs and spatter over the crusted south
+	for i in 34:
+		put.call(Vector2(rng.randf_range(-16.0, 18.0), rng.randf_range(-11.0, -24.0)), pick.call(0.6), rng.randf_range(0.7, 1.4))
+	var count := 0
+	for k in kinds:
+		var list: Array = xfs[k]
+		if list.is_empty():
+			continue
+		var mm := MultiMesh.new()
+		mm.transform_format = MultiMesh.TRANSFORM_3D
+		mm.mesh = _variants[k][0]
+		mm.instance_count = list.size()
+		for i in list.size():
+			mm.set_instance_transform(i, list[i])
+		var mmi := MultiMeshInstance3D.new()
+		mmi.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF   # static: interpolating a MultiMesh makes its add wait on the GPU (zz/stream_probe.gd)
+		mmi.name = "RiftDress_" + k
+		mmi.multimesh = mm
+		mmi.material_override = RockKitS.material(String(_variants[k][1]))
+		mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		mmi.visibility_range_end = 220.0
+		mmi.visibility_range_end_margin = 20.0
+		mmi.visibility_range_fade_mode = GeometryInstance3D.VISIBILITY_RANGE_FADE_SELF
+		host.add_child(mmi)
+		count += list.size()
+	report.append("dressing: %d boulders, spatter and slabs in %d variants" % [count, kinds.size()])
 
 
 # --- placement guards ------------------------------------------------------------------------------

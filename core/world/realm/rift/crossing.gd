@@ -34,6 +34,7 @@ func build(_root: Node, host: Node3D) -> void:
 	_place(host)
 	_register()
 	_commit_fires(host)
+	_vent(host)
 	print("SITES Crossing owns %d scatter nodes" % WorldLanes.own(host))    # its fire posts carry the way: the cull must not thin them
 	for s in legs:
 		print("RIFT ", s)
@@ -96,6 +97,11 @@ func _place(host: Node3D) -> void:
 			mi.material_override = coal_mat()
 			mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 			continue
+		elif set_name == "fall":
+			mi.material_override = _fall_mat()
+			mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			mi.extra_cull_margin = 4.0
+			continue
 		for si in mi.mesh.get_surface_count():
 			tris += mi.mesh.surface_get_array_index_len(si) / 3
 		chunk.append(mi)
@@ -106,6 +112,41 @@ func _place(host: Node3D) -> void:
 
 
 static var _coal: StandardMaterial3D
+
+
+## The lavafall out of the Ward Crag's cleft: LavaWorks' fall shader (a slow crawl in the channel from the vent, a rush with rafts of crust
+## once it pours over the lip), told the sheet's lengths by the layout.
+func _fall_mat() -> ShaderMaterial:
+	var sh := Shader.new()
+	sh.code = LavaWorks.FALL_SHADER
+	var m := ShaderMaterial.new()
+	m.shader = sh
+	var lf: Dictionary = layout.get("lavafall", {})
+	m.set_shader_parameter("lip", float(lf.get("lip_m", 2.5)))
+	m.set_shader_parameter("total", float(lf.get("total_m", 40.0)))
+	return m
+
+
+## The vent at the head of the lavafall: embers and a smoke column (no light: the lava's own glow lights stand by the fall).
+func _vent(host: Node3D) -> void:
+	var lf: Dictionary = layout.get("lavafall", {})
+	if lf.is_empty():
+		return
+	var at := _v3(lf["vent"])
+	var spit := Vfx.emitter(Color(1.8, 0.6, 0.12), {"count": 26, "life": 2.0, "speed": Vector2(0.6, 2.2), "size": 0.06, "gravity": -0.8, "radius": 0.8, "spread": 25.0, "turbulence": true})
+	if spit:
+		spit.name = "VentEmbers"
+		host.add_child(spit)
+		spit.global_position = at + Vector3.UP * 0.2
+		spit.emitting = true
+	var smoke := Vfx.emitter(Color(0.16, 0.13, 0.13, 0.35), {"count": 12, "life": 7.0, "speed": Vector2(0.6, 1.2), "size": 2.6, "gravity": 0.25, "radius": 0.8, "spread": 10.0, "additive": false, "turbulence": true, "damping": 0.2, "grow": 0.5})
+	if smoke:
+		smoke.name = "VentSmoke"
+		smoke.visibility_aabb = AABB(Vector3(-6, -1, -6), Vector3(12, 18, 12))
+		smoke.preprocess = 6.0
+		host.add_child(smoke)
+		smoke.global_position = at + Vector3.UP * 0.4
+		smoke.emitting = true
 
 
 ## The fire baskets' coals (the flames over them are particles): a banked glow.

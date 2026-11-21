@@ -19,6 +19,7 @@ const LAVA := -15.5
 const WATCHERS := [Vector3(-2.0, LAVA, -43.2), Vector3(15.0, LAVA, -23.5)]
 const TURN := [0.22, -0.1]             ## each one's turn off facing the village (the east one less: its plinth's corner keeps off the wall)
 const PLINTH_TOP := 1.3                ## rift_rocks.py: the plinth's flat top over the lava
+const SEAT := 0.18                     ## the pillar's foot sunk this far into the basalt: no daylight under a tread where the top is rough
 const WATCHER_R := 7.4                 ## the plinth's reach
 
 var k: OssKit
@@ -94,7 +95,7 @@ func _watchers(host: Node3D) -> void:
 				body.add_child(cs)
 			host.add_child(body)
 			body.global_transform = mi.global_transform
-		var m := Kit.place(host, "wonders/watchers_%s.glb" % ("west" if west else "east"), Transform3D(Basis(Vector3.UP, PI + float(TURN[0 if west else 1])), w + Vector3.UP * PLINTH_TOP))
+		var m := Kit.place(host, "wonders/watchers_%s.glb" % ("west" if west else "east"), Transform3D(Basis(Vector3.UP, PI + float(TURN[0 if west else 1])), w + Vector3.UP * (PLINTH_TOP - SEAT)))
 		if m == null:
 			continue
 		m.name = "Watcher" + tag
@@ -153,7 +154,8 @@ static var _watcher_mats: Dictionary = {}
 
 
 ## The baked column maps (with the glyph grooves' faint ember as the emission map); the staff, chains and cage in the iron
-## set over their rust vertex colours; the flame in layers (a hot core, a violet halo, a smoked cracked glass shell).
+## set over their rust vertex colours; the flame in layers (a hot core, a violet halo, a smoked cracked glass shell). The model's loose
+## rubble is left out.
 func _dress_watcher(m: Node3D) -> void:
 	if _watcher_mats.is_empty():
 		var T := "res://art/textures/"
@@ -176,16 +178,6 @@ func _dress_watcher(m: Node3D) -> void:
 		fig.emission_operator = BaseMaterial3D.EMISSION_OP_MULTIPLY       # the texture alone (ADD would add white everywhere)
 		fig.emission_energy_multiplier = 1.0
 		_watcher_mats["fig"] = fig
-		var s := StandardMaterial3D.new()
-		s.vertex_color_use_as_albedo = true
-		s.normal_enabled = true
-		s.normal_texture = load(T + "r37_stone_normal.png")
-		s.normal_scale = 0.8
-		var so: Texture2D = load(T + "r37_stone_orm.png")
-		s.roughness_texture = so
-		s.roughness_texture_channel = BaseMaterial3D.TEXTURE_CHANNEL_GREEN
-		s.roughness = 1.0
-		_watcher_mats["stone"] = s
 		_watcher_mats["iron"] = Kit.mat("iron")
 		var halo := _orb_mat()
 		halo.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
@@ -205,13 +197,15 @@ func _dress_watcher(m: Node3D) -> void:
 		glass.metallic_specular = 0.9
 		glass.cull_mode = BaseMaterial3D.CULL_DISABLED
 		_watcher_mats["glass"] = glass
-	var key := {"Pillar_fig": "fig", "Pillar_iron": "iron", "Pillar_rubble": "stone", "Pillar_orb": "orb",
+	var key := {"Pillar_fig": "fig", "Pillar_iron": "iron", "Pillar_orb": "orb",
 			"Pillar_core": "core", "Pillar_glass": "glass"}
 	for n in m.find_children("*", "MeshInstance3D", true, false):
 		var mi := n as MeshInstance3D
 		var nm := String(mi.name)
-		if nm.begins_with("Pillar_cand") or nm.begins_with("Pillar_flame"):
-			mi.queue_free()             # the model's stub candles: the kit's dripping wax and layered flames stand in (_watcher_candles)
+		if nm.begins_with("Pillar_cand") or nm.begins_with("Pillar_flame") or nm.begins_with("Pillar_rubble"):
+			# the model's stub candles (the kit's dripping wax and layered flames stand in: _watcher_candles), and its loose rubble: plain
+			# boxes that read as white cubes strewn on the lava (the plinth's own basalt and features.gd's modelled dressing stand in)
+			mi.queue_free()
 			continue
 		for kk: String in key:
 			if nm.begins_with(kk):
