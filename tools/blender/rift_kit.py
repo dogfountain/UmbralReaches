@@ -680,7 +680,7 @@ def sec_fall(objs):
     for (a0, a1, ma), (b0, b1, mb) in zip(rows, rows[1:]):
         f = bm.faces.new((a0, a1, b1, b0))
         for l, (u, vv) in zip(f.loops, ((0.0, ma), (1.0, ma), (1.0, mb), (0.0, mb))):
-            l[uv].uv = (u, vv)
+            l[uv].uv = (u, 1.0 - vv)                     # (glTF flips V: the game reads UV.y = metres from the vent)
     me = bpy.data.meshes.new("Fall__fall")
     bm.to_mesh(me)
     bm.free()

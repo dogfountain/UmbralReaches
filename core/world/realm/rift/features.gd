@@ -26,6 +26,7 @@ var _st := {}                           ## style -> SurfaceTool (the merged piec
 var _body: StaticBody3D
 var _variants := {}                     ## name -> [mesh, style, shapes [[Shape3D, Transform3D]], aabb]
 var _placed: Array[Vector3] = []        ## the pieces put so far: (x, z, radius)
+var _ringed: Array[Vector3] = []        ## the islands, plates and stacks out in the lava (the dressing rings them; not the shores)
 
 const FISSURE_SHADER := """shader_type spatial;
 render_mode unshaded, cull_disabled, depth_draw_never, blend_mix;
@@ -144,8 +145,8 @@ func _shores() -> void:
 	for side: float in [-1.0, 1.0]:
 		var z := -12.0
 		while z > -100.0:
-			z -= rng.randf_range(5.0, 8.0)
-			var key := "Shore%d" % rng.randi_range(0, 2)
+			z -= rng.randf_range(10.0, 15.0)
+			var key := "Shore%d" % rng.randi_range(0, 1)
 			if not _variants.has(key):
 				continue
 			var wx := _wall_x(side, LAVA + 0.6, z)
@@ -154,7 +155,7 @@ func _shores() -> void:
 			var top := LAVA + (_variants[key][3] as AABB).end.y
 			if side > 0.0 and z < -21.0 and top > -7.5:
 				continue                                    # the old Ossuary's wall: a bare cliff above y -7
-			var p := Vector2(wx - side * 1.6, z)
+			var p := Vector2(wx - side * 0.6, z)
 			var half := (_variants[key][3] as AABB).size.z * 0.5 + 1.0
 			if _blocked(p, top, 0.6) or _near_placed(p, 4.0) or Rect2(p.x - 3.5, p.y - half, 7.0, half * 2.0).intersects(CHAPEL):
 				continue                                    # (a shore's length runs along the wall: none may reach into the chapel)
@@ -164,15 +165,16 @@ func _shores() -> void:
 	report.append("shores: %d" % placed)
 
 
-## Crust plates on the crusted south; islands spread through the molten lake (at least ISLE_GAP apart, so the lava runs wall to wall
-## round them); stacks in the channel under the summit.
-const ISLE_GAP := 8.5
+## Crust plates on the crusted south; a few islands spread through the molten lake (the two smaller kinds, at least ISLE_GAP apart: the
+## lake is lava wall to wall round them, not a field of rock: twelve big ones and the shores had covered half of it); stacks in the
+## channel under the summit.
+const ISLE_GAP := 15.0
 
 
 func _lava_rock() -> void:
 	var n := {"Plate": 0, "Isle": 0, "Stack": 0}
-	var want := [["Plate", 3, 8, Rect2(-17.0, -26.0, 36.0, 14.0)], ["Isle", 4, 16, Rect2(-20.0, -100.0, 46.0, 72.0)],
-			["Stack", 3, 4, Rect2(11.0, -106.0, 13.0, 34.0)]]
+	var want := [["Plate", 3, 6, Rect2(-17.0, -26.0, 36.0, 14.0)], ["Isle", 3, 6, Rect2(-20.0, -100.0, 46.0, 70.0)],
+			["Stack", 3, 3, Rect2(11.0, -106.0, 13.0, 34.0)]]
 	for w: Array in want:
 		var kind: String = w[0]
 		var r: Rect2 = w[3]
@@ -181,6 +183,8 @@ func _lava_rock() -> void:
 			if got >= int(w[2]):
 				break
 			var key := "%s%d" % [kind, rng.randi_range(0, int(w[1]) - 1)]
+			if kind == "Isle" and key == "Isle1":
+				key = "Isle2"                            # (the small ones: Isle0 and Isle2)
 			if not _variants.has(key):
 				continue
 			var ab: AABB = _variants[key][3]
@@ -191,6 +195,7 @@ func _lava_rock() -> void:
 			if not _open_lava(p, rad * 0.6, LAVA + ab.end.y):
 				continue
 			_put(key, Transform3D(Basis(Vector3.UP, rng.randf() * TAU), Vector3(p.x, LAVA, p.y)))
+			_ringed.append(_placed[_placed.size() - 1])
 			got += 1
 		n[kind] = int(n[kind]) + got
 	report.append("lava rock: %d plates, %d islands, %d stacks" % [n.Plate, n.Isle, n.Stack])
@@ -258,15 +263,14 @@ func _dress(host: Node3D) -> void:
 	for side: float in [-1.0, 1.0]:
 		var z := -9.0
 		while z > -110.0:
-			z -= rng.randf_range(1.2, 2.6)
+			z -= rng.randf_range(1.6, 3.2)
 			var wx := _wall_x(side, LAVA + 0.3, z)
 			if is_nan(wx):
 				continue
-			for k in rng.randi_range(1, 2):
-				put.call(Vector2(wx - side * rng.randf_range(0.2, 2.4), z + rng.randf_range(-0.6, 0.6)), pick.call(0.1), rng.randf_range(0.7, 1.5))
+			put.call(Vector2(wx - side * rng.randf_range(0.1, 1.3), z + rng.randf_range(-0.6, 0.6)), pick.call(0.1), rng.randf_range(0.7, 1.4))
 	# rings round what stands in the lava
 	var rings: Array = []                         # [centre, radius]
-	for q: Vector3 in _placed:
+	for q: Vector3 in _ringed:
 		rings.append([Vector2(q.x, q.y), q.z * 0.85])
 	for w: Vector3 in watchers:
 		rings.append([Vector2(w.x, w.z), 7.4])
@@ -275,10 +279,10 @@ func _dress(host: Node3D) -> void:
 	for c: Array in rings:
 		var ctr: Vector2 = c[0]
 		var rr: float = c[1]
-		var m := int(TAU * rr / 2.0)
+		var m := int(TAU * rr / 3.0)
 		for i in m:
 			var a := TAU * (float(i) + rng.randf_range(-0.3, 0.3)) / float(m)
-			put.call(ctr + Vector2(cos(a), sin(a)) * (rr + rng.randf_range(-0.4, 1.1)), pick.call(0.15), rng.randf_range(0.6, 1.3))
+			put.call(ctr + Vector2(cos(a), sin(a)) * (rr + rng.randf_range(-0.5, 0.5)), pick.call(0.15), rng.randf_range(0.6, 1.2))
 	var x := -23.0                                # the crag's foot, along the pool's north side
 	while x < 11.0:
 		put.call(Vector2(x, rng.randf_range(-46.6, -48.4)), pick.call(0.05), rng.randf_range(0.8, 1.6))

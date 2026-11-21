@@ -44,6 +44,7 @@ uniform float swell = 0.11;
 // sets both under the Realm; the defaults keep the whole sheet molten.
 uniform float heat_z0 = 1001.0;
 uniform float heat_z1 = 1000.0;
+uniform int debug_view = 0;           // 1: the cooling (r), the open lava off the rock (g), the rafts (b) as colour (look-dev shots only)
 
 // VERTEX is view-space inside fragment(), which would make the crust swim as the camera moves.
 // Carry the world position across explicitly so the pattern stays welded to the world.
@@ -195,19 +196,22 @@ void fragment() {
 	ROUGHNESS = mix(0.96, 0.32, heat);
 	METALLIC = 0.0;
 
-	// --- the open lava between the rafts: bright, swirling with the current, hotter veins and a darker skin that wrinkles and tears
+	// --- the open lava between the rafts: bright, swirling with the current, hotter veins and a darker skin that wrinkles and tears.
+	// Worked out for every pixel (no branch: a derivative inside one is undefined, and on Metal it drew the lake black)
 	float mw = (1.0 - raft) * smoothstep(0.0, 0.35, heatz);
-	if (mw > 0.001) {
-		float flowv = fbm3(uv * 1.3 + q * 1.8 - drift * 1.3);
-		float vn = abs(fbm3(uv * 2.4 + q * 2.6 - drift * 1.1 + vec2(4.1, 1.7)) - 0.5);
-		float vein = 1.0 - smoothstep(0.0, 0.05 + fwidth(vn) * 1.5, vn);
-		float skin = smoothstep(0.56, 0.86, fbm3(uv * 3.3 + q * 2.2 - drift * 1.6 + vec2(9.2, 3.3)));
-		float edge_glow = 1.0 - smoothstep(0.0, 0.16, edge);                  // the seam against a raft runs hottest
-		vec3 mcol = mix(hot_color, core_color, smoothstep(0.32, 0.82, flowv + 0.25 * core_z));
-		mcol = mix(mcol, white_hot, (vein * 0.45 + edge_glow * 0.25) * (0.35 + 0.65 * core_z));
-		float me = mix(0.75, 1.25, flowv) * (1.0 - skin * 0.6) * (1.0 + 0.55 * core_z) + vein * 0.7 + edge_glow * 0.35;
-		EMISSION = mix(EMISSION, mcol * me * emission_energy * 0.42 * pulse, mw);
-		ALBEDO = mix(ALBEDO, hot_color * 0.45, mw);
-		ROUGHNESS = mix(ROUGHNESS, 0.38, mw);
+	float flowv = fbm3(uv * 1.3 + q * 1.8 - drift * 1.3);
+	float vn = abs(vnoise(uv * 5.0 + q * 3.0 - drift * 2.2 + vec2(4.1, 1.7)) - 0.5);
+	float vein = 1.0 - smoothstep(0.0, 0.05 + fwidth(vn) * 1.5, vn);
+	float skin = smoothstep(0.6, 0.9, vnoise(uv * 7.0 + q * 2.2 - drift * 3.0 + vec2(9.2, 3.3)));
+	float edge_glow = 1.0 - smoothstep(0.0, 0.16 + aa, edge);              // the seam against a raft runs hottest
+	vec3 mcol = mix(hot_color, core_color, smoothstep(0.32, 0.82, flowv + 0.25 * core_z));
+	mcol = mix(mcol, white_hot, clamp(vein * 0.45 + edge_glow * 0.25, 0.0, 1.0) * (0.35 + 0.65 * core_z));
+	float me = mix(0.75, 1.25, flowv) * (1.0 - skin * 0.6) * (1.0 + 0.55 * core_z) + vein * 0.7 + edge_glow * 0.35;
+	EMISSION = mix(EMISSION, mcol * me * emission_energy * 0.42 * pulse, mw);
+	ALBEDO = mix(ALBEDO, hot_color * 0.45, mw);
+	ROUGHNESS = mix(ROUGHNESS, 0.38, mw);
+	if (debug_view == 1) {
+		ALBEDO = vec3(0.0);
+		EMISSION = vec3(heatz, open, raft);
 	}
 }

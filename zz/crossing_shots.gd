@@ -5,6 +5,7 @@ extends Node
 ##   --out=<dir>     where the PNGs go (default res://shots)
 ##   --probe         prints the chasm's walls (x of the terrain per z and height)
 ##   --grid=<path>   writes the terrain and built heights on a 1 m grid over the rift as JSON
+##   a view's "lava_debug": true draws the lava's cooling, open lava and rafts as colour (lava.gdshader debug_view)
 ## Waits for the realm and the lava's second bank map, then shoots each view and quits.
 var main: Node
 var cam: Camera3D
@@ -80,6 +81,9 @@ func _next() -> void:
 		var hit := space.intersect_ray(PhysicsRayQueryParameters3D.create(p + Vector3.UP * 3.0, p + Vector3.DOWN * 40.0, Layers.WORLD))
 		if not hit.is_empty():
 			p.y = (hit.position as Vector3).y + 1.7
+	var lw := get_tree().get_first_node_in_group(&"lava_works")
+	if lw != null and lw.get("_mat") is ShaderMaterial:
+		(lw.get("_mat") as ShaderMaterial).set_shader_parameter("debug_view", 1 if v.get("lava_debug", false) else 0)
 	cam.fov = float(v.get("fov", 70.0))
 	cam.global_position = p
 	cam.look_at(_v3(v["t"]))
