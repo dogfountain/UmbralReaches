@@ -778,7 +778,7 @@ func _process(dt: float) -> void:
 	_scan_t -= dt
 	if _gc.size() != groups.size() or _scan_t <= 0.0 or cp.distance_squared_to(_scan_cp) > 25.0:
 		_scan_groups(cp)
-	elif _pre < _gr.size():               # a hidden group's fade walked ahead, one a frame: its first show then costs nothing
+	elif _pre < _gr.size() and get_tree().get_first_node_in_group(&"loading_screen") == null:   # a hidden group's fade walked ahead, one a frame
 		if is_instance_valid(groups[_pre]) and not (groups[_pre] as Node).has_meta(&"fade_set"):
 			_fade_group(groups[_pre], _gr[_pre] - FADE_PAD)
 		_pre += 1

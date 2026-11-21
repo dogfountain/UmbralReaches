@@ -3,18 +3,21 @@ extends Node
 ## (camps and villages perf pass, 21 Nov). EnemyAudio and Sfx loaded each take from disk on the main thread the first
 ## time it played: a fight's first seconds met a dozen of them (each kind's alert, wind-up, strike, hurt and steps on
 ## the ground it stands on, the hit materials), one to a few in a frame, as the fight started. Every take EnemyAudio can
-## pick (enemy_bank.gd lists them) and the top-level one-shots under art/audio are asked for at once and handed to the
-## two caches as they arrive, a share a frame; nothing waits on a load. QOA-compressed takes: ~10 MB for all of them.
-## Started by the encounters' staging (staging.gd); frees itself when done. Load by path (no class_name).
+## pick (enemy_bank.gd lists them) and the top-level one-shots under art/audio are asked for, IN_FLIGHT at a time, from
+## the moment the loading cover lifts (636 requests at once under the cover held the loader beside the warm-up's own loads:
+## the load ran seconds longer), and handed to the two caches as they arrive; nothing waits on a load. QOA-compressed takes:
+## ~10 MB for all of them. Started by the encounters' staging (staging.gd); frees itself when done. Load by path.
 
 const Bank := preload("res://core/vfx/enemy_bank.gd")
 const SELF := "res://core/vfx/audio_prefetch.gd"
 const ONE_SHOTS := "res://art/audio/"
-const PER_FRAME := 32                  ## arrivals looked at a frame
+const PER_FRAME := 16                  ## arrivals looked at a frame
+const IN_FLIGHT := 8                   ## requests the loader holds at once
 
 var _enemy := PackedStringArray()      ## for EnemyAudio
 var _sfx := PackedStringArray()        ## for Sfx
-var _i := 0
+var _i := 0                            ## the next to collect
+var _asked := 0                        ## requests made so far (in order)
 var _t0 := 0
 
 
@@ -61,15 +64,22 @@ func _ready() -> void:
 		# the top level only (its folders are the bank's and the wildlife's own), not the ambient beds (Ambience's)
 		if f.ends_with(".wav") and not f.begins_with("amb_"):
 			_sfx.append(ONE_SHOTS + f)
-	for p in _enemy + _sfx:
-		ResourceLoader.load_threaded_request(p, "", false, ResourceLoader.CACHE_MODE_REUSE)
+
+
+func _path(k: int) -> String:
+	return _enemy[k] if k < _enemy.size() else _sfx[k - _enemy.size()]
 
 
 func _process(_dt: float) -> void:
+	if get_tree().get_first_node_in_group(&"loading_screen") != null:
+		return                              # (after the cover: not beside the warm-up's own loads)
 	var n := _enemy.size() + _sfx.size()
+	while _asked < n and _asked - _i < IN_FLIGHT:
+		ResourceLoader.load_threaded_request(_path(_asked), "", false, ResourceLoader.CACHE_MODE_REUSE)
+		_asked += 1
 	var looked := 0
-	while _i < n and looked < PER_FRAME:
-		var p := _enemy[_i] if _i < _enemy.size() else _sfx[_i - _enemy.size()]
+	while _i < _asked and looked < PER_FRAME:
+		var p := _path(_i)
 		var st := ResourceLoader.load_threaded_get_status(p)
 		if st == ResourceLoader.THREAD_LOAD_IN_PROGRESS:
 			return                          # in order: wait for this one (the rest arrive meanwhile)

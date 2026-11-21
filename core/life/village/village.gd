@@ -459,8 +459,8 @@ func _phase_name() -> String:
 func _process(delta: float) -> void:
 	if not _ready_done:
 		return
-	# every walk's floor heights read ahead (village_nav.gd): most of it under the loading cover, a sliver a frame after
-	(nav as VNav).warm(4000 if get_tree().get_first_node_in_group(&"loading_screen") != null else 250)
+	# every walk's floor heights read ahead (village_nav.gd), a sliver a frame (4 ms a frame under the cover lengthened the load)
+	(nav as VNav).warm(300)
 	_park_step(delta)
 	var dt := delta * time_scale
 	if clock + dt >= CYCLE:
