@@ -171,14 +171,34 @@ func stair(width := 3.2) -> void:
 ## A low stone kerb along each side of the open trench, beyond the cut's edge: the ground beside a deep stair is lowered in a flank
 ## that slopes down to the stair's walls, and a walker who stepped onto it could not climb back out (zone fit: the Witch's Cellar).
 func kerb() -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash(Vector2(o.x, o.z))
 	var v := 3.0
-	while v < run - 1.5:
-		var mid := o + fwd * (v + 1.5)
+	while v < run - 1.9:
 		for s: float in [-1.0, 1.0]:
-			var c := mid + side * (s * kerb_l)
-			var gy := WK.h(c.x, c.z)
-			k.kit.box(wall, Vector3(c.x, gy + 0.15, c.z), Vector3(0.6, 1.9, 3.1), basis(), true, 0.9)
-		v += 3.0
+			# a dry-stone length 1.9 m long: two lower blocks, three upper ones with their joints over the lower blocks' middles, a cap
+			# slab over both, each length hugging the ground at its own middle, a little out of true in yaw and height
+			var jit := rng.randf_range(-0.06, 0.06)
+			var b := Basis(Vector3.UP, jit) * basis()
+			var mid := o + fwd * (v + 0.95) + side * (s * (kerb_l + rng.randf_range(-0.12, 0.12)))
+			var gy := WK.h(mid.x, mid.z)
+			var lens: Array[float] = [0.95, 0.9]
+			var at := -0.95
+			for i in 2:
+				var l: float = lens[i]
+				var c := mid + fwd * (at + l * 0.5 + 0.02)
+				k.kit.box("ruin_big", Vector3(c.x, gy + 0.025, c.z), Vector3(0.78, 1.25, l - 0.04), b, true, rng.randf_range(0.82, 1.0))
+				at += l
+			var uh := 0.5 + rng.randf_range(-0.08, 0.1)
+			var ulens: Array[float] = [0.5, 0.9, 0.5]
+			at = -0.95
+			for i in 3:
+				var l2: float = ulens[i]
+				var c2 := mid + fwd * (at + l2 * 0.5 + 0.02)
+				k.kit.box("ruin_big", Vector3(c2.x, gy + 0.65 + uh * 0.5, c2.z), Vector3(0.7, uh, l2 - 0.04), Basis(Vector3.UP, rng.randf_range(-0.05, 0.05)) * b, true, rng.randf_range(0.8, 1.0))
+				at += l2
+			k.kit.box("ruin_big", Vector3(mid.x, gy + 0.65 + uh + 0.1, mid.z), Vector3(0.9, 0.2, 1.96), Basis(Vector3.UP, rng.randf_range(-0.04, 0.04)) * b, true, 0.95)
+		v += 1.9
 
 
 ## The mouth's forecourt (zone fit): a paved apron flush with the stair's top, running out from it, and steps down to the ground where
