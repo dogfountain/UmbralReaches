@@ -13,13 +13,18 @@ arenas, smoke into the sky) and judge each place as a composed scene.
   from 60, 150 and 300 m. `--probe=file.tsv --rank=spots.json --out=dir --tag=before|after`; the after run reuses `spots_used_before.json` so the cameras are identical.
 
 ## Fixes at the source (build-time only, no per-frame work)
-- [x] `core/world/realm/ground_seat.gd`: seat a rigid piece on its footing (Footing base points), lowest standing point on the ground, never lifted unless buried
-  past 0.55 m; a piece whose origin is set above the ground on purpose (plinth, deck) is left alone.
-- [x] Lore and wayside stone models and rocks (`lore_kit.gd` prop / rock): seated. Wayside clutter (`wayside_build.gd`): one transform for all parts of a prop.
-- [x] Wonder kit props (`wonder_kit.gd prop / prop_xf`): the yards', squares', camps', halls' crates, barrels, benches.
-- [x] `prop_models.gd add` (whole models: lamps, benches, fingerposts, cairns, stones).
-- [x] Site dress (`site_dress.gd _put`): the footprint's four corners, lowest corner sits, ground falling over 0.7 m under it is refused (re-placed).
+- [x] `core/world/realm/ground_seat.gd`: seat a rigid piece on its lowest 8 cm of vertices (a round stone is not asked to touch with its side), never lifted unless
+  buried past 0.55 m; a piece whose origin is set above the ground on purpose (plinth, deck: more than 0.2 m over it) is left alone.
+- [x] Lore and wayside stone models and rocks (`lore_kit.gd` prop / rock); wayside clutter, one transform for all parts of a prop (`wayside_build.gd`).
+- [x] Wonder kit props (`wonder_kit.gd prop / prop_xf`: the yards', squares', camps', halls' crates, barrels, benches) and whole prop models (`prop_models.gd add`).
+- [x] Site dress (`site_dress.gd _put`): four footprint corners, the lowest sits, ground falling over 0.5 m under a prop is refused (re-placed).
 - [x] Settlement yards: the whole 7 m scene (fence rows) on its lowest ground; scenes on more than 0.55 m of fall are refused.
-- [x] Fallen logs and stumps (`flora_layers.gd`): seated on their footing after every test (the random stream is untouched).
-- [x] Thorn Henge's bramble wall (`henge_raid.gd`): the wall's foot carried down to the ground where the land falls away from the arena's level (up to 4.5 m of hanging thicket).
-- [ ] see the report for the rest.
+- [x] Fallen logs and stumps (`flora_layers.gd`): seated after every test (the random stream is untouched).
+- [x] Thorn Henge's bramble wall (`henge_raid.gd`): its foot carried down where the land falls away from the arena's level (up to 4.5 m of thicket hung in the air).
+- [x] `villager.gd` `_pose_chop`: a villager with no block anchor returned Vector3.INF and made 80 "cannot be normalized" warnings and 32 zero-basis errors per run.
+- [ ] Flora stones were tried and put back: seating them on the build-time ground buried 20% of them by the whole cap (their final ground is not the build grid).
+- [ ] Buildings' footing skirts (found_block.glb), per-segment fences in the kit walls, the Reedholm town bodies, the March Wall: not done (see the report).
+
+## Measured (zz/ground_probe.gd, same rules before and after; tools/ground_compare.py)
+The probe's float is dominated by props that stand on decks and walls, moss and glints that hang on purpose, so counts barely move: see the report's
+numbers for the slope and hover floats of small MultiMesh props (1314 -> 1298), and the shots, which are the proof.
