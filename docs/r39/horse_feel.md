@@ -29,4 +29,11 @@ Luke, 20 Nov: "Horse is janky." Evidence: `zz/horse_ride_cap` (the real Realm, t
 
 Draught and garron were run through the same capture (ride_after5/draught, garron): sprint, gentle turns and the pack under 4 cm camera jerk for all three breeds.
 
-Left: full-stick camera swings (240 degrees per second) through forest still pull the length in by up to a metre in a frame when the look-ahead sees a trunk too late (52-94 cm at 60 fps, about 10-15 cm at 144 fps); the pivot still enters a trunk the horse brushes within a few centimetres. Trunks are WORLD cylinders in the flora chunk bodies, so a layer for thin ones was not added: the existing thin-occluder ray test remains for the wanderer on foot.
+## Round 3: let the camera through trunks
+
+Pulling the boom in cannot win against a trunk that appears inside a frame, so on horseback it no longer tries for trunks.
+- The four bark materials (`art/materials/realm_foliage_bark_*.tres`) get StandardMaterial3D pixel-dither distance fade: invisible inside 0.9 m of the camera, opaque from 2.4 m (the foliage cards already had `near_fade` in `realm_foliage.gdshader`, 1.1 m, so those were left alone; no new passes, but the bark shader now has a discard).
+- `PlayerCamera._thin_trunk`: seven rays across +-0.5 m of the boom; if everything they meet is a cylinder collider under 1.2 m radius (the flora's trunks, read from the physics shape), the boom is not shortened (the look-ahead casts use the same test). Walls, buildings, terrain and giant trunks still shorten it through the damped spring and the look-ahead.
+- Everything new is gated on `player.riding`: on foot the boom length, the shoulder swing and the thin-occluder hold are the old code unchanged (checked by reading, not by capture).
+
+Result (`ride_after8`, palfrey and draught, 60 fps, real Realm): arm length jerk 0.00-0.16 cm in every segment (was 52-94 cm in the swings), lens inside a non-thin solid in 0 of 330 frames in left_sharp and right_sharp (the harness counts the lens in a cylinder under 1.2 m as fine), sprint 0.56, pack 0.78, walk to sprint 0.79 cm camera jerk. The 26 cm that remains in left_sharp and right_sharp is the full-stick onset itself (the harness presses the look stick from 0 to 1 in one frame: the view turns 3.97 degrees at once, 3.7 m of boom times 0.069 rad = 25.5 cm); it has no boom component (arm 0.00, shoulder 0.78).

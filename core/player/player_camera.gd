@@ -24,6 +24,7 @@ var _thin_q: PhysicsShapeQueryParameters3D
 var _thin_ray: PhysicsRayQueryParameters3D   ## reused by _thin_occluder (r35: five rays, no allocation each)
 var _sight_ray: PhysicsRayQueryParameters3D
 var _sight_hold := 0.0
+const THIN_TRUNK_R := 1.2                ## m: a trunk collider thinner than this never shortens the boom on horseback (its bark fades near the lens)
 const LEAD_T := 0.5                      ## s: how far ahead the boom looks (a find that far off counts for nothing yet)
 var dbg := Vector4.ZERO                  ## last frame: the cast reach, the look-ahead reach, the wanted length, the length drawn (zz/horse_ride_cap reads it)
 var _prev_yaw := 0.0
@@ -221,15 +222,18 @@ func _update_arm(delta: float) -> void:
 		var frac: PackedFloat32Array = space.cast_motion(q)
 		if frac.size() > 0:
 			reach = want * frac[0]
-		# on horseback no boom lets a trunk pass: a thing passed through is a thing the view then sits inside, and its release
-		# (the hold ending) cut the length in one frame; at a gallop everything is met fast, so it is eased in instead
-		var pass_thin := player.riding == null
-		if pass_thin and reach < want - 0.05 and _thin_occluder(player._arm.global_position, player._arm.global_basis.z.normalized(), want):
+		# on foot a post or pole is let pass for a beat (the hold); on horseback a thin trunk never counts at all (no hold to
+		# end and cut the length), and what does count is eased in by the look-ahead
+		var riding := player.riding != null
+		var pass_thin := not riding
+		if riding and reach < want - 0.05 and _thin_trunk(player._arm.global_position, player._arm.global_basis.z.normalized(), want):
+			reach = want                         # a thin trunk never shortens the boom on horseback: the bark dithers out near the lens
+		elif pass_thin and reach < want - 0.05 and _thin_occluder(player._arm.global_position, player._arm.global_basis.z.normalized(), want):
 			_thin_hold = 0.15                    # a post or a pole: let it pass, don't yank the view in
 		# a swinging view meets a trunk before the boom touches it: look where the boom will be a moment from now (by the
 		# turn's own rate) and start easing in for what is coming, so the length is never cut at the wall in one frame
 		hard_reach = reach
-		var lead := _lead_reach(space, q, want, delta, pass_thin)
+		var lead := _lead_reach(space, q, want, delta, pass_thin) if riding else want       # on foot the boom is as it was
 		_lead_keep = minf(move_toward(_lead_keep, want, delta * 3.0), lead)         # held, and let go of slowly: a look that finds the trunk and loses it again does not let the length out and cut it back
 		lead = _lead_keep
 		dbg.x = reach
@@ -245,8 +249,15 @@ func _update_arm(delta: float) -> void:
 				reach = want
 	reach = maxf(reach, 0.5)
 	hard_reach = maxf(want if _thin_hold > 0.0 else hard_reach, 0.5)
-	if reach < _cam_len:
-		# in: a critically damped spring (no first-frame step), quick; the hard clamp stays for a wall that is right there
+	if not (player.riding != null):
+		# on foot: as it always was (a quick first-order pull in clamped to the wall, a slow ease out)
+		if reach < _cam_len:
+			_cam_len = minf(lerpf(_cam_len, reach, 1.0 - exp(-28.0 * delta)), reach + 0.25)
+		else:
+			_cam_len = lerpf(_cam_len, reach, 1.0 - exp(-8.0 * delta))
+		_len_v = 0.0
+	elif reach < _cam_len:
+		# riding, in: a critically damped spring (no first-frame step); the hard clamp is the wall that is right there
 		var w := 12.0
 		var x := _cam_len - reach
 		var j := _len_v + w * x
@@ -273,6 +284,32 @@ func _update_arm(delta: float) -> void:
 			lift = maxf(0.0, from.distance_to(up_hit.position) - 0.35)
 	_rise = lerpf(_rise, lift, 1.0 - exp(-6.0 * delta))
 	player._cam.position = Vector3(0.0, _rise, _cam_len)
+
+
+## Seven rays across +-0.5 m of the boom: what they meet is thin trunks only (a cylinder collider under 1.2 m radius: the
+## flora's trunks) and nothing else. A wall, a building, the ground or a great trunk anywhere in the fan makes it false. The
+## camera may then sit in a thin trunk for a moment: its bark fades out within ~2 m of the lens
+## (art/materials/realm_foliage_bark_*), so nothing fills the view and the boom is not cut to it.
+func _thin_trunk(from: Vector3, dir: Vector3, want: float) -> bool:
+	if _thin_ray == null:
+		_thin_ray = PhysicsRayQueryParameters3D.create(Vector3.ZERO, Vector3.ONE, Layers.WORLD, _excl)
+	var space := player.get_world_3d().direct_space_state
+	var side := player._arm.global_basis.x.normalized()
+	for i in 7:
+		var a := from + side * lerpf(-0.5, 0.5, float(i) / 6.0)
+		_thin_ray.from = a
+		_thin_ray.to = a + dir * want
+		var hit := space.intersect_ray(_thin_ray)
+		if hit.is_empty():
+			continue
+		var srid := PhysicsServer3D.body_get_shape(hit.rid as RID, int(hit.shape))
+		if PhysicsServer3D.shape_get_type(srid) != PhysicsServer3D.SHAPE_CYLINDER:
+			return false
+		var d: Variant = PhysicsServer3D.shape_get_data(srid)
+		var r := float((d as Dictionary).get("radius", 9.0)) if d is Dictionary else (float((d as Vector2).x) if d is Vector2 else 9.0)
+		if r >= THIN_TRUNK_R:
+			return false
+	return true
 
 
 ## The shortest reach of the boom swung on by the view's own turn rate (five looks out to 0.45 s: a trunk is thinner than the gap between two). The sphere cast `q` is reused.
@@ -308,7 +345,7 @@ func _lead_reach(space: PhysicsDirectSpaceState3D, q: PhysicsShapeQueryParameter
 			# what is found t ahead counts for less the farther off it is: the target length slides in as the trunk comes
 			# on (a step the spring could only chase), the full amount when it is here
 			var r := want - (want - want * f[0]) * (1.0 - smoothstep(0.0, LEAD_T, float(lk[2])))
-			if r < best and not (pass_thin and _thin_occluder(at, d, want)):
+			if r < best and not ((pass_thin and _thin_occluder(at, d, want)) or (not pass_thin and _thin_trunk(at, d, want))):
 				best = r
 	q.transform = Transform3D(Basis.IDENTITY, piv)
 	return best
@@ -397,14 +434,17 @@ func _shoulder_tick(space: PhysicsDirectSpaceState3D, want: float, delta: float)
 		_sight_hold = 0.5                        # stays in a beat, so the edge of a stone does not flicker it
 	_sight_hold = maxf(0.0, _sight_hold - delta)
 	var k_want := 0.0 if _sight_hold > 0.0 else smoothstep(Player.SHOULDER_NEAR * 0.5, Player.SHOULDER_NEAR, reach)
-	# a critically damped spring, not a first-order lag: the lag begins at its full speed in one frame (the boom's first step was
-	# 13 cm), the spring builds up to it. On horseback the swing in behind the wanderer is slower: a gallop through trees flicked
-	# the boom across the horse.
-	var w := (6.0 if player.riding != null else 12.0) if k_want < player._shoulder_k else 3.5
-	var e := exp(-w * delta)
-	var x := player._shoulder_k - k_want
-	var j := _shoulder_v + w * x
-	_shoulder_v = (_shoulder_v - w * j * delta) * e
-	player._shoulder_k = clampf(k_want + (x + j * delta) * e, 0.0, 1.0)
+	if player.riding == null:
+		player._shoulder_k = lerpf(player._shoulder_k, k_want, 1.0 - exp(-(9.0 if k_want < player._shoulder_k else 2.5) * delta))      # on foot: as it was
+		_shoulder_v = 0.0
+	else:
+		# riding: a critically damped spring, not a first-order lag (the lag begins at its full speed in one frame: the boom's
+		# first step was 13 cm), and a slower swing in behind the wanderer: a gallop through trees flicked the boom across the horse
+		var w := 6.0 if k_want < player._shoulder_k else 3.5
+		var e := exp(-w * delta)
+		var x := player._shoulder_k - k_want
+		var j := _shoulder_v + w * x
+		_shoulder_v = (_shoulder_v - w * j * delta) * e
+		player._shoulder_k = clampf(k_want + (x + j * delta) * e, 0.0, 1.0)
 	player._arm.position.x = Player.SHOULDER * player._shoulder_k
 	player._cam.h_offset = 0.12 * player._shoulder_k           # the crosshair side follows the boom

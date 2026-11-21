@@ -329,7 +329,27 @@ func _sample() -> void:
 		s["rider"] = vis.global_position
 		var barrel := skel.global_transform * skel.get_bone_global_pose(skel.find_bone("barrel")).origin
 		s["rel"] = rig.global_basis.inverse() * (vis.global_position - barrel)
+	s["inside"] = _lens_inside()
 	_samples.append(s)
+
+
+## True when the lens sits in a solid that is not a thin trunk (cylinder under 1.2 m radius: it dithers away near the lens).
+func _lens_inside() -> bool:
+	var q := PhysicsShapeQueryParameters3D.new()
+	var sph := SphereShape3D.new()
+	sph.radius = 0.1
+	q.shape = sph
+	q.transform = Transform3D(Basis.IDENTITY, get_viewport().get_camera_3d().global_position)
+	q.collision_mask = Layers.WORLD
+	for hit: Dictionary in p.get_world_3d().direct_space_state.intersect_shape(q, 8):
+		var srid := PhysicsServer3D.body_get_shape(hit.rid as RID, int(hit.shape))
+		if PhysicsServer3D.shape_get_type(srid) == PhysicsServer3D.SHAPE_CYLINDER:
+			var d: Variant = PhysicsServer3D.shape_get_data(srid)
+			var r := float((d as Dictionary).get("radius", 9.0)) if d is Dictionary else (float((d as Vector2).x) if d is Vector2 else 9.0)
+			if r < 1.2:
+				continue
+		return true
+	return false
 
 
 func _report(label: String) -> void:
@@ -395,6 +415,11 @@ func _report(label: String) -> void:
 			var d4: Vector4 = (_samples[k] as Dictionary).dbg
 			seq2.append("reach %.2f lead %.2f want %.2f len %.2f" % [d4.x, d4.y, d4.z, d4.w])
 		print("HRIDE   arm jerk frame ", lj_i, " ", seq2)
+	var inside := 0
+	for sm: Dictionary in _samples:
+		if bool(sm.get("inside", false)):
+			inside += 1
+	print("HRIDE   lens inside a solid (not a thin trunk): %d of %d frames" % [inside, n])
 	print("HRIDE   boom jerk: arm length %.2f cm, shoulder %.2f cm, rise %.2f cm" % [lj * 100.0, sj * 100.0, rj2 * 100.0])
 	print("HRIDE %-16s n=%d speed_max=%.1f pivot_jerk=%.2fcm cam_jerk=%.2fcm cam_y_jerk=%.2fcm root_jerk=%.2fcm yaw_snap=%.0fdeg/s rider_vs_barrel_jump=%.2fcm cam_yaw_step=%.2fdeg" % [label, n, vmax, pj * 100.0, cj * 100.0, cy * 100.0, rj * 100.0, ys, rel * 100.0, cr])
 
