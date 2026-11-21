@@ -6,6 +6,7 @@ extends Node
 ##   godot --headless --path . res://zz/ground_probe.tscn -- --out=/path/probe.tsv
 const SeatP := preload("res://core/world/seat_props.gd")
 const Land := preload("res://core/world/realm/realm_land.gd")
+const Footing := preload("res://core/world/footing.gd")
 const SKIP_ROOTS := ["Wildlife", "NightLife", "Progression", "Wayfarers"]
 const FLORA_KEEP := ["stone", "log", "stump", "rock", "boulder", "slag", "rubble", "cairn", "mushroom"]
 const SKIP_NAMES := ["terrain", "water", "river", "lava", "sky", "ring", "mist", "fog", "cloud", "star", "moon", "plume", "beacon", "shaft", "ray", "decal", "glow", "ripple", "foam", "fall"]
@@ -169,9 +170,15 @@ func _measure_mm(mmi: MultiMeshInstance3D) -> void:
 	if cnt > 6000:
 		step = ceili(float(cnt) / 6000.0)
 	var gx := mmi.global_transform
+	var feet := Footing.base_points(mm.mesh)          # the mesh's own lowest vertices: the footing as modelled, not the box round it
 	for i in range(0, cnt, step):
 		var xf := gx * mm.get_instance_transform(i)
-		_item(xf, bb, kind, sysn, flora, mmi, "mm%d" % i, PackedVector3Array())
+		var base := PackedVector3Array()
+		if feet.size() >= 3 and not flora:
+			var stp := maxi(1, feet.size() / 10)
+			for k in range(0, feet.size(), stp):
+				base.append(xf * feet[k])
+		_item(xf, bb, kind, sysn, flora, mmi, "mm%d" % i, base)
 
 
 func _measure_mi(mi: MeshInstance3D) -> void:
