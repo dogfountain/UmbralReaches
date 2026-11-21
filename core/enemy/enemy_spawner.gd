@@ -10,6 +10,7 @@ const HAVEN := Vector3(-3.4, 0.0, -8.5) + Endgame.O       ## the Crossing fire's
 const HAVEN_R := 12.0
 
 const ReachCamps := preload("res://core/enemy/realm_camps_reaches.gd")
+const Staging := preload("res://core/life/encounters/staging.gd")
 
 ## Camps of the redesigned zone (docs/REALM_PLAN.md, RealmLayout). r28: five camps that the sites
 ## had swallowed (skipped at plant: "inside site barrow_92_-65", "fen_graves_55_22", "barrow_89_-50",
@@ -579,6 +580,8 @@ func _process(delta: float) -> void:
 			# freed (killed and dissolved): `pawn is Enemy` on a freed object is a script error
 			if not slot.get("sealed_dead", false) and not slot.pending:
 				_schedule(slot, _respawn_delay(slot))
+			elif slot.pending and not is_instance_valid(slot.get("ready")) and Staging.claim(self):
+				_prebuild(slot)
 			_cursor += 1
 			continue
 		if player == null or not (pawn is Enemy):
@@ -666,7 +669,29 @@ func _in_sight(at: Vector3) -> bool:
 	return cam.global_position.distance_to(at) < UNSEEN_R and cam.is_position_in_frustum(at + Vector3.UP)
 
 
+## The pawn a dead slot's respawn will raise, built now, unseen (Staging.stage: asleep, hidden, no collision, out of the
+## foes' group), on a frame with room (Staging.claim): the respawn (or a rest's refill) only shows it. It was built in the
+## frame it rose (1.4-7 ms warm).
+func _prebuild(slot: Dictionary) -> void:
+	var pawn := _make_pawn(slot)
+	if pawn is Enemy:
+		Staging.stage(pawn as Enemy)
+		slot["ready"] = pawn
+	elif pawn != null:
+		pawn.queue_free()
+
+
 func _spawn(slot: Dictionary) -> void:
+	var ahead: Variant = slot.get("ready")
+	slot.erase("ready")
+	var pawn: Node = ahead as Node if is_instance_valid(ahead) else _make_pawn(slot)
+	if pawn is Enemy and Staging.waiting(pawn as Enemy):
+		Staging.rise(pawn as Enemy)
+	if pawn != null:
+		slot.pawn = pawn
+
+
+func _make_pawn(slot: Dictionary) -> Node:
 	var kind: GDScript = slot.kind
 	if kind_hook.is_valid():
 		var swap: Variant = kind_hook.call(slot)
@@ -675,10 +700,10 @@ func _spawn(slot: Dictionary) -> void:
 	if kind == null:
 		kind = _scripts.get("wretch")
 	if kind == null:
-		return
+		return null
 	var host := get_parent()
 	if host == null:
-		return
+		return null
 	var pawn: Node = kind.new()
 	var look := String(slot.get("variant", ""))
 	if dress_hook.is_valid():
@@ -696,7 +721,7 @@ func _spawn(slot: Dictionary) -> void:
 		en.patrol.assign(slot.patrol)
 		en.roam = true
 		en.patrol_speed = PATROL_PACE
-	slot.pawn = pawn
+	return pawn
 
 
 ## --- encounters additions -----------------------------------------------------------------------
