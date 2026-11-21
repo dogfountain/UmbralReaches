@@ -7,6 +7,7 @@ extends RefCounted
 ## stones and the site props' clutter are merged by material too. Writings, boxes and glide perches stay nodes.
 ## Load by path: const Build := preload("res://core/world/realm/wayside_build.gd")
 
+const GroundSeat := preload("res://core/world/realm/ground_seat.gd")
 const LK := preload("res://core/world/realm/lore/lore_kit.gd")
 const Props := preload("res://core/world/realm/site_props.gd")
 const RockKit := preload("res://core/world/realm/rock_kit.gd")
@@ -57,9 +58,15 @@ static func build(parent: Node3D, name: String, vs: Array, space: PhysicsDirectS
 		if d.is_empty():
 			continue
 		var parts: Array = (d.variants as Array)[0] if d.has("variants") else [{"mesh": d.mesh, "mat": d.mat}]
+		var meshes: Array = []
 		for part: Dictionary in parts:
-			for xf: Transform3D in clutter[key]:
-				_merge(by_mat, part.mesh as Mesh, xf, false, part.mat as Material)
+			meshes.append(part.mesh)
+		var fpts := GroundSeat.parts_points("wc:" + key, meshes)
+		var gfn := GroundSeat.fast_fn()
+		for xf: Transform3D in clutter[key]:
+			var sxf := GroundSeat.seat_pts(gfn, fpts, xf, 0.5)      # the prop's footing on the ground, one transform for all its parts
+			for part: Dictionary in parts:
+				_merge(by_mat, part.mesh as Mesh, sxf, false, part.mat as Material)
 	var n := 0
 	for m: Material in by_mat:
 		var mi := MeshInstance3D.new()

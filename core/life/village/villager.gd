@@ -1304,9 +1304,8 @@ func _pose_chop(k: float) -> void:
 	var r := rig
 	var cyc := fposmod(act_t, 1.7) / 1.7
 	var block := _m(village.call("anchor", "@block_" + id)) + Vector3.UP * 0.05
-	var tips: Array = r.tips
-	var grips: Array = r.grip
-	var reach_v: Vector3 = (tips[0] as Vector3) - (grips[0] as Vector3)
+	if not block.is_finite(): return                  # no block anchor: Vector3.INF made every vector below non-finite
+	var reach_v: Vector3 = ((r.tips as Array)[0] as Vector3) - ((r.grip as Array)[0] as Vector3)
 	var hit_d := (Vector3(block.x, 0, block.z).normalized() + Vector3.DOWN * 0.55).normalized()
 	var hit_g := block - hit_d * reach_v.length()
 	var up_g := Vector3(0.06, 1.42, -0.02) * k

@@ -9,6 +9,7 @@ extends RefCounted
 ## MultiMesh per (zone, kind), no collision, visibility range with fade. Meshes: site_props.gd.
 ##   godot --path . -- --realm-modules=...,dress   (it needs the village for the lanes)
 
+const Footing := preload("res://core/world/footing.gd")
 const Props := preload("res://core/world/realm/site_props.gd")
 const ScalePilot := preload("res://core/world/realm/scale_pilot.gd")
 const Zones := preload("res://core/world/realm/dress_zones.gd")
@@ -220,6 +221,23 @@ static func _put(kind: String, p: Vector2, yaw: float, scale := 1.0, lift := 0.0
 		return false                                   # the fen's water line
 	if lift == 0.0 and kind not in FLAT and _blocked(Vector3(p.x, y, p.y), rad, kind.begins_with("stall")):
 		return false
+	# the ground under the whole footprint, not the one ray at its middle: it sits on its lowest corner (the high side buried), and
+	# ground that falls more than 0.5 m under it is no place for a stall or a crate (re-placed: the caller tries another spot)
+	var drop := 0.0
+	if kind not in FLAT and lift == 0.0:
+		var ex := Vector2(cos(yaw), -sin(yaw)) * rad * 0.75
+		var ez := Vector2(sin(yaw), cos(yaw)) * rad * 0.75
+		var lo := y
+		var hi := y
+		for sx: float in [-1.0, 1.0]:
+			for sz: float in [-1.0, 1.0]:
+				var q := p + ex * sx + ez * sz
+				var gq := Footing.terrain_y(_space, q.x, q.y, y)
+				lo = minf(lo, gq)
+				hi = maxf(hi, gq)
+		if hi - lo > 0.5:
+			return false
+		drop = lo - y
 	var bas := Basis(Vector3.UP, yaw)
 	if kind in FLAT or kind in SMALL:
 		bas = Basis(Quaternion(Vector3.UP, nrm.lerp(Vector3.UP, 0.3).normalized())) * bas
@@ -236,7 +254,7 @@ static func _put(kind: String, p: Vector2, yaw: float, scale := 1.0, lift := 0.0
 		col = Color(v * _rng.randf_range(0.9, 1.1), v, v * 0.9, 1.0)
 	if not _out.has(kind):
 		_out[kind] = []
-	(_out[kind] as Array).append([Transform3D(bas.scaled(Vector3.ONE * scale), Vector3(p.x, y + sink + lift, p.y)), col])
+	(_out[kind] as Array).append([Transform3D(bas.scaled(Vector3.ONE * scale), Vector3(p.x, y + drop + sink + lift, p.y)), col])
 	if lift == 0.0:
 		_made.append([p, rad])
 	return true

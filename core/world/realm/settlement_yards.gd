@@ -48,7 +48,7 @@ func _run(root: Node) -> void:
 			var p := c + Vector2(cos(a), sin(a)) * lerpf(inner, 0.95, sqrt(rng.randf())) * r
 			if not _open(space, q, p, made):
 				continue
-			var g := WK.h(p.x, p.y)
+			var g := WK.span(p, Vector2(3.4, 3.4), 0.0).x      # the scene stands on its lowest ground (the high side buried, nothing in the air)
 			var kind := String(KINDS[(n + tries) % KINDS.size()])
 			if kind == "grave" and p.distance_to(c) < r * 0.6:
 				kind = "garden"
@@ -80,8 +80,8 @@ func _open(space: PhysicsDirectSpaceState3D, q: PhysicsShapeQueryParameters3D, p
 	var hit := space.intersect_ray(PhysicsRayQueryParameters3D.create(Vector3(p.x, 60.0, p.y), Vector3(p.x, -20.0, p.y), Layers.WORLD))
 	if hit.is_empty() or absf((hit.position as Vector3).y - WK.h(p.x, p.y)) > 0.6:
 		return false
-	var span := WK.span(p, Vector2(2.0, 2.0), 0.0)
-	if span.x == INF or span.y - span.x > 0.7:
+	var span := WK.span(p, Vector2(3.4, 3.4), 0.0)       # the whole scene (a fence row runs 3 m each way), not its middle 4 m
+	if span.x == INF or span.y - span.x > 0.55:
 		return false
 	for st: Dictionary in WorldLanes.sites:
 		# a yard keeps 6 m off every building's site: a door's approach lies in that strip, and a fence stood 3.4 m out of the tithe

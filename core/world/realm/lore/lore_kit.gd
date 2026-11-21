@@ -10,6 +10,7 @@ const LoreDB := preload("res://core/world/realm/lore_db.gd")
 const LoreIndex := preload("res://core/world/realm/lore/lore_index.gd")
 const LA := preload("res://core/world/realm/lore/lore_assets.gd")
 const StoneProps := preload("res://core/world/realm/lore/stone_props.gd")
+const GroundSeat := preload("res://core/world/realm/ground_seat.gd")
 const PlacementLog := preload("res://core/world/realm/placement_log.gd")
 const T := "res://art/textures/"
 const KIT_PATH := "res://core/world/realm/lore/lore_kit.gd"
@@ -456,6 +457,7 @@ func finish() -> int:
 ## TextPoint in world space (the inscription's floor), or `xf.origin` for a model without one.
 func prop(file: String, xf: Transform3D, collide := true) -> Vector3:
 	var d := StoneProps.info(file)
+	xf = GroundSeat.seat_file(GroundSeat.fast_fn(), file, xf, 0.7)      # the model's footing on the ground, not one sample of it
 	_props.append([file, xf])
 	if collide and not (d.points as PackedVector3Array).is_empty():
 		var pts := PackedVector3Array()
@@ -533,6 +535,7 @@ static func style_of(key: String) -> String:
 
 ## Queue a RockKit mesh instance (drawn as one MultiMesh per mesh at finish; convex collision).
 func rock(mesh: Mesh, xf: Transform3D, collide := false) -> void:
+	xf = GroundSeat.seat_mesh(GroundSeat.fast_fn(), mesh, xf, 0.7)      # the stone's lowest points on the ground (a rise buries its high side)
 	if not _rocks.has(mesh):
 		_rocks[mesh] = []
 	(_rocks[mesh] as Array).append([xf, collide])
