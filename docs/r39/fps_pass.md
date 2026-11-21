@@ -175,6 +175,22 @@ with no script error (playable at 15.3 s).
 - [x] harness: the tour waits for the post-build pass (the loading screen does), `--casters`, `--why-under`, the census
       skips freed nodes (fc3dd2dd, e80b7181)
 
+### Round two (lead, 20-21 Nov)
+
+- [x] F14 people's shadow proxies keep the body's range (7e248f3e): unranged, they cast the shadows of people nobody sees
+      out to the moon's shadow distance (and frozen ones past 150 m, where people are not posed)
+- [x] F15 the proxies carry the body's deeper LODs at the same edge lengths (a319dc9d): the shadow pass picks a LOD by
+      distance, so a far proxy drew its whole 40 % where the body had drawn a tenth: with proxies the spawn's shadow pass
+      had 30k more triangles than without (A/B `noproxy`, 688k against 719k)
+- [x] F16 the hotbar's slots (122ea019): a slot bakes again when what it shows changes (the names' fade in 1 % steps),
+      and the half-second catch-all looks at one slot a frame: every slot baked on one frame twice a second (a burst of
+      SubViewport passes, the 2 Hz pattern F5 removed), and the names' fade baked every slot every frame
+- [x] F17 the quest trail's mesh queries on a worker thread (1fc77b1c): NavigationServer3D.query_path blocks the main
+      thread, 3.6-4 ms for a 28 m leg on every rebuild (every 1.5 s while the wanderer is off the route) and 23 ms for a
+      16 m leg round the spindle's stair: the path's 35-45 ms frame there, in the baseline too
+- [x] harness (9878f8e7): `--probe` renumbers each node once (a subtree split into units was renumbered twice and its
+      time showed as nobody's), the autoloads and Main are units, the head and tail gaps of both passes are reported
+
 ## Not done, and why
 
 - **The rest of the HUD**: the minimap's marks (~70 draws: they turn with the camera), the compass's marks, the waypoint,
@@ -187,3 +203,9 @@ with no script error (playable at 15.3 s).
 - **The settle frames**: right after the load (under the cover in play) Progression (62 ms), Encounters (26 ms) and
   Wildlife (21 ms at ~2 s) still have one heavy frame each; the probe names the subtree, not the line, and they are hidden
   by the loading screen in play. F6/F7 bound the camera-jump builds.
+- **Encounters on the path**: 10-15 ms script frames remain as the path passes camps (`--probe-ms=12`: 53, 56, 75 s);
+  F6's one build a tick bounds them.
+- **The Thornwarden's staged first draw** (`BossArena._stage_draw`, by the glade): 76-136 ms frames compiling two
+  pipelines ("PSO spec+2") in 4 of tonight's 10 path runs, none in the baseline's or the after set's: they began after the
+  scratch cleanup cleared the runs' HOME (its shader and pipeline caches). A player with a cold cache meets it once at
+  the henge; the boss warm-up is not this pass's.
